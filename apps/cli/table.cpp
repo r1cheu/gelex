@@ -34,7 +34,7 @@ namespace cli
 namespace
 {
 
-constexpr std::string_view INDENT = "  ";
+constexpr std::string_view INDENT = "   ";
 constexpr std::string_view GAP = "   ";
 
 auto display_width(std::string_view s) -> size_t

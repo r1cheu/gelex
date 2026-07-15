@@ -29,6 +29,7 @@
 #include <type_traits>
 #include <variant>
 
+#include "gelex/algo/mcmc/result.h"
 #include "gelex/bayes/genetic/prior.h"
 #include "gelex/bayes/labels.h"
 #include "gelex/bayes/model.h"
@@ -36,11 +37,13 @@
 #include "gelex/bayes/prior.h"
 #include "gelex/bayes/state.h"
 #include "gelex/infra/logging/fit_event.h"
+#include "gelex/infra/stats/result.h"
 #include "gelex/types/genetic_mode.h"
 
 #include "cli/formatter.h"
 #include "cli/progress_bar.h"
 #include "cli/report_printer.h"
+#include "cli/table.h"
 
 namespace cli
 {
@@ -123,12 +126,17 @@ auto McmcReporter::show_dataset_summary(
     p.line(cli::field("Covariates", "{}", model.fixed().X.cols()));
 }
 
-auto McmcReporter::show_prior(const gelex::bayes::BayesPrior& prior) -> void
+auto McmcReporter::show_prior(
+    const gelex::bayes::BayesPrior& prior,
+    const gelex::BayesModel& model) -> void
 {
     prior_ = &prior;
 
     cli::printer().block(cli::section("Prior Configuration:"));
-    print_random_prior(prior.random());
+    if (!model.random().empty())
+    {
+        print_random_prior(prior.random());
+    }
     for (const auto& genetic : prior.genetics())
     {
         print_genetic_prior(genetic);
@@ -397,10 +405,101 @@ auto McmcReporter::on_event(const gelex::MCMCProgressEvent& event) -> void
     }
 }
 
-auto McmcReporter::show_complete(std::ptrdiff_t samples_collected) -> void
+namespace
 {
-    cli::printer().block(cli::section("MCMC Complete:"));
-    cli::printer().line("  {:<12}: {}", "Samples", samples_collected);
+auto effect_of(std::string_view path) -> std::string_view
+{
+    std::size_t start = 0;
+    while (start < path.size())
+    {
+        const auto end = path.find('/', start);
+        const auto segment = end == std::string_view::npos
+                                 ? path.substr(start)
+                                 : path.substr(start, end - start);
+        if (segment == "A" || segment == "D")
+        {
+            return segment;
+        }
+        if (end == std::string_view::npos)
+        {
+            break;
+        }
+        start = end + 1;
+    }
+    return "-";
+}
+}  // namespace
+
+auto McmcReporter::show_summary(const gelex::Result& result) -> void
+{
+    auto& p = cli::printer();
+    p.block(cli::section("MCMC Summary:"));
+    p.line("   Draws: {}", result.samples_collected());
+
+    // Variance-scale parameters (σ², σ²_marker, σ²_e) span orders of magnitude,
+    // so scientific notation avoids truncating tiny per-marker variances; the
+    // bounded ratios (h²/δ², π, p_s) read best as fixed-point. Splitting keeps
+    // each column single-scale and aligned. Classification is by report label:
+    // variance labels alone start with "σ²".
+    auto make_table = []
+    {
+        Table t;
+        t.column("Parameter", Align::left);
+        t.column("Effect", Align::right);
+        t.column("Estimate", Align::right);
+        t.column("SE", Align::right);
+        return t;
+    };
+    Table variances = make_table();
+    Table ratios = make_table();
+    bool has_variance = false;
+    bool has_ratio = false;
+
+    for (const auto& record : result.records())
+    {
+        if (!std::holds_alternative<gelex::RunningStatsResult>(record.value)
+            || !record.names
+            || std::string_view{record.path}.ends_with("/coeffs"))
+        {
+            continue;
+        }
+        const auto& stats = std::get<gelex::RunningStatsResult>(record.value);
+        const auto effect = std::string{effect_of(record.path)};
+        for (const auto [i, name] : std::views::enumerate(*record.names))
+        {
+            if (std::string_view{name}.starts_with("σ²"))
+            {
+                variances.row(
+                    {name,
+                     effect,
+                     fmt::format("{:.3e}", stats.mean(i)),
+                     fmt::format("{:.3e}", stats.stddev(i))});
+                has_variance = true;
+            }
+            else
+            {
+                ratios.row(
+                    {name,
+                     effect,
+                     fmt::format("{:.4f}", stats.mean(i)),
+                     fmt::format("{:.4f}", stats.stddev(i))});
+                has_ratio = true;
+            }
+        }
+    }
+
+    if (has_variance)
+    {
+        p.ensure_blank();
+        p.line("   Variance components:");
+        p.line(variances.render());
+    }
+    if (has_ratio)
+    {
+        p.ensure_blank();
+        p.line("   Ratios & probabilities:");
+        p.line(ratios.render());
+    }
 }
 
 auto McmcReporter::on_event(const gelex::MCMCCheckpointSavedEvent& /*event*/)

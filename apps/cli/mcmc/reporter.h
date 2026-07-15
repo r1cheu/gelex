@@ -40,6 +40,7 @@ class ScaledInvChiSqPrior;
 }  // namespace bayes
 
 class BayesModel;
+class Result;
 }  // namespace gelex
 
 namespace cli
@@ -79,8 +80,10 @@ class McmcReporter
     auto show_dataset_summary(
         const gelex::BayesModel& model,
         std::string_view pheno_name) -> void;
-    auto show_prior(const gelex::bayes::BayesPrior& prior) -> void;
-    auto show_complete(std::ptrdiff_t samples_collected) -> void;
+    auto show_prior(
+        const gelex::bayes::BayesPrior& prior,
+        const gelex::BayesModel& model) -> void;
+    auto show_summary(const gelex::Result& result) -> void;
     auto on_event(const gelex::MCMCProgressEvent& event) -> void;
     auto on_event(const gelex::MCMCCheckpointSavedEvent& event) -> void;
 

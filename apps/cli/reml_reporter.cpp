@@ -70,7 +70,7 @@ auto RemlReporter::on_event(const gelex::RemlIterationEvent& e) -> void
     std::string rel_sigma = "-";
     if (has_prev_)
     {
-        delta_loglike = fmt::format("{:.3g}", e.loglike - prev_loglike_);
+        delta_loglike = fmt::format("{:.2e}", e.loglike - prev_loglike_);
         Eigen::Map<const Eigen::VectorXd> cur(
             e.variances.data(), static_cast<Eigen::Index>(e.variances.size()));
         Eigen::Map<const Eigen::VectorXd> prev(
@@ -149,18 +149,18 @@ auto RemlReporter::show_result(
     {
         t.row(
             {r.name,
-             fmt::format("{:.3f}", r.variance),
-             fmt::format("{:.3f}", r.variance_se),
-             fmt::format("{:.3f}", r.variance_ratio),
-             fmt::format("{:.3f}", r.variance_ratio_se),
+             fmt::format("{:.3e}", r.variance),
+             fmt::format("{:.3e}", r.variance_se),
+             fmt::format("{:.4f}", r.variance_ratio),
+             fmt::format("{:.4f}", r.variance_ratio_se),
              fmt::format(
                  "{:.3g}",
                  gelex::wald_p_onesided(r.variance / r.variance_se))});
     }
     t.row(
         {"Residual",
-         fmt::format("{:.3f}", summary.residual_variance),
-         fmt::format("{:.3f}", summary.residual_variance_se),
+         fmt::format("{:.3e}", summary.residual_variance),
+         fmt::format("{:.3e}", summary.residual_variance_se),
          "-",
          "-",
          "-"});
@@ -168,7 +168,7 @@ auto RemlReporter::show_result(
 
     p.ensure_blank();
     p.line(
-        "  logL {:.2f}      AIC {:.2f}      BIC {:.2f}",
+        "   logL {:.2f}      AIC {:.2f}      BIC {:.2f}",
         summary.loglike,
         gelex::compute_aic(model, summary.loglike),
         gelex::compute_bic(model, summary.loglike));

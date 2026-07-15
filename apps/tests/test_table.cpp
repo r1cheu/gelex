@@ -67,10 +67,10 @@ TEST_CASE(
     t.row({"2", "-9.25"});
 
     // Chr width = max(3, 1) = 3; LogL width = max(4, 5) = 5.
-    std::string expected = "  Chr    LogL\n";
-    expected += "  " + repeat("─", 11) + "\n";
-    expected += "    1   -10.5\n";
-    expected += "    2   -9.25";
+    std::string expected = "   Chr    LogL\n";
+    expected += "   " + repeat("─", 11) + "\n";
+    expected += "     1   -10.5\n";
+    expected += "     2   -9.25";
 
     REQUIRE(t.render() == expected);
 }
@@ -84,10 +84,10 @@ TEST_CASE("Table left-aligns and drops trailing padding", "[cli][table]")
     t.row({"Residual", "0.000"});
 
     // Component width = max(9, 3, 8) = 9; Estimate width = max(8, 6, 5) = 8.
-    std::string expected = "  Component   Estimate\n";
-    expected += "  " + repeat("─", 20) + "\n";
-    expected += "  add" + repeat(" ", 11) + "44.446\n";
-    expected += "  Residual" + repeat(" ", 7) + "0.000";
+    std::string expected = "   Component   Estimate\n";
+    expected += "   " + repeat("─", 20) + "\n";
+    expected += "   add" + repeat(" ", 11) + "44.446\n";
+    expected += "   Residual" + repeat(" ", 7) + "0.000";
 
     REQUIRE(t.render() == expected);
 }
@@ -102,12 +102,12 @@ TEST_CASE("Table rule() spans the full table width", "[cli][table]")
     t.row({"Mean", "-9.9"});
 
     // "Mean" widens the Chr column to 4; LogL stays 5.
-    std::string rule = "  " + repeat("─", 12);
-    std::string expected = "   Chr    LogL\n";
+    std::string rule = "   " + repeat("─", 12);
+    std::string expected = "    Chr    LogL\n";
     expected += rule + "\n";
-    expected += repeat(" ", 5) + "1   -10.5\n";
+    expected += repeat(" ", 6) + "1   -10.5\n";
     expected += rule + "\n";
-    expected += "  Mean    -9.9";
+    expected += "   Mean    -9.9";
 
     REQUIRE(t.render() == expected);
 }
@@ -126,9 +126,9 @@ TEST_CASE(
     std::string header = out.substr(0, newline);
     std::string data = out.substr(out.find_last_of('\n') + 1);
 
-    // Column width = max("V"=1, "AB"=2) = 2, so both rows align to width 4.
-    REQUIRE(strip_ansi(header).size() == 4);
-    REQUIRE(strip_ansi(data).size() == 4);
+    // Column width = max("V"=1, "AB"=2) = 2, so both rows align to width 5.
+    REQUIRE(strip_ansi(header).size() == 5);
+    REQUIRE(strip_ansi(data).size() == 5);
 }
 
 TEST_CASE(
@@ -142,10 +142,10 @@ TEST_CASE(
 
     std::string header = t.stream_header();
     // Widths: 4, 10, 16 (label wider than min). Separator inner = 4+10+16+6=36.
-    std::string expected_header = "  Iter         LogL   V(2839.test.add)\n";
-    expected_header += "  " + repeat("─", 36);
+    std::string expected_header = "   Iter         LogL   V(2839.test.add)\n";
+    expected_header += "   " + repeat("─", 36);
     REQUIRE(header == expected_header);
 
     std::vector<std::string> cells{"1", "-8471.45", "32.03"};
-    REQUIRE(t.stream_row(cells) == "     1     -8471.45              32.03");
+    REQUIRE(t.stream_row(cells) == "      1     -8471.45              32.03");
 }

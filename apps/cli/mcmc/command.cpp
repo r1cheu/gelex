@@ -151,7 +151,7 @@ auto mcmc_execute(const cli::McmcConfig& config) -> int
     reporter.show_dataset_summary(model, data.pheno_name);
     auto prior = bayes_recipe.make_prior(model);
 
-    reporter.show_prior(prior);
+    reporter.show_prior(prior, model);
     auto result = [&]() -> gelex::Result
     {
         if (config.from_ckpt)
@@ -161,7 +161,7 @@ auto mcmc_execute(const cli::McmcConfig& config) -> int
         }
         return solver.run(model, prior, config.seed, reporter.as_observer());
     }();
-    reporter.show_complete(result.samples_collected());
+    reporter.show_summary(result);
     gelex::write_params(result, config.out);
     gelex::write_summary(result, config.out);
     gelex::write_snp_eff(result, model, config.bfile + ".bim", config.out);
