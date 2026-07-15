@@ -1,10 +1,6 @@
 """Python bindings for the gelex C++ library"""
 
 import enum
-from typing import Annotated
-
-import numpy
-from numpy.typing import NDArray
 
 
 class GeneticMode(enum.Enum):
@@ -117,20 +113,3 @@ class LocusEncoding:
 
     @property
     def valid(self) -> bool: ...
-
-class LociEncoding:
-    @property
-    def spec(self) -> EncodingSpec: ...
-
-    @property
-    def loci(self) -> list[LocusEncoding]: ...
-
-def encode_inplace(genotypes: Annotated[NDArray[numpy.float64], dict(shape=(None, None))], effect: GeneticMode, method: GenotypeMethod, tol: float = 1e-12, marker_offset: int = 0) -> LociEncoding:
-    """
-    Encode a genotype matrix in place and return its LociEncoding.
-
-    genotypes must be a writable float64 NumPy array in column-major
-    (order='F') layout with shape (n_samples, n_markers); raw genotypes
-    are 0/1/2 with NaN for missing. The array is modified in place (no
-    copy); any other dtype/layout raises a TypeError.
-    """

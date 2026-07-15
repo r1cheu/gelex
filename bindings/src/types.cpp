@@ -75,10 +75,6 @@ void register_types(nb::module_& m)
         .def_ro("sd", &LocusEncoding::sd)
         .def_ro("missing_encoded_value", &LocusEncoding::missing_encoded_value)
         .def_ro("valid", &LocusEncoding::valid);
-
-    nb::class_<LociEncoding>(m, "LociEncoding")
-        .def_ro("spec", &LociEncoding::spec)
-        .def_ro("loci", &LociEncoding::loci);
 }
 
 }  // namespace gelex_py
