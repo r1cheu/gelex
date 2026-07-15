@@ -30,6 +30,8 @@
 namespace gelex
 {
 
+class LocusEncoder;
+
 struct TestResult
 {
     std::span<const double> beta;
@@ -60,11 +62,13 @@ class AssocTester
     virtual auto resize(Eigen::Index n_samples, Eigen::Index chunk_size) -> void
         = 0;
 
-    [[nodiscard]] virtual auto genotype_buffer()
-        -> Eigen::Ref<Eigen::MatrixXd> = 0;
-
-    [[nodiscard]] virtual auto run(const GwasOperators& reml) -> TestResults
-        = 0;
+    // Fuses the chunk [start, start + chunk_size) straight from its packed form
+    // via encoder, then tests. chunk_size is the width fixed by the last
+    // resize.
+    [[nodiscard]] virtual auto run(
+        const LocusEncoder& encoder,
+        Eigen::Index start,
+        const GwasOperators& reml) -> TestResults = 0;
 
     [[nodiscard]] static auto make(
         AssocType type,

@@ -24,8 +24,11 @@
 
 #include "gelex/algo/gwas/assoc_tester.h"
 #include "gelex/algo/reml/operators.h"
+#include "gelex/data/encode/encoder.h"
+#include "gelex/data/encode/spec.h"
+#include "gelex/data/encode/stats.h"
+#include "gelex/data/encode/types.h"
 #include "gelex/data/genotype_method.h"
-#include "gelex/data/locus_encoding.h"
 #include "gelex/infra/stats/detail/var.h"
 #include "gelex/types/genetic_mode.h"
 
@@ -46,32 +49,21 @@ auto SingleTester::resize(Eigen::Index n_samples, Eigen::Index chunk_size)
     output_.resize(chunk_size);
 }
 
-auto SingleTester::genotype_buffer() -> Eigen::Ref<Eigen::MatrixXd>
+auto SingleTester::run(
+    const LocusEncoder& encoder,
+    Eigen::Index start,
+    const GwasOperators& reml) -> TestResults
 {
-    return Z_;
-}
+    const Eigen::Index cols = Z_.cols();
+    const EncodingSpec spec{encoding_spec_from_method(mode_, method_)};
 
-auto SingleTester::run(const GwasOperators& reml) -> TestResults
-{
-    if (mode_ == GeneticMode::A)
+#pragma omp parallel for schedule(static)
+    for (Eigen::Index c = 0; c < cols; ++c)
     {
-        const LociEncoding encoding{
-            encode_inplace<double>(Z_, GeneticMode::A, method_)};
-        for (const LocusEncoding& locus : encoding.loci)
-        {
-            freqs_(locus.column_index)
-                = locus.stats.has_nonmissing() ? locus.stats.A1freq() : 0.0;
-        }
-    }
-    else
-    {
-        const LociEncoding encoding{
-            encode_inplace<double>(Z_, GeneticMode::D, method_)};
-        for (const LocusEncoding& locus : encoding.loci)
-        {
-            freqs_(locus.column_index)
-                = locus.stats.has_nonmissing() ? locus.stats.A1freq() : 0.0;
-        }
+        const LocusStats stats{encoder.count(start + c)};
+        encoder.expand(
+            start + c, encoder.encoding(start + c, stats, spec), Z_.col(c));
+        freqs_(c) = stats.has_nonmissing() ? stats.A1freq() : 0.0;
     }
 
     wald_test(Z_, W_, reml, output_);

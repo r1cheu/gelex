@@ -42,9 +42,8 @@ struct GrmMatrix
     double denominator;
 };
 
-// Builds one GRM per (range, mode). Each chunk is read (bit-decoded and sample
-// projected) once and shared across modes via encode_into. Every finished GRM
-// is streamed to a sink, so the whole set is never held in memory at once;
+// Builds one GRM per (range, mode), counting each variant once and sharing it
+// across modes. Every finished GRM is streamed to a sink rather than held, so
 // only the modes of the range in flight are resident.
 class GrmBuilder
 {

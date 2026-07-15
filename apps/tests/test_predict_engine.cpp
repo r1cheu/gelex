@@ -32,8 +32,11 @@
 #include "gelex/data/bed.h"
 #include "gelex/data/dataframe/dataframe.h"
 #include "gelex/data/dataframe/index.h"
+#include "gelex/data/encode/detail/encoding.h"
+#include "gelex/data/encode/spec.h"
+#include "gelex/data/encode/stats.h"
+#include "gelex/data/encode/types.h"
 #include "gelex/data/genotype_method.h"
-#include "gelex/data/locus_encoding.h"
 #include "gelex/data/reader.h"
 #include "gelex/data/snp_alignment.h"
 #include "gelex/exception.h"
@@ -44,6 +47,7 @@
 #include "cli/predict/compute.h"
 #include "cli/predict/io.h"
 #include "file_fixture.h"
+#include "locus_stats_oracle.h"
 
 using gelex::test::BedFixture;
 
@@ -117,19 +121,21 @@ auto create_snpstats(
     {
         const gelex::EncodingSpec spec{gelex::encoding_spec_from_method(
             mode, GenotypeMethod::StandardizeHWE)};
-        const gelex::LociEncoding encoding{
-            gelex::detail::make_loci_encoding<double>(genotypes, spec)};
 
         SnpStats stats;
         stats.code = Eigen::MatrixXd(3, n_snps);
         stats.A1freq = Eigen::VectorXd(n_snps);
-        for (const gelex::LocusEncoding& locus : encoding.loci)
+        for (Eigen::Index j = 0; j < n_snps; ++j)
         {
-            stats.code(0, locus.marker_index) = locus.code[0];
-            stats.code(1, locus.marker_index) = locus.code[1];
-            stats.code(2, locus.marker_index) = locus.code[2];
-            stats.A1freq(locus.marker_index)
-                = locus.stats.has_nonmissing() ? locus.stats.A1freq() : 0.0;
+            const gelex::LocusStats locus_stats{
+                gelex::test::compute_locus_stats<double>(genotypes.col(j))};
+            const gelex::LocusEncoding locus{
+                gelex::detail::make_locus_encoding(j, locus_stats, spec)};
+            stats.code(0, j) = locus.code[0];
+            stats.code(1, j) = locus.code[1];
+            stats.code(2, j) = locus.code[2];
+            stats.A1freq(j)
+                = locus_stats.has_nonmissing() ? locus_stats.A1freq() : 0.0;
         }
         return stats;
     };
@@ -370,15 +376,11 @@ auto run_predict_dataflow(
                 snp_effects.rows()));
     }
 
-    const auto dosage = gelex::load_aligned_genotypes(bed, alignment);
-
     gelex::ModeMap<Eigen::MatrixXd> geno;
     for (const auto& [mode, stats] : snpstats)
     {
-        Eigen::MatrixXd encoded = dosage;
-        gelex::transform_inplace<double>(
-            encoded, gelex::build_loci_encoding(stats));
-        geno.emplace(mode, std::move(encoded));
+        geno.emplace(
+            mode, gelex::expand_aligned_genotypes(bed, alignment, stats));
     }
 
     auto covariates = cli::build_covariate_design(

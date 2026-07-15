@@ -16,12 +16,12 @@
 
 #include <Eigen/Core>
 #include <catch2/catch_test_macros.hpp>
-#include <limits>
 #include <vector>
 
 #include "gelex/data/bed.h"
 #include "gelex/data/reader.h"
 #include "gelex/data/snp_alignment.h"
+#include "gelex/data/snp_stats.h"
 
 #include "bed_fixture.h"
 #include "file_fixture.h"
@@ -132,7 +132,7 @@ TEST_CASE("build_snp_alignment orients training SNPs onto bim", "[predict]")
 }
 
 TEST_CASE(
-    "load_aligned_genotypes orients and scatters onto the training axis",
+    "expand_aligned_genotypes orients and scatters onto the training axis",
     "[predict]")
 {
     FileFixture files;
@@ -162,10 +162,14 @@ TEST_CASE(
 
     auto bed = gelex::open_bed(prefix.string());
     CHECK(plan.train_count == 4);
-    auto genotype = gelex::load_aligned_genotypes(bed, plan);
 
-    constexpr double NAN_VALUE = std::numeric_limits<double>::quiet_NaN();
-    Eigen::MatrixXd expected{{0, NAN_VALUE, 0, 1}, {2, NAN_VALUE, 1, 0}};
+    // Identity codes ({0,1,2} per genotype class) make the encoded output read
+    // back as dosage, so flip shows as a 2 - x swap and missing_pos as zero.
+    gelex::SnpStats stats;
+    stats.code = Eigen::Vector3d{0, 1, 2}.replicate(1, plan.train_count);
+    auto genotype = gelex::expand_aligned_genotypes(bed, plan, stats);
+
+    Eigen::MatrixXd expected{{0, 0, 0, 1}, {2, 0, 1, 0}};
 
     CHECK(gelex::test::are_matrices_equal(genotype, expected));
 }

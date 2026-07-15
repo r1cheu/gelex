@@ -35,10 +35,10 @@ class SingleTester final : public AssocTester
     auto resize(Eigen::Index n_samples, Eigen::Index chunk_size)
         -> void override;
 
-    [[nodiscard]] auto genotype_buffer()
-        -> Eigen::Ref<Eigen::MatrixXd> override;
-
-    [[nodiscard]] auto run(const GwasOperators& reml) -> TestResults override;
+    [[nodiscard]] auto run(
+        const LocusEncoder& encoder,
+        Eigen::Index start,
+        const GwasOperators& reml) -> TestResults override;
 
    private:
     static auto wald_test(

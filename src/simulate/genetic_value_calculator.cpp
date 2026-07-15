@@ -24,8 +24,11 @@
 #include <string>
 #include <vector>
 
+#include "gelex/data/encode/encoder.h"
+#include "gelex/data/encode/spec.h"
+#include "gelex/data/encode/stats.h"
+#include "gelex/data/encode/types.h"
 #include "gelex/data/genotype_method.h"
-#include "gelex/data/locus_encoding.h"
 #include "gelex/infra/logging/notify.h"
 #include "gelex/infra/logging/simulate_event.h"
 #include "gelex/simulate/sim_types.h"
@@ -73,8 +76,15 @@ auto GeneticValueCalculator::calculate(
             .done = false,
         });
 
-    Eigen::MatrixXd genotype = bed_.read_snps<double>(col_indices);
-    encode_inplace<double>(genotype, Mode, geno_method);
+    const LocusEncoder encoder{bed_};
+    const EncodingSpec spec{encoding_spec_from_method(Mode, geno_method)};
+    Eigen::MatrixXd genotype(n_individuals, n_causal);
+    for (const auto [i, variant] : std::views::enumerate(col_indices))
+    {
+        const LocusStats stats{encoder.count(variant)};
+        encoder.expand(
+            variant, encoder.encoding(variant, stats, spec), genotype.col(i));
+    }
 
     genetic_values.coeff.resize(n_causal);
     for (Eigen::Index i = 0; i < n_causal; ++i)

@@ -18,12 +18,15 @@
 
 #include <Eigen/Core>
 #include <cstddef>
-#include <limits>
 #include <ranges>
 #include <string>
+#include <utility>
 
 #include "gelex/data/bed.h"
 #include "gelex/data/dataframe/dataframe.h"
+#include "gelex/data/encode/encoder.h"
+#include "gelex/data/encode/types.h"
+#include "gelex/data/snp_stats.h"
 
 namespace gelex
 {
@@ -80,27 +83,32 @@ auto build_snp_alignment(
     return plan;
 }
 
-auto load_aligned_genotypes(const Bed& bed, const AlignmentPlan& plan)
-    -> Eigen::MatrixXd
+auto expand_aligned_genotypes(
+    const Bed& bed,
+    const AlignmentPlan& plan,
+    const SnpStats& stats) -> Eigen::MatrixXd
 {
-    auto dense = bed.read_snps<double>(plan.source_col);
+    const LocusEncoder encoder{bed};
 
-    Eigen::MatrixXd out = Eigen::MatrixXd::Constant(
-        bed.num_samples(),
-        plan.train_count,
-        std::numeric_limits<double>::quiet_NaN());
+    Eigen::MatrixXd out(bed.num_samples(), plan.train_count);
+    for (const auto pos : plan.missing_pos)
+    {
+        out.col(pos).setZero();  // SNP absent from the target: no contribution
+    }
 
     for (const auto [k, train_col] : std::views::enumerate(plan.train_pos))
     {
-        auto source = dense.col(static_cast<Eigen::Index>(k));
+        LocusEncoding encoding;
+        encoding.valid = true;
+        encoding.code = stats.code.col(train_col).array();
         if (plan.flip[static_cast<std::size_t>(k)] != 0)
         {
-            out.col(train_col) = 2.0 - source.array();
+            std::swap(encoding.code(0), encoding.code(2));
         }
-        else
-        {
-            out.col(train_col) = source;
-        }
+        encoder.expand(
+            plan.source_col[static_cast<std::size_t>(k)],
+            encoding,
+            out.col(train_col));
     }
 
     return out;

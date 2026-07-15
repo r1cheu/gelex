@@ -1,9 +1,10 @@
+#include "gelex/data/encode/types.h"
+
 #include <nanobind/nanobind.h>
 #include <nanobind/stl/array.h>
 #include <nanobind/stl/vector.h>
 
-#include "gelex/data/locus_encoding_types.h"
-#include "gelex/data/locus_stats.h"
+#include "gelex/data/encode/stats.h"
 #include "gelex/types/genetic_mode.h"
 
 #include "gelex_py/register.h"

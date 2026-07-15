@@ -25,8 +25,11 @@
 
 #include "gelex/algo/gwas/assoc_tester.h"
 #include "gelex/algo/reml/operators.h"
+#include "gelex/data/encode/encoder.h"
+#include "gelex/data/encode/spec.h"
+#include "gelex/data/encode/stats.h"
+#include "gelex/data/encode/types.h"
 #include "gelex/data/genotype_method.h"
-#include "gelex/data/locus_encoding.h"
 #include "gelex/infra/stats/detail/var.h"
 #include "gelex/types/genetic_mode.h"
 
@@ -38,7 +41,6 @@ JointTester::JointTester(GenotypeMethod method) : method_(method) {}
 auto JointTester::resize(Eigen::Index n_samples, Eigen::Index chunk_size)
     -> void
 {
-    raw_.resize(n_samples, chunk_size);
     Z_a_.resize(n_samples, chunk_size);
     Z_d_.resize(n_samples, chunk_size);
     W_.resize(n_samples, chunk_size);
@@ -51,22 +53,28 @@ auto JointTester::resize(Eigen::Index n_samples, Eigen::Index chunk_size)
     total_pve_.resize(chunk_size);
 }
 
-auto JointTester::genotype_buffer() -> Eigen::Ref<Eigen::MatrixXd>
+auto JointTester::run(
+    const LocusEncoder& encoder,
+    Eigen::Index start,
+    const GwasOperators& reml) -> TestResults
 {
-    return raw_;
-}
+    const Eigen::Index cols = Z_a_.cols();
+    const EncodingSpec spec_a{
+        encoding_spec_from_method(GeneticMode::A, method_)};
+    const EncodingSpec spec_d{
+        encoding_spec_from_method(GeneticMode::D, method_)};
 
-auto JointTester::run(const GwasOperators& reml) -> TestResults
-{
-    const LociEncoding additive_encoding{
-        encode_into<double, double>(raw_, Z_a_, GeneticMode::A, method_)};
-    for (const LocusEncoding& locus : additive_encoding.loci)
+    // One count per variant feeds both the additive and dominance encodings.
+#pragma omp parallel for schedule(static)
+    for (Eigen::Index c = 0; c < cols; ++c)
     {
-        freqs_(locus.column_index)
-            = locus.stats.has_nonmissing() ? locus.stats.A1freq() : 0.0;
+        const LocusStats stats{encoder.count(start + c)};
+        encoder.expand(
+            start + c, encoder.encoding(start + c, stats, spec_a), Z_a_.col(c));
+        encoder.expand(
+            start + c, encoder.encoding(start + c, stats, spec_d), Z_d_.col(c));
+        freqs_(c) = stats.has_nonmissing() ? stats.A1freq() : 0.0;
     }
-
-    encode_into<double, double>(raw_, Z_d_, GeneticMode::D, method_);
 
     // W = P * Z_a → cross-products involving Z_a
     W_.noalias() = reml.P * Z_a_;

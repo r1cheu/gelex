@@ -27,11 +27,14 @@
 #include "gelex/algo/gwas/assoc_type.h"
 #include "gelex/algo/gwas/joint_tester.h"
 #include "gelex/algo/reml/operators.h"
+#include "gelex/data/bed.h"
 #include "gelex/data/dataframe/column.h"
 #include "gelex/data/dataframe/reader.h"
+#include "gelex/data/encode/encoder.h"
 #include "gelex/data/genotype_method.h"
 #include "gelex/io/gwas_writer.h"
 
+#include "bed_fixture.h"
 #include "file_fixture.h"
 
 using gelex::AssocType;
@@ -48,18 +51,21 @@ using gelex::test::FileFixture;
 
 TEST_CASE("JointTester reports df=2 additive-dominance Wald p", "[gwas]")
 {
+    gelex::test::BedFixture fixture;
+    const auto [prefix, geno] = fixture.create_deterministic_bed_files(
+        Eigen::MatrixXd{{0.0}, {1.0}, {1.0}, {2.0}});
+    const auto bed = gelex::open_bed(prefix.string());
+    const gelex::LocusEncoder encoder{bed};
+
     JointTester tester(GenotypeMethod::Center);
     tester.resize(4, 1);
-
-    auto raw = tester.genotype_buffer();
-    raw = Eigen::MatrixXd{{0.0}, {1.0}, {1.0}, {2.0}};
 
     GwasOperators reml;
     reml.P = Eigen::MatrixXd::Identity(4, 4);
     reml.Py = Eigen::VectorXd{{1.0, 4.0, 2.0, 3.0}};
     reml.Vp = 10.0;
 
-    auto results = tester.run(reml);
+    const auto results = tester.run(encoder, 0, reml);
 
     const Eigen::VectorXd z_a{{-1.0, 0.0, 0.0, 1.0}};
     const Eigen::VectorXd z_d{{-0.5, 0.5, 0.5, -0.5}};

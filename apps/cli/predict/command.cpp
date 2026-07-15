@@ -28,11 +28,11 @@
 #include "gelex/data/bed.h"
 #include "gelex/data/dataframe/dataframe.h"
 #include "gelex/data/dataframe/index.h"
-#include "gelex/data/locus_encoding.h"
 #include "gelex/data/reader.h"
 #include "gelex/data/snp_alignment.h"
 #include "gelex/exception.h"
 #include "gelex/io/snpstats.h"
+#include "gelex/types/genetic_mode.h"
 
 #include "cli/formatter.h"
 #include "cli/report_printer.h"
@@ -118,7 +118,7 @@ auto predict_execute(const cli::PredictConfig& config) -> int
         n_snps,
         term_names.size());
 
-    // Align SNPs to the model, then load the aligned dosage.
+    // Align SNPs to the model, then expand each mode with its training codes.
     auto alignment = gelex::build_snp_alignment(snp_effects, bed.bim());
     reporter.show_snp_selection(alignment);
 
@@ -139,15 +139,11 @@ auto predict_execute(const cli::PredictConfig& config) -> int
                 gelex::MAX_SNP_MISSING_RATIO * 100.0));
     }
 
-    const auto dosage = gelex::load_aligned_genotypes(bed, alignment);
-
     gelex::ModeMap<Eigen::MatrixXd> geno;
     for (const auto& [mode, stats] : snp_stats)
     {
-        Eigen::MatrixXd encoded = dosage;
-        gelex::transform_inplace<double>(
-            encoded, gelex::build_loci_encoding(stats));
-        geno.emplace(mode, std::move(encoded));
+        geno.emplace(
+            mode, gelex::expand_aligned_genotypes(bed, alignment, stats));
     }
 
     // Compute predictions.

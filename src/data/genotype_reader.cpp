@@ -30,9 +30,12 @@
 #include <variant>
 #include <vector>
 
+#include "gelex/data/encode/encoder.h"
+#include "gelex/data/encode/spec.h"
+#include "gelex/data/encode/stats.h"
+#include "gelex/data/encode/types.h"
 #include "gelex/data/genotype.h"
 #include "gelex/data/genotype_method.h"
-#include "gelex/data/locus_encoding.h"
 #include "gelex/exception.h"
 #include "gelex/infra/logging/geno_event.h"
 #include "gelex/infra/logging/notify.h"
@@ -47,26 +50,30 @@ namespace gelex
 namespace
 {
 
-auto process_chunk(
+// Fuses each variant straight from its packed form into the chunk column,
+// filling the shared SnpStats in one pass instead of decoding to dosage first.
+auto encode_chunk(
+    const gelex::LocusEncoder& encoder,
     Eigen::Ref<Eigen::MatrixXd> chunk,
     Eigen::Index global_start,
-    gelex::GeneticMode mode,
-    gelex::GenotypeMethod method,
+    const gelex::EncodingSpec& spec,
     gelex::SnpStats& stats) -> void
 {
-    const gelex::LociEncoding encoding{gelex::encode_inplace<double>(
-        chunk, mode, method, 1e-12, global_start)};
-
-    for (const auto& locus : encoding.loci)
+    for (Eigen::Index c = 0; c < chunk.cols(); ++c)
     {
-        stats.code.col(locus.marker_index) = locus.code.matrix();
-        stats.A1freq[locus.marker_index]
-            = locus.stats.has_nonmissing() ? locus.stats.A1freq() : 0.0;
+        const Eigen::Index marker = global_start + c;
+        const gelex::LocusStats locus_stats{encoder.count(marker)};
+        const gelex::LocusEncoding encoding{
+            encoder.encoding(marker, locus_stats, spec)};
+        encoder.expand(marker, encoding, chunk.col(c));
 
-        if (locus.valid)
+        stats.code.col(marker) = encoding.code.matrix();
+        stats.A1freq[marker]
+            = locus_stats.has_nonmissing() ? locus_stats.A1freq() : 0.0;
+
+        if (encoding.valid)
         {
-            stats.valid_indices.push_back(
-                static_cast<int64_t>(locus.marker_index));
+            stats.valid_indices.push_back(static_cast<int64_t>(marker));
         }
     }
 }
@@ -135,6 +142,9 @@ auto GenotypeReader::read_encoded_chunks(
     output.stats.A1freq.resize(num_variants_);
     output.stats.valid_indices.reserve(num_variants_);
 
+    const gelex::LocusEncoder encoder{bed_};
+    const gelex::EncodingSpec spec{encoding_spec_from_method(mode, method)};
+
     int64_t processed = 0;
     for (int64_t start = 0; start < num_variants_;)
     {
@@ -148,13 +158,12 @@ auto GenotypeReader::read_encoded_chunks(
                     std::is_same_v<Target, EncodedChunkOutput::Memory>)
                 {
                     auto chunk = target.data.middleCols(start, end - start);
-                    bed_.read_into<double>(chunk, start);
-                    process_chunk(chunk, start, mode, method, output.stats);
+                    encode_chunk(encoder, chunk, start, spec, output.stats);
                 }
                 else
                 {
-                    auto chunk = bed_.read<double>(start, end);
-                    process_chunk(chunk, start, mode, method, output.stats);
+                    Eigen::MatrixXd chunk(sample_size_, end - start);
+                    encode_chunk(encoder, chunk, start, spec, output.stats);
                     target.writer.write(target.genotype_handle, chunk);
                 }
             },

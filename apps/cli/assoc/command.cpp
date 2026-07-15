@@ -31,6 +31,7 @@
 #include "gelex/algo/reml/summary.h"
 #include "gelex/data/bed.h"
 #include "gelex/data/dataframe/index.h"
+#include "gelex/data/encode/encoder.h"
 #include "gelex/data/marker_range.h"
 #include "gelex/data/reader.h"
 #include "gelex/exception.h"
@@ -129,6 +130,7 @@ auto assoc_execute(const cli::AssocConfig& config) -> int
     gelex::FreqState state(model);
 
     auto tester = gelex::AssocTester::make(test_type, mode, geno_method);
+    const gelex::LocusEncoder encoder{bed};
     gelex::GwasWriter writer(config.out, bim, test_type);
 
     const auto total_snps = static_cast<std::size_t>(bim.rows());
@@ -148,9 +150,7 @@ auto assoc_execute(const cli::AssocConfig& config) -> int
             const auto current_chunk_size = end - start;
 
             tester->resize(n_samples, current_chunk_size);
-            bed.read_into<double>(tester->genotype_buffer(), start);
-
-            auto results = tester->run(ops);
+            auto results = tester->run(encoder, start, ops);
             writer.write(static_cast<std::size_t>(start), results);
 
             progress += static_cast<std::size_t>(current_chunk_size);

@@ -27,19 +27,21 @@ namespace gelex
 {
 
 class Bed;
+struct SnpStats;
 
 inline constexpr double MAX_SNP_MISSING_RATIO = 0.2;
 
 // Maps training SNP effects (canonical axis) onto the columns of a prediction
 // .bim by SNP id, orienting each match to the training A1. Three outcomes per
-// training SNP: same orientation, allele-swapped (dosage needs 2 - x), or
-// missing (id absent, or alleles neither match nor swap). Pure over allele
-// tables: no genotype I/O, no imputation.
+// training SNP: same orientation, allele-swapped (encoding swaps
+// code[0]/code[2], equivalent to 2 - x), or missing (id absent, or alleles
+// neither match nor swap). Pure over allele tables: no genotype I/O, no
+// imputation.
 struct AlignmentPlan
 {
     std::vector<Eigen::Index> source_col;  // bim columns to read (dense)
     std::vector<Eigen::Index> train_pos;   // parallel: training-length target
-    std::vector<char> flip;                // parallel: apply 2 - x when nonzero
+    std::vector<char> flip;  // parallel: swap code[0]/code[2] when nonzero
     std::vector<Eigen::Index> missing_pos;  // training positions with no source
 
     Eigen::Index train_count{};  // width of the training axis (output columns)
@@ -54,13 +56,15 @@ struct AlignmentPlan
     const DataFrame<std::string>& snp_effects,
     const DataFrame<std::string>& bim_df) -> AlignmentPlan;
 
-// Executes an AlignmentPlan against opened genotypes: reads the planned bim
-// columns, orients flipped SNPs (2 - x), and scatters them onto a
-// plan.train_count-wide matrix in training order. Columns for missing_pos stay
-// NaN, which the encoding lookup later maps to a zero contribution.
-[[nodiscard]] auto load_aligned_genotypes(
+// Executes an AlignmentPlan against opened genotypes for one training mode:
+// expands each planned bim column straight from its packed form using the
+// training codes (stats.code), swapping code[0]/code[2] for flipped SNPs, and
+// scatters onto a plan.train_count-wide matrix in training order. Columns for
+// missing_pos are filled with the encoding's missing value (zero contribution).
+[[nodiscard]] auto expand_aligned_genotypes(
     const Bed& bed,
-    const AlignmentPlan& plan) -> Eigen::MatrixXd;
+    const AlignmentPlan& plan,
+    const SnpStats& stats) -> Eigen::MatrixXd;
 
 }  // namespace gelex
 

@@ -32,7 +32,10 @@
 #endif
 
 #include "gelex/data/bed.h"
-#include "gelex/data/locus_encoding.h"
+#include "gelex/data/encode/encoder.h"
+#include "gelex/data/encode/spec.h"
+#include "gelex/data/encode/stats.h"
+#include "gelex/data/encode/types.h"
 #include "gelex/data/marker_range.h"
 #include "gelex/infra/logging/notify.h"
 
@@ -85,24 +88,43 @@ auto GrmBuilder::accumulate(std::string_view label, Index start, Index end)
     -> std::vector<GrmMatrix>
 {
     const Index n = bed_.num_samples();
+    const LocusEncoder encoder{bed_};
+
+    std::vector<EncodingSpec> specs;
+    specs.reserve(modes_.size());
+    for (GeneticMode mode : modes_.each())
+    {
+        specs.push_back(encoding_spec_from_method(mode, method_));
+    }
+
     std::vector<Eigen::MatrixXd> grms(
         modes_.size(), Eigen::MatrixXd::Zero(n, n));
 
     for (Index s = start; s < end; s += chunk_size_)
     {
         const Index e = std::min(s + chunk_size_, end);
-        const Eigen::MatrixXd genotype = bed_.read<double>(s, e);
-        Eigen::MatrixXd encoded(n, e - s);
+        const Index cols = e - s;
+        std::vector<Eigen::MatrixXd> z(specs.size(), Eigen::MatrixXd(n, cols));
 
-        std::size_t k = 0;
-        for (GeneticMode mode : modes_.each())
+        // Genotype counts are mode-independent, so each variant is tabulated
+        // once and shared across modes; expansion then fills each mode's Z.
+        for (Index c = 0; c < cols; ++c)
         {
-            encode_into<double, double>(genotype, encoded, mode, method_);
-            update_grm(grms[k], encoded);
-            ++k;
+            const LocusStats stats{encoder.count(s + c)};
+            for (std::size_t k = 0; k < specs.size(); ++k)
+            {
+                const LocusEncoding encoding{
+                    encoder.encoding(s + c, stats, specs[k])};
+                encoder.expand(s + c, encoding, z[k].col(c));
+            }
         }
 
-        processed_ += (e - s);
+        for (std::size_t k = 0; k < specs.size(); ++k)
+        {
+            update_grm(grms[k], z[k]);
+        }
+
+        processed_ += cols;
         notify(
             observer_,
             GrmProgressEvent{
