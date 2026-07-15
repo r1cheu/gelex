@@ -455,14 +455,18 @@ TEST_CASE(
     auto bed = open_bed(prefix.string());
 
     GenotypeReader mat_reader(bed);
-    auto mat_result = mat_reader.read_in_memory(
-        GeneticMode::A, GenotypeMethod::StandardizeHWE);
+    auto mat_results = mat_reader.read_in_memory(
+        GeneticModeSet{GeneticMode::A}, GenotypeMethod::StandardizeHWE);
+    const auto& mat_result = mat_results.front().second;
 
     auto output_prefix
         = bed_fixture.get_file_fixture().get_test_dir() / "mmap_out";
     GenotypeReader map_reader(bed);
-    auto map_result = map_reader.read_mmap(
-        GeneticMode::A, GenotypeMethod::StandardizeHWE, output_prefix);
+    auto map_results = map_reader.read_mmap(
+        GeneticModeSet{GeneticMode::A},
+        GenotypeMethod::StandardizeHWE,
+        output_prefix);
+    const auto& map_result = map_results.front().second;
 
     SECTION("matrix dimensions match")
     {

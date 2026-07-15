@@ -19,7 +19,6 @@
 #include <Eigen/Core>
 #include <cstddef>
 #include <cstdint>
-#include <cstdio>
 #include <fmt/base.h>
 #include <fmt/format.h>
 #include <iterator>
@@ -28,7 +27,6 @@
 #include <string>
 #include <string_view>
 #include <type_traits>
-#include <unistd.h>
 #include <variant>
 
 #include "gelex/bayes/genetic/prior.h"
@@ -57,20 +55,13 @@ auto GenoReporter::show_loaded(
     const auto effective_snps = num_snps - invalid_snps;
     const std::string label
         = (mode == gelex::GeneticMode::D) ? "Dominance" : "Additive";
-    const std::string msg = cli::field(
-        label,
-        "{} SNPs ({} invalid excluded)",
-        cli::AbbrNumber(effective_snps),
-        cli::AbbrNumber(invalid_snps));
-
-    if (isatty(fileno(stdout)) != 0)
-    {
-        cli::printer().line("{}", "\033[A\r" + msg + "\033[K");
-    }
-    else
-    {
-        cli::printer().line("{}", msg);
-    }
+    cli::printer().line(
+        "{}",
+        cli::field(
+            label,
+            "{} SNPs ({} invalid excluded)",
+            cli::AbbrNumber(effective_snps),
+            cli::AbbrNumber(invalid_snps)));
 }
 
 auto GenoReporter::on_event(const gelex::GenotypeProgressEvent& event) -> void

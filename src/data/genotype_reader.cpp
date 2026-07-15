@@ -24,10 +24,8 @@
 #include <fmt/format.h>
 #include <memory>
 #include <new>
-#include <stdexcept>
-#include <type_traits>
+#include <span>
 #include <utility>
-#include <variant>
 #include <vector>
 
 #include "gelex/data/encode/encoder.h"
@@ -36,6 +34,7 @@
 #include "gelex/data/encode/types.h"
 #include "gelex/data/genotype.h"
 #include "gelex/data/genotype_method.h"
+#include "gelex/data/snp_stats.h"
 #include "gelex/exception.h"
 #include "gelex/infra/logging/geno_event.h"
 #include "gelex/infra/logging/notify.h"
@@ -50,30 +49,62 @@ namespace gelex
 namespace
 {
 
-// Fuses each variant straight from its packed form into the chunk column,
-// filling the shared SnpStats in one pass instead of decoding to dosage first.
+struct ModePlan
+{
+    std::vector<gelex::GeneticMode> modes;
+    std::vector<gelex::EncodingSpec> specs;
+};
+
+auto make_mode_plan(gelex::GeneticModeSet modes, gelex::GenotypeMethod method)
+    -> ModePlan
+{
+    ModePlan plan;
+    for (const gelex::GeneticMode mode : modes.each())
+    {
+        plan.modes.push_back(mode);
+        plan.specs.push_back(gelex::encoding_spec_from_method(mode, method));
+    }
+    return plan;
+}
+
+auto make_stats(Eigen::Index num_variants) -> gelex::SnpStats
+{
+    gelex::SnpStats stats;
+    stats.code.resize(3, num_variants);
+    stats.A1freq.resize(num_variants);
+    stats.valid_indices.reserve(num_variants);
+    return stats;
+}
+
+// Fuses each variant straight from its packed form into every mode's chunk
+// column: the genotype count is mode-independent, so it is tabulated once per
+// variant and shared, and each mode's encoding then expands from it.
 auto encode_chunk(
     const gelex::LocusEncoder& encoder,
-    Eigen::Ref<Eigen::MatrixXd> chunk,
-    Eigen::Index global_start,
-    const gelex::EncodingSpec& spec,
-    gelex::SnpStats& stats) -> void
+    Eigen::Index start,
+    std::span<const gelex::EncodingSpec> specs,
+    std::span<Eigen::Ref<Eigen::MatrixXd>> targets,
+    std::span<gelex::SnpStats> stats) -> void
 {
-    for (Eigen::Index c = 0; c < chunk.cols(); ++c)
+    const Eigen::Index cols = targets.front().cols();
+    for (Eigen::Index c = 0; c < cols; ++c)
     {
-        const Eigen::Index marker = global_start + c;
+        const Eigen::Index marker = start + c;
         const gelex::LocusStats locus_stats{encoder.count(marker)};
-        const gelex::LocusEncoding encoding{
-            encoder.encoding(marker, locus_stats, spec)};
-        encoder.expand(marker, encoding, chunk.col(c));
 
-        stats.code.col(marker) = encoding.code.matrix();
-        stats.A1freq[marker]
-            = locus_stats.has_nonmissing() ? locus_stats.A1freq() : 0.0;
-
-        if (encoding.valid)
+        for (std::size_t k = 0; k < specs.size(); ++k)
         {
-            stats.valid_indices.push_back(static_cast<int64_t>(marker));
+            const gelex::LocusEncoding encoding{
+                encoder.encoding(marker, locus_stats, specs[k])};
+            encoder.expand(marker, encoding, targets[k].col(c));
+
+            stats[k].code.col(marker) = encoding.code.matrix();
+            stats[k].A1freq[marker]
+                = locus_stats.has_nonmissing() ? locus_stats.A1freq() : 0.0;
+            if (encoding.valid)
+            {
+                stats[k].valid_indices.push_back(static_cast<int64_t>(marker));
+            }
         }
     }
 }
@@ -96,32 +127,6 @@ auto load_mmapped(
 
 }  // namespace
 
-struct GenotypeReader::EncodedChunkOutput
-{
-    struct Memory
-    {
-        Eigen::MatrixXd& data;
-    };
-
-    struct Mmap
-    {
-        gelex::BinaryWriter& writer;
-        gelex::SectionHandle<double> genotype_handle;
-    };
-
-    explicit EncodedChunkOutput(Eigen::MatrixXd& data) : target{Memory{data}} {}
-
-    EncodedChunkOutput(
-        gelex::BinaryWriter& writer,
-        gelex::SectionHandle<double> genotype_handle)
-        : target{Mmap{writer, genotype_handle}}
-    {
-    }
-
-    std::variant<Memory, Mmap> target;
-    gelex::SnpStats stats;
-};
-
 GenotypeReader::GenotypeReader(
     const gelex::Bed& bed,
     gelex::GenoObserver observer)
@@ -132,119 +137,173 @@ GenotypeReader::GenotypeReader(
 {
 }
 
-auto GenotypeReader::read_encoded_chunks(
-    EncodedChunkOutput& output,
-    gelex::GeneticMode mode,
+auto GenotypeReader::read_in_memory(
+    gelex::GeneticModeSet modes,
     gelex::GenotypeMethod method,
-    std::size_t chunk_size) -> void
+    std::size_t chunk_size) -> std::vector<ModeGenotype>
 {
-    output.stats.code.resize(3, num_variants_);
-    output.stats.A1freq.resize(num_variants_);
-    output.stats.valid_indices.reserve(num_variants_);
+    const auto plan = make_mode_plan(modes, method);
+    const std::size_t nm = plan.modes.size();
 
-    const gelex::LocusEncoder encoder{bed_};
-    const gelex::EncodingSpec spec{encoding_spec_from_method(mode, method)};
+    std::vector<OwnedStorage> owned(nm);
+    std::vector<SnpStats> stats;
+    stats.reserve(nm);
+    try
+    {
+        for (std::size_t k = 0; k < nm; ++k)
+        {
+            owned[k].data.resize(sample_size_, num_variants_);
+            stats.push_back(make_stats(num_variants_));
+        }
+    }
+    catch (const std::bad_alloc&)
+    {
+        const double gb = static_cast<double>(nm)
+                          * static_cast<double>(sample_size_)
+                          * static_cast<double>(num_variants_) * sizeof(double)
+                          / 1024.0 / 1024.0 / 1024.0;
+        throw gelex::GelexException(
+            fmt::format(
+                "Memory allocation failed for {} genotype matrix/matrices "
+                "({} x {}). Requires approx {:.2f} GB RAM.",
+                nm,
+                sample_size_,
+                num_variants_,
+                gb));
+    }
 
+    const LocusEncoder encoder{bed_};
     int64_t processed = 0;
     for (int64_t start = 0; start < num_variants_;)
     {
         const int64_t end
-            = std::min(static_cast<int64_t>(start + chunk_size), num_variants_);
-        std::visit(
-            [&](auto& target)
-            {
-                using Target = std::decay_t<decltype(target)>;
-                if constexpr (
-                    std::is_same_v<Target, EncodedChunkOutput::Memory>)
-                {
-                    auto chunk = target.data.middleCols(start, end - start);
-                    encode_chunk(encoder, chunk, start, spec, output.stats);
-                }
-                else
-                {
-                    Eigen::MatrixXd chunk(sample_size_, end - start);
-                    encode_chunk(encoder, chunk, start, spec, output.stats);
-                    target.writer.write(target.genotype_handle, chunk);
-                }
-            },
-            output.target);
-        processed += (end - start);
-        gelex::notify(
+            = std::min(start + static_cast<int64_t>(chunk_size), num_variants_);
+        const int64_t cols = end - start;
+
+        std::vector<Eigen::Ref<Eigen::MatrixXd>> targets;
+        targets.reserve(nm);
+        for (std::size_t k = 0; k < nm; ++k)
+        {
+            targets.emplace_back(owned[k].data.middleCols(start, cols));
+        }
+        encode_chunk(encoder, start, plan.specs, targets, stats);
+
+        processed += cols;
+        notify(
             observer_,
-            gelex::GenotypeProgressEvent{
+            GenotypeProgressEvent{
                 static_cast<size_t>(processed),
                 static_cast<size_t>(num_variants_),
                 false});
         start = end;
     }
-    gelex::notify(
+    notify(
         observer_,
-        gelex::GenotypeProgressEvent{
+        GenotypeProgressEvent{
             static_cast<size_t>(num_variants_),
             static_cast<size_t>(num_variants_),
             true});
 
-    std::ranges::sort(output.stats.valid_indices);
-}
-
-auto GenotypeReader::read_in_memory(
-    gelex::GeneticMode mode,
-    gelex::GenotypeMethod method,
-    std::size_t chunk_size) -> Genotype
-{
-    OwnedStorage owned;
-    try
+    std::vector<ModeGenotype> result;
+    result.reserve(nm);
+    for (std::size_t k = 0; k < nm; ++k)
     {
-        owned.data.resize(sample_size_, num_variants_);
+        std::ranges::sort(stats[k].valid_indices);
+        owned[k].stats = std::move(stats[k]);
+        result.emplace_back(plan.modes[k], Genotype(std::move(owned[k])));
     }
-    catch (const std::bad_alloc&)
-    {
-        throw std::runtime_error(
-            fmt::format(
-                "Memory allocation failed for Genotype matrix ({} x {}). "
-                "Requires approx {:.2f} GB RAM.",
-                sample_size_,
-                num_variants_,
-                static_cast<double>(sample_size_)
-                    * static_cast<double>(num_variants_) * sizeof(double)
-                    / 1024.0 / 1024.0 / 1024.0));
-    }
-
-    EncodedChunkOutput output{owned.data};
-    read_encoded_chunks(output, mode, method, chunk_size);
-    owned.stats = std::move(output.stats);
-
-    return Genotype(std::move(owned));
+    return result;
 }
 
 auto GenotypeReader::read_mmap(
-    gelex::GeneticMode mode,
+    gelex::GeneticModeSet modes,
     gelex::GenotypeMethod method,
     const std::filesystem::path& output_prefix,
-    std::size_t chunk_size) -> Genotype
+    std::size_t chunk_size) -> std::vector<ModeGenotype>
 {
-    auto geno_path = output_prefix;
-    geno_path += ".geno";
+    const auto plan = make_mode_plan(modes, method);
+    const std::size_t nm = plan.modes.size();
 
-    if (std::filesystem::exists(geno_path))
+    std::vector<std::filesystem::path> paths(nm);
+    std::vector<std::unique_ptr<BinaryWriter>> writers;
+    std::vector<SectionHandle<double>> handles;
+    std::vector<SnpStats> stats;
+    writers.reserve(nm);
+    handles.reserve(nm);
+    stats.reserve(nm);
+    for (std::size_t k = 0; k < nm; ++k)
     {
-        throw gelex::GelexException(
-            fmt::format(
-                "Output file already exists: [{}]", geno_path.string()));
+        auto geno_path = output_prefix;
+        geno_path += fmt::format(".{}.geno", plan.modes[k]);
+        if (std::filesystem::exists(geno_path))
+        {
+            throw gelex::GelexException(
+                fmt::format(
+                    "Output file already exists: [{}]", geno_path.string()));
+        }
+        paths[k] = geno_path;
+        writers.push_back(std::make_unique<BinaryWriter>(geno_path.string()));
+        handles.push_back(
+            writers[k]->reserve<double>(
+                fmt::format("{}/genotype", plan.modes[k]),
+                sample_size_,
+                num_variants_));
+        stats.push_back(make_stats(num_variants_));
     }
 
+    const LocusEncoder encoder{bed_};
+    int64_t processed = 0;
+    for (int64_t start = 0; start < num_variants_;)
     {
-        gelex::BinaryWriter writer(geno_path.string());
-        auto genotype_handle = writer.reserve<double>(
-            fmt::format("{}/genotype", mode), sample_size_, num_variants_);
+        const int64_t end
+            = std::min(start + static_cast<int64_t>(chunk_size), num_variants_);
+        const int64_t cols = end - start;
 
-        EncodedChunkOutput output{writer, genotype_handle};
-        read_encoded_chunks(output, mode, method, chunk_size);
+        std::vector<Eigen::MatrixXd> temps(
+            nm, Eigen::MatrixXd(sample_size_, cols));
+        std::vector<Eigen::Ref<Eigen::MatrixXd>> targets;
+        targets.reserve(nm);
+        for (auto& temp : temps)
+        {
+            targets.emplace_back(temp);
+        }
+        encode_chunk(encoder, start, plan.specs, targets, stats);
+        for (std::size_t k = 0; k < nm; ++k)
+        {
+            writers[k]->write(handles[k], temps[k]);
+        }
 
-        write_snp_stats(writer, mode, output.stats);
+        processed += cols;
+        notify(
+            observer_,
+            GenotypeProgressEvent{
+                static_cast<size_t>(processed),
+                static_cast<size_t>(num_variants_),
+                false});
+        start = end;
     }
+    notify(
+        observer_,
+        GenotypeProgressEvent{
+            static_cast<size_t>(num_variants_),
+            static_cast<size_t>(num_variants_),
+            true});
 
-    return Genotype(load_mmapped(geno_path, mode));
+    for (std::size_t k = 0; k < nm; ++k)
+    {
+        std::ranges::sort(stats[k].valid_indices);
+        write_snp_stats(*writers[k], plan.modes[k], stats[k]);
+    }
+    writers.clear();  // flush and close every file before mapping it back
+
+    std::vector<ModeGenotype> result;
+    result.reserve(nm);
+    for (std::size_t k = 0; k < nm; ++k)
+    {
+        result.emplace_back(
+            plan.modes[k], Genotype(load_mmapped(paths[k], plan.modes[k])));
+    }
+    return result;
 }
 
 auto GenotypeReader::read(

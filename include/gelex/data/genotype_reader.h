@@ -17,10 +17,11 @@
 #ifndef GELEX_DATA_GENOTYPE_READER_H_
 #define GELEX_DATA_GENOTYPE_READER_H_
 
-#include <Eigen/Core>
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
+#include <utility>
+#include <vector>
 
 #include "gelex/data/bed.h"
 #include "gelex/data/genotype.h"
@@ -34,6 +35,8 @@ namespace gelex
 class GenotypeReader
 {
    public:
+    using ModeGenotype = std::pair<gelex::GeneticMode, Genotype>;
+
     explicit GenotypeReader(
         const gelex::Bed& bed,
         gelex::GenoObserver observer = {});
@@ -44,30 +47,27 @@ class GenotypeReader
     auto operator=(GenotypeReader&&) -> GenotypeReader& = delete;
     ~GenotypeReader() = default;
 
+    // Counts each variant once and expands it into one Genotype per requested
+    // mode in a single pass, sharing the count across modes. Progress is
+    // reported per variant, independent of how many modes are derived.
     auto read_in_memory(
-        gelex::GeneticMode mode,
+        gelex::GeneticModeSet modes,
         gelex::GenotypeMethod method,
-        std::size_t chunk_size = 10000) -> Genotype;
+        std::size_t chunk_size = 10000) -> std::vector<ModeGenotype>;
 
+    // Writes one <output_prefix>.<mode>.geno file per mode, then maps each
+    // back.
     auto read_mmap(
-        gelex::GeneticMode mode,
+        gelex::GeneticModeSet modes,
         gelex::GenotypeMethod method,
         const std::filesystem::path& output_prefix,
-        std::size_t chunk_size = 10000) -> Genotype;
+        std::size_t chunk_size = 10000) -> std::vector<ModeGenotype>;
 
     static auto read(
         const std::filesystem::path& geno_path,
         gelex::GeneticMode mode) -> Genotype;
 
    private:
-    struct EncodedChunkOutput;
-
-    auto read_encoded_chunks(
-        EncodedChunkOutput& output,
-        gelex::GeneticMode mode,
-        gelex::GenotypeMethod method,
-        std::size_t chunk_size) -> void;
-
     const gelex::Bed& bed_;
     gelex::GenoObserver observer_;
     int64_t sample_size_{};

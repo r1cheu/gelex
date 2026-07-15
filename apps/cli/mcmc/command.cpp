@@ -74,26 +74,21 @@ class MCMCDataHandler
 
         gelex::BinaryWriter writer(config_.out + ".snpstats");
 
-        for (const auto mode : requested_effects_.each())
-        {
-            auto genotype
-                = config_.mmap
-                      ? reader.read_mmap(
-                            mode,
-                            genotype_method_,
-                            std::filesystem::path{
-                                config_.out
-                                + (mode == gelex::GeneticMode::A ? ".add"
-                                                                 : ".dom")},
-                            static_cast<std::size_t>(config_.chunk_size))
-                      : reader.read_in_memory(
-                            mode,
-                            genotype_method_,
-                            static_cast<std::size_t>(config_.chunk_size));
+        auto genotypes
+            = config_.mmap ? reader.read_mmap(
+                                 requested_effects_,
+                                 genotype_method_,
+                                 std::filesystem::path{config_.out},
+                                 static_cast<std::size_t>(config_.chunk_size))
+                           : reader.read_in_memory(
+                                 requested_effects_,
+                                 genotype_method_,
+                                 static_cast<std::size_t>(config_.chunk_size));
 
+        for (auto& [mode, genotype] : genotypes)
+        {
             reporter_.show_loaded(
                 mode, genotype.cols(), genotype.num_invalid());
-
             gelex::write_snp_stats(writer, mode, genotype.stats());
             genetics_.emplace_back(mode, std::move(genotype));
         }
