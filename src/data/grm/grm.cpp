@@ -24,12 +24,6 @@
 #include <string_view>
 #include <utility>
 #include <vector>
-#ifdef USE_MKL
-#include <mkl.h>
-#include <mkl_cblas.h>
-#else
-#include <cblas.h>
-#endif
 
 #include "gelex/data/bed.h"
 #include "gelex/data/encode/encoder.h"
@@ -42,33 +36,6 @@
 namespace gelex
 {
 using Eigen::Index;
-
-namespace
-{
-
-auto update_grm(
-    Eigen::Ref<Eigen::MatrixXd> grm,
-    const Eigen::Ref<const Eigen::MatrixXd>& genotype) -> void
-{
-    const auto n = static_cast<int>(genotype.rows());
-    const auto m = static_cast<int>(genotype.cols());
-
-    // dsyrk: C := alpha * A * A^T + beta * C, CblasLower fills lower triangle.
-    cblas_dsyrk(
-        CblasColMajor,
-        CblasLower,
-        CblasNoTrans,
-        n,
-        m,
-        1.0,
-        genotype.data(),
-        n,
-        1.0,
-        grm.data(),
-        n);
-}
-
-}  // namespace
 
 GrmBuilder::GrmBuilder(
     const Bed& bed,
@@ -119,9 +86,10 @@ auto GrmBuilder::accumulate(std::string_view label, Index start, Index end)
             }
         }
 
+        // grms[k] += z[k] * z[k]^T, accumulating into the lower triangle.
         for (std::size_t k = 0; k < specs.size(); ++k)
         {
-            update_grm(grms[k], z[k]);
+            grms[k].selfadjointView<Eigen::Lower>().rankUpdate(z[k]);
         }
 
         processed_ += cols;
