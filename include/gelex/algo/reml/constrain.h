@@ -32,10 +32,11 @@ inline auto constraint_floor(double y_variance) noexcept -> double
 }
 
 // Clamps negative variance components to a small positive limit, redistributing
-// the borrowed mass across the unconstrained ones. Returns how many components
-// were constrained so the caller can judge the estimate's reliability.
+// the borrowed mass across the unconstrained ones. Returns a boundary mask
+// flagging which components were clamped, so the caller can judge reliability
+// (mask.count()) and mark boundary components whose Wald test is invalid.
 auto constrain(Eigen::Ref<Eigen::VectorXd> varcmp, double y_variance)
-    -> Eigen::Index;
+    -> Eigen::ArrayX<bool>;
 }  // namespace gelex
 
 #endif  // GELEX_ALGO_REML_CONSTRAIN_H_

@@ -82,15 +82,21 @@ auto write_summary(
     for (std::size_t i = 0; i < state.random().size(); ++i)
     {
         const auto& random = state.random()[i];
+        const std::string pvalue
+            = random.at_boundary
+                  ? std::string{"-"}
+                  : fmt::format(
+                        "{:.8e}",
+                        wald_p_onesided(random.variance / random.variance_se));
         writer.write(
             fmt::format(
-                "{}\tvariance\t{:.8e}\t{:.8e}\t{:.8e}\t{:.8e}\t{:.8e}",
+                "{}\tvariance\t{:.8e}\t{:.8e}\t{:.8e}\t{:.8e}\t{}",
                 model.random()[i].name,
                 random.variance,
                 random.variance_se,
                 random.variance_ratio,
                 random.variance_ratio_se,
-                wald_p_onesided(random.variance / random.variance_se)));
+                pvalue));
     }
 
     writer.write(

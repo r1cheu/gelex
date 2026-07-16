@@ -20,12 +20,10 @@
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
-#include <limits>
 #include <numbers>
 #include <utility>
 #include <vector>
 
-#include "gelex/algo/reml/constrain.h"
 #include "gelex/algo/reml/effect_solver.h"
 #include "gelex/algo/reml/operators.h"
 #include "gelex/algo/reml/reml_buffer.h"
@@ -67,25 +65,11 @@ auto compute_variance_se(FreqState& state, const RemlBuffer& buffer) -> void
     // variance component order: residual, random[0..]
     Eigen::VectorXd se = (-buffer.hess_inv.diagonal()).array().sqrt();
 
-    // A component clamped to the constraint floor sits on the parameter-space
-    // boundary, where the AI Hessian gives no valid Wald SE; report NaN.
-    const double floor = constraint_floor(buffer.phenotype_variance());
-    constexpr double nan = std::numeric_limits<double>::quiet_NaN();
-    auto at_boundary
-        = [floor](double variance) noexcept { return variance <= floor; };
-
     Eigen::Index idx = 0;
-
-    // residual
-    state.residual().variance_se
-        = at_boundary(state.residual().variance) ? nan : se(idx);
-    ++idx;
-
-    // random effects
+    state.residual().variance_se = se(idx++);
     for (auto& r : state.random())
     {
-        r.variance_se = at_boundary(r.variance) ? nan : se(idx);
-        ++idx;
+        r.variance_se = se(idx++);
     }
 }
 
@@ -106,23 +90,12 @@ auto compute_variance_ratio(FreqState& state, const RemlBuffer& buffer) -> void
     double sum_var_sq = sum_var * sum_var;
     auto n_comp = buffer.hess_inv.rows();
 
-    const double floor = constraint_floor(buffer.phenotype_variance());
-    constexpr double nan = std::numeric_limits<double>::quiet_NaN();
-
     for (size_t ri = 0; ri < state.random().size(); ++ri)
     {
         auto& r = state.random()[ri];
         Eigen::Index r_idx = 1 + static_cast<Eigen::Index>(ri);
 
         r.variance_ratio = r.variance / sum_var;
-
-        // A boundary component has no valid Wald SE (see compute_variance_se);
-        // keep the ratio point estimate but drop its delta-method SE.
-        if (r.variance <= floor)
-        {
-            r.variance_ratio_se = nan;
-            continue;
-        }
 
         // gradient for delta method:
         // ∂ratio/∂σ_i = -σ_r / (Σσ)² for i ≠ r
@@ -168,7 +141,8 @@ auto assemble_reml_fit(
              .variance = r.variance,
              .variance_se = r.variance_se,
              .variance_ratio = r.variance_ratio,
-             .variance_ratio_se = r.variance_ratio_se});
+             .variance_ratio_se = r.variance_ratio_se,
+             .at_boundary = r.at_boundary});
     }
 
     RemlSummary summary{

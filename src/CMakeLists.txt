@@ -18,11 +18,7 @@ target_include_directories(gelex SYSTEM PRIVATE ${PROJECT_SOURCE_DIR}/ext/mio)
 
 target_compile_definitions(gelex PUBLIC $<$<CONFIG:Release>:EIGEN_NO_DEBUG>)
 
-if(GELEX_USE_MKL)
-  target_compile_definitions(gelex PUBLIC EIGEN_USE_MKL_ALL USE_MKL)
-else()
-  target_compile_definitions(gelex PUBLIC EIGEN_USE_BLAS EIGEN_USE_LAPACKE)
-endif()
+target_compile_definitions(gelex PUBLIC EIGEN_USE_BLAS EIGEN_USE_LAPACKE)
 
 target_compile_options(
   gelex PRIVATE -Wall -Wextra -Wpedantic

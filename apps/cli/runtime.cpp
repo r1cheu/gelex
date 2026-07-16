@@ -26,6 +26,12 @@
 #include <unistd.h>
 #endif
 
+extern "C"
+{
+    void openblas_set_num_threads(int) __attribute__((weak));
+    void MKL_Set_Num_Threads(int) __attribute__((weak));
+}
+
 namespace cli
 {
 
@@ -40,10 +46,19 @@ auto is_tty() -> bool
 
 auto setup_parallelization(int num_threads) -> void
 {
-    if (num_threads > 0)
+    if (num_threads <= 0)
     {
-        omp_set_num_threads(num_threads);
-        Eigen::setNbThreads(num_threads);
+        return;
+    }
+    omp_set_num_threads(num_threads);
+    Eigen::setNbThreads(num_threads);
+    if (openblas_set_num_threads != nullptr)
+    {
+        openblas_set_num_threads(num_threads);
+    }
+    if (MKL_Set_Num_Threads != nullptr)
+    {
+        MKL_Set_Num_Threads(num_threads);
     }
 }
 

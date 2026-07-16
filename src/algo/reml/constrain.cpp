@@ -22,7 +22,7 @@ namespace gelex
 {
 
 auto constrain(Eigen::Ref<Eigen::VectorXd> varcmp, double y_variance)
-    -> Eigen::Index
+    -> Eigen::ArrayX<bool>
 {
     const double limit = constraint_floor(y_variance);
 
@@ -32,12 +32,12 @@ auto constrain(Eigen::Ref<Eigen::VectorXd> varcmp, double y_variance)
 
     if (num_constrained == 0)
     {
-        return 0;
+        return mask;
     }
     if (num_constrained == varcmp.size())
     {
         varcmp.fill(limit);
-        return num_constrained;
+        return mask;
     }
 
     double delta = 0.0;
@@ -58,6 +58,6 @@ auto constrain(Eigen::Ref<Eigen::VectorXd> varcmp, double y_variance)
             varcmp[i] -= delta;
         }
     }
-    return num_constrained;
+    return mask;
 }
 }  // namespace gelex

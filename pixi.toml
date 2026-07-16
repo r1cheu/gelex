@@ -79,6 +79,9 @@ test-python = { cmd = "python -m pytest bindings/tests -q", depends-on = [
     "build-python",
 ], env = { PYTHONPATH = "bindings/python" } }
 
+# Conda package. --experimental enables `load_from_file` for the VERSION file.
+build-conda = "rattler-build build --no-build-id --recipe apps/recipe.yml --experimental --output-dir /tmp/rb-output"
+
 # Docs: isolated environment (Sphinx pypi stack, no C++ toolchain).
 [environments]
 docs = { features = ["docs"], no-default-feature = true }

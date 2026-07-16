@@ -54,6 +54,7 @@ struct RandomState
     double variance_se{};
     double variance_ratio{};
     double variance_ratio_se{};
+    bool at_boundary{};  // clamped to the constraint floor; Wald test invalid
 };
 
 struct FixedState

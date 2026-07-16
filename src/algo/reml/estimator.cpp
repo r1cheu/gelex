@@ -19,6 +19,7 @@
 #include <Eigen/Core>
 #include <cstddef>
 #include <fmt/format.h>
+#include <ranges>
 #include <string>
 #include <utility>
 #include <vector>
@@ -58,14 +59,14 @@ auto Estimator::fit(
 
     RemlBuffer buffer(model);
 
-    Eigen::Index num_constrained = 0;
+    Eigen::ArrayX<bool> constrained_mask;
 
     // EM initialization: one fixed-point step to seed good AI priors.
     if (em_init)
     {
         evaluate_point(model, state, buffer);
         Eigen::VectorXd sigma = EMPolicy::apply(model, state, buffer);
-        num_constrained = constrain(sigma, buffer.phenotype_variance());
+        constrained_mask = constrain(sigma, buffer.phenotype_variance());
         distribute_variance_components(state, sigma);
     }
 
@@ -92,7 +93,7 @@ auto Estimator::fit(
         while (true)
         {
             sigma = anchor_sigma + step * direction;
-            num_constrained = constrain(sigma, buffer.phenotype_variance());
+            constrained_mask = constrain(sigma, buffer.phenotype_variance());
             distribute_variance_components(state, sigma);
             loglike = evaluate_point(model, state, buffer);
             if (loglike
@@ -115,7 +116,7 @@ auto Estimator::fit(
         {
             sigma = anchor_sigma;
             loglike = anchor_loglike;
-            num_constrained = constrain(sigma, buffer.phenotype_variance());
+            constrained_mask = constrain(sigma, buffer.phenotype_variance());
             distribute_variance_components(state, sigma);
             evaluate_point(model, state, buffer);
             converged = true;
@@ -157,6 +158,15 @@ auto Estimator::fit(
         anchor_loglike = loglike;
     }
 
+    // The constraint mask (order: residual, random[0..]) marks components
+    // clamped to the boundary; flag the random ones so their Wald test is
+    // suppressed. The residual (index 0) is never tested against the boundary.
+    for (auto&& [i, r] : std::views::enumerate(state.random()))
+    {
+        r.at_boundary = constrained_mask(1 + i);
+    }
+
+    const auto num_constrained = constrained_mask.count();
     const auto num_total = static_cast<Eigen::Index>(state.random().size()) + 1;
     if (2 * num_constrained > num_total)
     {

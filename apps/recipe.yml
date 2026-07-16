@@ -20,12 +20,22 @@ build:
     - cmake --build build
     - cmake --install build --component cli
 
+    - mkdir -p $PREFIX/share/bash-completion/completions
+    - $PREFIX/bin/gelex completion bash > $PREFIX/share/bash-completion/completions/gelex
+    - mkdir -p $PREFIX/share/fish/vendor_completions.d
+    - $PREFIX/bin/gelex completion fish > $PREFIX/share/fish/vendor_completions.d/gelex.fish
+
 requirements:
   build:
     - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
     - cmake
     - ninja
   host:
+    - if: linux
+      then: libgomp
+      else: llvm-openmp
+
     - eigen >=5,<6
     - fmt >=12,<12.2
     - spdlog >=1.17,<2

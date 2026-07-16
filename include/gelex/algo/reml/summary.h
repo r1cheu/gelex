@@ -33,6 +33,7 @@ struct VarianceComponent
     double variance_se{};
     double variance_ratio{};
     double variance_ratio_se{};
+    bool at_boundary{};  // clamped to the constraint floor; Wald test invalid
 };
 
 // Reportable scalar outcome of a single REML fit. Copyable and decoupled from

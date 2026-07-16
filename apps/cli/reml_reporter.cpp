@@ -153,9 +153,11 @@ auto RemlReporter::show_result(
              fmt::format("{:.3e}", r.variance_se),
              fmt::format("{:.4f}", r.variance_ratio),
              fmt::format("{:.4f}", r.variance_ratio_se),
-             fmt::format(
-                 "{:.3g}",
-                 gelex::wald_p_onesided(r.variance / r.variance_se))});
+             r.at_boundary
+                 ? std::string{"-"}
+                 : fmt::format(
+                       "{:.3g}",
+                       gelex::wald_p_onesided(r.variance / r.variance_se))});
     }
     t.row(
         {"Residual",
