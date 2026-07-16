@@ -2,10 +2,14 @@
 
 include(CMakeFindDependencyMacro)
 
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}")
+
 find_dependency(Eigen3)
 find_dependency(fmt)
 find_dependency(OpenMP)
 find_dependency(BLAS)
+find_dependency(LAPACK)
+find_dependency(LAPACKE)
 
 include("${CMAKE_CURRENT_LIST_DIR}/gelexTargets.cmake")
 

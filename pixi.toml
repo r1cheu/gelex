@@ -14,7 +14,8 @@ gxx = ">=15.2.0,<15.3"
 gcc = ">=15.2.0,<15.3"
 eigen = ">=5,<6"
 fmt = ">=12,<12.2"
-openblas = { version = ">=0.3.31,<0.4", build = "*openmp*" }
+
+blas-devel = ">=3.11, <4"
 catch2 = ">=3.12.0,<4"
 cli11 = ">=2.6,<3"
 spdlog = ">=1.17.0,<2"
@@ -24,6 +25,11 @@ numpy = ">=2,<3"
 pytest = ">=8,<9"
 
 [tasks]
+# Bump the single source of truth for the version (CMake, recipe, docs all read it).
+bump = { cmd = "printf '%s\\n' {{ version }} > VERSION", args = [
+    { arg = "version" },
+] }
+
 # Configure the full tree -> project-wide compile_commands.json for clangd.
 # Every build depends on this, so the DB stays in sync (incremental reconfigure is ~0.1s).
 init = "cmake --preset dev && ln -sf build/dev/compile_commands.json compile_commands.json"
@@ -31,7 +37,9 @@ init = "cmake --preset dev && ln -sf build/dev/compile_commands.json compile_com
 # Core: `pixi r build`, `build release`, `build reldeb`, ...
 build = { cmd = "cmake --preset {{ preset }} && cmake --build --preset {{ preset }}", args = [
     { arg = "preset", default = "debug" },
-], depends-on = ["init"] }
+], depends-on = [
+    "init",
+] }
 test = { cmd = "ctest --preset test-debug", depends-on = [
     { task = "build", args = [
         "debug",
@@ -52,7 +60,9 @@ benchmark = { cmd = "build/benchmark/benchmark/gelex_benchmarks \"[!benchmark]\"
 # CLI: `pixi r build-cli`, `build-cli release`, `run`, `run release`.
 build-cli = { cmd = "cmake --preset cli-{{ mode }} && cmake --build --preset cli-{{ mode }}", args = [
     { arg = "mode", default = "debug" },
-], depends-on = ["init"] }
+], depends-on = [
+    "init",
+] }
 run = { cmd = "./build/cli-{{ mode }}/apps/gelex", args = [
     { arg = "mode", default = "debug" },
 ], depends-on = [

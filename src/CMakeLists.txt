@@ -21,15 +21,16 @@ target_compile_definitions(gelex PUBLIC $<$<CONFIG:Release>:EIGEN_NO_DEBUG>)
 if(GELEX_USE_MKL)
   target_compile_definitions(gelex PUBLIC EIGEN_USE_MKL_ALL USE_MKL)
 else()
-  target_compile_definitions(gelex PUBLIC EIGEN_USE_BLAS EIGEN_USE_LAPACK)
+  target_compile_definitions(gelex PUBLIC EIGEN_USE_BLAS EIGEN_USE_LAPACKE)
 endif()
 
 target_compile_options(
   gelex PRIVATE -Wall -Wextra -Wpedantic
                 $<$<BOOL:${GELEX_NATIVE_OPTIMIZATION}>:-march=native -O3>)
 
-target_link_libraries(gelex PUBLIC OpenMP::OpenMP_CXX BLAS::BLAS fmt::fmt
-                                   Eigen3::Eigen $<$<BOOL:${MINGW}>:ws2_32>)
+target_link_libraries(
+  gelex PUBLIC OpenMP::OpenMP_CXX BLAS::BLAS LAPACKE::LAPACKE fmt::fmt
+               Eigen3::Eigen $<$<BOOL:${MINGW}>:ws2_32>)
 
 if(GELEX_ENABLE_SANITIZERS AND CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
   target_compile_options(gelex PUBLIC -fsanitize=undefined -fsanitize=address)

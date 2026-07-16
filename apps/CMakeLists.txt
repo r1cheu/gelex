@@ -34,7 +34,7 @@ target_compile_definitions(gelex_cli PRIVATE BARKEEP_ENABLE_FMT_FORMAT)
 target_link_libraries(gelex_cli PRIVATE gelex::gelex fmt::fmt CLI11::CLI11
                                         spdlog::spdlog)
 
-install(TARGETS gelex_cli RUNTIME DESTINATION bin)
+install(TARGETS gelex_cli RUNTIME DESTINATION bin COMPONENT cli)
 
 option(GELEX_CLI_BUILD_TESTS "Build CLI tests" OFF)
 

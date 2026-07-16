@@ -3,15 +3,18 @@ cmake_minimum_required(VERSION 3.20)
 # --------------------------------------------------
 # ------------ Project Info ------------------------
 # --------------------------------------------------
+file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/VERSION" GELEX_VERSION)
 project(
   gelex
-  VERSION 0.18.0
+  VERSION ${GELEX_VERSION}
   LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 if(NOT CMAKE_CXX_COMPILER_LAUNCHER)
   find_program(SCCACHE_PROGRAM sccache)
@@ -28,7 +31,6 @@ endif()
 # --------------------------------------------------
 # ------------ Options -----------------------------
 # --------------------------------------------------
-option(GELEX_USE_MKL "Use Intel MKL for Linear Algebra" OFF)
 option(GELEX_BUILD_TESTS "Build unit tests" OFF)
 option(GELEX_BUILD_BENCHMARKS "Build benchmarks" OFF)
 option(GELEX_BUILD_CLI "Build the command-line application" OFF)
@@ -54,14 +56,9 @@ find_package(OpenMP REQUIRED)
 find_package(fmt REQUIRED)
 find_package(Eigen3 REQUIRED)
 
-# BLAS/LAPACK Selection
-if(GELEX_USE_MKL)
-  set(BLA_VENDOR Intel10_64lp)
-else()
-  set(BLA_VENDOR OpenBLAS)
-endif()
 find_package(BLAS REQUIRED)
 find_package(LAPACK REQUIRED)
+find_package(LAPACKE REQUIRED)
 
 # --------------------------------------------------
 # ------------ Build Targets -----------------------
@@ -115,6 +112,8 @@ write_basic_package_version_file(
   VERSION ${PROJECT_VERSION}
   COMPATIBILITY SameMajorVersion)
 
-install(FILES "${PROJECT_BINARY_DIR}/gelexConfig.cmake"
-              "${PROJECT_BINARY_DIR}/gelexConfigVersion.cmake"
-        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/gelex)
+install(
+  FILES "${PROJECT_BINARY_DIR}/gelexConfig.cmake"
+        "${PROJECT_BINARY_DIR}/gelexConfigVersion.cmake"
+        "${PROJECT_SOURCE_DIR}/cmake/FindLAPACKE.cmake"
+  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/gelex)

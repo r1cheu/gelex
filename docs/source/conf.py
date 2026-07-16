@@ -6,10 +6,12 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
+from pathlib import Path
+
 project = "gelex"
 copyright = "2026, RuLei Chen"
 author = "RuLei Chen"
-release = "0.18.0"
+release = (Path(__file__).parents[2] / "VERSION").read_text().strip()
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration

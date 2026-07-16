@@ -10,10 +10,7 @@
             "name": "base",
             "hidden": true,
             "generator": "Ninja",
-            "binaryDir": "${sourceDir}/build/${presetName}",
-            "cacheVariables": {
-                "GELEX_USE_MKL": "OFF"
-            }
+            "binaryDir": "${sourceDir}/build/${presetName}"
         },
         {
             "name": "debug",

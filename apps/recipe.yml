@@ -1,0 +1,49 @@
+context:
+  version: ${{ load_from_file("../VERSION") | trim }}
+
+package:
+  name: gelex
+  version: ${{ version }}
+
+source:
+  path: ..
+
+build:
+  number: 0
+  script:
+    - cmake ${CMAKE_ARGS} -GNinja -B build $SRC_DIR
+      -DCMAKE_BUILD_TYPE=Release
+      -DGELEX_BUILD_CLI=ON
+      -DGELEX_NATIVE_OPTIMIZATION=OFF
+      -DCMAKE_INSTALL_PREFIX=$PREFIX
+
+    - cmake --build build
+    - cmake --install build --component cli
+
+requirements:
+  build:
+    - ${{ compiler('cxx') }}
+    - cmake
+    - ninja
+  host:
+    - eigen >=5,<6
+    - fmt >=12,<12.2
+    - spdlog >=1.17,<2
+    - cli11 >=2.6,<3
+    - libblas * *netlib
+    - liblapacke * *netlib
+
+tests:
+  - package_contents:
+      files:
+        exists:
+          - bin/gelex
+  - script:
+      - gelex --help
+
+about:
+  homepage: https://github.com/r1cheu/gelex
+  license: Apache-2.0
+  license_file: LICENSE
+  summary: High-performance genomic analysis toolkit for genomic prediction and association studies
+  repository: https://github.com/r1cheu/gelex

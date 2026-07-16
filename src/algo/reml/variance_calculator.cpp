@@ -18,8 +18,8 @@
 
 #include <Eigen/Cholesky>
 #include <Eigen/Core>
-#include <Eigen/src/misc/lapacke.h>
 #include <cmath>
+#include <lapacke.h>
 #include <numbers>
 #include <ranges>
 #include <stdexcept>
