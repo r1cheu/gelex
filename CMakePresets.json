@@ -25,6 +25,22 @@
             }
         },
         {
+            "name": "ci",
+            "displayName": "CI",
+            "description": "Sanitized core and CLI build with all C++ tests",
+            "inherits": "base",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "GELEX_BUILD_TESTS": "ON",
+                "GELEX_BUILD_BENCHMARKS": "OFF",
+                "GELEX_BUILD_CLI": "ON",
+                "GELEX_CLI_BUILD_TESTS": "ON",
+                "GELEX_BUILD_PYTHON": "OFF",
+                "GELEX_ENABLE_SANITIZERS": "ON",
+                "GELEX_NATIVE_OPTIMIZATION": "OFF"
+            }
+        },
+        {
             "name": "release",
             "displayName": "Release",
             "description": "Standard Release build",
@@ -139,6 +155,10 @@
             "configurePreset": "debug"
         },
         {
+            "name": "ci",
+            "configurePreset": "ci"
+        },
+        {
             "name": "release",
             "configurePreset": "release"
         },
@@ -179,6 +199,18 @@
         {
             "name": "test-debug",
             "configurePreset": "debug",
+            "output": {
+                "outputOnFailure": true
+            },
+            "execution": {
+                "noTestsAction": "error",
+                "stopOnFailure": false,
+                "jobs": 0
+            }
+        },
+        {
+            "name": "test-ci",
+            "configurePreset": "ci",
             "output": {
                 "outputOnFailure": true
             },

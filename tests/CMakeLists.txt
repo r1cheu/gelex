@@ -1,10 +1,11 @@
 if(NOT TARGET gelex::gelex)
-    find_package(gelex CONFIG REQUIRED)
+  find_package(gelex CONFIG REQUIRED)
 endif()
 
 find_package(Catch2 3 REQUIRED)
 
-file(GLOB_RECURSE TEST_SOURCES CONFIGURE_DEPENDS "*.cpp")
+file(GLOB_RECURSE TEST_SOURCES CONFIGURE_DEPENDS "test_*.cpp")
+list(APPEND TEST_SOURCES bed_fixture.cpp file_fixture.cpp)
 
 add_executable(gelex_tests ${TEST_SOURCES})
 
@@ -23,14 +24,14 @@ catch_discover_tests(gelex_tests)
 # ------------ Coverage Report ---------------------
 # --------------------------------------------------
 if(GELEX_ENABLE_COVERAGE)
-    find_program(LLVM_PROFDATA llvm-profdata REQUIRED)
-    find_program(LLVM_COV llvm-cov REQUIRED)
+  find_program(LLVM_PROFDATA llvm-profdata REQUIRED)
+  find_program(LLVM_COV llvm-cov REQUIRED)
 
-    set(COVERAGE_DIR "${PROJECT_BINARY_DIR}/coverage_report")
-    set(PROF_RAW "${PROJECT_BINARY_DIR}/default.profraw")
-    set(PROF_DATA "${PROJECT_BINARY_DIR}/coverage.profdata")
+  set(COVERAGE_DIR "${PROJECT_BINARY_DIR}/coverage_report")
+  set(PROF_RAW "${PROJECT_BINARY_DIR}/default.profraw")
+  set(PROF_DATA "${PROJECT_BINARY_DIR}/coverage.profdata")
 
-    add_custom_target(
+  add_custom_target(
     coverage
     COMMAND LLVM_PROFILE_FILE=${PROF_RAW} $<TARGET_FILE:gelex_tests>
     COMMAND ${LLVM_PROFDATA} merge -sparse ${PROF_RAW} -o ${PROF_DATA}
@@ -45,5 +46,6 @@ if(GELEX_ENABLE_COVERAGE)
       "${PROJECT_SOURCE_DIR}/include"
     WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
     DEPENDS gelex_tests
-    COMMENT "Generating HTML coverage report in ${COVERAGE_DIR} and terminal summary")
+    COMMENT
+      "Generating HTML coverage report in ${COVERAGE_DIR} and terminal summary")
 endif()

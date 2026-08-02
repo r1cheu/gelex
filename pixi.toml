@@ -46,6 +46,13 @@ test = { cmd = "ctest --preset test-debug", depends-on = [
     ] },
 ] }
 test-catch = "./build/debug/tests/gelex_tests"
+build-ci = "cmake --preset ci && cmake --build --preset ci"
+test-ci = { cmd = "ctest --preset test-ci", depends-on = [
+    "build-ci",
+] }
+test-install = { cmd = "bash tests/consumer/run.sh", depends-on = [
+    "build-ci",
+] }
 coverage = { cmd = "cmake --build --preset coverage --target coverage", depends-on = [
     { task = "build", args = [
         "coverage",
@@ -79,12 +86,17 @@ test-python = { cmd = "python -m pytest bindings/tests -q", depends-on = [
     "build-python",
 ], env = { PYTHONPATH = "bindings/python" } }
 
-# Conda package. --experimental enables `load_from_file` for the VERSION file.
-build-conda = "rattler-build build --no-build-id --recipe apps/recipe.yml --experimental --output-dir /tmp/rb-output"
-
-# Docs: isolated environment (Sphinx pypi stack, no C++ toolchain).
+# Isolated tooling environments.
 [environments]
 docs = { features = ["docs"], no-default-feature = true }
+package = { features = ["package"], no-default-feature = true }
+
+[feature.package.dependencies]
+rattler-build = ">=0.72.2,<0.73"
+
+[feature.package.tasks]
+# --experimental enables `load_from_file` for the VERSION file.
+build-conda = "rattler-build build --no-build-id --recipe apps/recipe.yml --experimental --output-dir /tmp/rb-output"
 
 [feature.docs.dependencies]
 python = ">=3.14.2,<3.15"
@@ -99,6 +111,7 @@ sphinx-autobuild = ">=2025.8.25, <2026"
 
 [feature.docs.tasks]
 build-doc = "sphinx-build -b html docs/source docs/build/html"
+build-doc-ci = "sphinx-build -W --keep-going -b html docs/source docs/build/html"
 serve-doc = { cmd = "python -m http.server 3030 -d docs/build/html", depends-on = [
     "build-doc",
 ] }

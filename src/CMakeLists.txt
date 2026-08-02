@@ -8,6 +8,7 @@ add_library(gelex ${CORE_SOURCES})
 add_library(gelex::gelex ALIAS gelex)
 
 set_target_properties(gelex PROPERTIES POSITION_INDEPENDENT_CODE ON)
+target_compile_features(gelex PUBLIC cxx_std_23)
 
 target_include_directories(
   gelex

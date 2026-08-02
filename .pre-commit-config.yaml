@@ -54,4 +54,9 @@ repos:
     hooks:
       - id: clang-format
 
+  - repo: https://github.com/rhysd/actionlint
+    rev: v1.7.12
+    hooks:
+      - id: actionlint
+
 exclude: "migrations/.*|noxfile.py|docs/.*"

@@ -42,12 +42,18 @@ requirements:
     - cli11 >=2.6,<3
     - libblas * *netlib
     - liblapacke * *netlib
+  run:
+    - if: linux
+      then: libgomp
+      else: llvm-openmp
 
 tests:
   - package_contents:
       files:
         exists:
           - bin/gelex
+          - share/bash-completion/completions/gelex
+          - share/fish/vendor_completions.d/gelex.fish
   - script:
       - gelex --help
 

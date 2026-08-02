@@ -5,18 +5,88 @@ on:
     tags:
       - "v*.*.*"
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
+  validate:
+    name: Validate Release
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SCCACHE_GHA_ENABLED: "true"
+      XDG_RUNTIME_DIR: /tmp
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Verify tag version
+        shell: bash
+        run: |
+          version="$(<VERSION)"
+          test "$GITHUB_REF_NAME" = "v${version}"
+
+      - name: Setup pixi
+        uses: prefix-dev/setup-pixi@28eb668aafebd9dede9d97c4ba1cd9989a4d0004 # v0.9.2
+        with:
+          cache: true
+          cache-write: false
+
+      - name: Setup sccache
+        uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
+
+      - name: Build and test core and CLI
+        run: pixi run test-ci
+
+      - name: Test installed core package
+        run: pixi run test-install
+
+  publish-prefix:
+    name: Publish CLI Package
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Setup pixi
+        uses: prefix-dev/setup-pixi@28eb668aafebd9dede9d97c4ba1cd9989a4d0004 # v0.9.2
+        with:
+          cache: true
+          cache-write: false
+          environments: package
+
+      - name: Build and test CLI package
+        run: pixi run -e package build-conda
+
+      - name: Upload to prefix.dev
+        env:
+          PREFIX_API_KEY: ${{ secrets.PREFIX_API_KEY }}
+        shell: bash
+        run: |
+          shopt -s globstar nullglob
+          packages=(/tmp/rb-output/**/*.conda)
+          test "${#packages[@]}" -gt 0
+          pixi run -e package rattler-build upload prefix \
+            --channel gelex \
+            --api-key "$PREFIX_API_KEY" \
+            --skip-existing \
+            "${packages[@]}"
+
   github-release:
     name: GitHub Release
+    needs: publish-prefix
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
-
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         with:
           generate_release_notes: true
           draft: false
-          prerelease: ${{ contains(github.ref, 'alpha') || contains(github.ref, 'beta') || contains(github.ref, 'rc') }}
+          prerelease: ${{ contains(github.ref_name, 'alpha') || contains(github.ref_name, 'beta') || contains(github.ref_name, 'rc') }}
