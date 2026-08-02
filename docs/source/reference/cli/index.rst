@@ -1,7 +1,7 @@
 Command Line Interface
 ======================
 
-Gelex provides a comprehensive command-line interface for genomic analysis. The tool follows a subcommand-based structure similar to ``git`` or ``plink2``.
+The ``gelex`` binary follows a subcommand-based structure similar to ``git`` or ``plink2``.
 
 Available Subcommands
 ---------------------

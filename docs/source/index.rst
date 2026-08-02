@@ -3,15 +3,18 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Gelex: High-Performance Genomic Analysis
-========================================
+Gelex: Genomic Prediction and Association Studies
+=================================================
 
 .. image:: ../images/gelex_logo.jpeg
    :align: center
-   :width: 100%
+   :width: 640px
    :alt: Gelex Logo
 
-*Gelex* is a high-performance C++ library and CLI tool for genomic prediction and genome-wide association studies (GWAS). It integrates advanced Bayesian models (BayesAlphabet series) and frequentist approaches (GBLUP) with memory-mapped genotype data, delivering state-of-the-art performance for large-scale genomic datasets.
+*Gelex* is a C++ library and command-line tool for genomic prediction and
+genome-wide association studies (GWAS). It implements Bayesian whole-genome
+regression (the BayesAlphabet family) alongside frequentist mixed-model
+approaches, operating directly on PLINK binary genotypes.
 
 .. admonition:: Quick Links
    :class: tip
@@ -19,27 +22,33 @@ Gelex: High-Performance Genomic Analysis
    - :doc:`getting_started/installation` - Get Gelex running on your system.
    - :doc:`getting_started/quickstart` - Fit your first model in one command.
    - :doc:`tutorials/gwas` - Step-by-step guide to running your first GWAS.
-   - :doc:`reference/cli/index` - Comprehensive command-line reference.
+   - :doc:`reference/cli/index` - Command and option reference.
 
 .. note::
 
-   This project is under active development. APIs and features are subject to change.
+   This project is under active development; interfaces and outputs may change
+   between releases.
 
-Install the latest version via **pixi** (recommended) or **conda**, then head to
-the :doc:`getting_started/quickstart`:
+Packages are published to the ``gelex`` channel on `prefix.dev <https://prefix.dev>`_.
+Install via pixi or conda, then continue with the
+:doc:`getting_started/quickstart`:
 
 .. code-block:: bash
 
    pixi global install -c conda-forge -c https://prefix.dev/gelex gelex
 
-Key Features
-------------
+Scope
+-----
 
-*   **Bayesian Models**: Full BayesAlphabet suite (RR, A, B, C, R, CD) with dominance effect variants.
-*   **Frequentist Models**: GBLUP with REML-based variance component estimation.
-*   **GWAS**: Mixed linear model-based association testing with LOCO correction.
-*   **High Performance**: AVX512/AVX2 vectorized I/O, OpenMP parallel processing, and optimized MKL/OpenBLAS backends.
-*   **Memory Efficiency**: Memory-mapped BED file reading with chunk-based processing.
+*   **Bayesian whole-genome regression** — the BayesAlphabet family, under
+    additive, dominance, or joint effect modes
+    (:doc:`concepts/bayesian_models`).
+*   **Variance component estimation** — GBLUP with AI-REML
+    (:doc:`reference/cli/reml`).
+*   **Association testing** — mixed linear models with LOCO correction
+    (:doc:`concepts/mixed_model_gwas`).
+*   **Supporting utilities** — genomic relationship matrices, phenotype
+    simulation, and posterior diagnostics (:doc:`reference/cli/index`).
 
 How This Documentation Is Organized
 -----------------------------------
@@ -77,7 +86,7 @@ or :doc:`tutorials/gwas` for association mapping.
              author = {RuLei Chen},
              year = {2026},
              note = {https://github.com/r1cheu/gelex},
-             title = {Gelex: A high-performance C++ genomic analysis toolkit}
+             title = {Gelex: A C++ toolkit for genomic prediction and association studies}
           }
 
 .. only:: latex
@@ -92,7 +101,7 @@ or :doc:`tutorials/gwas` for association mapping.
           author = {RuLei Chen},
           year = {2026},
           note = {https://github.com/r1cheu/gelex},
-          title = {Gelex: A high-performance C++ genomic analysis toolkit}
+          title = {Gelex: A C++ toolkit for genomic prediction and association studies}
        }
 
 .. toctree::

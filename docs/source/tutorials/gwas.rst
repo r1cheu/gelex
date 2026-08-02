@@ -4,7 +4,8 @@ GWAS
 .. admonition:: Quick Start
    :class: tip
 
-   If you are in a hurry, here is the recommended "best practice" pipeline using `plink2` for preprocessing and **Gelex** for MLM-based association testing:
+   A standard pipeline using ``plink2`` for preprocessing and Gelex for
+   MLM-based association testing:
 
    .. code-block:: bash
       :caption: Quality Control (QC): Filter by MAF > 0.01 and Missingness < 0.05
@@ -208,17 +209,19 @@ Test for dominance effects using both additive and dominance GRMs.
      --transform iint \
      -o dom_gwas
 
-**High Performance (Multi-threading)**
+**Multi-threading**
 
-For large datasets, you can increase the number of threads.
+For large datasets, increase the number of threads.
 
 .. note::
-   For optimal performance with dense linear algebra operations (MKL/Eigen), set ``--threads`` to the number of **physical cores**, not logical threads (hyperthreading). Using hyperthreads often degrades performance due to resource contention.
+   Set ``--threads`` to the number of **physical cores** rather than logical
+   threads. Hyperthreads typically degrade throughput for dense linear algebra
+   because of resource contention.
 
 .. code-block:: bash
    :caption: Multi-threaded Analysis (e.g., for a 10-core CPU)
 
-   gelex assoc -b genotypes_qc -p phenotypes.tsv --grm my_grm.A --threads 10 -o fast_gwas
+   gelex assoc -b genotypes_qc -p phenotypes.tsv --grm my_grm.A --threads 10 -o mlm_gwas
 
 Output Format
 -------------

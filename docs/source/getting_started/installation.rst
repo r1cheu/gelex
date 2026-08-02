@@ -9,12 +9,14 @@ Gelex can be installed via package managers (recommended for users) or built fro
 Binary Installation (Recommended)
 ---------------------------------
 
-The easiest way to install Gelex is through `pixi <https://pixi.sh>`_ or `conda`.
+Packages are published to the ``gelex`` channel on `prefix.dev <https://prefix.dev>`_
+and are not mirrored on conda-forge or anaconda.org. Both commands below add that channel explicitly;
+conda-forge is still required, as it supplies the runtime dependencies.
 
 Using Pixi
 ~~~~~~~~~~
 
-Install Gelex globally using pixi:
+Install Gelex globally using `pixi <https://pixi.sh>`_:
 
 .. code-block:: bash
 
@@ -22,8 +24,6 @@ Install Gelex globally using pixi:
 
 Using Conda
 ~~~~~~~~~~~
-
-You can install Gelex from the ``prefix.dev`` channel:
 
 .. code-block:: bash
 

@@ -40,7 +40,7 @@ Pick model and preprocessing strategy before tuning runtime options.
      - Trade-off
    * - ``--mode A``
      - You are running a standard additive-effect GWAS (Wald test, df=1).
-     - Fast and robust default for most analyses.
+     - Default choice; does not capture dominance signal.
    * - ``--mode D``
      - You want to test dominance effects (single Wald test, df=1).
      - Requires compatible GRMs and often larger sample sizes.
