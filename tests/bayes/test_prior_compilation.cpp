@@ -44,11 +44,16 @@ using gelex::BayesModel;
 using gelex::BayesPrior;
 using gelex::BayesRecipe;
 using gelex::compile;
+using gelex::Gaussian;
 using gelex::GaussianMethod;
 using gelex::GaussianPrior;
 using gelex::GeneticMode;
 using gelex::GeneticModeSet;
+using gelex::HalfNormal;
+using gelex::HalfNormalAsymmetry;
+using gelex::HalfNormalPrior;
 using gelex::IndependentTopology;
+using gelex::JointSpikeSlab;
 using gelex::JointSpikeSlabMethod;
 using gelex::JointSpikeSlabPrior;
 using gelex::JointTopology;
@@ -68,8 +73,14 @@ namespace
 constexpr auto mode_a = GeneticModeSet{GeneticMode::A};
 constexpr auto mode_ad = GeneticMode::A | GeneticMode::D;
 
-using SpikeSlabAD = gelex::IndependentTopology<mode_ad, SpikeSlab>;
-using ScaledMixtureAD = gelex::IndependentTopology<mode_ad, ScaledMixture>;
+using SpikeSlabAD = gelex::IndependentTopology<mode_ad, SpikeSlab, SpikeSlab>;
+using ScaledMixtureAD
+    = gelex::IndependentTopology<mode_ad, ScaledMixture, ScaledMixture>;
+using JointModeParameters = IndependentTopology<
+    mode_ad,
+    Gaussian,
+    HalfNormal<HalfNormalAsymmetry::Count>>;
+using JointSpikeSlabAD = JointTopology<JointModeParameters, JointSpikeSlab>;
 using PooledGaussianMethod = GaussianMethod<VarianceLayout::Pooled>;
 using UnpooledGaussianMethod = GaussianMethod<VarianceLayout::Unpooled>;
 using PooledSpikeSlabMethod = SpikeSlabMethod<VarianceLayout::Pooled>;
@@ -79,8 +90,10 @@ using FixedUnpooledSpikeSlabMethod
 using DefaultScaledMixtureMethod = ScaledMixtureMethod<>;
 using FixedScaledMixtureMethod = ScaledMixtureMethod<UpdatePolicy::Fixed>;
 using DefaultJointSpikeSlabMethod = JointSpikeSlabMethod<>;
-using MixedJointSpikeSlabMethod
-    = JointSpikeSlabMethod<UpdatePolicy::Fixed, UpdatePolicy::Sampled>;
+using FixedJointSpikeSlabMethod = JointSpikeSlabMethod<UpdatePolicy::Fixed>;
+using MagnitudeJointSpikeSlabMethod = JointSpikeSlabMethod<
+    UpdatePolicy::Sampled,
+    HalfNormalAsymmetry::Magnitude>;
 
 // Each recipe type admits exactly one prior type, and the five independent
 // families differ only in their leaf.
@@ -88,6 +101,7 @@ static_assert(std::same_as<
               bayes_prior_t<BayesRecipe<PooledGaussianMethod, mode_ad>>,
               BayesPrior<IndependentTopology<
                   mode_ad,
+                  GaussianPrior<VarianceLayout::Pooled>,
                   GaussianPrior<VarianceLayout::Pooled>>>>);
 static_assert(std::same_as<
               bayes_prior_t<BayesRecipe<UnpooledGaussianMethod, mode_a>>,
@@ -98,25 +112,43 @@ static_assert(std::same_as<
               bayes_prior_t<BayesRecipe<UnpooledSpikeSlabMethod, mode_ad>>,
               BayesPrior<IndependentTopology<
                   mode_ad,
+                  SpikeSlabPrior<VarianceLayout::Unpooled>,
                   SpikeSlabPrior<VarianceLayout::Unpooled>>>>);
 static_assert(std::same_as<
               bayes_prior_t<BayesRecipe<PooledSpikeSlabMethod, mode_ad>>,
               BayesPrior<IndependentTopology<
                   mode_ad,
+                  SpikeSlabPrior<VarianceLayout::Pooled>,
                   SpikeSlabPrior<VarianceLayout::Pooled>>>>);
 static_assert(std::same_as<
               bayes_prior_t<BayesRecipe<DefaultScaledMixtureMethod, mode_ad>>,
-              BayesPrior<IndependentTopology<mode_ad, ScaledMixturePrior<>>>>);
+              BayesPrior<IndependentTopology<
+                  mode_ad,
+                  ScaledMixturePrior<ScaledMixture::class_count>,
+                  ScaledMixturePrior<ScaledMixture::class_count>>>>);
 static_assert(std::same_as<
               bayes_prior_t<BayesRecipe<DefaultJointSpikeSlabMethod, mode_ad>>,
               BayesPrior<JointTopology<
-                  GaussianPrior<VarianceLayout::Pooled>,
-                  JointSpikeSlabPrior<>>>>);
+                  IndependentTopology<
+                      mode_ad,
+                      GaussianPrior<VarianceLayout::Pooled>,
+                      HalfNormalPrior<HalfNormalAsymmetry::Count>>,
+                  JointSpikeSlabPrior<JointSpikeSlab::class_count>>>>);
+static_assert(
+    std::same_as<
+        bayes_prior_t<BayesRecipe<MagnitudeJointSpikeSlabMethod, mode_ad>>,
+        BayesPrior<JointTopology<
+            IndependentTopology<
+                mode_ad,
+                GaussianPrior<VarianceLayout::Pooled>,
+                HalfNormalPrior<HalfNormalAsymmetry::Magnitude>>,
+            JointSpikeSlabPrior<JointSpikeSlab::class_count>>>>);
 static_assert(
     std::same_as<
         bayes_prior_t<BayesRecipe<FixedUnpooledSpikeSlabMethod, mode_ad>>,
         BayesPrior<IndependentTopology<
             mode_ad,
+            SpikeSlabPrior<VarianceLayout::Unpooled, UpdatePolicy::Fixed>,
             SpikeSlabPrior<VarianceLayout::Unpooled, UpdatePolicy::Fixed>>>>);
 
 template <typename Recipe>
@@ -129,6 +161,17 @@ static_assert(Compilable<BayesRecipe<DefaultJointSpikeSlabMethod, mode_ad>>);
 
 template <typename T>
 concept HasHyperprior = requires(const T& parameter) { parameter.hyperprior; };
+
+template <typename T>
+concept HasPositiveProbability
+    = requires(const T& prior) { prior.positive_probability; };
+
+static_assert(
+    HasPositiveProbability<HalfNormalPrior<HalfNormalAsymmetry::Count>>);
+static_assert(
+    !HasPositiveProbability<HalfNormalPrior<HalfNormalAsymmetry::Magnitude>>);
+static_assert(
+    !HasPositiveProbability<JointSpikeSlabPrior<JointSpikeSlab::class_count>>);
 
 auto make_model(GeneticModeSet modes) -> BayesModel
 {
@@ -214,8 +257,8 @@ TEST_CASE(
     const auto model = make_model(mode_ad);
     const auto recipe = BayesRecipe<PooledSpikeSlabMethod, mode_ad>{
         SpikeSlabAD{
-            SpikeSlab{.probability = 0.05},
-            SpikeSlab{.probability = 0.2},
+            SpikeSlab{0.05},
+            SpikeSlab{0.2},
         },
         VarianceBudget{{.additive = 0.4, .dominance = 0.1}},
     };
@@ -243,15 +286,15 @@ TEST_CASE(
     const auto fixed_recipe
         = BayesRecipe<FixedUnpooledSpikeSlabMethod, mode_ad>{
             SpikeSlabAD{
-                SpikeSlab{.probability = 0.01},
-                SpikeSlab{.probability = 0.02},
+                SpikeSlab{0.01},
+                SpikeSlab{0.02},
             },
             VarianceBudget{{.additive = 0.4, .dominance = 0.1}},
         };
     const auto sampled_recipe = BayesRecipe<UnpooledSpikeSlabMethod, mode_ad>{
         SpikeSlabAD{
-            SpikeSlab{.probability = 0.01},
-            SpikeSlab{.probability = 0.02},
+            SpikeSlab{0.01},
+            SpikeSlab{0.02},
         },
         VarianceBudget{{.additive = 0.4, .dominance = 0.1}},
     };
@@ -289,6 +332,7 @@ TEST_CASE(
     const auto& leaf = prior.genetic().get<GeneticMode::A>();
     const auto& fixed_probabilities
         = fixed_prior.genetic().get<GeneticMode::A>().probabilities;
+    const auto defaults = ScaledMixture{};
 
     // Default probabilities and scales: 0.005 * 0.001 + 0.003 * 0.01
     // + 0.001 * 0.1 + 0.001 * 1, with the null class contributing nothing.
@@ -297,13 +341,13 @@ TEST_CASE(
     REQUIRE(
         leaf.variance.initial_value()
         == Approx(expected_variance(model, GeneticMode::A, 0.5, activity)));
-    REQUIRE(leaf.scales == ScaledMixture{}.scales);
-    REQUIRE(leaf.probabilities.initial == ScaledMixture{}.probabilities);
+    REQUIRE(leaf.scales == defaults.scales());
+    REQUIRE(leaf.probabilities.initial == defaults.probabilities());
     REQUIRE(
         leaf.probabilities.hyperprior.concentration
         == std::array<double, 5>{1.0, 1.0, 1.0, 1.0, 1.0});
     static_assert(!HasHyperprior<decltype(fixed_probabilities)>);
-    REQUIRE(fixed_probabilities.initial == ScaledMixture{}.probabilities);
+    REQUIRE(fixed_probabilities.initial == defaults.probabilities());
 }
 
 TEST_CASE(
@@ -311,11 +355,11 @@ TEST_CASE(
     "[bayes][prior_compilation]")
 {
     const auto model = make_model(mode_ad);
-    const auto recipe = BayesRecipe<MixedJointSpikeSlabMethod, mode_ad>{
-        gelex::JointSpikeSlab{
-            .probabilities = {0.8, 0.1, 0.05, 0.05},
-            .positive_probability = 0.6,
-        },
+    const auto recipe = BayesRecipe<FixedJointSpikeSlabMethod, mode_ad>{
+        JointSpikeSlabAD{
+            JointModeParameters{
+                Gaussian{}, HalfNormal<HalfNormalAsymmetry::Count>{0.6}},
+            JointSpikeSlab{{0.8, 0.1, 0.05, 0.05}}},
         VarianceBudget{{.additive = 0.4, .dominance = 0.1}},
     };
 
@@ -335,9 +379,10 @@ TEST_CASE(
         == Approx(expected_variance(model, GeneticMode::D, 0.1, 0.1)));
     static_assert(
         !HasHyperprior<decltype(prior.genetic().joint().probabilities)>);
-    REQUIRE(prior.genetic().joint().positive_probability.initial == 0.6);
-    REQUIRE(
-        prior.genetic().joint().positive_probability.hyperprior.alpha == 1.0);
+    const auto& dominance = prior.genetic().mode_values().get<GeneticMode::D>();
+    static_assert(HasHyperprior<decltype(dominance.positive_probability)>);
+    REQUIRE(dominance.positive_probability.initial == 0.6);
+    REQUIRE(dominance.positive_probability.hyperprior.alpha == 1.0);
 }
 
 TEST_CASE(

@@ -30,37 +30,6 @@
 namespace gelex
 {
 
-namespace
-{
-
-auto block_section_name(const BinaryReader& reader, std::size_t block_index)
-    -> std::string
-{
-    const auto modes_path = fmt::format("genetic_block/{}/modes", block_index);
-    const auto modes = reader.to_strings(modes_path);
-    if (modes.empty())
-    {
-        return fmt::format("genetic_block[{}]", block_index);
-    }
-    if (modes.size() == 1)
-    {
-        return std::string(modes[0]);
-    }
-
-    std::string name;
-    for (std::size_t i = 0; i < modes.size(); ++i)
-    {
-        if (i > 0)
-        {
-            name += ",";
-        }
-        name += modes[i];
-    }
-    return name;
-}
-
-}  // namespace
-
 GeneticPosteriorProcessor::GeneticPosteriorProcessor(
     std::span<const BinaryReader> readers,
     double hdpi_threshold)
@@ -71,18 +40,27 @@ GeneticPosteriorProcessor::GeneticPosteriorProcessor(
 auto GeneticPosteriorProcessor::process() -> std::vector<ParameterDiag>
 {
     const auto& ref = readers_.front();
+    const auto payloads = ref.payloads();
 
     std::vector<ParameterDiag> diags;
     for (std::size_t block_index = 0;; ++block_index)
     {
-        const auto modes_path
-            = fmt::format("genetic_block/{}/modes", block_index);
-        if (!ref.contains(modes_path))
+        const auto block_prefix = fmt::format("genetic_block/{}/", block_index);
+        bool block_exists = false;
+        for (const auto& payload : payloads)
+        {
+            if (payload.identifier.starts_with(block_prefix))
+            {
+                block_exists = true;
+                break;
+            }
+        }
+        if (!block_exists)
         {
             break;
         }
 
-        const auto section = block_section_name(ref, block_index);
+        const auto section = fmt::format("genetic_block[{}]", block_index);
         for (std::size_t slot = 0;; ++slot)
         {
             const auto assignment_path = fmt::format(

@@ -19,6 +19,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <cmath>
 #include <cstddef>
+#include <cstdint>
 #include <filesystem>
 #include <random>
 #include <string>
@@ -1056,9 +1057,7 @@ TEST_CASE(
                   from_checkpoint.to_map<double>("state/residual/variance"),
                   0.0));
 
-    const auto continuous_rng = continuous.to_strings("rng_state");
-    const auto from_rng = from_checkpoint.to_strings("rng_state");
-    REQUIRE(continuous_rng.size() == 1);
-    REQUIRE(from_rng.size() == 1);
-    CHECK(continuous_rng.front() == from_rng.front());
+    const auto continuous_rng = continuous.to_map<std::uint8_t>("rng_state");
+    const auto from_rng = from_checkpoint.to_map<std::uint8_t>("rng_state");
+    CHECK(continuous_rng == from_rng);
 }

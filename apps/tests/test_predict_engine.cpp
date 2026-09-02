@@ -18,11 +18,13 @@
 #include <algorithm>
 #include <catch2/catch_test_macros.hpp>
 #include <cstddef>
+#include <cstdint>
 #include <filesystem>
 #include <fmt/format.h>
 #include <fstream>
 #include <optional>
 #include <ranges>
+#include <span>
 #include <sstream>
 #include <string>
 #include <string_view>
@@ -135,11 +137,29 @@ auto create_snp_luts(
     gelex::BinaryWriter writer(snp_lut_path.string());
     if (write_add)
     {
-        writer.write("A/lut", fill(GeneticMode::A));
+        const auto luts = fill(GeneticMode::A);
+        writer
+            .reserve<double>(
+                "A/lut",
+                gelex::BinaryShape{
+                    static_cast<std::uint64_t>(luts.rows()),
+                    static_cast<std::uint64_t>(luts.cols())})
+            .append(
+                std::span<const double>{
+                    luts.data(), static_cast<std::size_t>(luts.size())});
     }
     if (write_dom)
     {
-        writer.write("D/lut", fill(GeneticMode::D));
+        const auto luts = fill(GeneticMode::D);
+        writer
+            .reserve<double>(
+                "D/lut",
+                gelex::BinaryShape{
+                    static_cast<std::uint64_t>(luts.rows()),
+                    static_cast<std::uint64_t>(luts.cols())})
+            .append(
+                std::span<const double>{
+                    luts.data(), static_cast<std::size_t>(luts.size())});
     }
     writer.close();
 }

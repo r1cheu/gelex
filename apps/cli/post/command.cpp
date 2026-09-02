@@ -20,7 +20,6 @@
 #include <fmt/format.h>
 #include <ranges>
 #include <span>
-#include <string>
 #include <utility>
 #include <vector>
 
@@ -44,11 +43,11 @@ auto check_consistency(const std::vector<gelex::BinaryReader>& readers) -> bool
         return !readers.empty();
     }
 
-    const auto reference = readers.front().section_paths();
+    const auto reference = readers.front().payloads();
     return std::ranges::all_of(
         readers | std::views::drop(1),
         [&](const gelex::BinaryReader& reader)
-        { return reader.section_paths() == reference; });
+        { return reader.payloads() == reference; });
 }
 
 }  // namespace
@@ -68,7 +67,7 @@ auto post_execute(const cli::PostConfig& config) -> int
     if (!check_consistency(readers))
     {
         throw gelex::GelexException(
-            "Inconsistent section paths across sample files");
+            "Inconsistent payload identifiers across sample files");
     }
 
     const auto hdpi_threshold = config.hdpi;

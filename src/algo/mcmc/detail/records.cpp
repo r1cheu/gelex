@@ -16,6 +16,9 @@
 
 #include "gelex/algo/mcmc/detail/records.h"
 
+#include <cstddef>
+#include <cstdint>
+#include <span>
 #include <utility>
 
 #include "gelex/algo/mcmc/records.h"
@@ -28,17 +31,17 @@ ScalarRecord::ScalarRecord(Records& owner, std::string_view path)
 {
     if (owner.writer_)
     {
-        draw_handle_
-            = owner.writer_->reserve<double>(path, 1, owner.n_draws_).index;
+        draw_payload_ = owner.writer_->reserve<double>(
+            path, BinaryShape{1, static_cast<std::uint64_t>(owner.n_draws_)});
     }
 }
 
-auto ScalarRecord::store(Records& owner, double value) -> void
+auto ScalarRecord::store(double value) -> void
 {
     draws_.store(value);
-    if (owner.writer_)
+    if (draw_payload_)
     {
-        owner.writer_->write(SectionHandle<double>{*draw_handle_}, value);
+        draw_payload_->append(value);
     }
 }
 
@@ -54,20 +57,22 @@ VectorRecord::VectorRecord(
 {
     if (owner.writer_)
     {
-        draw_handle_
-            = owner.writer_->reserve<double>(path, value.size(), owner.n_draws_)
-                  .index;
+        draw_payload_ = owner.writer_->reserve<double>(
+            path,
+            BinaryShape{
+                static_cast<std::uint64_t>(value.size()),
+                static_cast<std::uint64_t>(owner.n_draws_)});
     }
 }
 
-auto VectorRecord::store(
-    Records& owner,
-    const Eigen::Ref<const Eigen::VectorXd>& value) -> void
+auto VectorRecord::store(const Eigen::Ref<const Eigen::VectorXd>& value) -> void
 {
     draws_.store(value);
-    if (owner.writer_)
+    if (draw_payload_)
     {
-        owner.writer_->write(SectionHandle<double>{*draw_handle_}, value);
+        draw_payload_->append(
+            std::span<const double>{
+                value.data(), static_cast<std::size_t>(value.size())});
     }
 }
 
@@ -84,19 +89,22 @@ CategoricalRecord::CategoricalRecord(
 {
     if (owner.writer_)
     {
-        draw_handle_
-            = owner.writer_->reserve<int>(path, value.size(), owner.n_draws_)
-                  .index;
+        draw_payload_ = owner.writer_->reserve<int>(
+            path,
+            BinaryShape{
+                static_cast<std::uint64_t>(value.size()),
+                static_cast<std::uint64_t>(owner.n_draws_)});
     }
 }
 
-auto CategoricalRecord::store(Records& owner, const CategoricalVector& value)
-    -> void
+auto CategoricalRecord::store(const CategoricalVector& value) -> void
 {
     draws_.store(value);
-    if (owner.writer_)
+    if (draw_payload_)
     {
-        owner.writer_->write(SectionHandle<int>{*draw_handle_}, value);
+        draw_payload_->append(
+            std::span<const int>{
+                value.data(), static_cast<std::size_t>(value.size())});
     }
 }
 

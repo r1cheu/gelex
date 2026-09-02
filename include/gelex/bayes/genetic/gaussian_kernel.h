@@ -35,9 +35,7 @@ template <VarianceLayout Kind>
 class GaussianKernel
 {
     using Prior = GaussianPrior<Kind>;
-    using State = GeneticModeState<
-        GaussianState<Kind>,
-        typename Prior::component_layout>;
+    using State = GeneticModeState<GaussianState<Kind>>;
 
    public:
     explicit GaussianKernel(const Prior& prior)
@@ -99,7 +97,7 @@ class GaussianKernel
             }
         }
 
-        state.component_fitted_values.col(0).noalias()
+        state.family_state.fitted_values.col(0).noalias()
             += previous_adjusted_response_ - residual.adjusted_response;
         if constexpr (Kind == VarianceLayout::Pooled)
         {

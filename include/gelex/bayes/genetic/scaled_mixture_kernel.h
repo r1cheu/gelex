@@ -37,16 +37,13 @@
 namespace gelex::detail
 {
 
-template <UpdatePolicy ProbabilitiesUpdate>
+template <std::size_t ClassCount, UpdatePolicy ProbabilitiesUpdate>
 class ScaledMixtureKernel
 {
-    using Prior = ScaledMixturePrior<ProbabilitiesUpdate>;
-    using Layout = typename Prior::component_layout;
-    using State = GeneticModeState<ScaledMixtureState, Layout>;
+    using Prior = ScaledMixturePrior<ClassCount, ProbabilitiesUpdate>;
+    using State = GeneticModeState<ScaledMixtureState<ClassCount>>;
     using Posterior = NormalSampler<double>::Posterior;
     using PosteriorParams = NormalSampler<double>::Params;
-
-    static constexpr std::size_t class_count = Prior::class_count;
 
     struct ComponentSample
     {
@@ -83,8 +80,8 @@ class ScaledMixtureKernel
             probabilities_updater_.reset();
         }
 
-        std::array<double, class_count> log_probabilities{};
-        for (std::size_t class_index = 0; class_index < class_count;
+        std::array<double, ClassCount> log_probabilities{};
+        for (std::size_t class_index = 0; class_index < ClassCount;
              ++class_index)
         {
             log_probabilities[class_index]
@@ -116,7 +113,8 @@ class ScaledMixtureKernel
             coefficients(marker) = new_value;
             family_state.assignment(marker)
                 = static_cast<std::uint8_t>(sample.class_index);
-            apply_fitted_value_transition<Mode, Layout>(
+
+            apply_fitted_value_transition(
                 projection,
                 marker,
                 FittedValueTransition{
@@ -124,7 +122,7 @@ class ScaledMixtureKernel
                     .new_class_index = sample.class_index,
                     .old_coefficient = old_value,
                     .new_coefficient = new_value},
-                state.component_fitted_values,
+                family_state,
                 residual.adjusted_response);
 
             if (sample.class_index != 0)
@@ -151,14 +149,14 @@ class ScaledMixtureKernel
     auto draw_component(
         const NormalSampler<double>::Kernel& likelihood,
         double variance,
-        const std::array<double, class_count>& log_probabilities,
+        const std::array<double, ClassCount>& log_probabilities,
         std::mt19937_64& rng) -> ComponentSample
     {
-        std::array<Posterior, class_count> posteriors{};
-        std::array<double, class_count> weights{};
+        std::array<Posterior, ClassCount> posteriors{};
+        std::array<double, ClassCount> weights{};
         weights[0] = log_probabilities[0];
         double max_log_weight = weights[0];
-        for (std::size_t class_index = 1; class_index < class_count;
+        for (std::size_t class_index = 1; class_index < ClassCount;
              ++class_index)
         {
             posteriors[class_index]
@@ -178,7 +176,7 @@ class ScaledMixtureKernel
 
         const double threshold = uniform_(rng) * total_weight;
         double cumulative_weight = 0.0;
-        for (std::size_t class_index = 0; class_index < class_count;
+        for (std::size_t class_index = 0; class_index < ClassCount;
              ++class_index)
         {
             cumulative_weight += weights[class_index];
@@ -190,24 +188,24 @@ class ScaledMixtureKernel
             }
         }
         return {
-            .class_index = class_count - 1,
+            .class_index = ClassCount - 1,
             .coefficient_posterior = posteriors.back().params};
     }
 
     ScaledInvChi2Sampler<double> variance_sampler_;
     [[no_unique_address]]
-    SimplexUpdater<ProbabilitiesUpdate, class_count> probabilities_updater_;
-    std::array<double, class_count> scales_;
+    SimplexUpdater<ProbabilitiesUpdate, ClassCount> probabilities_updater_;
+    std::array<double, ClassCount> scales_;
     NormalSampler<double> normal_{0.0};
     std::uniform_real_distribution<double> uniform_{0.0, 1.0};
 };
 
-template <UpdatePolicy ProbabilitiesUpdate>
+template <std::size_t ClassCount, UpdatePolicy ProbabilitiesUpdate>
 [[nodiscard]] auto make_mode_kernel(
-    const ScaledMixturePrior<ProbabilitiesUpdate>& prior)
-    -> ScaledMixtureKernel<ProbabilitiesUpdate>
+    const ScaledMixturePrior<ClassCount, ProbabilitiesUpdate>& prior)
+    -> ScaledMixtureKernel<ClassCount, ProbabilitiesUpdate>
 {
-    return ScaledMixtureKernel<ProbabilitiesUpdate>{prior};
+    return ScaledMixtureKernel<ClassCount, ProbabilitiesUpdate>{prior};
 }
 
 }  // namespace gelex::detail

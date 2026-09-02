@@ -16,6 +16,9 @@
 
 #include <Eigen/Core>
 #include <catch2/catch_test_macros.hpp>
+#include <cstddef>
+#include <cstdint>
+#include <span>
 
 #include "gelex/data/snp_lut.h"
 #include "gelex/exception.h"
@@ -47,8 +50,24 @@ TEST_CASE("SNP LUT round-trip preserves missing values", "[snp_lut]")
 
     const auto path = dir / "test_ad.snplut";
     gelex::BinaryWriter writer(path.string());
-    writer.write("A/lut", add);
-    writer.write("D/lut", dom);
+    writer
+        .reserve<double>(
+            "A/lut",
+            gelex::BinaryShape{
+                static_cast<std::uint64_t>(add.rows()),
+                static_cast<std::uint64_t>(add.cols())})
+        .append(
+            std::span<const double>{
+                add.data(), static_cast<std::size_t>(add.size())});
+    writer
+        .reserve<double>(
+            "D/lut",
+            gelex::BinaryShape{
+                static_cast<std::uint64_t>(dom.rows()),
+                static_cast<std::uint64_t>(dom.cols())})
+        .append(
+            std::span<const double>{
+                dom.data(), static_cast<std::size_t>(dom.size())});
     writer.close();
 
     const auto actual = load_snp_luts(path);
@@ -65,7 +84,15 @@ TEST_CASE("load_snp_luts rejects invalid LUT rows", "[snp_lut]")
     const Eigen::MatrixXd invalid = Eigen::MatrixXd::Zero(3, 2);
 
     gelex::BinaryWriter writer(path.string());
-    writer.write("A/lut", invalid);
+    writer
+        .reserve<double>(
+            "A/lut",
+            gelex::BinaryShape{
+                static_cast<std::uint64_t>(invalid.rows()),
+                static_cast<std::uint64_t>(invalid.cols())})
+        .append(
+            std::span<const double>{
+                invalid.data(), static_cast<std::size_t>(invalid.size())});
     writer.close();
 
     REQUIRE_THROWS_AS(load_snp_luts(path), GelexException);

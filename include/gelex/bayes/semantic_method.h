@@ -34,6 +34,12 @@ enum class UpdatePolicy : std::uint8_t
     Sampled,
 };
 
+enum class HalfNormalAsymmetry : std::uint8_t
+{
+    Count,
+    Magnitude,
+};
+
 template <VarianceLayout Kind>
 struct GaussianMethod
 {
@@ -53,7 +59,7 @@ struct ScaledMixtureMethod
 
 template <
     UpdatePolicy ProbabilitiesUpdate = UpdatePolicy::Sampled,
-    UpdatePolicy PositiveProbabilityUpdate = UpdatePolicy::Sampled>
+    HalfNormalAsymmetry Axis = HalfNormalAsymmetry::Count>
 struct JointSpikeSlabMethod
 {
 };

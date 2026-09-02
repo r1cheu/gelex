@@ -66,7 +66,8 @@ auto GenoReporter::show_loaded(const gelex::bayes::GeneticDesign& design) const
             mode,
             design.cols(),
             design.cols()
-                - static_cast<Eigen::Index>(design.valid_indices(mode).size()));
+                - static_cast<Eigen::Index>(
+                    design.projection(mode).valid_indices().size()));
     }
 }
 

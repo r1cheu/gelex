@@ -17,8 +17,11 @@
 #include "gelex/io/snp_lut.h"
 
 #include <Eigen/Core>
+#include <cstddef>
+#include <cstdint>
 #include <filesystem>
 #include <fmt/format.h>
+#include <span>
 
 #include "gelex/bayes/design.h"
 #include "gelex/exception.h"
@@ -59,8 +62,16 @@ auto write_snp_luts(
     BinaryWriter writer(path.string());
     for (const GeneticMode mode : design.each_mode())
     {
-        writer.write(
-            fmt::format("{}/lut", mode), design.projection(mode).snp_luts());
+        const auto& luts = design.projection(mode).snp_luts();
+        writer
+            .reserve<double>(
+                fmt::format("{}/lut", mode),
+                BinaryShape{
+                    static_cast<std::uint64_t>(luts.rows()),
+                    static_cast<std::uint64_t>(luts.cols())})
+            .append(
+                std::span<const double>{
+                    luts.data(), static_cast<std::size_t>(luts.size())});
     }
     writer.close();
 }

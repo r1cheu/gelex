@@ -21,6 +21,7 @@
 #include <type_traits>
 #include <vector>
 
+#include "gelex/bayes/genetic/independent_topology.h"
 #include "gelex/bayes/genetic/joint_topology.h"
 
 using gelex::GeneticMode;
@@ -37,33 +38,45 @@ struct TestValue
 
 constexpr auto mode_ad = GeneticMode::A | GeneticMode::D;
 
-using TestModeTopology = IndependentTopology<mode_ad, TestValue>;
-using TestJointTopology = JointTopology<TestValue, std::string>;
+using TestModeTopology = IndependentTopology<mode_ad, TestValue, TestValue>;
+using TestJointTopology = JointTopology<TestModeTopology, std::string>;
+
+template <typename ModeTopology, typename JointValue>
+concept ValidJointTopology
+    = requires { typename JointTopology<ModeTopology, JointValue>; };
 
 static_assert(TestJointTopology::modes == (GeneticMode::A | GeneticMode::D));
-static_assert(std::same_as<TestJointTopology::mode_value_type, TestValue>);
+static_assert(std::same_as<
+              TestJointTopology::mode_value_type<GeneticMode::A>,
+              TestValue>);
+static_assert(std::same_as<
+              TestJointTopology::mode_value_type<GeneticMode::D>,
+              TestValue>);
 static_assert(std::same_as<TestJointTopology::joint_value_type, std::string>);
 static_assert(
     std::same_as<TestJointTopology::mode_topology_type, TestModeTopology>);
+static_assert(!ValidJointTopology<TestJointTopology, int>);
+static_assert(!ValidJointTopology<TestModeTopology, const int&>);
 
 static_assert(
     std::constructible_from<TestJointTopology, TestModeTopology, std::string>);
 
-// The joint payload is never implicit: it cannot be defaulted away, and the
-// mode values cannot be supplied without it.
+// The value constructor still requires the joint payload, while the topology
+// composes the defaults provided by its leaves.
 static_assert(!std::constructible_from<TestJointTopology, TestModeTopology>);
-static_assert(!std::default_initializable<TestJointTopology>);
+static_assert(std::default_initializable<TestJointTopology>);
 
 // Mode and joint types deduce independently, including when they coincide.
 static_assert(std::same_as<
               decltype(JointTopology{
                   TestModeTopology{TestValue{1}, TestValue{2}},
                   3}),
-              JointTopology<TestValue, int>>);
-static_assert(
-    std::same_as<
-        decltype(JointTopology{IndependentTopology<mode_ad, int>{1, 2}, 3}),
-        JointTopology<int, int>>);
+              JointTopology<TestModeTopology, int>>);
+static_assert(std::same_as<
+              decltype(JointTopology{
+                  IndependentTopology<mode_ad, int, int>{1, 2},
+                  3}),
+              JointTopology<IndependentTopology<mode_ad, int, int>, int>>);
 
 static_assert(
     JointTopology{TestModeTopology{TestValue{1}, TestValue{2}}, 3}
@@ -83,12 +96,13 @@ static_assert(
 
 // A coinciding joint type must not shift into the mode storage.
 static_assert(
-    JointTopology{IndependentTopology<mode_ad, int>{1, 2}, 3}
+    JointTopology{IndependentTopology<mode_ad, int, int>{1, 2}, 3}
         .mode_values()
         .get<GeneticMode::D>()
     == 2);
 static_assert(
-    JointTopology{IndependentTopology<mode_ad, int>{1, 2}, 3}.joint() == 3);
+    JointTopology{IndependentTopology<mode_ad, int, int>{1, 2}, 3}.joint()
+    == 3);
 
 }  // namespace
 
@@ -97,17 +111,21 @@ TEST_CASE(
     "[bayes][genetic][joint_topology]")
 {
     auto topology = JointTopology{
-        IndependentTopology<mode_ad, std::unique_ptr<int>>{
+        IndependentTopology<
+            mode_ad,
+            std::unique_ptr<int>,
+            std::unique_ptr<int>>{
             std::make_unique<int>(1), std::make_unique<int>(2)},
         std::string{"joint"}};
 
     std::vector<GeneticMode> visited_modes;
     std::vector<int> visited_values;
-    for (const auto& [mode, value] : topology.mode_values().each())
-    {
-        visited_modes.push_back(mode);
-        visited_values.push_back(*value);
-    }
+    topology.mode_values().for_each(
+        [&]<GeneticMode Mode>(const auto& value)
+        {
+            visited_modes.push_back(Mode);
+            visited_values.push_back(*value);
+        });
 
     REQUIRE(visited_modes == std::vector{GeneticMode::A, GeneticMode::D});
     REQUIRE(visited_values == std::vector{1, 2});
@@ -119,7 +137,7 @@ TEST_CASE(
     "[bayes][genetic][joint_topology]")
 {
     auto topology = JointTopology{
-        IndependentTopology<mode_ad, int>{1, 2}, std::string{"joint"}};
+        IndependentTopology<mode_ad, int, int>{1, 2}, std::string{"joint"}};
 
     topology.mode_values().get<GeneticMode::A>() = 3;
     topology.mode_values().get<GeneticMode::D>() = 4;
@@ -139,12 +157,13 @@ TEST_CASE(
         TestModeTopology{TestValue{1}, TestValue{2}}, std::string{"joint"}};
 
     std::vector<int> visited_values;
-    for (const auto& [mode, value] : topology.mode_values().each())
-    {
-        static_assert(
-            std::is_const_v<std::remove_reference_t<decltype(value)>>);
-        visited_values.push_back(value.value);
-    }
+    topology.mode_values().for_each(
+        [&]<GeneticMode /*Mode*/>(const auto& value)
+        {
+            static_assert(
+                std::is_const_v<std::remove_reference_t<decltype(value)>>);
+            visited_values.push_back(value.value);
+        });
 
     REQUIRE(visited_values == std::vector{1, 2});
 }

@@ -90,13 +90,13 @@ auto Records::take_results() && -> std::vector<RecordEntry>
                 std::move(names_[static_cast<std::size_t>(i)])});
     }
 
+    records_.clear();
     if (writer_)
     {
         writer_->close();
         writer_.reset();
     }
 
-    records_.clear();
     paths_.clear();
     names_.clear();
     indices_.clear();
@@ -150,7 +150,7 @@ auto Records::store_record(std::string_view name, Value&& value) -> void
         names_.emplace_back(std::nullopt);
         auto& stored = std::get<RecordType>(records_[index]);
         indices_.emplace(std::move(field_key), index);
-        stored.store(*this, std::forward<Value>(value));
+        stored.store(std::forward<Value>(value));
         return;
     }
 
@@ -160,7 +160,7 @@ auto Records::store_record(std::string_view name, Value&& value) -> void
         throw GelexException("Records: record kind changed for " + field_key);
     }
     auto& stored = std::get<RecordType>(record);
-    stored.store(*this, std::forward<Value>(value));
+    stored.store(std::forward<Value>(value));
 }
 
 auto Records::on(
@@ -216,7 +216,7 @@ auto Records::on(
         names_.emplace_back(std::nullopt);
         auto& stored = std::get<detail::CategoricalRecord>(records_[index]);
         indices_.emplace(std::move(field_key), index);
-        stored.store(*this, value);
+        stored.store(value);
         return;
     }
 
@@ -226,7 +226,7 @@ auto Records::on(
         throw GelexException("Records: record kind changed for " + field_key);
     }
     auto& stored = std::get<detail::CategoricalRecord>(record);
-    stored.store(*this, value);
+    stored.store(value);
 }
 
 auto Records::on(std::string_view name, double& value, FieldFlag flags) -> void

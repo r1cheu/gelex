@@ -20,13 +20,16 @@
 #include <Eigen/Core>
 #include <algorithm>
 #include <array>
+#include <cassert>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <random>
+#include <span>
+#include <type_traits>
 
 #include "gelex/bayes/design.h"
-#include "gelex/bayes/detail/fitted_value_update.h"
+#include "gelex/bayes/detail/genetic_state_compilation.h"
 #include "gelex/bayes/genetic/joint_topology.h"
 #include "gelex/bayes/genetic/prior.h"
 #include "gelex/bayes/genetic/probability_updater.h"
@@ -41,22 +44,48 @@ namespace gelex::detail
 {
 
 template <
+    std::size_t ClassCount,
     UpdatePolicy ProbabilitiesUpdate,
-    UpdatePolicy PositiveProbabilityUpdate>
+    HalfNormalAsymmetry Axis>
 class JointSpikeSlabKernel
 {
-    using ModePrior = GaussianPrior<VarianceLayout::Pooled>;
-    using JointPrior
-        = JointSpikeSlabPrior<ProbabilitiesUpdate, PositiveProbabilityUpdate>;
-    using GeneticPrior = JointTopology<ModePrior, JointPrior>;
-    using Layout = typename JointPrior::component_layout;
-    using ModeState = GeneticModeState<
-        GaussianState<VarianceLayout::Pooled>,
-        typename JointPrior::component_layout>;
-    using GeneticState = JointTopology<ModeState, JointSpikeSlabState>;
+    static_assert(ClassCount == 4);
+
+    using AdditivePrior = GaussianPrior<VarianceLayout::Pooled>;
+    using DominancePrior = HalfNormalPrior<Axis>;
+    using ModePriors = IndependentTopology<
+        GeneticMode::A | GeneticMode::D,
+        AdditivePrior,
+        DominancePrior>;
+    using JointPrior = JointSpikeSlabPrior<ClassCount, ProbabilitiesUpdate>;
+    using GeneticPrior = JointTopology<ModePriors, JointPrior>;
+    using GeneticState = genetic_state_t<GeneticPrior>;
     using DominancePosterior = HalfNormalSampler<double>::Posterior;
 
-    static constexpr std::size_t class_count = JointPrior::class_count;
+    struct NoPositiveProbabilityUpdater
+    {
+    };
+
+    using PositiveProbabilityUpdater = std::conditional_t<
+        Axis == HalfNormalAsymmetry::Count,
+        ProbabilityUpdater<UpdatePolicy::Sampled>,
+        NoPositiveProbabilityUpdater>;
+
+    static constexpr std::size_t class_count = ClassCount;
+    static constexpr std::size_t negative_sign_index = 0;
+    static constexpr std::size_t positive_sign_index = 1;
+    static constexpr int no_fitted_component = -1;
+
+    static constexpr std::array<int, class_count> additive_fitted_indices{
+        no_fitted_component,
+        0,
+        no_fitted_component,
+        2};  // NULL, A, D, AD
+    static constexpr std::array<int, class_count> dominance_fitted_indices{
+        no_fitted_component,
+        no_fitted_component,
+        1,
+        2};  // NULL, A, D, AD
 
     struct MarkerLikelihood
     {
@@ -75,6 +104,39 @@ class JointSpikeSlabKernel
         bool positive_dominance{};
     };
 
+    struct CoefficientTransition
+    {
+        std::size_t old_class_index{};
+        std::size_t new_class_index{};
+        double old_coefficient{};
+        double new_coefficient{};
+    };
+
+    struct DominanceParameters
+    {
+        std::array<double, 2> variances{};
+        std::array<double, 2> sign_log_probabilities{};
+    };
+
+    struct EffectStatistics
+    {
+        Eigen::Index count{};
+        double sum_squares{};
+
+        auto observe(double coefficient) -> void
+        {
+            ++count;
+            sum_squares += coefficient * coefficient;
+        }
+    };
+
+    struct VarianceStatistics
+    {
+        EffectStatistics additive;
+        EffectStatistics dominance;
+        std::array<EffectStatistics, 2> dominance_by_sign{};
+    };
+
    public:
     explicit JointSpikeSlabKernel(const GeneticPrior& prior)
         : additive_variance_sampler_{prior.mode_values()
@@ -84,7 +146,8 @@ class JointSpikeSlabKernel
                                           .template get<GeneticMode::D>()
                                           .variance.prior()},
           probabilities_updater_{prior.joint().probabilities},
-          positive_probability_updater_{prior.joint().positive_probability},
+          positive_probability_updater_{
+              make_positive_probability_updater(prior)},
           half_normal_{prior.mode_values()
                            .template get<GeneticMode::D>()
                            .variance.initial_value()}
@@ -103,20 +166,12 @@ class JointSpikeSlabKernel
         auto& additive = state.mode_values().template get<GeneticMode::A>();
         auto& dominance = state.mode_values().template get<GeneticMode::D>();
         auto& joint = state.joint();
-        auto& additive_variance = additive.family_state.variance;
-        auto& dominance_variance = dominance.family_state.variance;
+        auto& additive_family = additive.family_state;
+        auto& dominance_family = dominance.family_state;
         const auto& additive_xtx_diag = additive_projection.xtx_diag();
         const auto& dominance_xtx_diag = dominance_projection.xtx_diag();
 
-        reset_samplers();
-        if constexpr (ProbabilitiesUpdate == UpdatePolicy::Sampled)
-        {
-            probabilities_updater_.reset();
-        }
-        if constexpr (PositiveProbabilityUpdate == UpdatePolicy::Sampled)
-        {
-            positive_probability_updater_.reset();
-        }
+        reset_updaters();
 
         std::array<double, class_count> log_probabilities{};
         for (std::size_t class_index = 0; class_index < class_count;
@@ -125,13 +180,11 @@ class JointSpikeSlabKernel
             log_probabilities[class_index]
                 = std::log(joint.probabilities[class_index]);
         }
-        normal_.set_prior_var(additive_variance);
-        half_normal_.set_prior_var(dominance_variance);
+        normal_.set_prior_var(additive_family.variance);
+        const auto dominance_parameters
+            = make_dominance_parameters(dominance_family);
 
-        Eigen::Index additive_active_count = 0;
-        Eigen::Index dominance_active_count = 0;
-        double additive_sum_squares = 0.0;
-        double dominance_sum_squares = 0.0;
+        VarianceStatistics variance_statistics;
         for (const Eigen::Index marker : valid_indices)
         {
             const double old_additive = additive.coefficients(marker);
@@ -151,87 +204,99 @@ class JointSpikeSlabKernel
                  .dominance_linear = dominance_linear,
                  .residual_variance = residual.variance},
                 log_probabilities,
-                joint.positive_probability,
+                dominance_parameters,
                 rng);
-            const bool additive_active
-                = sample.class_index == 1 || sample.class_index == 3;
-            const bool dominance_active
-                = sample.class_index == 2 || sample.class_index == 3;
 
-            joint.dominance_sign(marker) = static_cast<std::uint8_t>(
-                dominance_active && sample.positive_dominance);
-            if constexpr (PositiveProbabilityUpdate == UpdatePolicy::Sampled)
-            {
-                if (dominance_active)
-                {
-                    positive_probability_updater_.observe(
-                        sample.positive_dominance);
-                }
-            }
+            dominance_family.assignment(marker) = static_cast<std::uint8_t>(
+                dominance_is_active(sample.class_index)
+                    ? static_cast<std::uint8_t>(sample.positive_dominance) + 1
+                    : 0);
 
             additive.coefficients(marker) = sample.additive;
             dominance.coefficients(marker) = sample.dominance;
             joint.assignment(marker)
                 = static_cast<std::uint8_t>(sample.class_index);
-            apply_fitted_value_transition<GeneticMode::A, Layout>(
+            apply_fitted_value_transition<GeneticMode::A>(
                 additive_projection,
                 marker,
-                FittedValueTransition{
-                    .old_class_index = old_class_index,
-                    .new_class_index = sample.class_index,
-                    .old_coefficient = old_additive,
-                    .new_coefficient = sample.additive},
-                additive.component_fitted_values,
+                {.old_class_index = old_class_index,
+                 .new_class_index = sample.class_index,
+                 .old_coefficient = old_additive,
+                 .new_coefficient = sample.additive},
+                additive_family.fitted_values,
+                joint,
                 residual.adjusted_response);
-            apply_fitted_value_transition<GeneticMode::D, Layout>(
+            apply_fitted_value_transition<GeneticMode::D>(
                 dominance_projection,
                 marker,
-                FittedValueTransition{
-                    .old_class_index = old_class_index,
-                    .new_class_index = sample.class_index,
-                    .old_coefficient = old_dominance,
-                    .new_coefficient = sample.dominance},
-                dominance.component_fitted_values,
+                {.old_class_index = old_class_index,
+                 .new_class_index = sample.class_index,
+                 .old_coefficient = old_dominance,
+                 .new_coefficient = sample.dominance},
+                dominance_family.fitted_values,
+                joint,
                 residual.adjusted_response);
-
-            if (additive_active)
-            {
-                ++additive_active_count;
-                additive_sum_squares += sample.additive * sample.additive;
-            }
-            if (dominance_active)
-            {
-                ++dominance_active_count;
-                dominance_sum_squares += sample.dominance * sample.dominance;
-            }
-            if constexpr (ProbabilitiesUpdate == UpdatePolicy::Sampled)
-            {
-                probabilities_updater_.observe(sample.class_index);
-            }
+            observe_sample(sample, variance_statistics);
         }
 
-        additive_variance = additive_variance_sampler_(
-            {.n = additive_active_count, .sum_squares = additive_sum_squares},
-            rng);
-        dominance_variance = dominance_variance_sampler_(
-            {.n = dominance_active_count, .sum_squares = dominance_sum_squares},
-            rng);
-        if constexpr (ProbabilitiesUpdate == UpdatePolicy::Sampled)
-        {
-            probabilities_updater_.update(joint.probabilities, rng);
-        }
-        if constexpr (PositiveProbabilityUpdate == UpdatePolicy::Sampled)
-        {
-            positive_probability_updater_.update(
-                joint.positive_probability, rng);
-        }
+        update_variances(
+            additive_family, dominance_family, variance_statistics, rng);
+        update_probabilities(joint, dominance_family, rng);
     }
 
    private:
+    [[nodiscard]] static auto make_positive_probability_updater(
+        const GeneticPrior& prior) -> PositiveProbabilityUpdater
+    {
+        if constexpr (Axis == HalfNormalAsymmetry::Count)
+        {
+            return PositiveProbabilityUpdater{
+                prior.mode_values()
+                    .template get<GeneticMode::D>()
+                    .positive_probability};
+        }
+        else
+        {
+            return {};
+        }
+    }
+
+    [[nodiscard]] static auto make_dominance_parameters(
+        const HalfNormalState<Axis>& state) -> DominanceParameters
+    {
+        if constexpr (Axis == HalfNormalAsymmetry::Count)
+        {
+            return {
+                .variances = {state.variance, state.variance},
+                .sign_log_probabilities
+                = {std::log1p(-state.positive_probability),
+                   std::log(state.positive_probability)}};
+        }
+        else
+        {
+            const double log_half = std::log(0.5);
+            return {
+                .variances = state.variances,
+                .sign_log_probabilities = {log_half, log_half}};
+        }
+    }
+
+    [[nodiscard]] static constexpr auto additive_is_active(
+        std::size_t class_index) noexcept -> bool
+    {
+        return class_index == 1 || class_index == 3;
+    }
+
+    [[nodiscard]] static constexpr auto dominance_is_active(
+        std::size_t class_index) noexcept -> bool
+    {
+        return class_index == 2 || class_index == 3;
+    }
+
     auto draw_marker(
         const MarkerLikelihood& likelihood,
         const std::array<double, class_count>& log_probabilities,
-        double positive_probability,
+        const DominanceParameters& dominance_parameters,
         std::mt19937_64& rng) -> MarkerSample
     {
         const auto additive_posterior = normal_.posterior_with_logL(
@@ -239,23 +304,29 @@ class JointSpikeSlabKernel
              .linear = likelihood.additive_linear,
              .scale = likelihood.residual_variance});
         const auto dominance_positive_posterior
-            = half_normal_.posterior_with_logL(
-                {.quadratic = likelihood.dominance_quadratic,
-                 .linear = likelihood.dominance_linear,
-                 .scale = likelihood.residual_variance},
-                1);
+            = half_normal_
+                  .set_prior_var(
+                      dominance_parameters.variances[positive_sign_index])
+                  .posterior_with_logL(
+                      {.quadratic = likelihood.dominance_quadratic,
+                       .linear = likelihood.dominance_linear,
+                       .scale = likelihood.residual_variance},
+                      1);
         const auto dominance_negative_posterior
-            = half_normal_.posterior_with_logL(
-                {.quadratic = likelihood.dominance_quadratic,
-                 .linear = likelihood.dominance_linear,
-                 .scale = likelihood.residual_variance},
-                -1);
+            = half_normal_
+                  .set_prior_var(
+                      dominance_parameters.variances[negative_sign_index])
+                  .posterior_with_logL(
+                      {.quadratic = likelihood.dominance_quadratic,
+                       .linear = likelihood.dominance_linear,
+                       .scale = likelihood.residual_variance},
+                      -1);
 
         const double positive_log_weight
-            = std::log(positive_probability)
+            = dominance_parameters.sign_log_probabilities[positive_sign_index]
               + dominance_positive_posterior.log_marginal_kernel;
         const double negative_log_weight
-            = std::log1p(-positive_probability)
+            = dominance_parameters.sign_log_probabilities[negative_sign_index]
               + dominance_negative_posterior.log_marginal_kernel;
         const double dominance_log_likelihood
             = log_sum_exp(positive_log_weight, negative_log_weight);
@@ -269,8 +340,8 @@ class JointSpikeSlabKernel
             additive_posterior.log_likelihood_kernel + dominance_log_likelihood
                 + log_probabilities[3]};
         const std::size_t class_index = draw_class(log_weights, rng);
-        const bool additive_active = class_index == 1 || class_index == 3;
-        const bool dominance_active = class_index == 2 || class_index == 3;
+        const bool additive_active = additive_is_active(class_index);
+        const bool dominance_active = dominance_is_active(class_index);
         const bool positive_dominance
             = dominance_active
               && draw_positive_sign(
@@ -290,13 +361,188 @@ class JointSpikeSlabKernel
             .positive_dominance = positive_dominance};
     }
 
-    auto reset_samplers() -> void
+    template <GeneticMode Mode>
+        requires(Mode == GeneticMode::A || Mode == GeneticMode::D)
+    [[nodiscard]] static constexpr auto fitted_component_index(
+        std::size_t class_index) noexcept -> int
+    {
+        if (class_index >= class_count)
+        {
+            return no_fitted_component;
+        }
+        if constexpr (Mode == GeneticMode::A)
+        {
+            return additive_fitted_indices[class_index];
+        }
+        else
+        {
+            return dominance_fitted_indices[class_index];
+        }
+    }
+
+    template <GeneticMode Mode>
+        requires(Mode == GeneticMode::A || Mode == GeneticMode::D)
+    static auto apply_fitted_value_transition(
+        const bayes::GeneticProjection& projection,
+        Eigen::Index marker,
+        CoefficientTransition transition,
+        Eigen::VectorXd& total_fitted_values,
+        JointSpikeSlabState<ClassCount>& joint_state,
+        Eigen::VectorXd& adjusted_response) -> void
+    {
+        std::array<bayes::AxpyTarget, 4> targets{};
+        std::size_t target_count = 0;
+        const auto append_target
+            = [&](double scale, const Eigen::Ref<Eigen::VectorXd>& values)
+        {
+            assert(target_count < targets.size());
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
+            targets[target_count++] = bayes::AxpyTarget{scale, values};
+        };
+        const double coefficient_delta
+            = transition.new_coefficient - transition.old_coefficient;
+        if (coefficient_delta != 0.0)
+        {
+            append_target(-coefficient_delta, adjusted_response);
+            append_target(coefficient_delta, total_fitted_values);
+        }
+
+        const auto append_joint_target
+            = [&](std::size_t class_index, double delta)
+        {
+            const int component_index
+                = fitted_component_index<Mode>(class_index);
+            if (component_index == no_fitted_component || delta == 0.0)
+            {
+                return;
+            }
+            append_target(
+                delta,
+                joint_state.fitted_values.col(
+                    static_cast<Eigen::Index>(component_index)));
+        };
+
+        const int old_component
+            = fitted_component_index<Mode>(transition.old_class_index);
+        const int new_component
+            = fitted_component_index<Mode>(transition.new_class_index);
+        if (old_component == new_component)
+        {
+            append_joint_target(transition.old_class_index, coefficient_delta);
+        }
+        else
+        {
+            append_joint_target(
+                transition.old_class_index, -transition.old_coefficient);
+            append_joint_target(
+                transition.new_class_index, transition.new_coefficient);
+        }
+
+        if (target_count != 0)
+        {
+            projection.axpy(
+                marker,
+                std::span<const bayes::AxpyTarget>{
+                    targets.data(), target_count});
+        }
+    }
+
+    auto observe_sample(
+        const MarkerSample& sample,
+        VarianceStatistics& statistics) -> void
+    {
+        if (additive_is_active(sample.class_index))
+        {
+            statistics.additive.observe(sample.additive);
+        }
+        if (dominance_is_active(sample.class_index))
+        {
+            if constexpr (Axis == HalfNormalAsymmetry::Count)
+            {
+                statistics.dominance.observe(sample.dominance);
+                positive_probability_updater_.observe(
+                    sample.positive_dominance);
+            }
+            else
+            {
+                const std::size_t sign_index = sample.positive_dominance
+                                                   ? positive_sign_index
+                                                   : negative_sign_index;
+                statistics.dominance_by_sign[sign_index].observe(
+                    sample.dominance);
+            }
+        }
+        if constexpr (ProbabilitiesUpdate == UpdatePolicy::Sampled)
+        {
+            probabilities_updater_.observe(sample.class_index);
+        }
+    }
+
+    auto update_variances(
+        GaussianState<VarianceLayout::Pooled>& additive_state,
+        HalfNormalState<Axis>& dominance_state,
+        const VarianceStatistics& statistics,
+        std::mt19937_64& rng) -> void
+    {
+        additive_state.variance = additive_variance_sampler_(
+            {.n = statistics.additive.count,
+             .sum_squares = statistics.additive.sum_squares},
+            rng);
+        if constexpr (Axis == HalfNormalAsymmetry::Count)
+        {
+            dominance_state.variance = dominance_variance_sampler_(
+                {.n = statistics.dominance.count,
+                 .sum_squares = statistics.dominance.sum_squares},
+                rng);
+        }
+        else
+        {
+            constexpr std::array sign_indices{
+                negative_sign_index, positive_sign_index};
+            for (const std::size_t sign_index : sign_indices)
+            {
+                const auto& sign_statistics
+                    = statistics.dominance_by_sign[sign_index];
+                dominance_state.variances[sign_index]
+                    = dominance_variance_sampler_(
+                        {.n = sign_statistics.count,
+                         .sum_squares = sign_statistics.sum_squares},
+                        rng);
+            }
+        }
+    }
+
+    auto update_probabilities(
+        JointSpikeSlabState<ClassCount>& joint_state,
+        HalfNormalState<Axis>& dominance_state,
+        std::mt19937_64& rng) -> void
+    {
+        if constexpr (ProbabilitiesUpdate == UpdatePolicy::Sampled)
+        {
+            probabilities_updater_.update(joint_state.probabilities, rng);
+        }
+        if constexpr (Axis == HalfNormalAsymmetry::Count)
+        {
+            positive_probability_updater_.update(
+                dominance_state.positive_probability, rng);
+        }
+    }
+
+    auto reset_updaters() -> void
     {
         additive_variance_sampler_.reset();
         dominance_variance_sampler_.reset();
         normal_.reset();
         half_normal_.reset();
         uniform_.reset();
+        if constexpr (ProbabilitiesUpdate == UpdatePolicy::Sampled)
+        {
+            probabilities_updater_.reset();
+        }
+        if constexpr (Axis == HalfNormalAsymmetry::Count)
+        {
+            positive_probability_updater_.reset();
+        }
     }
 
     [[nodiscard]] static auto log_sum_exp(double lhs, double rhs) noexcept
@@ -351,24 +597,26 @@ class JointSpikeSlabKernel
     [[no_unique_address]]
     SimplexUpdater<ProbabilitiesUpdate, class_count> probabilities_updater_;
     [[no_unique_address]]
-    ProbabilityUpdater<PositiveProbabilityUpdate> positive_probability_updater_;
+    PositiveProbabilityUpdater positive_probability_updater_;
     NormalSampler<double> normal_{0.0};
     HalfNormalSampler<double> half_normal_;
     std::uniform_real_distribution<double> uniform_{0.0, 1.0};
 };
 
 template <
+    std::size_t ClassCount,
     UpdatePolicy ProbabilitiesUpdate,
-    UpdatePolicy PositiveProbabilityUpdate>
+    HalfNormalAsymmetry Axis>
 [[nodiscard]] auto make_genetic_kernel(
     const JointTopology<
-        GaussianPrior<VarianceLayout::Pooled>,
-        JointSpikeSlabPrior<ProbabilitiesUpdate, PositiveProbabilityUpdate>>&
-        prior)
-    -> JointSpikeSlabKernel<ProbabilitiesUpdate, PositiveProbabilityUpdate>
+        IndependentTopology<
+            GeneticMode::A | GeneticMode::D,
+            GaussianPrior<VarianceLayout::Pooled>,
+            HalfNormalPrior<Axis>>,
+        JointSpikeSlabPrior<ClassCount, ProbabilitiesUpdate>>& prior)
+    -> JointSpikeSlabKernel<ClassCount, ProbabilitiesUpdate, Axis>
 {
-    return JointSpikeSlabKernel<ProbabilitiesUpdate, PositiveProbabilityUpdate>{
-        prior};
+    return JointSpikeSlabKernel<ClassCount, ProbabilitiesUpdate, Axis>{prior};
 }
 
 }  // namespace gelex::detail

@@ -16,17 +16,11 @@
 
 #include "gelex/bayes/detail/recipe_validation.h"
 
-#include <cmath>
 #include <fmt/format.h>
 #include <fmt/ranges.h>
-#include <optional>
-#include <ranges>
-#include <span>
 #include <string>
-#include <string_view>
-#include <utility>
+#include <vector>
 
-#include "gelex/bayes/spec.h"
 #include "gelex/bayes/variance_budget.h"
 #include "gelex/exception.h"
 #include "gelex/types/genetic_mode.h"
@@ -37,163 +31,50 @@ namespace gelex::detail
 namespace
 {
 
-constexpr double simplex_tolerance = 1e-9;
-
-[[nodiscard]] auto is_finite_positive(double value) noexcept -> bool
+class RecipeIssues
 {
-    return std::isfinite(value) && value > 0.0;
-}
-
-auto check_simplex(
-    RecipeIssues& issues,
-    GeneticModeSet scope,
-    std::span<const double> weights) -> void
-{
-    auto total = 0.0;
-    for (const auto [index, weight] : weights | std::views::enumerate)
+   public:
+    auto add(GeneticModeSet scope, std::string issue) -> void
     {
-        if (!is_finite_positive(weight))
+        issues_.push_back(fmt::format("{} {}", scope, issue));
+    }
+
+    auto throw_if_any() const -> void
+    {
+        if (issues_.empty())
         {
-            issues.add(
-                scope,
-                fmt::format(
-                    "mixture weights[{}] must be a finite positive "
-                    "probability, got {}",
-                    index,
-                    weight));
+            return;
         }
-        total += weight;
-    }
 
-    if (std::abs(total - 1.0) > simplex_tolerance)
-    {
-        issues.add(
-            scope, fmt::format("mixture weights must sum to 1, got {}", total));
-    }
-}
-
-auto check_open_unit(
-    RecipeIssues& issues,
-    GeneticModeSet scope,
-    double value,
-    std::string_view field) -> void
-{
-    if (!is_finite_positive(value) || value >= 1.0)
-    {
-        issues.add(
-            scope,
+        throw GelexException(
             fmt::format(
-                "{} must lie in the open interval (0, 1), got {}",
-                field,
-                value));
-    }
-}
-
-}  // namespace
-
-auto RecipeIssues::add(std::optional<GeneticModeSet> scope, std::string issue)
-    -> void
-{
-    issues_.push_back(
-        scope ? fmt::format("{} {}", *scope, issue) : std::move(issue));
-}
-
-auto RecipeIssues::throw_if_any() const -> void
-{
-    if (issues_.empty())
-    {
-        return;
+                "invalid Bayes recipe input:\n  {}",
+                fmt::join(issues_, "\n  ")));
     }
 
-    throw GelexException(
-        fmt::format(
-            "invalid Bayes recipe input:\n  {}", fmt::join(issues_, "\n  ")));
-}
-
-auto check(RecipeIssues& issues, const SpikeSlab& spec, GeneticModeSet scope)
-    -> void
-{
-    check_open_unit(issues, scope, spec.probability, "inclusion probability");
-}
-
-auto check(
-    RecipeIssues& issues,
-    const ScaledMixture& spec,
-    GeneticModeSet scope) -> void
-{
-    check_simplex(issues, scope, spec.probabilities);
-
-    // The first component is the null scale, which zeroes the effect it
-    // weights. The array has a fixed extent, so there is always one.
-    if (spec.scales.front() != 0.0)
-    {
-        issues.add(
-            scope,
-            fmt::format(
-                "variance multipliers[0] must be zero, got {}",
-                spec.scales.front()));
-    }
-
-    for (const auto [index, scale] :
-         std::span{spec.scales}.subspan(1) | std::views::enumerate)
-    {
-        if (!is_finite_positive(scale))
-        {
-            issues.add(
-                scope,
-                fmt::format(
-                    "variance multipliers[{}] must be a finite positive "
-                    "multiplier, got {}",
-                    index + 1,
-                    scale));
-        }
-    }
-}
-
-auto check(
-    RecipeIssues& issues,
-    const JointSpikeSlab& spec,
-    GeneticModeSet scope) -> void
-{
-    check_simplex(issues, scope, spec.probabilities);
-    check_open_unit(
-        issues,
-        scope,
-        spec.positive_probability,
-        "dominance positive-sign probability");
-}
+   private:
+    std::vector<std::string> issues_;
+};
 
 auto check(
     RecipeIssues& issues,
     const VarianceBudget& budget,
     GeneticModeSet modes) -> void
 {
-    auto allocated = budget.random();
-
-    if (!std::isfinite(budget.random()) || budget.random() < 0.0)
-    {
-        issues.add(
-            std::nullopt,
-            fmt::format(
-                "random variance share must be finite and non-negative, got {}",
-                budget.random()));
-    }
-
     for (const auto mode : all_genetic_modes)
     {
         const auto share = budget.share(mode);
-        allocated += share;
-
         const auto scope = GeneticModeSet{mode};
 
         if (modes.contains(mode))
         {
-            if (!is_finite_positive(share))
+            if (share == 0.0)
             {
                 issues.add(
                     scope,
                     fmt::format(
-                        "variance share must be finite and positive, got {}",
+                        "variance share must be positive when the mode is "
+                        "present, got {}",
                         share));
             }
         }
@@ -207,14 +88,17 @@ auto check(
                     share));
         }
     }
+}
 
-    if (!(allocated < 1.0))
-    {
-        issues.add(
-            std::nullopt,
-            fmt::format(
-                "variance shares must sum to less than 1, got {}", allocated));
-    }
+}  // namespace
+
+auto validate_recipe_inputs(
+    const VarianceBudget& variance,
+    GeneticModeSet modes) -> void
+{
+    auto issues = RecipeIssues{};
+    check(issues, variance, modes);
+    issues.throw_if_any();
 }
 
 }  // namespace gelex::detail

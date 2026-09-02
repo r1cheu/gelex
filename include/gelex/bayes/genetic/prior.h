@@ -22,7 +22,6 @@
 #include <type_traits>
 #include <utility>
 
-#include "gelex/bayes/genetic/component_layout.h"
 #include "gelex/bayes/semantic_method.h"
 #include "gelex/bayes/variance_parameter.h"
 
@@ -68,19 +67,35 @@ using ProbabilityParameter = std::conditional_t<
     FixedParameter<double>,
     SampledParameter<double, BetaHyperPrior>>;
 
-template <std::size_t Classes, UpdatePolicy Policy>
+template <std::size_t ClassCount, UpdatePolicy Policy>
 using SimplexParameter = std::conditional_t<
     Policy == UpdatePolicy::Fixed,
-    FixedParameter<std::array<double, Classes>>,
+    FixedParameter<std::array<double, ClassCount>>,
     SampledParameter<
-        std::array<double, Classes>,
-        DirichletHyperPrior<Classes>>>;
+        std::array<double, ClassCount>,
+        DirichletHyperPrior<ClassCount>>>;
 
 template <VarianceLayout Kind>
 struct GaussianPrior
 {
-    using component_layout = SingleComponentLayout;
+    VarianceParameter variance;
+};
 
+template <HalfNormalAsymmetry Asymmetry>
+struct HalfNormalPrior;
+
+template <>
+// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init,hicpp-member-init)
+struct HalfNormalPrior<HalfNormalAsymmetry::Count>
+{
+    VarianceParameter variance;
+    ProbabilityParameter<UpdatePolicy::Sampled> positive_probability;
+};
+
+template <>
+// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init,hicpp-member-init)
+struct HalfNormalPrior<HalfNormalAsymmetry::Magnitude>
+{
     VarianceParameter variance;
 };
 
@@ -90,19 +105,17 @@ template <
 // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init,hicpp-member-init)
 struct SpikeSlabPrior
 {
-    using component_layout = ZeroInflatedComponentLayout<2>;
-
     VarianceParameter variance;
     ProbabilityParameter<ProbabilityUpdate> probability;
 };
 
-template <UpdatePolicy ProbabilitiesUpdate = UpdatePolicy::Sampled>
+template <
+    std::size_t ClassCount,
+    UpdatePolicy ProbabilitiesUpdate = UpdatePolicy::Sampled>
 // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init,hicpp-member-init)
 struct ScaledMixturePrior
 {
-    using component_layout = ZeroInflatedComponentLayout<5>;
-
-    static constexpr std::size_t class_count = component_layout::class_count;
+    static constexpr std::size_t class_count = ClassCount;
 
     VarianceParameter variance;
     SimplexParameter<class_count, ProbabilitiesUpdate> probabilities;
@@ -110,16 +123,13 @@ struct ScaledMixturePrior
 };
 
 template <
-    UpdatePolicy ProbabilitiesUpdate = UpdatePolicy::Sampled,
-    UpdatePolicy PositiveProbabilityUpdate = UpdatePolicy::Sampled>
+    std::size_t ClassCount,
+    UpdatePolicy ProbabilitiesUpdate = UpdatePolicy::Sampled>
 struct JointSpikeSlabPrior
 {
-    using component_layout = JointZeroInflatedComponentLayout;
-
-    static constexpr std::size_t class_count = component_layout::class_count;
+    static constexpr std::size_t class_count = ClassCount;
 
     SimplexParameter<class_count, ProbabilitiesUpdate> probabilities;
-    ProbabilityParameter<PositiveProbabilityUpdate> positive_probability;
 };
 
 }  // namespace gelex

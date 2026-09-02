@@ -17,6 +17,7 @@
 #ifndef GELEX_BAYES_GENETIC_JOINT_TOPOLOGY_H_
 #define GELEX_BAYES_GENETIC_JOINT_TOPOLOGY_H_
 
+#include <type_traits>
 #include <utility>
 
 #include "gelex/bayes/genetic/independent_topology.h"
@@ -24,16 +25,36 @@
 namespace gelex
 {
 
-template <typename ModeT, typename JointT>
+namespace detail
+{
+
+template <typename T>
+inline constexpr bool is_independent_topology = false;
+
+template <GeneticModeSet Modes, typename... Ts>
+inline constexpr bool is_independent_topology<IndependentTopology<Modes, Ts...>>
+    = true;
+
+}  // namespace detail
+
+template <typename ModeTopology, typename JointT>
+    requires(
+        detail::is_independent_topology<ModeTopology>
+        && ModeTopology::modes == (GeneticMode::A | GeneticMode::D)
+        && std::is_object_v<JointT>)
 class JointTopology
 {
    public:
-    using mode_value_type = ModeT;
+    using mode_topology_type = ModeTopology;
     using joint_value_type = JointT;
-    using mode_topology_type
-        = IndependentTopology<GeneticMode::A | GeneticMode::D, ModeT>;
+
+    template <GeneticMode Mode>
+    using mode_value_type =
+        typename mode_topology_type::template mode_value_type<Mode>;
 
     static constexpr GeneticModeSet modes = mode_topology_type::modes;
+
+    constexpr JointTopology() = default;
 
     constexpr JointTopology(mode_topology_type mode_values, JointT joint)
         : mode_values_{std::move(mode_values)}, joint_{std::move(joint)}
@@ -63,10 +84,8 @@ class JointTopology
     JointT joint_;
 };
 
-template <typename ModeT, typename JointT>
-JointTopology(
-    IndependentTopology<GeneticMode::A | GeneticMode::D, ModeT>,
-    JointT) -> JointTopology<ModeT, JointT>;
+template <typename ModeTopology, typename JointT>
+JointTopology(ModeTopology, JointT) -> JointTopology<ModeTopology, JointT>;
 
 }  // namespace gelex
 

@@ -61,7 +61,34 @@ auto make_parameter_state(
 {
     return {
         .variance = initial_marker_variance<Kind>(
-            prior.variance, dimensions.marker_count)};
+            prior.variance, dimensions.marker_count),
+        .fitted_values = Eigen::VectorXd::Zero(dimensions.individual_count)};
+}
+
+inline auto make_parameter_state(
+    const HalfNormalPrior<HalfNormalAsymmetry::Count>& prior,
+    GeneticStateDimensions dimensions)
+    -> HalfNormalState<HalfNormalAsymmetry::Count>
+{
+    return {
+        .variance = prior.variance.initial_value(),
+        .assignment
+        = Eigen::VectorX<std::uint8_t>::Zero(dimensions.marker_count),
+        .positive_probability = prior.positive_probability.initial,
+        .fitted_values = Eigen::VectorXd::Zero(dimensions.individual_count)};
+}
+
+inline auto make_parameter_state(
+    const HalfNormalPrior<HalfNormalAsymmetry::Magnitude>& prior,
+    GeneticStateDimensions dimensions)
+    -> HalfNormalState<HalfNormalAsymmetry::Magnitude>
+{
+    const double initial_variance = prior.variance.initial_value();
+    return {
+        .variances = {initial_variance, initial_variance},
+        .assignment
+        = Eigen::VectorX<std::uint8_t>::Zero(dimensions.marker_count),
+        .fitted_values = Eigen::VectorXd::Zero(dimensions.individual_count)};
 }
 
 template <VarianceLayout Kind, UpdatePolicy ProbabilityUpdate>
@@ -74,51 +101,51 @@ auto make_parameter_state(
             prior.variance, dimensions.marker_count),
         .assignment
         = Eigen::VectorX<std::uint8_t>::Zero(dimensions.marker_count),
-        .probability = prior.probability.initial};
+        .probability = prior.probability.initial,
+        .fitted_values = Eigen::VectorXd::Zero(dimensions.individual_count)};
 }
 
-template <UpdatePolicy ProbabilitiesUpdate>
+template <std::size_t ClassCount, UpdatePolicy ProbabilitiesUpdate>
 auto make_parameter_state(
-    const ScaledMixturePrior<ProbabilitiesUpdate>& prior,
-    GeneticStateDimensions dimensions) -> ScaledMixtureState
+    const ScaledMixturePrior<ClassCount, ProbabilitiesUpdate>& prior,
+    GeneticStateDimensions dimensions) -> ScaledMixtureState<ClassCount>
 {
-    return {
+    auto state = ScaledMixtureState<ClassCount>{
         .variance = prior.variance.initial_value(),
         .assignment
         = Eigen::VectorX<std::uint8_t>::Zero(dimensions.marker_count),
         .probabilities = prior.probabilities.initial,
     };
+    state.fitted_values.setZero(
+        dimensions.individual_count,
+        static_cast<Eigen::Index>(state.component_count));
+    return state;
 }
 
-template <
-    UpdatePolicy ProbabilitiesUpdate,
-    UpdatePolicy PositiveProbabilityUpdate>
+template <std::size_t ClassCount, UpdatePolicy ProbabilitiesUpdate>
 auto make_parameter_state(
-    const JointSpikeSlabPrior<ProbabilitiesUpdate, PositiveProbabilityUpdate>&
-        prior,
-    GeneticStateDimensions dimensions) -> JointSpikeSlabState
+    const JointSpikeSlabPrior<ClassCount, ProbabilitiesUpdate>& prior,
+    GeneticStateDimensions dimensions) -> JointSpikeSlabState<ClassCount>
 {
-    return {
+    auto state = JointSpikeSlabState<ClassCount>{
         .assignment
         = Eigen::VectorX<std::uint8_t>::Zero(dimensions.marker_count),
         .probabilities = prior.probabilities.initial,
-
-        .dominance_sign
-        = Eigen::VectorX<std::uint8_t>::Zero(dimensions.marker_count),
-        .positive_probability = prior.positive_probability.initial};
+        .fitted_values = {},
+    };
+    state.fitted_values.setZero(
+        dimensions.individual_count,
+        static_cast<Eigen::Index>(state.component_count));
+    return state;
 }
 
-template <ComponentLayout Layout, typename Prior>
+template <typename Prior>
 auto make_mode_state(const Prior& prior, GeneticStateDimensions dimensions)
 {
     auto family_state = make_parameter_state(prior, dimensions);
-    using State = GeneticModeState<decltype(family_state), Layout>;
-    using FittedMatrix = typename State::ComponentFittedMatrix;
+    using State = GeneticModeState<decltype(family_state)>;
     return State{
         .coefficients = Eigen::VectorXd::Zero(dimensions.marker_count),
-        .component_fitted_values = FittedMatrix::Zero(
-            dimensions.individual_count,
-            static_cast<Eigen::Index>(Layout::component_count)),
         .family_state = std::move(family_state)};
 }
 
@@ -136,34 +163,33 @@ auto validate_state_design(const bayes::GeneticDesign& design) -> void
     }
 }
 
-template <GeneticModeSet Modes, typename Prior>
+template <GeneticModeSet Modes, typename... Priors>
 auto make_genetic_state(
-    const IndependentTopology<Modes, Prior>& prior,
+    const IndependentTopology<Modes, Priors...>& prior,
     const bayes::GeneticDesign& design)
 {
-    using Layout = typename Prior::component_layout;
     validate_state_design<Modes>(design);
     const auto dimensions = GeneticStateDimensions{
         .marker_count = design.cols(), .individual_count = design.rows()};
     return transform_mode_values(
         prior,
-        [&](GeneticMode /*mode*/, const Prior& mode_prior)
-        { return make_mode_state<Layout>(mode_prior, dimensions); });
+        [&]<GeneticMode /*Mode*/>(const auto& mode_prior)
+        { return make_mode_state(mode_prior, dimensions); });
 }
 
-template <typename ModePrior, typename JointPrior>
+template <typename ModeTopology, typename JointPrior>
 auto make_genetic_state(
-    const JointTopology<ModePrior, JointPrior>& prior,
+    const JointTopology<ModeTopology, JointPrior>& prior,
     const bayes::GeneticDesign& design)
 {
-    using Layout = typename JointPrior::component_layout;
-    validate_state_design<JointTopology<ModePrior, JointPrior>::modes>(design);
+    validate_state_design<JointTopology<ModeTopology, JointPrior>::modes>(
+        design);
     const auto dimensions = GeneticStateDimensions{
         .marker_count = design.cols(), .individual_count = design.rows()};
     auto mode_states = transform_mode_values(
         prior.mode_values(),
-        [&](GeneticMode /*mode*/, const ModePrior& mode_prior)
-        { return make_mode_state<Layout>(mode_prior, dimensions); });
+        [&]<GeneticMode /*Mode*/>(const auto& mode_prior)
+        { return make_mode_state(mode_prior, dimensions); });
     return JointTopology{
         std::move(mode_states),
         make_parameter_state(prior.joint(), dimensions)};
