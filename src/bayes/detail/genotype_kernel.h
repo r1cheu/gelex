@@ -19,6 +19,9 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <span>
+
+#include "gelex/bayes/genotype_kernel.h"
 
 namespace gelex::bayes::detail
 {
@@ -36,6 +39,12 @@ using AxpyKernel = void (*)(
     double* residual,
     std::size_t size) noexcept;
 
+using MultiTargetAxpyKernel = void (*)(
+    const std::uint8_t* genotype_column,
+    const double* lut,
+    std::span<const AxpyTarget> targets,
+    std::size_t size) noexcept;
+
 [[nodiscard]] auto dot_scalar(
     const std::uint8_t* genotype_column,
     const double* lut,
@@ -47,6 +56,12 @@ auto axpy_scalar(
     const double* lut,
     double scale,
     double* residual,
+    std::size_t size) noexcept -> void;
+
+auto axpy_multi_target_scalar(
+    const std::uint8_t* genotype_column,
+    const double* lut,
+    std::span<const AxpyTarget> targets,
     std::size_t size) noexcept -> void;
 
 [[nodiscard]] auto dot_avx2(
@@ -62,6 +77,12 @@ auto axpy_avx2(
     double* residual,
     std::size_t size) noexcept -> void;
 
+auto axpy_multi_target_avx2(
+    const std::uint8_t* genotype_column,
+    const double* lut,
+    std::span<const AxpyTarget> targets,
+    std::size_t size) noexcept -> void;
+
 [[nodiscard]] auto dot_avx512(
     const std::uint8_t* genotype_column,
     const double* lut,
@@ -75,10 +96,18 @@ auto axpy_avx512(
     double* residual,
     std::size_t size) noexcept -> void;
 
+auto axpy_multi_target_avx512(
+    const std::uint8_t* genotype_column,
+    const double* lut,
+    std::span<const AxpyTarget> targets,
+    std::size_t size) noexcept -> void;
+
 [[nodiscard]] auto supports_avx2() noexcept -> bool;
 [[nodiscard]] auto supports_avx512() noexcept -> bool;
 [[nodiscard]] auto select_dot_kernel() noexcept -> DotKernel;
 [[nodiscard]] auto select_axpy_kernel() noexcept -> AxpyKernel;
+[[nodiscard]] auto select_multi_target_axpy_kernel() noexcept
+    -> MultiTargetAxpyKernel;
 
 }  // namespace gelex::bayes::detail
 

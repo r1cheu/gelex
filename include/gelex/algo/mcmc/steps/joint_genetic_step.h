@@ -27,7 +27,7 @@
 #include "gelex/bayes/design.h"
 #include "gelex/bayes/genetic/gaussian_prior.h"
 #include "gelex/bayes/genetic/half_normal_prior.h"
-#include "gelex/bayes/state.h"
+#include "gelex/bayes/legacy_state.h"
 #include "gelex/infra/stats/beta_sampler.h"
 #include "gelex/infra/stats/dirichlet_sampler.h"
 #include "gelex/infra/stats/half_normal_sampler.h"

@@ -35,7 +35,7 @@ namespace gelex::detail
 class SampleMask
 {
    public:
-    static constexpr std::uint64_t SLOT_MASK = 0x5555555555555555ULL;
+    static constexpr std::uint64_t slot_mask = 0x5555555555555555ULL;
 
     SampleMask(
         std::span<const Eigen::Index> target_to_source,

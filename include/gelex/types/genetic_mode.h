@@ -16,6 +16,7 @@
 
 #ifndef GELEX_TYPES_GENETIC_MODE_H_
 #define GELEX_TYPES_GENETIC_MODE_H_
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -36,17 +37,17 @@ enum class GeneticMode : std::uint8_t
     D,
 };
 
-inline constexpr std::array GENETIC_MODE_NAMES{
+inline constexpr std::array genetic_mode_names{
     std::pair{GeneticMode::A, std::string_view{"A"}},
     std::pair{GeneticMode::D, std::string_view{"D"}},
 };
 
-inline constexpr std::array ALL_GENETIC_MODES{GeneticMode::A, GeneticMode::D};
+inline constexpr std::array all_genetic_modes{GeneticMode::A, GeneticMode::D};
 
 template <typename T>
 using ModeMap = std::map<GeneticMode, T>;
 
-// A subset of GeneticMode. each() yields its members in enum order.
+// A non-empty subset of GeneticMode. each() yields its members in enum order.
 class GeneticModeSet
 {
    public:
@@ -54,8 +55,6 @@ class GeneticModeSet
     // requires a structural type; use the member functions instead. Undefined
     // bits are ignored by every observer, so a stray write cannot desync them.
     std::uint8_t bits{};
-
-    GeneticModeSet() = default;
 
     explicit constexpr GeneticModeSet(GeneticMode mode) noexcept
         : bits(bit_for(mode))
@@ -70,7 +69,7 @@ class GeneticModeSet
 
     [[nodiscard]] constexpr auto each() const
     {
-        return ALL_GENETIC_MODES
+        return all_genetic_modes
                | std::views::filter([bits = this->bits](GeneticMode mode)
                                     { return (bits & bit_for(mode)) != 0; });
     }
@@ -119,7 +118,7 @@ class GeneticModeSet
 
    private:
     static_assert(
-        ALL_GENETIC_MODES.size() <= std::numeric_limits<std::uint8_t>::digits);
+        all_genetic_modes.size() <= std::numeric_limits<std::uint8_t>::digits);
 
     [[nodiscard]] static constexpr auto bit_for(GeneticMode mode) noexcept
         -> std::uint8_t
@@ -137,26 +136,19 @@ class GeneticModeSet
 
 // Canonical string tokens for a GeneticModeSet, including the composite "AD".
 // Single source for both parsing (lexical_cast) and CLI validation.
-inline constexpr std::array GENETIC_MODE_SET_NAMES{
+inline constexpr std::array genetic_mode_set_names{
     std::pair{GeneticModeSet{GeneticMode::A}, std::string_view{"A"}},
     std::pair{GeneticModeSet{GeneticMode::D}, std::string_view{"D"}},
     std::pair{GeneticMode::A | GeneticMode::D, std::string_view{"AD"}},
 };
 
 // The canonical token of a set. Matching goes through each(), so undefined bits
-// are ignored here as everywhere else. The empty set has no token and yields an
-// empty view, which lets a caller splice it in front of an unlabelled message.
+// are ignored here as everywhere else.
 [[nodiscard]] constexpr auto name_of(GeneticModeSet modes) -> std::string_view
 {
-    auto known = GeneticModeSet{};
-    for (const auto mode : modes.each())
+    for (const auto& [value, name] : genetic_mode_set_names)
     {
-        known |= GeneticModeSet{mode};
-    }
-
-    for (const auto& [value, name] : GENETIC_MODE_SET_NAMES)
-    {
-        if (value == known)
+        if (std::ranges::equal(value.each(), modes.each()))
         {
             return name;
         }
@@ -179,7 +171,7 @@ struct fmt::formatter<gelex::GeneticMode> : fmt::formatter<std::string_view>
     static constexpr auto to_string_view(gelex::GeneticMode mode)
         -> std::string_view
     {
-        for (const auto& [value, name] : gelex::GENETIC_MODE_NAMES)
+        for (const auto& [value, name] : gelex::genetic_mode_names)
         {
             if (value == mode)
             {

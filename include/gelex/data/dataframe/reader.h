@@ -53,7 +53,7 @@ struct ReadOptions
     std::vector<std::size_t> index_cols;
     std::vector<std::size_t> select_cols;
     std::vector<std::string> names;
-    StringSet na_rep = {DEFAULT_NA_REP.begin(), DEFAULT_NA_REP.end()};
+    StringSet na_rep = {default_na_rep.begin(), default_na_rep.end()};
     NaAction na_action = NaAction::Throw;
 };
 
@@ -242,7 +242,7 @@ auto detail::DataFrameReader<Key>::append_key(std::vector<Key>& keys) -> void
                         index_pos_
                             | std::views::transform([&](auto i)
                                                     { return tokens_[i]; }),
-                        std::string_view(&SEPARATOR, 1))));
+                        std::string_view(&separator, 1))));
         }
     }
 }

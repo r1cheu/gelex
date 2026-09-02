@@ -84,23 +84,23 @@ class ResidualPrior
 
 using GeneticPrior = std::variant<SingleGeneticPrior, JointGeneticPrior>;
 
-class BayesPrior
+class LegacyBayesPrior
 {
    public:
     static constexpr std::string_view name = "prior";
 
-    BayesPrior(
+    LegacyBayesPrior(
         RandomPrior random,
         std::vector<GeneticPrior> genetics,
         ResidualPrior residual);
 
-    BayesPrior(const BayesPrior&) = delete;
-    BayesPrior(BayesPrior&&) noexcept = default;
+    LegacyBayesPrior(const LegacyBayesPrior&) = delete;
+    LegacyBayesPrior(LegacyBayesPrior&&) noexcept = default;
 
-    auto operator=(const BayesPrior&) -> BayesPrior& = delete;
-    auto operator=(BayesPrior&&) noexcept -> BayesPrior& = default;
+    auto operator=(const LegacyBayesPrior&) -> LegacyBayesPrior& = delete;
+    auto operator=(LegacyBayesPrior&&) noexcept -> LegacyBayesPrior& = default;
 
-    ~BayesPrior() = default;
+    ~LegacyBayesPrior() = default;
 
     auto random() const -> const RandomPrior& { return random_; }
     auto residual() const -> const ResidualPrior& { return residual_; }

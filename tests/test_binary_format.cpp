@@ -318,23 +318,23 @@ TEST_CASE("Reserve round-trip with column-wise writes", "[binary_container]")
     test::FileFixture fixture;
     const auto& dir = fixture.get_test_dir();
 
-    constexpr int ROWS = 5;
-    constexpr int COLS = 10;
+    constexpr int rows = 5;
+    constexpr int cols = 10;
 
-    Eigen::MatrixXd expected_double(ROWS, COLS);
-    for (int c = 0; c < COLS; ++c)
+    Eigen::MatrixXd expected_double(rows, cols);
+    for (int c = 0; c < cols; ++c)
     {
-        for (int r = 0; r < ROWS; ++r)
+        for (int r = 0; r < rows; ++r)
         {
             expected_double(r, c) = c * 100.0 + r;
         }
     }
 
     Eigen::Matrix<int8_t, Eigen::Dynamic, Eigen::Dynamic> expected_int8(
-        ROWS, COLS);
-    for (int c = 0; c < COLS; ++c)
+        rows, cols);
+    for (int c = 0; c < cols; ++c)
     {
-        for (int r = 0; r < ROWS; ++r)
+        for (int r = 0; r < rows; ++r)
         {
             expected_int8(r, c) = static_cast<int8_t>((c + r) % 3);
         }
@@ -343,11 +343,11 @@ TEST_CASE("Reserve round-trip with column-wise writes", "[binary_container]")
     auto container_path = dir / "reserve.samples";
     {
         BinaryWriter writer(container_path.string());
-        auto h_double = writer.reserve<double>("Additive/coeff", ROWS, COLS);
+        auto h_double = writer.reserve<double>("Additive/coeff", rows, cols);
         auto h_int8
-            = writer.reserve<int8_t>("Additive/group/assignment", ROWS, COLS);
+            = writer.reserve<int8_t>("Additive/group/assignment", rows, cols);
 
-        for (int c = 0; c < COLS; ++c)
+        for (int c = 0; c < cols; ++c)
         {
             writer.write(h_double, expected_double.col(c));
             writer.write(h_int8, expected_int8.col(c));
@@ -358,13 +358,13 @@ TEST_CASE("Reserve round-trip with column-wise writes", "[binary_container]")
     REQUIRE(reader.n_sections() == 2);
 
     auto mat_d = reader.to_map<double>("Additive/coeff");
-    REQUIRE(mat_d.rows() == ROWS);
-    REQUIRE(mat_d.cols() == COLS);
+    REQUIRE(mat_d.rows() == rows);
+    REQUIRE(mat_d.cols() == cols);
     REQUIRE(mat_d.isApprox(expected_double));
 
     auto mat_i = reader.to_map<int8_t>("Additive/group/assignment");
-    REQUIRE(mat_i.rows() == ROWS);
-    REQUIRE(mat_i.cols() == COLS);
+    REQUIRE(mat_i.rows() == rows);
+    REQUIRE(mat_i.cols() == cols);
     REQUIRE(mat_i == expected_int8);
 }
 

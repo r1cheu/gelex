@@ -17,7 +17,7 @@
 #ifndef GELEX_BAYES_DETAIL_CALIBRATION_H_
 #define GELEX_BAYES_DETAIL_CALIBRATION_H_
 
-#include "gelex/bayes/genetic/prior.h"
+#include "gelex/bayes/variance_parameter.h"
 #include "gelex/types/genetic_mode.h"
 
 namespace gelex
@@ -28,6 +28,9 @@ class VarianceBudget;
 
 namespace detail
 {
+
+auto make_mean_calibrated_variance_parameter(double target)
+    -> VarianceParameter;
 
 class MarkerVarianceCalibrator
 {

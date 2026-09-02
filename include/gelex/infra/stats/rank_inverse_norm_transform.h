@@ -31,7 +31,7 @@ enum class RintType : std::uint8_t
     Indirect
 };
 
-inline constexpr std::array RINT_TYPE_NAMES{
+inline constexpr std::array rint_type_names{
     std::pair{RintType::None, std::string_view{"none"}},
     std::pair{RintType::Direct, std::string_view{"dint"}},
     std::pair{RintType::Indirect, std::string_view{"iint"}},

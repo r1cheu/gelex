@@ -23,7 +23,7 @@ namespace gelex::detail
 
 namespace
 {
-constexpr Eigen::Index SAMPLES_PER_WORD = 32;
+constexpr Eigen::Index samples_per_word = 32;
 }
 
 SampleMask::SampleMask(
@@ -33,13 +33,13 @@ SampleMask::SampleMask(
       n_kept_{static_cast<Eigen::Index>(target_to_source.size())}
 {
     const auto num_words = static_cast<std::size_t>(
-        (source_size + SAMPLES_PER_WORD - 1) / SAMPLES_PER_WORD);
+        (source_size + samples_per_word - 1) / samples_per_word);
     words_.assign(num_words, 0);
 
     for (const Eigen::Index source : target_to_source)
     {
-        const auto word = static_cast<std::size_t>(source / SAMPLES_PER_WORD);
-        const auto slot = static_cast<unsigned>(source % SAMPLES_PER_WORD);
+        const auto word = static_cast<std::size_t>(source / samples_per_word);
+        const auto slot = static_cast<unsigned>(source % samples_per_word);
         words_[word] |= (std::uint64_t{1} << (2 * slot));
     }
 }

@@ -24,14 +24,14 @@
 namespace gelex
 {
 
-class BayesState;
+class LegacyBayesState;
 
 struct MCMCProgressEvent
 {
     size_t current{};
     size_t total{};
     bool done{};
-    const BayesState* state{};
+    const LegacyBayesState* state{};
 };
 
 struct MCMCCheckpointSavedEvent

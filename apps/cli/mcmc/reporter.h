@@ -84,7 +84,7 @@ class McmcReporter
         const gelex::BayesModel& model,
         std::string_view pheno_name) -> void;
     auto show_prior(
-        const gelex::bayes::BayesPrior& prior,
+        const gelex::bayes::LegacyBayesPrior& prior,
         const gelex::BayesModel& model) -> void;
     auto show_summary(const gelex::Result& result) -> void;
     auto on_event(const gelex::MCMCProgressEvent& event) -> void;
@@ -111,7 +111,7 @@ class McmcReporter
     cli::ProgressBar bar_;
     bool init_progress_ = false;
     std::string stats_;
-    const gelex::bayes::BayesPrior* prior_ = nullptr;
+    const gelex::bayes::LegacyBayesPrior* prior_ = nullptr;
 };
 
 }  // namespace cli

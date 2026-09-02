@@ -28,7 +28,7 @@ namespace cli
 {
 // Emit a completion script by introspecting the registered App tree: every
 // visible subcommand, its options' names/description, enum choices recovered
-// from the option type name ("<MODE>:{A,D,AD}"), and file completion for
+// from the option type name ("<mode>:{A,D,AD}"), and file completion for
 // path-like options.
 auto generate_fish_completion(const CLI::App& root) -> std::string;
 

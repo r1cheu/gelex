@@ -39,7 +39,7 @@ inline auto make_sample_id(std::string_view fid, std::string_view iid)
         throw GelexException("IID cannot be empty");
     }
 
-    return fmt::format("{}{}{}", fid, SAMPLE_ID_SEPARATOR, iid);
+    return fmt::format("{}{}{}", fid, sample_id_separator, iid);
 }
 
 }  // namespace gelex

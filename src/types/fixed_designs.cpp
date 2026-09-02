@@ -57,7 +57,7 @@ auto FixedDesign::make(
     const auto n_cols = 1 + qcov_cols + dcov_cols;
 
     fe.names.reserve(n_cols);
-    fe.names.emplace_back(INTERCEPT_NAME);
+    fe.names.emplace_back(intercept_name);
 
     auto move_insert = [](auto& container, auto begin, auto end)
     {
@@ -131,7 +131,7 @@ auto FixedDesign::make(Eigen::Index n_samples) -> FixedDesign
     const Eigen::Index n_cols = 1;
 
     fe.names.reserve(n_cols);
-    fe.names.emplace_back(INTERCEPT_NAME);
+    fe.names.emplace_back(intercept_name);
 
     fe.levels.reserve(n_cols);
     fe.levels.emplace_back(std::nullopt);

@@ -64,7 +64,7 @@ auto build_covariate_design(
     std::map<std::string, std::vector<std::string>> dcovar_levels;
     for (const auto& name : term_names)
     {
-        auto pos = name.find(gelex::SEPARATOR);
+        auto pos = name.find(gelex::separator);
         if (pos != std::string::npos)
         {
             dcovar_levels[name.substr(0, pos)].push_back(name.substr(pos + 1));
@@ -100,13 +100,13 @@ auto build_covariate_design(
     {
         const auto& term = term_names[static_cast<std::size_t>(i)];
 
-        if (term == gelex::INTERCEPT_NAME)
+        if (term == gelex::intercept_name)
         {
             X.col(i).setOnes();
             continue;
         }
 
-        auto sep_pos = term.find(gelex::SEPARATOR);
+        auto sep_pos = term.find(gelex::separator);
         if (sep_pos != std::string::npos)
         {
             auto col_name = term.substr(0, sep_pos);
@@ -139,7 +139,7 @@ auto compute_covariate_effects(
 {
     // Contract: the fitted terms always lead with the Intercept, so covariates
     // start at index 1. Enforce it rather than trust the .param file layout.
-    if (term_names.empty() || term_names.front() != gelex::INTERCEPT_NAME)
+    if (term_names.empty() || term_names.front() != gelex::intercept_name)
     {
         throw gelex::GelexException(
             "fixed-effect terms must lead with the Intercept");

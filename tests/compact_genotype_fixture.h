@@ -50,6 +50,12 @@ inline auto make_genetic_design(
     return bayes::GeneticDesign{make_bed(std::move(genotypes)), modes, method};
 }
 
+inline auto make_genetic_design_without_modes(Eigen::MatrixXd genotypes)
+    -> bayes::GeneticDesign
+{
+    return bayes::GeneticDesign{make_bed(std::move(genotypes))};
+}
+
 inline auto make_compact_model(
     Eigen::MatrixXd genotypes,
     Eigen::VectorXd phenotype,

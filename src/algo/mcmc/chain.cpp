@@ -27,8 +27,8 @@
 #include "gelex/bayes/genetic/gaussian_prior.h"
 #include "gelex/bayes/genetic/legacy_genetic_prior.h"
 #include "gelex/bayes/legacy_prior.h"
+#include "gelex/bayes/legacy_state.h"
 #include "gelex/bayes/model.h"
-#include "gelex/bayes/state.h"
 #include "gelex/exception.h"
 #include "gelex/types/genetic_mode.h"
 
@@ -89,7 +89,7 @@ Chain::Chain(
     std::vector<SingleGeneticStep> single_genetics,
     std::vector<JointGeneticStep> joint_genetics,
     ResidualStep residual,
-    BayesState& state)
+    LegacyBayesState& state)
     : fixed_(fixed),
       random_(random),
       single_genetics_(std::move(single_genetics)),
@@ -117,8 +117,8 @@ auto Chain::step() -> void
 
 auto Chain::make(
     const BayesModel& model,
-    const bayes::BayesPrior& prior,
-    BayesState& state,
+    const bayes::LegacyBayesPrior& prior,
+    LegacyBayesState& state,
     std::mt19937_64& rng) -> Chain
 {
     auto single_genetics = std::vector<SingleGeneticStep>{};

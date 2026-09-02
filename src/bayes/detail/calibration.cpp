@@ -19,7 +19,6 @@
 #include <cmath>
 #include <fmt/format.h>
 
-#include "gelex/bayes/genetic/prior.h"
 #include "gelex/bayes/model.h"
 #include "gelex/bayes/variance_budget.h"
 #include "gelex/exception.h"
@@ -34,15 +33,26 @@ namespace detail
 namespace
 {
 
-constexpr double PRIOR_DEGREES_OF_FREEDOM = 4.0;
+constexpr double prior_degrees_of_freedom = 4.0;
 
 }  // namespace
+
+auto make_mean_calibrated_variance_parameter(double target) -> VarianceParameter
+{
+    return VarianceParameter{
+        target,
+        ScaledInvChiSqPrior{
+            prior_degrees_of_freedom,
+            (prior_degrees_of_freedom - 2.0) / prior_degrees_of_freedom
+                * target}};
+}
 
 auto MarkerVarianceCalibrator::calibrate(
     GeneticMode mode,
     double initial_activity) const -> VarianceParameter
 {
-    const double projection_variance = model_->genetic().col_var(mode).sum();
+    const double projection_variance
+        = model_->genetic().projection(mode).col_var().sum();
     if (projection_variance <= 0)
     {
         throw GelexException(
@@ -70,12 +80,7 @@ auto MarkerVarianceCalibrator::calibrate(
                 target));
     }
 
-    return VarianceParameter{
-        .initial = target,
-        .prior
-        = {.degrees_of_freedom = PRIOR_DEGREES_OF_FREEDOM,
-           .scale = (PRIOR_DEGREES_OF_FREEDOM - 2.0) / PRIOR_DEGREES_OF_FREEDOM
-                    * target}};
+    return make_mean_calibrated_variance_parameter(target);
 }
 
 }  // namespace detail

@@ -34,11 +34,11 @@
 
 namespace
 {
-constexpr std::array<Eigen::Index, 3> RAW_CODE_BY_DOSAGE{3, 2, 0};
+constexpr std::array<Eigen::Index, 3> raw_code_by_dosage{3, 2, 0};
 
 using gelex::LocusEncoder;
 
-constexpr auto METHOD = gelex::GenotypeMethod::OrthStandardize;
+constexpr auto method = gelex::GenotypeMethod::OrthStandardize;
 
 struct Dataset
 {
@@ -77,7 +77,7 @@ auto expected_column(
         const double d = dosage[i];
         const Eigen::Index raw_code
             = std::isnan(d) ? 1
-                            : RAW_CODE_BY_DOSAGE[static_cast<std::size_t>(d)];
+                            : raw_code_by_dosage[static_cast<std::size_t>(d)];
         want[i] = encoding.lut[raw_code];
     }
     return want;
@@ -115,7 +115,7 @@ TEST_CASE(
 
     for (const auto mode : {gelex::GeneticMode::A, gelex::GeneticMode::D})
     {
-        const auto spec = gelex::encoding_spec_from_method(mode, METHOD);
+        const auto spec = gelex::encoding_spec_from_method(mode, method);
 
         for (Eigen::Index snp = 0; snp < data.bed.num_snps(); ++snp)
         {
@@ -141,9 +141,9 @@ TEST_CASE("LocusEncoder shares one count across specs", "[data][locus_encoder]")
     const auto n = data.bed.num_samples();
 
     const auto spec_a
-        = gelex::encoding_spec_from_method(gelex::GeneticMode::A, METHOD);
+        = gelex::encoding_spec_from_method(gelex::GeneticMode::A, method);
     const auto spec_d
-        = gelex::encoding_spec_from_method(gelex::GeneticMode::D, METHOD);
+        = gelex::encoding_spec_from_method(gelex::GeneticMode::D, method);
 
     for (Eigen::Index snp = 0; snp < data.bed.num_snps(); ++snp)
     {
@@ -176,7 +176,7 @@ TEST_CASE(
     const LocusEncoder encoder{data.bed};
     const auto n = data.bed.num_samples();
     const auto spec
-        = gelex::encoding_spec_from_method(gelex::GeneticMode::A, METHOD);
+        = gelex::encoding_spec_from_method(gelex::GeneticMode::A, method);
 
     for (Eigen::Index snp = 0; snp < data.bed.num_snps(); ++snp)
     {
@@ -201,7 +201,7 @@ TEST_CASE(
             }
             const auto flipped_dosage
                 = static_cast<std::size_t>(2 - static_cast<Eigen::Index>(d));
-            want[i] = encoding.lut[RAW_CODE_BY_DOSAGE[flipped_dosage]];
+            want[i] = encoding.lut[raw_code_by_dosage[flipped_dosage]];
         }
 
         INFO("snp=" << snp);

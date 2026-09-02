@@ -30,8 +30,8 @@ namespace gelex::detail
 namespace
 {
 
-constexpr Eigen::Index MISSING_CODE{1};
-constexpr std::array<Eigen::Index, 3> NON_MISSING_CODES{0, 2, 3};
+constexpr Eigen::Index missing_code{1};
+constexpr std::array<Eigen::Index, 3> non_missing_codes{0, 2, 3};
 
 }  // namespace
 
@@ -167,24 +167,24 @@ auto make_locus_encoding(
     switch (spec.normalization)
     {
         case Normalization::Center:
-            for (const Eigen::Index raw_code : NON_MISSING_CODES)
+            for (const Eigen::Index raw_code : non_missing_codes)
             {
                 out.lut[raw_code] -= out.mean;
             }
-            out.lut[MISSING_CODE] = 0.0;
+            out.lut[missing_code] = 0.0;
             break;
         case Normalization::CenterScale:
-            for (const Eigen::Index raw_code : NON_MISSING_CODES)
+            for (const Eigen::Index raw_code : non_missing_codes)
             {
                 out.lut[raw_code] = (out.lut[raw_code] - out.mean) / out.sd;
             }
-            out.lut[MISSING_CODE] = 0.0;
+            out.lut[missing_code] = 0.0;
             break;
         case Normalization::None:
-            out.lut[MISSING_CODE] = out.mean;
+            out.lut[missing_code] = out.mean;
             break;
         default:
-            out.lut[MISSING_CODE] = 0.0;
+            out.lut[missing_code] = 0.0;
             break;
     }
     out.valid = true;

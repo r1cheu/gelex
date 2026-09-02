@@ -40,7 +40,7 @@ enum class BayesRecipeScheme : std::uint8_t
     CD,
 };
 
-inline constexpr std::array BAYES_RECIPE_SCHEME_NAMES{
+inline constexpr std::array bayes_recipe_scheme_names{
     std::pair{BayesRecipeScheme::RR, std::string_view{"RR"}},
     std::pair{BayesRecipeScheme::A, std::string_view{"A"}},
     std::pair{BayesRecipeScheme::B, std::string_view{"B"}},

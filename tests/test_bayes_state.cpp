@@ -26,8 +26,8 @@
 #include "gelex/bayes/genetic/half_normal_prior_state.h"
 #include "gelex/bayes/genetic/parameters.h"
 #include "gelex/bayes/legacy_prior.h"
+#include "gelex/bayes/legacy_state.h"
 #include "gelex/bayes/model.h"
-#include "gelex/bayes/state.h"
 #include "gelex/exception.h"
 #include "gelex/types/fixed_designs.h"
 #include "gelex/types/genetic_mode.h"
@@ -51,7 +51,7 @@ auto make_model() -> gelex::BayesModel
         gelex::GeneticMode::A | gelex::GeneticMode::D);
 }
 
-auto make_prior() -> gelex::bayes::BayesPrior
+auto make_prior() -> gelex::bayes::LegacyBayesPrior
 {
     std::vector<gelex::bayes::GeneticPrior> genetics;
     genetics.emplace_back(
@@ -65,7 +65,7 @@ auto make_prior() -> gelex::bayes::BayesPrior
                 gelex::GeneticMode::D,
                 gelex::bayes::PerMarkerVariance{make_variance(0.2)}}});
 
-    return gelex::bayes::BayesPrior{
+    return gelex::bayes::LegacyBayesPrior{
         gelex::bayes::RandomPrior{make_variance(0.3)},
         std::move(genetics),
         gelex::bayes::ResidualPrior{make_variance(0.4)}};
@@ -73,11 +73,11 @@ auto make_prior() -> gelex::bayes::BayesPrior
 
 }  // namespace
 
-TEST_CASE("BayesState creates single genetic blocks", "[bayes_state]")
+TEST_CASE("LegacyBayesState creates single genetic blocks", "[bayes_state]")
 {
     auto model = make_model();
     auto prior = make_prior();
-    gelex::BayesState state(model, prior);
+    gelex::LegacyBayesState state(model, prior);
 
     REQUIRE(state.genetics().size() == 2);
     REQUIRE(
@@ -89,7 +89,9 @@ TEST_CASE("BayesState creates single genetic blocks", "[bayes_state]")
     REQUIRE(state.residual().variance == 0.4);
 }
 
-TEST_CASE("BayesState creates joint half normal mixture block", "[bayes_state]")
+TEST_CASE(
+    "LegacyBayesState creates joint half normal mixture block",
+    "[bayes_state]")
 {
     auto model = make_model();
     std::vector<gelex::bayes::GeneticPrior> genetics;
@@ -103,12 +105,12 @@ TEST_CASE("BayesState creates joint half normal mixture block", "[bayes_state]")
                     Eigen::VectorXd{{0.7, 0.1, 0.1, 0.1}}},
                 gelex::bayes::ProbabilityParameter{
                     0.6, gelex::bayes::BetaPrior{1.0, 1.0}}}});
-    gelex::bayes::BayesPrior prior{
+    gelex::bayes::LegacyBayesPrior prior{
         gelex::bayes::RandomPrior{make_variance(0.3)},
         std::move(genetics),
         gelex::bayes::ResidualPrior{make_variance(0.4)}};
 
-    gelex::BayesState state(model, prior);
+    gelex::LegacyBayesState state(model, prior);
     auto& block
         = std::get<gelex::bayes::JointGeneticBlockState>(state.genetics()[0]);
     auto& prior_state = std::get<gelex::bayes::JointHalfNormalMixtureState>(
@@ -121,7 +123,7 @@ TEST_CASE("BayesState creates joint half normal mixture block", "[bayes_state]")
     REQUIRE(prior_state.dominance_sign().sign.size() == 2);
 }
 
-TEST_CASE("BayesState rejects missing genetic designs", "[bayes_state]")
+TEST_CASE("LegacyBayesState rejects missing genetic designs", "[bayes_state]")
 {
     auto model = make_model();
     std::vector<gelex::bayes::GeneticPrior> genetics;
@@ -139,7 +141,7 @@ TEST_CASE("BayesState rejects missing genetic designs", "[bayes_state]")
                 Eigen::VectorXd{{0.25, 0.25, 0.25, 0.25}}}}});
 
     REQUIRE_THROWS_AS(
-        gelex::bayes::BayesPrior(
+        gelex::bayes::LegacyBayesPrior(
             gelex::bayes::RandomPrior{make_variance(0.3)},
             std::move(genetics),
             gelex::bayes::ResidualPrior{make_variance(0.4)}),

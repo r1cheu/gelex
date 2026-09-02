@@ -33,7 +33,7 @@
 namespace gelex::bayes
 {
 
-BayesPrior::BayesPrior(
+LegacyBayesPrior::LegacyBayesPrior(
     RandomPrior random,
     std::vector<GeneticPrior> genetics,
     ResidualPrior residual)
@@ -42,7 +42,7 @@ BayesPrior::BayesPrior(
     validate_genetics(genetics_);
 }
 
-auto BayesPrior::visit(FieldVisitor& visitor) -> void
+auto LegacyBayesPrior::visit(FieldVisitor& visitor) -> void
 {
     auto scope = visitor.scope(name);
     random_.visit(visitor);
@@ -62,8 +62,8 @@ auto BayesPrior::visit(FieldVisitor& visitor) -> void
     validate_genetics(genetics_);
 }
 
-auto BayesPrior::validate_genetics(const std::vector<GeneticPrior>& genetics)
-    -> void
+auto LegacyBayesPrior::validate_genetics(
+    const std::vector<GeneticPrior>& genetics) -> void
 {
     std::set<GeneticMode> seen_modes;
     auto add_mode = [&seen_modes](GeneticMode mode)
@@ -72,7 +72,7 @@ auto BayesPrior::validate_genetics(const std::vector<GeneticPrior>& genetics)
         {
             throw GelexException(
                 fmt::format(
-                    "BayesPrior: duplicate GeneticMode {} across blocks",
+                    "LegacyBayesPrior: duplicate GeneticMode {} across blocks",
                     mode));
         }
     };

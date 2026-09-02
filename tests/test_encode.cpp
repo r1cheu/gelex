@@ -36,7 +36,7 @@ using gelex::encode;
 using gelex::EncodedResult;
 using gelex::LevelMismatch;
 using gelex::one_hot_encode;
-using gelex::SEPARATOR;
+using gelex::separator;
 
 namespace
 {
@@ -70,9 +70,9 @@ TEST_CASE("one_hot_encode levels are sorted", "[encode][dataframe]")
     auto col = make_col("g", {"B", "A", "B", "C"});
     auto result = one_hot_encode(col);
 
-    REQUIRE(result.level_names[0] == fmt::format("g{}A", SEPARATOR));
-    REQUIRE(result.level_names[1] == fmt::format("g{}B", SEPARATOR));
-    REQUIRE(result.level_names[2] == fmt::format("g{}C", SEPARATOR));
+    REQUIRE(result.level_names[0] == fmt::format("g{}A", separator));
+    REQUIRE(result.level_names[1] == fmt::format("g{}B", separator));
+    REQUIRE(result.level_names[2] == fmt::format("g{}C", separator));
 }
 
 TEST_CASE("one_hot_encode matrix has correct values", "[encode][dataframe]")
@@ -130,8 +130,8 @@ TEST_CASE(
     auto col = make_col("g", {"C", "B", "A"});
     auto result = dummy_encode(col);
 
-    REQUIRE(result.level_names[0] == fmt::format("g{}B", SEPARATOR));
-    REQUIRE(result.level_names[1] == fmt::format("g{}C", SEPARATOR));
+    REQUIRE(result.level_names[0] == fmt::format("g{}B", separator));
+    REQUIRE(result.level_names[1] == fmt::format("g{}C", separator));
 }
 
 TEST_CASE("dummy_encode matrix has correct values", "[encode][dataframe]")
@@ -153,7 +153,7 @@ TEST_CASE(
 
     REQUIRE(result.data.rows() == 3);
     REQUIRE(result.data.cols() == 1);
-    REQUIRE(result.level_names[0] == fmt::format("sex{}M", SEPARATOR));
+    REQUIRE(result.level_names[0] == fmt::format("sex{}M", separator));
 }
 
 TEST_CASE("dummy_encode single level throws", "[encode][dataframe]")
@@ -191,9 +191,9 @@ TEST_CASE(
     auto result = encode(col, levels);
 
     // C=col0, A=col1, B=col2
-    REQUIRE(result.level_names[0] == fmt::format("g{}C", SEPARATOR));
-    REQUIRE(result.level_names[1] == fmt::format("g{}A", SEPARATOR));
-    REQUIRE(result.level_names[2] == fmt::format("g{}B", SEPARATOR));
+    REQUIRE(result.level_names[0] == fmt::format("g{}C", separator));
+    REQUIRE(result.level_names[1] == fmt::format("g{}A", separator));
+    REQUIRE(result.level_names[2] == fmt::format("g{}B", separator));
 
     Eigen::MatrixXd expected{{0, 1, 0}, {0, 0, 1}, {1, 0, 0}};
     REQUIRE(result.data.isApprox(expected));

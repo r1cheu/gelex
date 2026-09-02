@@ -17,11 +17,9 @@
 #include "gelex/algo/mcmc/steps/joint_genetic_step.h"
 
 #include <Eigen/Core>
-#include <algorithm>
 #include <array>
 #include <cmath>
 #include <cstdint>
-#include <iterator>
 #include <optional>
 #include <random>
 #include <utility>
@@ -32,7 +30,7 @@
 #include "gelex/bayes/genetic/half_normal_prior.h"
 #include "gelex/bayes/genetic/half_normal_prior_state.h"
 #include "gelex/bayes/genetic/legacy_genetic_prior.h"
-#include "gelex/bayes/state.h"
+#include "gelex/bayes/legacy_state.h"
 #include "gelex/infra/stats/beta_sampler.h"
 #include "gelex/infra/stats/detail/var.h"
 #include "gelex/infra/stats/dirichlet_sampler.h"
@@ -82,10 +80,8 @@ JointGaussianMixtureStep::JointGaussianMixtureStep(
                   .size())),
       rng_(rng)
 {
-    std::ranges::set_intersection(
-        design_.valid_indices(GeneticMode::A),
-        design_.valid_indices(GeneticMode::D),
-        std::back_inserter(valid_indices_));
+    const auto valid_indices = design_.common_valid_indices();
+    valid_indices_.assign(valid_indices.begin(), valid_indices.end());
 }
 
 auto JointGaussianMixtureStep::step() -> void
@@ -98,8 +94,10 @@ auto JointGaussianMixtureStep::step() -> void
     auto& proportion = prior_state.proportion();
     auto& additive = block_.state(GeneticMode::A);
     auto& dominance = block_.state(GeneticMode::D);
-    const auto& additive_xtx_diag = design_.xtx_diag(GeneticMode::A);
-    const auto& dominance_xtx_diag = design_.xtx_diag(GeneticMode::D);
+    const auto& additive_projection = design_.projection(GeneticMode::A);
+    const auto& dominance_projection = design_.projection(GeneticMode::D);
+    const auto& additive_xtx_diag = additive_projection.xtx_diag();
+    const auto& dominance_xtx_diag = dominance_projection.xtx_diag();
     auto& additive_coeffs = additive.coeffs;
     auto& dominance_coeffs = dominance.coeffs;
 
@@ -122,11 +120,10 @@ auto JointGaussianMixtureStep::step() -> void
     {
         const double old_additive_i = additive_coeffs(i);
         const double old_dominance_i = dominance_coeffs(i);
-        const double additive_rhs
-            = design_.dot(GeneticMode::A, i, residual_.y_adj)
-              + (additive_xtx_diag(i) * old_additive_i);
+        const double additive_rhs = additive_projection.dot(i, residual_.y_adj)
+                                    + (additive_xtx_diag(i) * old_additive_i);
         const double dominance_rhs
-            = design_.dot(GeneticMode::D, i, residual_.y_adj)
+            = dominance_projection.dot(i, residual_.y_adj)
               + (dominance_xtx_diag(i) * old_dominance_i);
         const auto additive_post
             = normal_.set_prior_var(additive_variance)
@@ -168,7 +165,8 @@ auto JointGaussianMixtureStep::step() -> void
             }
         }
 
-        JointGeneticAdjustmentGuard guard{design_, i, block_, residual_};
+        JointGeneticAdjustmentGuard guard{
+            {additive_projection, dominance_projection}, i, block_, residual_};
         additive_coeffs(i) = (component == 1 || component == 3)
                                  ? normal_.draw(additive_post.params, rng_)
                                  : 0.0;
@@ -251,10 +249,8 @@ JointHalfNormalMixtureStep::JointHalfNormalMixtureStep(
                   .size())),
       rng_(rng)
 {
-    std::ranges::set_intersection(
-        design_.valid_indices(GeneticMode::A),
-        design_.valid_indices(GeneticMode::D),
-        std::back_inserter(valid_indices_));
+    const auto valid_indices = design_.common_valid_indices();
+    valid_indices_.assign(valid_indices.begin(), valid_indices.end());
 }
 
 auto JointHalfNormalMixtureStep::step() -> void
@@ -268,8 +264,10 @@ auto JointHalfNormalMixtureStep::step() -> void
     auto& dominance_sign = prior_state.dominance_sign();
     auto& additive = block_.state(GeneticMode::A);
     auto& dominance = block_.state(GeneticMode::D);
-    const auto& additive_xtx_diag = design_.xtx_diag(GeneticMode::A);
-    const auto& dominance_xtx_diag = design_.xtx_diag(GeneticMode::D);
+    const auto& additive_projection = design_.projection(GeneticMode::A);
+    const auto& dominance_projection = design_.projection(GeneticMode::D);
+    const auto& additive_xtx_diag = additive_projection.xtx_diag();
+    const auto& dominance_xtx_diag = dominance_projection.xtx_diag();
     auto& additive_coeffs = additive.coeffs;
     auto& dominance_coeffs = dominance.coeffs;
 
@@ -295,11 +293,10 @@ auto JointHalfNormalMixtureStep::step() -> void
     {
         const double old_additive_i = additive_coeffs(i);
         const double old_dominance_i = dominance_coeffs(i);
-        const double additive_rhs
-            = design_.dot(GeneticMode::A, i, residual_.y_adj)
-              + (additive_xtx_diag(i) * old_additive_i);
+        const double additive_rhs = additive_projection.dot(i, residual_.y_adj)
+                                    + (additive_xtx_diag(i) * old_additive_i);
         const double dominance_rhs
-            = design_.dot(GeneticMode::D, i, residual_.y_adj)
+            = dominance_projection.dot(i, residual_.y_adj)
               + (dominance_xtx_diag(i) * old_dominance_i);
         const auto additive_post
             = normal_.set_prior_var(additive_variance)
@@ -388,7 +385,8 @@ auto JointHalfNormalMixtureStep::step() -> void
             }
         }
 
-        JointGeneticAdjustmentGuard guard{design_, i, block_, residual_};
+        JointGeneticAdjustmentGuard guard{
+            {additive_projection, dominance_projection}, i, block_, residual_};
         additive_coeffs(i) = (component == 1 || component == 3)
                                  ? normal_.draw(additive_post.params, rng_)
                                  : 0.0;

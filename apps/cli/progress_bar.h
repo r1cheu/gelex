@@ -26,7 +26,7 @@
 namespace cli
 {
 
-inline const barkeep::Strings GREEN_SPINNER{
+inline const barkeep::Strings green_spinner{
     "\033[32m⠁\033[0m", "\033[32m⠁\033[0m", "\033[32m⠉\033[0m",
     "\033[32m⠙\033[0m", "\033[32m⠚\033[0m", "\033[32m⠒\033[0m",
     "\033[32m⠂\033[0m", "\033[32m⠂\033[0m", "\033[32m⠒\033[0m",

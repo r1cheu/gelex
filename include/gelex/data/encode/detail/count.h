@@ -47,7 +47,7 @@ namespace gelex::detail
         std::endian::native == std::endian::little,
         "count_genotypes assumes little-endian packed layout");
 
-    constexpr std::uint64_t LO = SampleMask::SLOT_MASK;
+    constexpr std::uint64_t slot_mask = SampleMask::slot_mask;
 
     const auto keep_words = mask.words();
     const std::size_t num_bytes = variant_bytes.size();
@@ -67,8 +67,8 @@ namespace gelex::detail
         std::uint64_t genotype{0};
         std::memcpy(&genotype, variant_bytes.data() + byte_offset, take);
 
-        const std::uint64_t lo = genotype & LO;
-        const std::uint64_t hi = (genotype >> 1) & LO;
+        const std::uint64_t lo = genotype & slot_mask;
+        const std::uint64_t hi = (genotype >> 1) & slot_mask;
 
         stats.n_missing += std::popcount((lo & ~hi) & keep);  // 01
         stats.nA1A2 += std::popcount((~lo & hi) & keep);      // 10

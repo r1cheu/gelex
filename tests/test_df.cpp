@@ -41,7 +41,7 @@ using gelex::intersect_inplace;
 using gelex::NaAction;
 using gelex::read_dataframe;
 using gelex::ReadOptions;
-using gelex::SEPARATOR;
+using gelex::separator;
 using gelex::test::FileFixture;
 
 namespace
@@ -49,13 +49,13 @@ namespace
 
 auto make_basic_df(FileFixture& files) -> DataFrame<std::string>
 {
-    constexpr std::string_view CONTENT
+    constexpr std::string_view content
         = "id\tx\ty\n"
           "s1\t1.5\t2.5\n"
           "s2\t3.0\t4.0\n"
           "s3\t5.0\t6.0\n";
 
-    auto path = files.create_text_file(CONTENT, ".tsv");
+    auto path = files.create_text_file(content, ".tsv");
     ReadOptions opts;
     opts.index_cols = {0};
     return read_dataframe<std::string, double>(path.string(), opts);
@@ -128,12 +128,12 @@ TEST_CASE(
     "[dataframe]")
 {
     FileFixture files;
-    constexpr std::string_view CONTENT
+    constexpr std::string_view content
         = "id\ta\tb\tc\td\n"
           "r1\t1\t2\t3\t4\n"
           "r2\t5\t6\t7\t8\n";
 
-    auto path = files.create_text_file(CONTENT, ".tsv");
+    auto path = files.create_text_file(content, ".tsv");
     ReadOptions opts;
     opts.index_cols = {0};
     opts.select_cols = {2, 4};
@@ -162,12 +162,12 @@ TEST_CASE(
     "[dataframe]")
 {
     FileFixture files;
-    constexpr std::string_view CONTENT
+    constexpr std::string_view content
         = "10\t1.0\n"
           "20\t2.0\n"
           "30\t3.0\n";
 
-    auto path = files.create_text_file(CONTENT, ".tsv");
+    auto path = files.create_text_file(content, ".tsv");
     ReadOptions opts;
     opts.header = false;
     std::vector schema{ColumnType::Int, ColumnType::Double};
@@ -190,13 +190,13 @@ TEST_CASE(
     "[dataframe]")
 {
     FileFixture files;
-    constexpr std::string_view CONTENT
+    constexpr std::string_view content
         = "x\ty\n"
           "1.0\t2.0\n"
           "3.0\t4.0\n"
           "5.0\t6.0\n";
 
-    auto path = files.create_text_file(CONTENT, ".tsv");
+    auto path = files.create_text_file(content, ".tsv");
     ReadOptions opts;
     auto df = read_dataframe<std::int32_t, double>(path.string(), opts);
 
@@ -215,22 +215,22 @@ TEST_CASE(
     "[dataframe]")
 {
     FileFixture files;
-    constexpr std::string_view CONTENT
+    constexpr std::string_view content
         = "fid\tiid\tscore\n"
           "F1\tI1\t0.1\n"
           "F1\tI2\t0.2\n"
           "F2\tI1\t0.3\n";
 
-    auto path = files.create_text_file(CONTENT, ".tsv");
+    auto path = files.create_text_file(content, ".tsv");
     ReadOptions opts;
     opts.index_cols = {0, 1};
     auto df = read_dataframe<std::string, double>(path.string(), opts);
 
     REQUIRE(df.rows() == 3);
 
-    auto key0 = fmt::format("{}{}{}", "F1", SEPARATOR, "I1");
-    auto key1 = fmt::format("{}{}{}", "F1", SEPARATOR, "I2");
-    auto key2 = fmt::format("{}{}{}", "F2", SEPARATOR, "I1");
+    auto key0 = fmt::format("{}{}{}", "F1", separator, "I1");
+    auto key1 = fmt::format("{}{}{}", "F1", separator, "I2");
+    auto key2 = fmt::format("{}{}{}", "F2", separator, "I1");
 
     REQUIRE(df.index().at(key0) == 0);
     REQUIRE(df.index().at(key1) == 1);
@@ -246,13 +246,13 @@ TEST_CASE(
     "[dataframe]")
 {
     FileFixture files;
-    constexpr std::string_view CONTENT
+    constexpr std::string_view content
         = "id\tx\n"
           "s1\t1.0\n"
           "s2\tNA\n"
           "s3\t3.0\n";
 
-    auto path = files.create_text_file(CONTENT, ".tsv");
+    auto path = files.create_text_file(content, ".tsv");
     ReadOptions opts;
     opts.index_cols = {0};
     opts.na_action = NaAction::Exclude;
@@ -268,12 +268,12 @@ TEST_CASE(
     "[dataframe]")
 {
     FileFixture files;
-    constexpr std::string_view CONTENT
+    constexpr std::string_view content
         = "id\tx\n"
           "s1\t1.0\n"
           "s2\tNA\n";
 
-    auto path = files.create_text_file(CONTENT, ".tsv");
+    auto path = files.create_text_file(content, ".tsv");
     ReadOptions opts;
     opts.index_cols = {0};
     opts.na_action = NaAction::Throw;
@@ -292,11 +292,11 @@ TEST_CASE(
     "[dataframe]")
 {
     FileFixture files;
-    constexpr std::string_view CONTENT
+    constexpr std::string_view content
         = "id\tx\n"
           "s1\tabc\n";
 
-    auto path = files.create_text_file(CONTENT, ".tsv");
+    auto path = files.create_text_file(content, ".tsv");
     ReadOptions opts;
     opts.index_cols = {0};
 
@@ -314,12 +314,12 @@ TEST_CASE(
     "[dataframe]")
 {
     FileFixture files;
-    constexpr std::string_view CONTENT
+    constexpr std::string_view content
         = "id,x,y\n"
           "s1,1.5,2.5\n"
           "s2,3.0,4.0\n";
 
-    auto path = files.create_text_file(CONTENT, ".csv");
+    auto path = files.create_text_file(content, ".csv");
     ReadOptions opts;
     opts.delimiter = ',';
     opts.index_cols = {0};
@@ -433,13 +433,13 @@ TEST_CASE(
 {
     FileFixture files;
 
-    constexpr std::string_view CONTENT_1
+    constexpr std::string_view content_1
         = "id\tv\n"
           "s1\t1.0\n"
           "s2\t2.0\n"
           "s3\t3.0\n";
 
-    constexpr std::string_view CONTENT_2
+    constexpr std::string_view content_2
         = "id\tv\n"
           "s2\t20.0\n"
           "s3\t30.0\n"
@@ -448,8 +448,8 @@ TEST_CASE(
     ReadOptions opts;
     opts.index_cols = {0};
 
-    auto path1 = files.create_text_file(CONTENT_1, ".tsv");
-    auto path2 = files.create_text_file(CONTENT_2, ".tsv");
+    auto path1 = files.create_text_file(content_1, ".tsv");
+    auto path2 = files.create_text_file(content_2, ".tsv");
     auto df1 = read_dataframe<std::string, double>(path1.string(), opts);
     auto df2 = read_dataframe<std::string, double>(path2.string(), opts);
 
@@ -465,13 +465,13 @@ TEST_CASE(
 {
     FileFixture files;
 
-    constexpr std::string_view CONTENT_1
+    constexpr std::string_view content_1
         = "id\tv\n"
           "s1\t1.0\n"
           "s2\t2.0\n"
           "s3\t3.0\n";
 
-    constexpr std::string_view CONTENT_2
+    constexpr std::string_view content_2
         = "id\tv\n"
           "s2\t20.0\n"
           "s3\t30.0\n"
@@ -480,8 +480,8 @@ TEST_CASE(
     ReadOptions opts;
     opts.index_cols = {0};
 
-    auto path1 = files.create_text_file(CONTENT_1, ".tsv");
-    auto path2 = files.create_text_file(CONTENT_2, ".tsv");
+    auto path1 = files.create_text_file(content_1, ".tsv");
+    auto path2 = files.create_text_file(content_2, ".tsv");
     auto df1 = read_dataframe<std::string, double>(path1.string(), opts);
     auto df2 = read_dataframe<std::string, double>(path2.string(), opts);
 
@@ -600,12 +600,12 @@ TEST_CASE(
     "[dataframe]")
 {
     FileFixture files;
-    constexpr std::string_view CONTENT
+    constexpr std::string_view content
         = "id\tx\ty\n"
           "s1\t1.5\t2.5\n"
           "s2\t3.0\t4.0\n";
 
-    auto path = files.create_text_file(CONTENT, ".tsv");
+    auto path = files.create_text_file(content, ".tsv");
     ReadOptions opts{};
     opts.index_cols = {0};
     opts.names = {"u", "v"};

@@ -123,8 +123,9 @@ TEST_CASE(
         const auto oracle_bed = gelex::open_bed(prefix.string());
         const gelex::LocusEncoder encoder{oracle_bed};
 
-        for (const auto mode : gelex::ALL_GENETIC_MODES)
+        for (const auto mode : gelex::all_genetic_modes)
         {
+            const auto& projection = genetic.projection(mode);
             Eigen::MatrixXd dense(genetic.rows(), genetic.cols());
             std::vector<Eigen::Index> valid_indices;
             for (Eigen::Index marker = 0; marker < genetic.cols(); ++marker)
@@ -142,14 +143,14 @@ TEST_CASE(
 
                 const Eigen::VectorXd probe{{0.5, -1.0, 2.0, 0.25}};
                 Eigen::VectorXd expanded = Eigen::VectorXd::Zero(4);
-                genetic.axpy(mode, marker, 1.0, expanded);
+                projection.axpy(marker, 1.0, expanded);
                 CHECK(expanded.isApprox(dense.col(marker)));
                 CHECK(
-                    genetic.dot(mode, marker, probe)
+                    projection.dot(marker, probe)
                     == Catch::Approx(dense.col(marker).dot(probe)));
             }
 
-            CHECK(genetic.xtx_diag(mode).isApprox(
+            CHECK(projection.xtx_diag().isApprox(
                 dense.colwise().squaredNorm().transpose()));
             Eigen::RowVectorXd variance(dense.cols());
             for (Eigen::Index marker = 0; marker < dense.cols(); ++marker)
@@ -158,60 +159,62 @@ TEST_CASE(
                 variance[marker]
                     = dense.col(marker).array().square().mean() - mean * mean;
             }
-            CHECK(genetic.col_var(mode).isApprox(variance));
+            CHECK(projection.col_var().isApprox(variance));
             CHECK(
                 std::vector<Eigen::Index>{
-                    genetic.valid_indices(mode).begin(),
-                    genetic.valid_indices(mode).end()}
+                    projection.valid_indices().begin(),
+                    projection.valid_indices().end()}
                 == valid_indices);
         }
 
+        const auto& additive_projection = genetic.projection(GeneticMode::A);
+        const auto& dominance_projection = genetic.projection(GeneticMode::D);
         Eigen::RowVectorXd covariance(genetic.cols());
         for (Eigen::Index marker = 0; marker < genetic.cols(); ++marker)
         {
             Eigen::VectorXd additive_column = Eigen::VectorXd::Zero(4);
             Eigen::VectorXd dominance_column = Eigen::VectorXd::Zero(4);
-            genetic.axpy(GeneticMode::A, marker, 1.0, additive_column);
-            genetic.axpy(GeneticMode::D, marker, 1.0, dominance_column);
+            additive_projection.axpy(marker, 1.0, additive_column);
+            dominance_projection.axpy(marker, 1.0, dominance_column);
             covariance[marker]
                 = (additive_column.array() * dominance_column.array()).mean()
                   - (additive_column.mean() * dominance_column.mean());
         }
-        CHECK(genetic.col_covariance(GeneticMode::A, GeneticMode::D)
+        CHECK(additive_projection.col_covariance(dominance_projection)
                   .isApprox(covariance));
+        const auto common_valid_indices = genetic.common_valid_indices();
+        CHECK(
+            std::vector<Eigen::Index>{
+                common_valid_indices.begin(), common_valid_indices.end()}
+            == std::vector<Eigen::Index>{0, 1});
     }
 }
 
-TEST_CASE(
-    "GeneticDesign resolves an omitted mode only when unambiguous",
-    "[bayes][compact]")
+TEST_CASE("GeneticDesign exposes explicit projections", "[bayes][compact]")
 {
     auto single = gelex::test::make_genetic_design(
         Eigen::MatrixXd{{0.0}, {1.0}, {2.0}});
     const Eigen::VectorXd probe{{1.0, 2.0, 3.0}};
-    Eigen::VectorXd implicit = Eigen::VectorXd::Zero(3);
-    Eigen::VectorXd explicit_additive = Eigen::VectorXd::Zero(3);
+    Eigen::VectorXd expanded = Eigen::VectorXd::Zero(3);
+    const auto& additive = single.projection(GeneticMode::A);
 
-    single.axpy(0, 1.0, implicit);
-    single.axpy(GeneticMode::A, 0, 1.0, explicit_additive);
+    additive.axpy(0, 1.0, expanded);
 
-    REQUIRE(implicit.isApprox(explicit_additive));
-    REQUIRE(single.dot(0, probe) == single.dot(GeneticMode::A, 0, probe));
-    REQUIRE(single.xtx_diag().isApprox(single.xtx_diag(GeneticMode::A)));
-    REQUIRE(single.col_var().isApprox(single.col_var(GeneticMode::A)));
-    REQUIRE(
-        single.valid_indices().size()
-        == single.valid_indices(GeneticMode::A).size());
-    REQUIRE(single.snp_luts().isApprox(single.snp_luts(GeneticMode::A)));
+    REQUIRE(additive.dot(0, probe) == expanded.dot(probe));
+    REQUIRE(additive.xtx_diag().size() == 1);
+    REQUIRE(additive.col_var().size() == 1);
+    REQUIRE(additive.valid_indices().size() == 1);
+    REQUIRE(additive.snp_luts().cols() == 1);
 
-    auto empty = gelex::test::make_genetic_design(
-        Eigen::MatrixXd{{0.0}, {1.0}, {2.0}}, gelex::GeneticModeSet{});
+    auto empty = gelex::test::make_genetic_design_without_modes(
+        Eigen::MatrixXd{{0.0}, {1.0}, {2.0}});
     auto joint = gelex::test::make_genetic_design(
         Eigen::MatrixXd{{0.0}, {1.0}, {2.0}}, GeneticMode::A | GeneticMode::D);
 
-    REQUIRE_THROWS_AS(empty.xtx_diag(), gelex::GelexException);
-    REQUIRE_THROWS_AS(joint.xtx_diag(), gelex::GelexException);
-    REQUIRE_THROWS_AS(single.xtx_diag(GeneticMode::D), gelex::GelexException);
+    REQUIRE_THROWS_AS(empty.projection(GeneticMode::A), gelex::GelexException);
+    REQUIRE_THROWS_AS(single.projection(GeneticMode::D), gelex::GelexException);
+    REQUIRE_NOTHROW(joint.projection(GeneticMode::A));
+    REQUIRE_NOTHROW(joint.projection(GeneticMode::D));
 }
 
 TEST_CASE("CompactGenotype supports a single marker BED", "[bayes][compact]")

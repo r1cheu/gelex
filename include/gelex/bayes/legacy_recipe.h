@@ -44,7 +44,7 @@ class BayesRecipe
     BayesRecipe(BayesRecipe&&) noexcept = delete;
     auto operator=(BayesRecipe&&) noexcept -> BayesRecipe& = delete;
 
-    auto make_prior(const BayesModel& model) const -> BayesPrior;
+    auto make_prior(const BayesModel& model) const -> LegacyBayesPrior;
 
    private:
     auto make_random_prior(const BayesModel& model) const -> RandomPrior;
@@ -74,7 +74,7 @@ struct fmt::formatter<gelex::bayes::BayesRecipeScheme>
         gelex::bayes::BayesRecipeScheme recipe_scheme) -> std::string_view
     {
         for (const auto& [value, name] :
-             gelex::bayes::BAYES_RECIPE_SCHEME_NAMES)
+             gelex::bayes::bayes_recipe_scheme_names)
         {
             if (value == recipe_scheme)
             {

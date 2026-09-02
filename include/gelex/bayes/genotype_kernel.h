@@ -18,11 +18,26 @@
 #define GELEX_BAYES_GENOTYPE_KERNEL_H_
 
 #include <Eigen/Core>
+#include <cstddef>
 #include <cstdint>
 #include <span>
 
 namespace gelex::bayes
 {
+
+struct AxpyTarget
+{
+    AxpyTarget() = default;
+
+    AxpyTarget(double scale, Eigen::Ref<Eigen::VectorXd> values) noexcept
+        : scale{scale},
+          values{values.data(), static_cast<std::size_t>(values.size())}
+    {
+    }
+
+    double scale{};
+    std::span<double> values;
+};
 
 [[nodiscard]] auto dot(
     std::span<const std::uint8_t> genotype_column,
@@ -34,6 +49,11 @@ auto axpy(
     const Eigen::Ref<const Eigen::Array4d>& lut,
     double scale,
     std::span<double> residual) noexcept -> void;
+
+auto axpy(
+    std::span<const std::uint8_t> genotype_column,
+    const Eigen::Ref<const Eigen::Array4d>& lut,
+    std::span<const AxpyTarget> targets) noexcept -> void;
 
 }  // namespace gelex::bayes
 

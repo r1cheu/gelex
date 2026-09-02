@@ -63,7 +63,10 @@ auto setup_mcmc_command(CLI::App& program, int& exit_code) -> void
         ->capture_default_str()
         ->check(cli::bayes_recipe_scheme_validator())
         ->required();
-    cmd.add_option("--mode", config->mode, "Effect mode: A, D, AD")
+    cmd.add_option_function<std::string>(
+           "--mode",
+           cli::lexical_assigner(config->mode),
+           "Effect mode: A, D, AD")
         ->group("Model")
         ->type_name("<MODE>")
         ->default_str("A")

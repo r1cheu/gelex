@@ -41,15 +41,15 @@ using gelex::detail::validate_recipe_inputs;
 namespace
 {
 
-constexpr auto MODE_A = GeneticModeSet{GeneticMode::A};
-constexpr auto MODE_AD = GeneticMode::A | GeneticMode::D;
+constexpr auto mode_a = GeneticModeSet{GeneticMode::A};
+constexpr auto mode_ad = GeneticMode::A | GeneticMode::D;
 
-constexpr double NOT_A_NUMBER = std::numeric_limits<double>::quiet_NaN();
+constexpr double not_a_number = std::numeric_limits<double>::quiet_NaN();
 
-using SpikeSlabA = IndependentTopology<MODE_A, SpikeSlab>;
-using SpikeSlabAD = IndependentTopology<MODE_AD, SpikeSlab>;
-using ScaledMixtureA = IndependentTopology<MODE_A, ScaledMixture>;
-using ScaledMixtureAD = IndependentTopology<MODE_AD, ScaledMixture>;
+using SpikeSlabA = IndependentTopology<mode_a, SpikeSlab>;
+using SpikeSlabAD = IndependentTopology<mode_ad, SpikeSlab>;
+using ScaledMixtureA = IndependentTopology<mode_a, ScaledMixture>;
+using ScaledMixtureAD = IndependentTopology<mode_ad, ScaledMixture>;
 
 const auto BUDGET_A = VarianceBudget{{.additive = 0.5}};
 const auto BUDGET_AD = VarianceBudget{{.additive = 0.5, .dominance = 0.2}};
@@ -75,11 +75,11 @@ TEST_CASE(
     "validate_recipe_inputs stays silent on valid input",
     "[bayes][recipe_validation]")
 {
-    REQUIRE_NOTHROW(validate_recipe_inputs(NoParameters{}, BUDGET_A, MODE_A));
+    REQUIRE_NOTHROW(validate_recipe_inputs(NoParameters{}, BUDGET_A, mode_a));
     REQUIRE_NOTHROW(validate_recipe_inputs(
-        ScaledMixtureAD{ScaledMixture{}, ScaledMixture{}}, BUDGET_AD, MODE_AD));
+        ScaledMixtureAD{ScaledMixture{}, ScaledMixture{}}, BUDGET_AD, mode_ad));
     REQUIRE_NOTHROW(
-        validate_recipe_inputs(JointSpikeSlab{}, BUDGET_AD, MODE_AD));
+        validate_recipe_inputs(JointSpikeSlab{}, BUDGET_AD, mode_ad));
 }
 
 TEST_CASE(
@@ -91,11 +91,11 @@ TEST_CASE(
         {
             validate_recipe_inputs(
                 SpikeSlabAD{
-                    SpikeSlab{.probability = {.initial = 1.5}},
-                    SpikeSlab{.probability = {.initial = 0.0}},
+                    SpikeSlab{.probability = 1.5},
+                    SpikeSlab{.probability = 0.0},
                 },
                 VarianceBudget{{.additive = 0.7, .dominance = 0.4}},
-                MODE_AD);
+                mode_ad);
         });
 
     REQUIRE_THAT(
@@ -116,10 +116,10 @@ TEST_CASE(
             validate_recipe_inputs(
                 SpikeSlabAD{
                     SpikeSlab{},
-                    SpikeSlab{.probability = {.initial = 1.5}},
+                    SpikeSlab{.probability = 1.5},
                 },
                 BUDGET_AD,
-                MODE_AD);
+                mode_ad);
         });
 
     REQUIRE_THAT(
@@ -145,16 +145,16 @@ TEST_CASE(
 
     SECTION("a non-number is out")
     {
-        probability = NOT_A_NUMBER;
+        probability = not_a_number;
     }
 
     const auto message = message_of(
         [probability]
         {
             validate_recipe_inputs(
-                SpikeSlabA{SpikeSlab{.probability = {.initial = probability}}},
+                SpikeSlabA{SpikeSlab{.probability = probability}},
                 BUDGET_A,
-                MODE_A);
+                mode_a);
         });
 
     REQUIRE_THAT(
@@ -167,7 +167,7 @@ TEST_CASE(
     "validate_recipe_inputs rejects non-simplex weights",
     "[bayes][recipe_validation]")
 {
-    auto weights = ScaledMixture{}.probabilities.initial;
+    auto weights = ScaledMixture{}.probabilities;
 
     SECTION("components must be strictly positive")
     {
@@ -176,17 +176,16 @@ TEST_CASE(
 
     SECTION("components must be finite")
     {
-        weights = {0.5, NOT_A_NUMBER, 0.2, 0.2, 0.1};
+        weights = {0.5, not_a_number, 0.2, 0.2, 0.1};
     }
 
     const auto message = message_of(
         [weights]
         {
             validate_recipe_inputs(
-                ScaledMixtureA{
-                    ScaledMixture{.probabilities = {.initial = weights}}},
+                ScaledMixtureA{ScaledMixture{.probabilities = weights}},
                 BUDGET_A,
-                MODE_A);
+                mode_a);
         });
 
     REQUIRE_THAT(
@@ -203,10 +202,10 @@ TEST_CASE(
         return [last]
         {
             validate_recipe_inputs(
-                ScaledMixtureA{ScaledMixture{
-                    .probabilities = {.initial = {0.2, 0.2, 0.2, 0.2, last}}}},
+                ScaledMixtureA{
+                    ScaledMixture{.probabilities = {0.2, 0.2, 0.2, 0.2, last}}},
                 BUDGET_A,
-                MODE_A);
+                mode_a);
         };
     };
 
@@ -229,7 +228,7 @@ TEST_CASE(
                     ScaledMixtureA{
                         ScaledMixture{.scales = {0.001, 0.01, 0.1, 1.0, 10.0}}},
                     BUDGET_A,
-                    MODE_A);
+                    mode_a);
             });
 
         REQUIRE_THAT(
@@ -247,7 +246,7 @@ TEST_CASE(
                         ScaledMixture{},
                         ScaledMixture{.scales = {0.0, -0.01, 0.1, 1.0, 10.0}}},
                     BUDGET_AD,
-                    MODE_AD);
+                    mode_ad);
             });
 
         REQUIRE_THAT(
@@ -267,11 +266,11 @@ TEST_CASE(
         {
             validate_recipe_inputs(
                 JointSpikeSlab{
-                    .probabilities = {.initial = {0.9, 0.05, 0.02, 0.02}},
-                    .positive_probability = {.initial = NOT_A_NUMBER},
+                    .probabilities = {0.9, 0.05, 0.02, 0.02},
+                    .positive_probability = not_a_number,
                 },
                 BUDGET_AD,
-                MODE_AD);
+                mode_ad);
         });
 
     REQUIRE_THAT(
@@ -291,7 +290,7 @@ TEST_CASE(
             []
             {
                 validate_recipe_inputs(
-                    NoParameters{}, VarianceBudget{{.additive = 0.5}}, MODE_AD);
+                    NoParameters{}, VarianceBudget{{.additive = 0.5}}, mode_ad);
             });
 
         REQUIRE_THAT(
@@ -302,7 +301,7 @@ TEST_CASE(
     SECTION("an absent mode needs a zero share")
     {
         const auto message = message_of(
-            [] { validate_recipe_inputs(NoParameters{}, BUDGET_AD, MODE_A); });
+            [] { validate_recipe_inputs(NoParameters{}, BUDGET_AD, mode_a); });
 
         REQUIRE_THAT(
             message, ContainsSubstring("D variance share must be zero"));
@@ -316,7 +315,7 @@ TEST_CASE(
                 validate_recipe_inputs(
                     NoParameters{},
                     VarianceBudget{{.additive = 0.6, .dominance = 0.4}},
-                    MODE_AD);
+                    mode_ad);
             });
 
         REQUIRE_THAT(
@@ -332,7 +331,7 @@ TEST_CASE(
                 validate_recipe_inputs(
                     NoParameters{},
                     VarianceBudget{{.additive = 0.5, .random = -0.1}},
-                    MODE_A);
+                    mode_a);
             });
 
         REQUIRE_THAT(
@@ -349,7 +348,7 @@ TEST_CASE(
                 validate_recipe_inputs(
                     NoParameters{},
                     VarianceBudget{{.additive = 0.5, .random = -0.1}},
-                    MODE_A);
+                    mode_a);
             });
 
         REQUIRE_THAT(message, !ContainsSubstring("A random variance share"));

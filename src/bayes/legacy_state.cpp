@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "gelex/bayes/state.h"
+#include "gelex/bayes/legacy_state.h"
 
 #include <Eigen/Core>
 #include <fmt/format.h>
@@ -91,7 +91,7 @@ SingleGeneticBlockState::SingleGeneticBlockState(
       state_{design.cols(), design.rows()},
       prior_state_(make_state(prior, design.cols(), design.rows()))
 {
-    if (!design.modes().contains(mode_))
+    if (!design.contains(mode_))
     {
         throw GelexException(
             fmt::format(
@@ -117,12 +117,12 @@ JointGeneticBlockState::JointGeneticBlockState(
       dominance_{design.cols(), design.rows()},
       prior_state_(make_state(prior, design.cols(), design.rows()))
 {
-    if (!design.modes().contains(GeneticMode::A))
+    if (!design.contains(GeneticMode::A))
     {
         throw GelexException(
             "JointGeneticBlockState: missing genetic projection for mode A");
     }
-    if (!design.modes().contains(GeneticMode::D))
+    if (!design.contains(GeneticMode::D))
     {
         throw GelexException(
             "JointGeneticBlockState: missing genetic projection for mode D");
@@ -184,7 +184,9 @@ auto ResidualState::visit(FieldVisitor& visitor) -> void
 namespace gelex
 {
 
-BayesState::BayesState(const BayesModel& model, const bayes::BayesPrior& prior)
+LegacyBayesState::LegacyBayesState(
+    const BayesModel& model,
+    const bayes::LegacyBayesPrior& prior)
     : fixed_(model.fixed()),
       residual_{
           .y_adj = model.phenotype(),
@@ -224,7 +226,7 @@ BayesState::BayesState(const BayesModel& model, const bayes::BayesPrior& prior)
     }
 }
 
-auto BayesState::compute_heritability() -> void
+auto LegacyBayesState::compute_heritability() -> void
 {
     double total_variance = residual_.variance;
     for (const auto& state : random_)
@@ -278,7 +280,7 @@ auto BayesState::compute_heritability() -> void
     }
 }
 
-auto BayesState::visit(FieldVisitor& visitor) -> void
+auto LegacyBayesState::visit(FieldVisitor& visitor) -> void
 {
     auto scope = visitor.scope(name);
     fixed_.visit(visitor);

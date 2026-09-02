@@ -32,7 +32,7 @@ namespace
 {
 // Path-like option type-name tokens receive file completion; every other
 // value option (numeric, column, plain text) is completed with nothing.
-constexpr std::array<std::string_view, 11> PATH_TYPE_TOKENS{
+constexpr std::array<std::string_view, 11> path_type_tokens{
     "BFILE",
     "OUT",
     "GRM",
@@ -108,7 +108,7 @@ auto parse_choices(std::string_view type_name) -> std::vector<std::string>
 
 auto is_path_token(std::string_view token) -> bool
 {
-    return std::ranges::contains(PATH_TYPE_TOKENS, token);
+    return std::ranges::contains(path_type_tokens, token);
 }
 
 auto to_arg_info(const CLI::Option& opt) -> ArgInfo

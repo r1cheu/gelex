@@ -28,10 +28,10 @@
 namespace
 {
 
-inline constexpr std::size_t BED_HEADER_SIZE = 3;
-inline constexpr std::uint8_t BED_MAGIC_0 = 0x6C;
-inline constexpr std::uint8_t BED_MAGIC_1 = 0x1B;
-inline constexpr std::uint8_t BED_MAGIC_2 = 0x01;
+inline constexpr std::size_t bed_header_size = 3;
+inline constexpr std::uint8_t bed_magic_0 = 0x6C;
+inline constexpr std::uint8_t bed_magic_1 = 0x1B;
+inline constexpr std::uint8_t bed_magic_2 = 0x01;
 
 }  // namespace
 
@@ -66,21 +66,21 @@ BedSource::BedSource(
             fmt::format("{}: failed to mmap bed file", bed_path.string()));
     }
 
-    if (mmap_.size() < BED_HEADER_SIZE)
+    if (mmap_.size() < bed_header_size)
     {
         throw GelexException(
             fmt::format("{}: bed file too short", bed_path.string()));
     }
 
     const auto* raw = reinterpret_cast<const std::uint8_t*>(mmap_.data());
-    if (raw[0] != BED_MAGIC_0 || raw[1] != BED_MAGIC_1 || raw[2] != BED_MAGIC_2)
+    if (raw[0] != bed_magic_0 || raw[1] != bed_magic_1 || raw[2] != bed_magic_2)
     {
         throw GelexException(
             fmt::format("{}: invalid BED magic number", bed_path.string()));
     }
 
     const auto expected_size
-        = BED_HEADER_SIZE + (num_variants_ * bytes_per_variant_);
+        = bed_header_size + (num_variants_ * bytes_per_variant_);
     if (mmap_.size() != expected_size)
     {
         throw GelexException(
@@ -91,7 +91,7 @@ BedSource::BedSource(
                 mmap_.size()));
     }
 
-    payload_ = raw + BED_HEADER_SIZE;
+    payload_ = raw + bed_header_size;
 }
 
 auto open_bed_source(const std::string& bfile_prefix) -> BedSource

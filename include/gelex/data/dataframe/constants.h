@@ -23,11 +23,11 @@
 namespace gelex
 {
 
-inline constexpr char SEPARATOR = '\x1F';
+inline constexpr char separator = '\x1F';
 
-inline constexpr std::string_view INTERCEPT_NAME = "Intercept";
+inline constexpr std::string_view intercept_name = "Intercept";
 
-inline constexpr std::array DEFAULT_NA_REP = {
+inline constexpr std::array default_na_rep = {
     std::string_view{""},
     std::string_view{"NA"},
     std::string_view{"NaN"},

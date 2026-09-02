@@ -27,8 +27,8 @@
 #include "gelex/bayes/genetic/gaussian_prior_state.h"
 #include "gelex/bayes/genetic/parameters.h"
 #include "gelex/bayes/legacy_prior.h"
+#include "gelex/bayes/legacy_state.h"
 #include "gelex/bayes/model.h"
-#include "gelex/bayes/state.h"
 #include "gelex/exception.h"
 #include "gelex/io/binary_writer.h"
 #include "gelex/io/mcmc_checkpoint.h"
@@ -54,7 +54,7 @@ auto make_model() -> gelex::BayesModel
         Eigen::VectorXd{{1.0, 2.0, 3.0}});
 }
 
-auto make_prior() -> gelex::bayes::BayesPrior
+auto make_prior() -> gelex::bayes::LegacyBayesPrior
 {
     std::vector<gelex::bayes::GeneticPrior> genetics;
     genetics.emplace_back(
@@ -63,23 +63,23 @@ auto make_prior() -> gelex::bayes::BayesPrior
                 gelex::GeneticMode::A,
                 gelex::bayes::SharedMarkerVariance{make_variance(0.1)}}});
 
-    return gelex::bayes::BayesPrior{
+    return gelex::bayes::LegacyBayesPrior{
         gelex::bayes::RandomPrior{make_variance(0.3)},
         std::move(genetics),
         gelex::bayes::ResidualPrior{make_variance(0.4)}};
 }
 
-auto make_state() -> gelex::BayesState
+auto make_state() -> gelex::LegacyBayesState
 {
     auto model = make_model();
     auto prior = make_prior();
-    return gelex::BayesState{model, prior};
+    return gelex::LegacyBayesState{model, prior};
 }
 
 }  // namespace
 
 TEST_CASE(
-    "MCMC checkpoint round-trip preserves BayesState fields",
+    "MCMC checkpoint round-trip preserves LegacyBayesState fields",
     "[checkpoint]")
 {
     gelex::test::FileFixture files;

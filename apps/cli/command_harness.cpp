@@ -96,16 +96,16 @@ auto report_command_line(const CLI::App& cmd) -> void
         }
         else
         {
-            constexpr size_t WRAP_WIDTH = 80;
-            constexpr std::string_view CONT_INDENT = "    ";
+            constexpr size_t wrap_width = 80;
+            constexpr std::string_view cont_indent = "    ";
             std::string line = fmt::format("  {}", name);
             bool has_value = false;
             for (const auto& value : values)
             {
-                if (has_value && line.size() + 1 + value.size() > WRAP_WIDTH)
+                if (has_value && line.size() + 1 + value.size() > wrap_width)
                 {
                     p.line("{}", line);
-                    line = fmt::format("{}{}", CONT_INDENT, value);
+                    line = fmt::format("{}{}", cont_indent, value);
                 }
                 else
                 {

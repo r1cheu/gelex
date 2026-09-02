@@ -18,177 +18,154 @@
 #define GELEX_BAYES_STATE_H_
 
 #include <Eigen/Core>
-#include <algorithm>
-#include <cstddef>
+#include <fmt/format.h>
+#include <ranges>
 #include <span>
-#include <string_view>
-#include <variant>
+#include <utility>
 #include <vector>
 
-#include "gelex/bayes/design.h"
-#include "gelex/bayes/genetic/legacy_genetic_prior.h"
-#include "gelex/bayes/genetic/prior_state.h"
-#include "gelex/types/fixed_designs.h"
-#include "gelex/types/genetic_mode.h"
+#include "gelex/bayes/detail/genetic_state_compilation.h"
+#include "gelex/bayes/model.h"
+#include "gelex/bayes/prior.h"
+#include "gelex/exception.h"
 
 namespace gelex
 {
 
-class BayesModel;
-
-class FieldVisitor;
-
-namespace bayes
+struct FixedEffectState
 {
-
-class BayesPrior;
-class RandomPrior;
-
-struct FixedState
-{
-    static constexpr std::string_view name = "fixed";
-
-    explicit FixedState(const FixedDesign& design);
-    explicit FixedState(Eigen::VectorXd coeffs);
-
-    auto visit(FieldVisitor& visitor) -> void;
-
-    Eigen::VectorXd coeffs;
+    Eigen::VectorXd coefficients;
 };
 
-struct RandomState
+struct RandomEffectState
 {
-    static constexpr std::string_view name = "random";
-
-    RandomState(const RandomDesign& design, const RandomPrior& prior);
-
-    auto visit(FieldVisitor& visitor) -> void;
-
-    Eigen::VectorXd coeffs;
-    double variance{0.0};
+    Eigen::VectorXd coefficients;
+    double variance{};
 };
 
 struct ResidualState
 {
-    static constexpr std::string_view name = "residual";
-
-    auto visit(FieldVisitor& visitor) -> void;
-
-    Eigen::VectorXd y_adj;
-    double variance{0.0};
-    Eigen::VectorXd old_y_adj;
-};
-
-struct GeneticState
-{
-    static constexpr std::string_view name = "genetic";
-
-    GeneticState(Eigen::Index num_markers, Eigen::Index num_individuals);
-
-    auto visit(FieldVisitor& visitor) -> void;
-
-    Eigen::VectorXd coeffs;
-    Eigen::VectorXd u;
+    Eigen::VectorXd adjusted_response;
     double variance{};
-    double heritability{};
 };
 
-class SingleGeneticBlockState
-{
-   public:
-    static constexpr std::string_view name = "single";
+template <typename GeneticPrior>
+class BayesState;
 
-    SingleGeneticBlockState(
-        const GeneticDesign& design,
-        const SingleGeneticPrior& prior);
+template <typename GeneticPrior>
+[[nodiscard]] auto make_state(
+    const BayesPrior<GeneticPrior>& prior,
+    const BayesModel& model) -> BayesState<GeneticPrior>;
 
-    [[nodiscard]] auto mode() const noexcept -> GeneticMode { return mode_; }
-
-    auto state() -> GeneticState& { return state_; }
-    auto state() const -> const GeneticState& { return state_; }
-
-    auto prior_state() -> SingleGeneticPriorState& { return prior_state_; }
-    auto prior_state() const -> const SingleGeneticPriorState&
-    {
-        return prior_state_;
-    }
-
-    auto visit(FieldVisitor& visitor) -> void;
-
-   private:
-    GeneticMode mode_{};
-    GeneticState state_;
-    SingleGeneticPriorState prior_state_;
-};
-
-class JointGeneticBlockState
-{
-   public:
-    static constexpr std::string_view name = "joint";
-
-    JointGeneticBlockState(
-        const GeneticDesign& design,
-        const JointGeneticPrior& prior);
-
-    auto state(GeneticMode mode) -> GeneticState&;
-    auto state(GeneticMode mode) const -> const GeneticState&;
-
-    auto prior_state() -> JointGeneticPriorState& { return prior_state_; }
-    auto prior_state() const -> const JointGeneticPriorState&
-    {
-        return prior_state_;
-    }
-
-    auto visit(FieldVisitor& visitor) -> void;
-
-   private:
-    GeneticState additive_;
-    GeneticState dominance_;
-    JointGeneticPriorState prior_state_;
-};
-
-using GeneticPriorBlockState
-    = std::variant<SingleGeneticBlockState, JointGeneticBlockState>;
-
-}  // namespace bayes
-
+template <typename GeneticPrior>
 class BayesState
 {
    public:
-    static constexpr std::string_view name = "state";
+    using genetic_prior_type = GeneticPrior;
+    using genetic_state_type = detail::genetic_state_t<GeneticPrior>;
 
-    BayesState(const BayesModel& model, const bayes::BayesPrior& prior);
+    [[nodiscard]] auto fixed() noexcept -> FixedEffectState& { return fixed_; }
 
-    auto fixed() -> bayes::FixedState& { return fixed_; }
-    auto fixed() const -> const bayes::FixedState& { return fixed_; }
+    [[nodiscard]] auto fixed() const noexcept -> const FixedEffectState&
+    {
+        return fixed_;
+    }
 
-    auto random() -> std::span<bayes::RandomState> { return random_; }
-    auto random() const -> std::span<const bayes::RandomState>
+    [[nodiscard]] auto random() noexcept -> std::span<RandomEffectState>
     {
         return random_;
     }
 
-    auto genetics() -> std::vector<bayes::GeneticPriorBlockState>&
+    [[nodiscard]] auto random() const noexcept
+        -> std::span<const RandomEffectState>
     {
-        return genetics_;
-    }
-    auto genetics() const -> const std::vector<bayes::GeneticPriorBlockState>&
-    {
-        return genetics_;
+        return random_;
     }
 
-    auto residual() -> bayes::ResidualState& { return residual_; }
-    auto residual() const -> const bayes::ResidualState& { return residual_; }
+    [[nodiscard]] auto genetic() noexcept -> genetic_state_type&
+    {
+        return genetic_;
+    }
 
-    auto compute_heritability() -> void;
-    auto visit(FieldVisitor& visitor) -> void;
+    [[nodiscard]] auto genetic() const noexcept -> const genetic_state_type&
+    {
+        return genetic_;
+    }
+
+    [[nodiscard]] auto residual() noexcept -> ResidualState&
+    {
+        return residual_;
+    }
+
+    [[nodiscard]] auto residual() const noexcept -> const ResidualState&
+    {
+        return residual_;
+    }
 
    private:
-    bayes::FixedState fixed_;
-    std::vector<bayes::RandomState> random_;
-    std::vector<bayes::GeneticPriorBlockState> genetics_;
-    bayes::ResidualState residual_;
+    BayesState(
+        FixedEffectState fixed,
+        std::vector<RandomEffectState> random,
+        genetic_state_type genetic,
+        ResidualState residual)
+        : fixed_{std::move(fixed)},
+          random_{std::move(random)},
+          genetic_{std::move(genetic)},
+          residual_{std::move(residual)}
+    {
+    }
+
+    template <typename T>
+    friend auto make_state(const BayesPrior<T>& prior, const BayesModel& model)
+        -> BayesState<T>;
+
+    FixedEffectState fixed_;
+    std::vector<RandomEffectState> random_;
+    genetic_state_type genetic_;
+    ResidualState residual_;
 };
+
+template <typename GeneticPrior>
+[[nodiscard]] auto make_state(
+    const BayesPrior<GeneticPrior>& prior,
+    const BayesModel& model) -> BayesState<GeneticPrior>
+{
+    const auto random_prior = prior.random();
+    const auto random_design = model.random();
+    if (random_prior.size() != random_design.size())
+    {
+        throw GelexException(
+            fmt::format(
+                "random prior/design count mismatch: {} != {}",
+                random_prior.size(),
+                random_design.size()));
+    }
+
+    std::vector<RandomEffectState> random;
+    random.reserve(random_design.size());
+    for (const auto& [parameter, design] :
+         std::views::zip(random_prior, random_design))
+    {
+        random.push_back(
+            RandomEffectState{
+                .coefficients = Eigen::VectorXd::Zero(design.X.cols()),
+                .variance = parameter.initial_value()});
+    }
+
+    return BayesState<GeneticPrior>{
+        FixedEffectState{
+            .coefficients = Eigen::VectorXd::Zero(model.fixed().X.cols())},
+        std::move(random),
+        detail::make_genetic_state(prior.genetic(), model.genetic()),
+        ResidualState{
+            .adjusted_response = model.phenotype(),
+            .variance = prior.residual().initial_value()}};
+}
+
+template <typename Prior>
+using bayes_state_t = decltype(make_state(
+    std::declval<const Prior&>(),
+    std::declval<const BayesModel&>()));
 
 }  // namespace gelex
 

@@ -33,7 +33,7 @@ auto load_snp_luts(const std::filesystem::path& path) -> ModeMap<SnpLutMatrix>
 {
     BinaryReader reader(path.string());
     ModeMap<SnpLutMatrix> luts;
-    for (const auto mode : ALL_GENETIC_MODES)
+    for (const auto mode : all_genetic_modes)
     {
         if (reader.contains(fmt::format("{}/lut", mode)))
         {
@@ -57,9 +57,10 @@ auto write_snp_luts(
     const bayes::GeneticDesign& design) -> void
 {
     BinaryWriter writer(path.string());
-    for (const GeneticMode mode : design.modes().each())
+    for (const GeneticMode mode : design.each_mode())
     {
-        writer.write(fmt::format("{}/lut", mode), design.snp_luts(mode));
+        writer.write(
+            fmt::format("{}/lut", mode), design.projection(mode).snp_luts());
     }
     writer.close();
 }

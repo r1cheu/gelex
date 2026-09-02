@@ -37,10 +37,10 @@ namespace gelex
 
 // Backtracking gives up below this step length, leaving the iteration stalled
 // at the anchor.
-constexpr double LINE_SEARCH_MIN_STEP = 1e-4;
+constexpr double line_search_min_step = 1e-4;
 
 // Armijo sufficient-decrease constant c1 (Nocedal & Wright eq. 3.4).
-constexpr double ARMIJO_C1 = 1e-4;
+constexpr double armijo_c1 = 1e-4;
 
 Estimator::Estimator(size_t max_iter, double tol, RemlObserver observer)
     : convergence_checker_(tol),
@@ -91,13 +91,13 @@ auto Estimator::fit(
                 distribute_variance_components(state, sigma);
                 loglike = evaluate_point(model, state, buffer);
                 if (loglike >= anchor_loglike
-                                   + (ARMIJO_C1
+                                   + (armijo_c1
                                       * anchor_grad.dot(sigma - anchor_sigma)))
                 {
                     improved = true;
                     break;
                 }
-                if (step < LINE_SEARCH_MIN_STEP)
+                if (step < line_search_min_step)
                 {
                     break;
                 }

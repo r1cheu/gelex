@@ -148,26 +148,26 @@ namespace gelex
 auto read_fam(const std::filesystem::path& path) -> DataFrame<std::string>
 {
     using enum ColumnType;
-    constexpr std::array SCHEMA = {String, String, Int, String};
+    constexpr std::array schema = {String, String, Int, String};
     ReadOptions options;
     options.header = false;
     options.delimiter = detect_delimiter(path);
     options.index_cols = {0, 1};
     options.names = {"father", "mother", "sex", "phenotype"};
-    return read_dataframe<std::string>(path, options, SCHEMA);
+    return read_dataframe<std::string>(path, options, schema);
 }
 
 auto read_bim(const std::filesystem::path& path) -> DataFrame<std::string>
 {
     using enum ColumnType;
-    constexpr std::array SCHEMA = {String, Int, String, String};
+    constexpr std::array schema = {String, Int, String, String};
     ReadOptions options;
     options.header = false;
     options.delimiter = detect_delimiter(path);
     options.index_cols = {1};
     options.select_cols = {0, 3, 4, 5};
     options.names = {"chrom", "pos", "A1", "A2"};
-    return read_dataframe<std::string>(path, options, SCHEMA);
+    return read_dataframe<std::string>(path, options, schema);
 }
 
 auto read_snp_effects(const std::filesystem::path& path)

@@ -76,8 +76,8 @@ auto genotype_method_validator() -> CLI::Validator
 auto bayes_recipe_scheme_validator() -> CLI::Validator
 {
     std::vector<std::string> names;
-    names.reserve(gelex::bayes::BAYES_RECIPE_SCHEME_NAMES.size());
-    for (const auto& [scheme, name] : gelex::bayes::BAYES_RECIPE_SCHEME_NAMES)
+    names.reserve(gelex::bayes::bayes_recipe_scheme_names.size());
+    for (const auto& [scheme, name] : gelex::bayes::bayes_recipe_scheme_names)
     {
         names.emplace_back(name);
     }
@@ -87,8 +87,8 @@ auto bayes_recipe_scheme_validator() -> CLI::Validator
 auto genetic_mode_set_validator() -> CLI::Validator
 {
     std::vector<std::string> names;
-    names.reserve(gelex::GENETIC_MODE_SET_NAMES.size());
-    for (const auto& [set, name] : gelex::GENETIC_MODE_SET_NAMES)
+    names.reserve(gelex::genetic_mode_set_names.size());
+    for (const auto& [set, name] : gelex::genetic_mode_set_names)
     {
         names.emplace_back(name);
     }
@@ -98,8 +98,8 @@ auto genetic_mode_set_validator() -> CLI::Validator
 auto rint_type_validator() -> CLI::Validator
 {
     std::vector<std::string> names;
-    names.reserve(gelex::RINT_TYPE_NAMES.size());
-    for (const auto& [type, name] : gelex::RINT_TYPE_NAMES)
+    names.reserve(gelex::rint_type_names.size());
+    for (const auto& [type, name] : gelex::rint_type_names)
     {
         names.emplace_back(name);
     }

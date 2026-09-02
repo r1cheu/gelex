@@ -31,8 +31,8 @@
 #include "gelex/bayes/genetic/half_normal_prior.h"
 #include "gelex/bayes/genetic/parameters.h"
 #include "gelex/bayes/legacy_prior.h"
+#include "gelex/bayes/legacy_state.h"
 #include "gelex/bayes/model.h"
-#include "gelex/bayes/state.h"
 #include "gelex/data/genotype_method.h"
 #include "gelex/io/binary_reader.h"
 #include "gelex/types/fixed_designs.h"
@@ -70,7 +70,7 @@ auto make_model() -> gelex::BayesModel
         std::move(genetic)};
 }
 
-auto make_prior() -> gelex::bayes::BayesPrior
+auto make_prior() -> gelex::bayes::LegacyBayesPrior
 {
     std::vector<gelex::bayes::GeneticPrior> genetics;
     genetics.emplace_back(
@@ -82,7 +82,7 @@ auto make_prior() -> gelex::bayes::BayesPrior
                 gelex::bayes::MixtureProportion{
                     Eigen::VectorXd{{0.25, 0.25, 0.25, 0.25}}}}});
 
-    return gelex::bayes::BayesPrior{
+    return gelex::bayes::LegacyBayesPrior{
         gelex::bayes::RandomPrior{make_variance(0.3)},
         std::move(genetics),
         gelex::bayes::ResidualPrior{make_variance(0.4)}};
@@ -100,11 +100,13 @@ auto require_record(
 
 }  // namespace
 
-TEST_CASE("Records stores traced BayesState fields", "[mcmc][mcmc_records]")
+TEST_CASE(
+    "Records stores traced LegacyBayesState fields",
+    "[mcmc][mcmc_records]")
 {
     auto model = make_model();
     auto prior = make_prior();
-    gelex::BayesState state(model, prior);
+    gelex::LegacyBayesState state(model, prior);
     gelex::Records records{2, ""};
 
     auto& block
@@ -269,11 +271,11 @@ TEST_CASE(
                     Eigen::VectorXd{{0.7, 0.1, 0.1, 0.1}}},
                 gelex::bayes::ProbabilityParameter{
                     0.6, gelex::bayes::BetaPrior{1.0, 1.0}}}});
-    gelex::bayes::BayesPrior prior{
+    gelex::bayes::LegacyBayesPrior prior{
         gelex::bayes::RandomPrior{make_variance(0.3)},
         std::move(genetic_priors),
         gelex::bayes::ResidualPrior{make_variance(0.4)}};
-    gelex::BayesState state(model, prior);
+    gelex::LegacyBayesState state(model, prior);
     gelex::Records records{2, ""};
 
     auto& block
@@ -300,7 +302,7 @@ TEST_CASE("Records handoff consumes stored results", "[mcmc][mcmc_records]")
 {
     auto model = make_model();
     auto prior = make_prior();
-    gelex::BayesState state(model, prior);
+    gelex::LegacyBayesState state(model, prior);
     gelex::Records records{1, ""};
 
     records.store(model, state);
@@ -313,7 +315,7 @@ TEST_CASE("Records writes retained draws", "[mcmc][mcmc_records]")
 {
     auto model = make_model();
     auto prior = make_prior();
-    gelex::BayesState state(model, prior);
+    gelex::LegacyBayesState state(model, prior);
 
     gelex::test::FileFixture files;
     const auto draws_path = files.generate_random_file_path(".draws");

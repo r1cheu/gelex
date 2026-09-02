@@ -28,7 +28,7 @@
 namespace gelex::detail
 {
 
-inline constexpr std::array<std::byte, 8> BINARY_FORMAT_MAGIC
+inline constexpr std::array<std::byte, 8> binary_format_magic
     = {std::byte{'G'},
        std::byte{'E'},
        std::byte{'L'},
@@ -37,24 +37,24 @@ inline constexpr std::array<std::byte, 8> BINARY_FORMAT_MAGIC
        std::byte{'B'},
        std::byte{'F'},
        std::byte{'1'}};
-inline constexpr size_t FOOTER_SIZE = 24;
-inline constexpr size_t PATH_SIZE = 256;
-inline constexpr size_t DTYPE_OFFSET = PATH_SIZE;
-inline constexpr size_t OFFSET_OFFSET = DTYPE_OFFSET + 8;
-inline constexpr size_t SIZE_OFFSET = OFFSET_OFFSET + 8;
-inline constexpr size_t ROWS_OFFSET = SIZE_OFFSET + 8;
-inline constexpr size_t COLS_OFFSET = ROWS_OFFSET + 8;
-inline constexpr size_t TOC_ENTRY_SIZE = COLS_OFFSET + 8;
-inline constexpr size_t PAGE_ALIGNMENT = 4096;
-inline constexpr size_t MAX_PATH_LENGTH = PATH_SIZE - 1;
+inline constexpr size_t footer_size = 24;
+inline constexpr size_t path_size = 256;
+inline constexpr size_t dtype_offset = path_size;
+inline constexpr size_t offset_offset = dtype_offset + 8;
+inline constexpr size_t size_offset = offset_offset + 8;
+inline constexpr size_t rows_offset = size_offset + 8;
+inline constexpr size_t cols_offset = rows_offset + 8;
+inline constexpr size_t toc_entry_size = cols_offset + 8;
+inline constexpr size_t page_alignment = 4096;
+inline constexpr size_t max_path_length = path_size - 1;
 
 // String dtype: value 0x01 cannot conflict with arithmetic types since
 // the smallest arithmetic dtype encodes as (sizeof(T) << 2) >= 4.
-inline constexpr uint8_t TYPE_STRING = 0x01;
+inline constexpr uint8_t type_string = 0x01;
 
 template <typename eT>
     requires std::is_arithmetic_v<eT>
-inline constexpr uint8_t TYPE_BYTE = static_cast<uint8_t>(
+inline constexpr uint8_t type_byte = static_cast<uint8_t>(
     (sizeof(eT) << 2U)
     | (static_cast<uint32_t>(std::is_floating_point_v<eT>) << 1U)
     | static_cast<uint32_t>(std::is_signed_v<eT>));
@@ -75,7 +75,7 @@ inline auto encode(T value, std::byte* out) -> void
     std::memcpy(out, &value, sizeof(value));
 }
 
-inline auto path_as_view(const std::array<char, PATH_SIZE>& p)
+inline auto path_as_view(const std::array<char, path_size>& p)
     -> std::string_view
 {
     auto len = std::find(p.begin(), p.end(), '\0') - p.begin();
@@ -84,34 +84,34 @@ inline auto path_as_view(const std::array<char, PATH_SIZE>& p)
 
 struct TocEntry
 {
-    std::array<char, PATH_SIZE> path{};
+    std::array<char, path_size> path{};
     uint8_t dtype{};
     uint64_t offset{};
     uint64_t size{};
     uint64_t rows{};
     uint64_t cols{};
 
-    auto to_bytes() const -> std::array<std::byte, TOC_ENTRY_SIZE>
+    auto to_bytes() const -> std::array<std::byte, toc_entry_size>
     {
-        std::array<std::byte, TOC_ENTRY_SIZE> buf{};
-        std::memcpy(buf.data(), path.data(), PATH_SIZE);
-        buf[DTYPE_OFFSET] = static_cast<std::byte>(dtype);
-        encode(offset, &buf[OFFSET_OFFSET]);
-        encode(size, &buf[SIZE_OFFSET]);
-        encode(rows, &buf[ROWS_OFFSET]);
-        encode(cols, &buf[COLS_OFFSET]);
+        std::array<std::byte, toc_entry_size> buf{};
+        std::memcpy(buf.data(), path.data(), path_size);
+        buf[dtype_offset] = static_cast<std::byte>(dtype);
+        encode(offset, &buf[offset_offset]);
+        encode(size, &buf[size_offset]);
+        encode(rows, &buf[rows_offset]);
+        encode(cols, &buf[cols_offset]);
         return buf;
     }
 
     static auto from_bytes(const std::byte* buf) -> TocEntry
     {
         TocEntry e;
-        std::memcpy(e.path.data(), buf, PATH_SIZE);
-        e.dtype = static_cast<uint8_t>(buf[DTYPE_OFFSET]);
-        e.offset = decode<uint64_t>(buf + OFFSET_OFFSET);
-        e.size = decode<uint64_t>(buf + SIZE_OFFSET);
-        e.rows = decode<uint64_t>(buf + ROWS_OFFSET);
-        e.cols = decode<uint64_t>(buf + COLS_OFFSET);
+        std::memcpy(e.path.data(), buf, path_size);
+        e.dtype = static_cast<uint8_t>(buf[dtype_offset]);
+        e.offset = decode<uint64_t>(buf + offset_offset);
+        e.size = decode<uint64_t>(buf + size_offset);
+        e.rows = decode<uint64_t>(buf + rows_offset);
+        e.cols = decode<uint64_t>(buf + cols_offset);
         return e;
     }
 };

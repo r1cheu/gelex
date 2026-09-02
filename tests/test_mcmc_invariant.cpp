@@ -18,7 +18,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include "gelex/bayes/design.h"
-#include "gelex/bayes/state.h"
+#include "gelex/bayes/legacy_state.h"
 #include "gelex/data/genotype_method.h"
 #include "gelex/types/genetic_mode.h"
 
@@ -53,7 +53,8 @@ TEST_CASE(
             gelex::GeneticModeSet{gelex::GeneticMode::A},
             gelex::GenotypeMethod::Center);
         Eigen::VectorXd column = Eigen::VectorXd::Zero(genetic.rows());
-        genetic.axpy(0, 1.0, column);
+        const auto& projection = genetic.projection(gelex::GeneticMode::A);
+        projection.axpy(0, 1.0, column);
 
         gelex::bayes::ResidualState residual{
             .y_adj = Eigen::VectorXd{{0.5, 1.0, -1.5}}, .variance = 1.0};
@@ -63,7 +64,7 @@ TEST_CASE(
 
         {
             gelex::GeneticResidualAdjustmentGuard guard{
-                genetic, gelex::GeneticMode::A, 0, state, residual};
+                projection, 0, state, residual};
             state.coeffs(0) = -0.25;
         }
 

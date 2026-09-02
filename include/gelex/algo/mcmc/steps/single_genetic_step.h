@@ -24,7 +24,7 @@
 
 #include "gelex/bayes/design.h"
 #include "gelex/bayes/genetic/gaussian_prior.h"
-#include "gelex/bayes/state.h"
+#include "gelex/bayes/legacy_state.h"
 #include "gelex/infra/stats/dirichlet_sampler.h"
 #include "gelex/infra/stats/normal_sampler.h"
 #include "gelex/infra/stats/scaled_inv_chi2_sampler.h"
@@ -143,7 +143,7 @@ class SingleScaledMixtureStep final
     auto step() -> void;
 
    private:
-    static constexpr int MAX_MIXTURE_COMPONENTS = 5;
+    static constexpr int max_mixture_components = 5;
 
     const bayes::GeneticDesign& design_;
     GeneticMode mode_;
@@ -157,7 +157,7 @@ class SingleScaledMixtureStep final
     Eigen::VectorXi proportion_count_;
     NormalSampler<double> normal_;
     std::uniform_real_distribution<double> uniform_{0.0, 1.0};
-    std::array<NormalSampler<double>::Posterior, MAX_MIXTURE_COMPONENTS>
+    std::array<NormalSampler<double>::Posterior, max_mixture_components>
         scale_posts_;
     std::mt19937_64& rng_;
 };

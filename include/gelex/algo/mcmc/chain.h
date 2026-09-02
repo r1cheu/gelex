@@ -27,8 +27,8 @@
 #include "gelex/algo/mcmc/steps/residual.h"
 #include "gelex/algo/mcmc/steps/single_genetic_step.h"
 #include "gelex/bayes/legacy_prior.h"
+#include "gelex/bayes/legacy_state.h"
 #include "gelex/bayes/model.h"
-#include "gelex/bayes/state.h"
 
 namespace gelex
 {
@@ -52,14 +52,14 @@ class Chain
         std::vector<SingleGeneticStep> single_genetics,
         std::vector<JointGeneticStep> joint_genetics,
         ResidualStep residual,
-        BayesState& state);
+        LegacyBayesState& state);
 
     auto step() -> void;
 
     static auto make(
         const BayesModel& model,
-        const bayes::BayesPrior& prior,
-        BayesState& state,
+        const bayes::LegacyBayesPrior& prior,
+        LegacyBayesState& state,
         std::mt19937_64& rng) -> Chain;
 
    private:
@@ -68,7 +68,7 @@ class Chain
     std::vector<SingleGeneticStep> single_genetics_;
     std::vector<JointGeneticStep> joint_genetics_;
     ResidualStep residual_;
-    BayesState& state_;
+    LegacyBayesState& state_;
 };
 
 }  // namespace gelex

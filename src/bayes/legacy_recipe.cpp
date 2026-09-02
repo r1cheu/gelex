@@ -60,9 +60,9 @@ BayesRecipe::BayesRecipe(BayesRecipeOptions options)
 
 BayesRecipe::~BayesRecipe() = default;
 
-auto BayesRecipe::make_prior(const BayesModel& model) const -> BayesPrior
+auto BayesRecipe::make_prior(const BayesModel& model) const -> LegacyBayesPrior
 {
-    return BayesPrior{
+    return LegacyBayesPrior{
         make_random_prior(model),
         std::visit(
             [&model](const auto& recipe) { return recipe.make_prior(model); },
@@ -90,7 +90,7 @@ auto BayesRecipe::make_residual_prior(const BayesModel& model) -> ResidualPrior
 
 auto to_bayes_recipe_scheme(std::string_view recipe_scheme) -> BayesRecipeScheme
 {
-    for (const auto& [value, name] : BAYES_RECIPE_SCHEME_NAMES)
+    for (const auto& [value, name] : bayes_recipe_scheme_names)
     {
         if (recipe_scheme == name)
         {

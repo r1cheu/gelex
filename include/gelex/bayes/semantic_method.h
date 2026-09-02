@@ -22,26 +22,38 @@
 namespace gelex
 {
 
-enum class Variance : std::uint8_t
+enum class VarianceLayout : std::uint8_t
 {
     Pooled,
     Unpooled,
 };
 
-template <Variance Kind>
+enum class UpdatePolicy : std::uint8_t
+{
+    Fixed,
+    Sampled,
+};
+
+template <VarianceLayout Kind>
 struct GaussianMethod
 {
 };
 
-template <Variance Kind>
+template <
+    VarianceLayout Kind,
+    UpdatePolicy ProbabilityUpdate = UpdatePolicy::Sampled>
 struct SpikeSlabMethod
 {
 };
 
+template <UpdatePolicy ProbabilitiesUpdate = UpdatePolicy::Sampled>
 struct ScaledMixtureMethod
 {
 };
 
+template <
+    UpdatePolicy ProbabilitiesUpdate = UpdatePolicy::Sampled,
+    UpdatePolicy PositiveProbabilityUpdate = UpdatePolicy::Sampled>
 struct JointSpikeSlabMethod
 {
 };

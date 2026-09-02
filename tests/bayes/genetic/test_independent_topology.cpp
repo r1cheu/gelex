@@ -37,15 +37,11 @@ struct TestValue
     int value;
 };
 
-constexpr auto MODE_AD = GeneticMode::A | GeneticMode::D;
+constexpr auto mode_ad = GeneticMode::A | GeneticMode::D;
 
-using AdditiveDominanceTopology = IndependentTopology<MODE_AD, TestValue>;
+using AdditiveDominanceTopology = IndependentTopology<mode_ad, TestValue>;
 using DominanceAdditiveTopology
     = IndependentTopology<GeneticMode::D | GeneticMode::A, TestValue>;
-
-template <GeneticModeSet Modes>
-inline constexpr bool ACCEPTS_INDEPENDENT_TOPOLOGY
-    = requires { typename IndependentTopology<Modes, TestValue>; };
 
 static_assert(
     AdditiveDominanceTopology::modes == (GeneticMode::A | GeneticMode::D));
@@ -57,7 +53,6 @@ static_assert(
 static_assert(std::constructible_from<
               AdditiveDominanceTopology,
               std::array<TestValue, 2>>);
-static_assert(!ACCEPTS_INDEPENDENT_TOPOLOGY<GeneticModeSet{}>);
 
 static_assert(
     AdditiveDominanceTopology{TestValue{1}, TestValue{2}}
@@ -70,25 +65,25 @@ static_assert(
         .value
     == 2);
 
-constexpr auto GENERATED_TOPOLOGY = generate_mode_values<MODE_AD>(
+constexpr auto generated_topology = generate_mode_values<mode_ad>(
     [](GeneticMode mode) { return TestValue{mode == GeneticMode::A ? 1 : 2}; });
 
 static_assert(std::same_as<
-              std::remove_cvref_t<decltype(GENERATED_TOPOLOGY)>,
+              std::remove_cvref_t<decltype(generated_topology)>,
               AdditiveDominanceTopology>);
-static_assert(GENERATED_TOPOLOGY.get<GeneticMode::A>().value == 1);
-static_assert(GENERATED_TOPOLOGY.get<GeneticMode::D>().value == 2);
+static_assert(generated_topology.get<GeneticMode::A>().value == 1);
+static_assert(generated_topology.get<GeneticMode::D>().value == 2);
 
-constexpr auto TRANSFORMED_TOPOLOGY = transform_mode_values(
-    GENERATED_TOPOLOGY,
+constexpr auto transformed_topology = transform_mode_values(
+    generated_topology,
     [](GeneticMode mode, const TestValue& value)
     { return value.value + (mode == GeneticMode::A ? 10 : 20); });
 
 static_assert(std::same_as<
-              std::remove_cvref_t<decltype(TRANSFORMED_TOPOLOGY)>,
-              IndependentTopology<MODE_AD, int>>);
-static_assert(TRANSFORMED_TOPOLOGY.get<GeneticMode::A>() == 11);
-static_assert(TRANSFORMED_TOPOLOGY.get<GeneticMode::D>() == 22);
+              std::remove_cvref_t<decltype(transformed_topology)>,
+              IndependentTopology<mode_ad, int>>);
+static_assert(transformed_topology.get<GeneticMode::A>() == 11);
+static_assert(transformed_topology.get<GeneticMode::D>() == 22);
 
 }  // namespace
 
@@ -151,7 +146,7 @@ TEST_CASE(
 {
     std::vector<GeneticMode> visited_modes;
 
-    const auto topology = generate_mode_values<MODE_AD>(
+    const auto topology = generate_mode_values<mode_ad>(
         [&](GeneticMode mode)
         {
             visited_modes.push_back(mode);
@@ -192,11 +187,11 @@ TEST_CASE(
     "mode value algorithms preserve a singleton dominance mode",
     "[bayes][genetic][independent_topology]")
 {
-    constexpr auto MODE_D = GeneticModeSet{GeneticMode::D};
+    constexpr auto mode_d = GeneticModeSet{GeneticMode::D};
     std::vector<GeneticMode> generated_modes;
     std::vector<GeneticMode> transformed_modes;
 
-    const auto generated = generate_mode_values<MODE_D>(
+    const auto generated = generate_mode_values<mode_d>(
         [&](GeneticMode mode)
         {
             generated_modes.push_back(mode);

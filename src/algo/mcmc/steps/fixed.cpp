@@ -19,7 +19,7 @@
 #include <Eigen/Core>
 #include <random>
 
-#include "gelex/bayes/state.h"
+#include "gelex/bayes/legacy_state.h"
 #include "gelex/infra/stats/normal_sampler.h"
 #include "gelex/types/fixed_designs.h"
 

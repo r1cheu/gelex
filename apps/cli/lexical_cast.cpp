@@ -48,7 +48,7 @@ auto lexical_cast(const std::string& input, GenotypeMethod& output) -> bool
 
 auto lexical_cast(const std::string& input, GeneticMode& output) -> bool
 {
-    for (const auto& [mode, name] : GENETIC_MODE_NAMES)
+    for (const auto& [mode, name] : genetic_mode_names)
     {
         if (input == name)
         {
@@ -61,7 +61,7 @@ auto lexical_cast(const std::string& input, GeneticMode& output) -> bool
 
 auto lexical_cast(const std::string& input, GeneticModeSet& output) -> bool
 {
-    for (const auto& [set, name] : GENETIC_MODE_SET_NAMES)
+    for (const auto& [set, name] : genetic_mode_set_names)
     {
         if (input == name)
         {
@@ -74,7 +74,7 @@ auto lexical_cast(const std::string& input, GeneticModeSet& output) -> bool
 
 auto lexical_cast(const std::string& input, RintType& output) -> bool
 {
-    for (const auto& [type, name] : RINT_TYPE_NAMES)
+    for (const auto& [type, name] : rint_type_names)
     {
         if (input == name)
         {
