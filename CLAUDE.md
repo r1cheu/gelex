@@ -1,10 +1,6 @@
 # Gelex Development Guide
 
-C++23 · Catch2 v3 · Beta (breaking changes OK)
-
-C++ toolkit for Bayesian genomic prediction, variance-component estimation,
-mixed-model association testing, relationship matrices, and phenotype
-simulation.
+Beta (breaking changes OK)
 
 ## Build
 

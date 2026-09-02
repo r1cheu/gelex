@@ -25,18 +25,8 @@
 #include <utility>
 #include <vector>
 
-#include "gelex/algo/mcmc/chain.h"
-#include "gelex/bayes/genetic/gaussian_prior.h"
-#include "gelex/bayes/genetic/gaussian_prior_state.h"
-#include "gelex/bayes/genetic/independent_topology.h"
-#include "gelex/bayes/genetic/legacy_genetic_prior.h"
-#include "gelex/bayes/genetic/parameters.h"
 #include "gelex/bayes/kernel.h"
-#include "gelex/bayes/legacy_prior.h"
-#include "gelex/bayes/legacy_state.h"
-#include "gelex/bayes/parameter/distributions.h"
-#include "gelex/bayes/parameter/values.h"
-#include "gelex/bayes/prior_compilation.h"
+#include "gelex/bayes/prior.h"
 #include "gelex/bayes/recipe.h"
 #include "gelex/bayes/semantic_method.h"
 #include "gelex/bayes/spec.h"
@@ -45,6 +35,7 @@
 #include "gelex/exception.h"
 #include "gelex/types/fixed_designs.h"
 #include "gelex/types/genetic_mode.h"
+#include "gelex/types/mode_values.h"
 
 #include "compact_genotype_fixture.h"
 
@@ -67,35 +58,31 @@ using FixedUnpooledSpikeSlabMethod = gelex::SpikeSlabMethod<
 using SampledScaledMixtureMethod = gelex::ScaledMixtureMethod<>;
 using FixedScaledMixtureMethod
     = gelex::ScaledMixtureMethod<gelex::UpdatePolicy::Fixed>;
-using AdditiveGeneticPrior = gelex::IndependentTopology<
-    mode_a,
-    gelex::GaussianPrior<gelex::VarianceLayout::Pooled>>;
-using AdditiveDominanceGeneticPrior = gelex::IndependentTopology<
+using AdditiveGeneticPrior = gelex::
+    ModeValues<mode_a, gelex::GaussianPrior<gelex::VarianceLayout::Pooled>>;
+using AdditiveDominanceGeneticPrior = gelex::ModeValues<
     mode_ad,
     gelex::GaussianPrior<gelex::VarianceLayout::Pooled>,
     gelex::GaussianPrior<gelex::VarianceLayout::Pooled>>;
-using UnpooledAdditiveGeneticPrior = gelex::IndependentTopology<
-    mode_a,
-    gelex::GaussianPrior<gelex::VarianceLayout::Unpooled>>;
-using PooledSpikeSlabGeneticPrior = gelex::IndependentTopology<
-    mode_a,
-    gelex::SpikeSlabPrior<gelex::VarianceLayout::Pooled>>;
-using PooledSpikeSlabADGeneticPrior = gelex::IndependentTopology<
+using UnpooledAdditiveGeneticPrior = gelex::
+    ModeValues<mode_a, gelex::GaussianPrior<gelex::VarianceLayout::Unpooled>>;
+using PooledSpikeSlabGeneticPrior = gelex::
+    ModeValues<mode_a, gelex::SpikeSlabPrior<gelex::VarianceLayout::Pooled>>;
+using PooledSpikeSlabADGeneticPrior = gelex::ModeValues<
     mode_ad,
     gelex::SpikeSlabPrior<gelex::VarianceLayout::Pooled>,
     gelex::SpikeSlabPrior<gelex::VarianceLayout::Pooled>>;
-using UnpooledSpikeSlabGeneticPrior = gelex::IndependentTopology<
-    mode_a,
-    gelex::SpikeSlabPrior<gelex::VarianceLayout::Unpooled>>;
-using SampledScaledMixtureGeneticPrior = gelex::IndependentTopology<
+using UnpooledSpikeSlabGeneticPrior = gelex::
+    ModeValues<mode_a, gelex::SpikeSlabPrior<gelex::VarianceLayout::Unpooled>>;
+using SampledScaledMixtureGeneticPrior = gelex::ModeValues<
     mode_a,
     gelex::ScaledMixturePrior<gelex::ScaledMixture::class_count>>;
-using FixedScaledMixtureGeneticPrior = gelex::IndependentTopology<
+using FixedScaledMixtureGeneticPrior = gelex::ModeValues<
     mode_a,
     gelex::ScaledMixturePrior<
         gelex::ScaledMixture::class_count,
         gelex::UpdatePolicy::Fixed>>;
-using HeterogeneousGeneticPrior = gelex::IndependentTopology<
+using HeterogeneousGeneticPrior = gelex::ModeValues<
     mode_ad,
     gelex::GaussianPrior<gelex::VarianceLayout::Pooled>,
     gelex::SpikeSlabPrior<
@@ -247,53 +234,6 @@ auto reconstruct_scaled_mixture_fitted(
     return fitted;
 }
 
-auto make_legacy_gaussian_prior(
-    gelex::GeneticMode mode,
-    const gelex::VarianceParameter& variance) -> gelex::bayes::GeneticPrior
-{
-    gelex::bayes::SingleGeneticPrior genetic{
-        gelex::bayes::SingleSharedGaussianPrior{
-            mode,
-            gelex::bayes::SharedMarkerVariance{gelex::bayes::VarianceParameter{
-                variance.initial_value(),
-                gelex::bayes::ScaledInvChiSqPrior{
-                    variance.prior().degrees_of_freedom(),
-                    variance.prior().scale()}}}}};
-    return gelex::bayes::GeneticPrior{std::move(genetic)};
-}
-
-auto make_legacy_unpooled_gaussian_prior(
-    gelex::GeneticMode mode,
-    const gelex::VarianceParameter& variance) -> gelex::bayes::GeneticPrior
-{
-    gelex::bayes::SingleGeneticPrior genetic{
-        gelex::bayes::SinglePerMarkerGaussianPrior{
-            mode,
-            gelex::bayes::PerMarkerVariance{gelex::bayes::VarianceParameter{
-                variance.initial_value(),
-                gelex::bayes::ScaledInvChiSqPrior{
-                    variance.prior().degrees_of_freedom(),
-                    variance.prior().scale()}}}}};
-    return gelex::bayes::GeneticPrior{std::move(genetic)};
-}
-
-template <typename GeneticPrior>
-auto make_legacy_prior(
-    const gelex::BayesPrior<GeneticPrior>& prior,
-    std::vector<gelex::bayes::GeneticPrior> genetics)
-    -> gelex::bayes::LegacyBayesPrior
-{
-    return gelex::bayes::LegacyBayesPrior{
-        gelex::bayes::RandomPrior{
-            1.0, gelex::bayes::ScaledInvChiSqPrior{4.0, 0.5}},
-        std::move(genetics),
-        gelex::bayes::ResidualPrior{
-            prior.residual().initial_value(),
-            gelex::bayes::ScaledInvChiSqPrior{
-                prior.residual().prior().degrees_of_freedom(),
-                prior.residual().prior().scale()}}};
-}
-
 }  // namespace
 
 TEST_CASE(
@@ -302,8 +242,8 @@ TEST_CASE(
     "[bayes][kernel]")
 {
     const auto model = make_model();
-    const auto prior
-        = gelex::compile(gelex::BayesRecipe<Method, mode_a>::defaults(), model);
+    const auto prior = gelex::make_prior(
+        gelex::BayesRecipe<mode_a, Method>::defaults(), model);
     auto state = gelex::make_state(prior, model);
     auto kernel = gelex::make_kernel(prior);
     std::mt19937_64 rng{123};
@@ -330,8 +270,8 @@ TEST_CASE(
     "[bayes][kernel]")
 {
     const auto model = make_ad_model();
-    const auto prior = gelex::compile(
-        gelex::BayesRecipe<Method, mode_ad>::defaults(), model);
+    const auto prior = gelex::make_prior(
+        gelex::BayesRecipe<mode_ad, Method>::defaults(), model);
     auto state = gelex::make_state(prior, model);
     auto kernel = gelex::make_kernel(prior);
     std::mt19937_64 rng{123};
@@ -364,8 +304,8 @@ TEST_CASE(
     "[bayes][kernel]")
 {
     const auto model = make_model();
-    const auto prior = gelex::compile(
-        gelex::BayesRecipe<UnpooledMethod, mode_a>::defaults(), model);
+    const auto prior = gelex::make_prior(
+        gelex::BayesRecipe<mode_a, UnpooledMethod>::defaults(), model);
     auto state = gelex::make_state(prior, model);
     auto kernel = gelex::make_kernel(prior);
     const double invalid_marker_variance
@@ -390,161 +330,13 @@ TEST_CASE(
 }
 
 TEST_CASE(
-    "pooled Gaussian kernel matches the legacy transition under a fixed seed",
-    "[bayes][kernel]")
-{
-    const auto model = make_model();
-    const auto prior
-        = gelex::compile(gelex::BayesRecipe<Method, mode_a>::defaults(), model);
-    auto state = gelex::make_state(prior, model);
-    auto kernel = gelex::make_kernel(prior);
-
-    const auto legacy_model = make_model();
-    const auto legacy_prior = make_legacy_prior(
-        prior,
-        {make_legacy_gaussian_prior(
-            gelex::GeneticMode::A,
-            prior.genetic().get<gelex::GeneticMode::A>().variance)});
-    auto legacy_state = gelex::LegacyBayesState{legacy_model, legacy_prior};
-    std::mt19937_64 rng{123};
-    std::mt19937_64 legacy_rng{123};
-
-    kernel.step(model, state, rng);
-    auto legacy_kernel = gelex::Chain::make(
-        legacy_model, legacy_prior, legacy_state, legacy_rng);
-    legacy_kernel.step();
-
-    const auto& genetic = state.genetic().get<gelex::GeneticMode::A>();
-    const auto& legacy_block = std::get<gelex::bayes::SingleGeneticBlockState>(
-        legacy_state.genetics().front());
-    const auto& legacy_family
-        = std::get<gelex::bayes::SingleSharedGaussianState>(
-            legacy_block.prior_state());
-
-    REQUIRE(state.fixed().coefficients.isApprox(legacy_state.fixed().coeffs));
-    REQUIRE(genetic.coefficients.isApprox(legacy_block.state().coeffs));
-    REQUIRE(state.residual().adjusted_response.isApprox(
-        legacy_state.residual().y_adj));
-    REQUIRE(genetic.family_state.variance == Approx(legacy_family.variance()));
-    REQUIRE(
-        state.residual().variance == Approx(legacy_state.residual().variance));
-}
-
-TEST_CASE(
-    "independent AD pooled Gaussian kernel matches the legacy canonical mode "
-    "order under a fixed seed",
-    "[bayes][kernel]")
-{
-    const auto model = make_ad_model();
-    const auto prior = gelex::compile(
-        gelex::BayesRecipe<Method, mode_ad>::defaults(), model);
-    auto state = gelex::make_state(prior, model);
-    auto kernel = gelex::make_kernel(prior);
-
-    const auto legacy_model = make_ad_model();
-    const auto legacy_prior = make_legacy_prior(
-        prior,
-        {make_legacy_gaussian_prior(
-             gelex::GeneticMode::A,
-             prior.genetic().get<gelex::GeneticMode::A>().variance),
-         make_legacy_gaussian_prior(
-             gelex::GeneticMode::D,
-             prior.genetic().get<gelex::GeneticMode::D>().variance)});
-    auto legacy_state = gelex::LegacyBayesState{legacy_model, legacy_prior};
-    std::mt19937_64 rng{123};
-    std::mt19937_64 legacy_rng{123};
-
-    kernel.step(model, state, rng);
-    auto legacy_kernel = gelex::Chain::make(
-        legacy_model, legacy_prior, legacy_state, legacy_rng);
-    legacy_kernel.step();
-
-    const auto& additive = state.genetic().get<gelex::GeneticMode::A>();
-    const auto& dominance = state.genetic().get<gelex::GeneticMode::D>();
-    const auto& legacy_additive
-        = std::get<gelex::bayes::SingleGeneticBlockState>(
-            legacy_state.genetics().at(0));
-    const auto& legacy_dominance
-        = std::get<gelex::bayes::SingleGeneticBlockState>(
-            legacy_state.genetics().at(1));
-    const auto& legacy_additive_family
-        = std::get<gelex::bayes::SingleSharedGaussianState>(
-            legacy_additive.prior_state());
-    const auto& legacy_dominance_family
-        = std::get<gelex::bayes::SingleSharedGaussianState>(
-            legacy_dominance.prior_state());
-
-    REQUIRE(state.fixed().coefficients.isApprox(legacy_state.fixed().coeffs));
-    REQUIRE(additive.coefficients.isApprox(legacy_additive.state().coeffs));
-    REQUIRE(dominance.coefficients.isApprox(legacy_dominance.state().coeffs));
-    REQUIRE(additive.family_state.fitted_values.isApprox(
-        legacy_additive.state().u));
-    REQUIRE(dominance.family_state.fitted_values.isApprox(
-        legacy_dominance.state().u));
-    REQUIRE(state.residual().adjusted_response.isApprox(
-        legacy_state.residual().y_adj));
-    REQUIRE(
-        additive.family_state.variance
-        == Approx(legacy_additive_family.variance()));
-    REQUIRE(
-        dominance.family_state.variance
-        == Approx(legacy_dominance_family.variance()));
-    REQUIRE(
-        state.residual().variance == Approx(legacy_state.residual().variance));
-}
-
-TEST_CASE(
-    "unpooled Gaussian kernel matches the legacy transition under a fixed "
-    "seed",
-    "[bayes][kernel]")
-{
-    const auto model = make_model();
-    const auto prior = gelex::compile(
-        gelex::BayesRecipe<UnpooledMethod, mode_a>::defaults(), model);
-    auto state = gelex::make_state(prior, model);
-    auto kernel = gelex::make_kernel(prior);
-
-    const auto legacy_model = make_model();
-    const auto legacy_prior = make_legacy_prior(
-        prior,
-        {make_legacy_unpooled_gaussian_prior(
-            gelex::GeneticMode::A,
-            prior.genetic().get<gelex::GeneticMode::A>().variance)});
-    auto legacy_state = gelex::LegacyBayesState{legacy_model, legacy_prior};
-    std::mt19937_64 rng{123};
-    std::mt19937_64 legacy_rng{123};
-
-    kernel.step(model, state, rng);
-    auto legacy_kernel = gelex::Chain::make(
-        legacy_model, legacy_prior, legacy_state, legacy_rng);
-    legacy_kernel.step();
-
-    const auto& genetic = state.genetic().get<gelex::GeneticMode::A>();
-    const auto& legacy_block = std::get<gelex::bayes::SingleGeneticBlockState>(
-        legacy_state.genetics().front());
-    const auto& legacy_family
-        = std::get<gelex::bayes::SinglePerMarkerGaussianState>(
-            legacy_block.prior_state());
-
-    REQUIRE(state.fixed().coefficients.isApprox(legacy_state.fixed().coeffs));
-    REQUIRE(genetic.coefficients.isApprox(legacy_block.state().coeffs));
-    REQUIRE(
-        genetic.family_state.fitted_values.isApprox(legacy_block.state().u));
-    REQUIRE(state.residual().adjusted_response.isApprox(
-        legacy_state.residual().y_adj));
-    REQUIRE(genetic.family_state.variance.isApprox(legacy_family.variance()));
-    REQUIRE(
-        state.residual().variance == Approx(legacy_state.residual().variance));
-}
-
-TEST_CASE(
     "independent AD pooled Gaussian kernel rejects a missing mode before "
     "mutation",
     "[bayes][kernel]")
 {
     const auto model = make_ad_model();
-    const auto prior = gelex::compile(
-        gelex::BayesRecipe<Method, mode_ad>::defaults(), model);
+    const auto prior = gelex::make_prior(
+        gelex::BayesRecipe<mode_ad, Method>::defaults(), model);
     auto state = gelex::make_state(prior, model);
     auto kernel = gelex::make_kernel(prior);
     const auto incomplete_model = make_model();
@@ -566,8 +358,8 @@ TEST_CASE(
     "[bayes][kernel]")
 {
     const auto model = make_model_with_random();
-    const auto prior = gelex::compile(
-        gelex::BayesRecipe<Method, mode_a>{
+    const auto prior = gelex::make_prior(
+        gelex::BayesRecipe<mode_a, Method>{
             gelex::VarianceBudget{{.additive = 0.4, .random = 0.1}}},
         model);
     auto state = gelex::make_state(prior, model);
@@ -593,61 +385,13 @@ TEST_CASE(
 }
 
 TEST_CASE(
-    "random-effect kernel matches the legacy transition under a fixed seed",
-    "[bayes][kernel]")
-{
-    const auto model = make_model_with_random();
-    const auto prior = gelex::compile(
-        gelex::BayesRecipe<Method, mode_a>{
-            gelex::VarianceBudget{{.additive = 0.4, .random = 0.1}}},
-        model);
-    auto state = gelex::make_state(prior, model);
-    const auto& parameter = prior.random().front();
-    gelex::bayes::RandomPrior legacy_prior{gelex::bayes::VarianceParameter{
-        parameter.initial_value(),
-        gelex::bayes::ScaledInvChiSqPrior{
-            parameter.prior().degrees_of_freedom(),
-            parameter.prior().scale()}}};
-    std::vector<gelex::bayes::RandomState> legacy_states;
-    legacy_states.emplace_back(model.random().front(), legacy_prior);
-    gelex::bayes::ResidualState legacy_residual{
-        .y_adj = state.residual().adjusted_response,
-        .variance = state.residual().variance};
-    std::mt19937_64 typed_rng{123};
-    std::mt19937_64 legacy_rng{123};
-
-    gelex::detail::RandomEffectKernel kernel{parameter};
-    kernel.step(
-        model.random().front(),
-        state.random().front(),
-        state.residual(),
-        typed_rng);
-    gelex::RandomStep legacy_kernel{
-        legacy_prior,
-        model.random(),
-        legacy_states,
-        legacy_residual,
-        legacy_rng};
-    legacy_kernel.step();
-
-    REQUIRE(state.random().front().coefficients.isApprox(
-        legacy_states.front().coeffs));
-    REQUIRE(
-        state.random().front().variance
-        == Approx(legacy_states.front().variance));
-    REQUIRE(state.residual().adjusted_response.isApprox(legacy_residual.y_adj));
-    REQUIRE(typed_rng == legacy_rng);
-}
-
-TEST_CASE(
     "pooled spike-slab kernel preserves collapsed-state invariants",
     "[bayes][kernel]")
 {
     const auto model = make_model();
-    const auto prior = gelex::compile(
-        gelex::BayesRecipe<PooledSpikeSlabMethod, mode_a>{
-            gelex::IndependentTopology<mode_a, gelex::SpikeSlab>{
-                gelex::SpikeSlab{0.5}},
+    const auto prior = gelex::make_prior(
+        gelex::BayesRecipe<mode_a, PooledSpikeSlabMethod>{
+            gelex::ModeValues<mode_a, gelex::SpikeSlab>{gelex::SpikeSlab{0.5}},
             gelex::VarianceBudget{{.additive = 0.4}}},
         model);
     auto state = gelex::make_state(prior, model);
@@ -688,12 +432,10 @@ TEST_CASE(
     "[bayes][kernel]")
 {
     const auto model = make_ad_model();
-    const auto prior = gelex::compile(
-        gelex::BayesRecipe<PooledSpikeSlabMethod, mode_ad>{
-            gelex::IndependentTopology<
-                mode_ad,
-                gelex::SpikeSlab,
-                gelex::SpikeSlab>{gelex::SpikeSlab{0.5}, gelex::SpikeSlab{0.5}},
+    const auto prior = gelex::make_prior(
+        gelex::BayesRecipe<mode_ad, PooledSpikeSlabMethod>{
+            gelex::ModeValues<mode_ad, gelex::SpikeSlab, gelex::SpikeSlab>{
+                gelex::SpikeSlab{0.5}, gelex::SpikeSlab{0.5}},
             gelex::VarianceBudget{{.additive = 0.4, .dominance = 0.1}}},
         model);
     auto state = gelex::make_state(prior, model);
@@ -736,9 +478,9 @@ TEST_CASE(
 {
     const auto model = make_model();
     constexpr double fixed_probability = 1.0e-12;
-    const auto prior = gelex::compile(
-        gelex::BayesRecipe<FixedUnpooledSpikeSlabMethod, mode_a>{
-            gelex::IndependentTopology<mode_a, gelex::SpikeSlab>{
+    const auto prior = gelex::make_prior(
+        gelex::BayesRecipe<mode_a, FixedUnpooledSpikeSlabMethod>{
+            gelex::ModeValues<mode_a, gelex::SpikeSlab>{
                 gelex::SpikeSlab{fixed_probability}},
             gelex::VarianceBudget{{.additive = 0.4}}},
         model);
@@ -773,9 +515,9 @@ TEST_CASE(
 {
     const auto model = make_model();
     constexpr std::array probabilities{0.05, 0.1, 0.15, 0.2, 0.5};
-    const auto prior = gelex::compile(
-        gelex::BayesRecipe<SampledScaledMixtureMethod, mode_a>{
-            gelex::IndependentTopology<mode_a, gelex::ScaledMixture>{
+    const auto prior = gelex::make_prior(
+        gelex::BayesRecipe<mode_a, SampledScaledMixtureMethod>{
+            gelex::ModeValues<mode_a, gelex::ScaledMixture>{
                 gelex::ScaledMixture{probabilities}},
             gelex::VarianceBudget{{.additive = 0.4}}},
         model);
@@ -827,9 +569,9 @@ TEST_CASE(
     const auto model = make_model();
     constexpr std::array probabilities{
         1.0e-12, 1.0e-12, 1.0e-12, 1.0e-12, 1.0 - 4.0e-12};
-    const auto prior = gelex::compile(
-        gelex::BayesRecipe<FixedScaledMixtureMethod, mode_a>{
-            gelex::IndependentTopology<mode_a, gelex::ScaledMixture>{
+    const auto prior = gelex::make_prior(
+        gelex::BayesRecipe<mode_a, FixedScaledMixtureMethod>{
+            gelex::ModeValues<mode_a, gelex::ScaledMixture>{
                 gelex::ScaledMixture{probabilities}},
             gelex::VarianceBudget{{.additive = 0.4}}},
         model);

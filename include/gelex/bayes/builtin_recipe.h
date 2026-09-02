@@ -24,8 +24,8 @@
 namespace gelex
 {
 
-template <BayesMethod Method, GeneticModeSet Modes>
-using BuiltinBayesRecipe = BayesRecipe<semantic_method_t<Method>, Modes>;
+template <GeneticModeSet Modes, BayesMethod Method>
+using BuiltinBayesRecipe = BayesRecipe<Modes, semantic_method_t<Method>>;
 
 }  // namespace gelex
 

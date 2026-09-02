@@ -16,6 +16,8 @@
 
 #include <Eigen/Core>
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
+#include <limits>
 #include <ranges>
 #include <string>
 #include <utility>
@@ -29,6 +31,7 @@
 
 #include "compact_genotype_fixture.h"
 
+using Catch::Matchers::ContainsSubstring;
 using gelex::BayesModel;
 using gelex::FixedDesign;
 using gelex::GelexException;
@@ -46,7 +49,46 @@ auto make_phenotype() -> Eigen::VectorXd
     return Eigen::VectorXd{{1.0, 2.0, 4.0}};
 }
 
+auto make_model(Eigen::VectorXd phenotype) -> BayesModel
+{
+    return BayesModel{
+        std::move(phenotype),
+        FixedDesign::make(genotypes.rows()),
+        {},
+        gelex::test::make_genetic_design(genotypes)};
+}
+
 }  // namespace
+
+TEST_CASE(
+    "BayesModel requires a finite positive phenotype variance",
+    "[bayes_model]")
+{
+    SECTION("empty phenotype")
+    {
+        REQUIRE_THROWS_WITH(
+            make_model(Eigen::VectorXd{}),
+            ContainsSubstring("phenotype must not be empty"));
+    }
+
+    SECTION("constant phenotype")
+    {
+        REQUIRE_THROWS_WITH(
+            make_model(Eigen::VectorXd{{1.0, 1.0, 1.0}}),
+            ContainsSubstring(
+                "phenotype variance must be finite and positive"));
+    }
+
+    SECTION("non-finite phenotype")
+    {
+        REQUIRE_THROWS_WITH(
+            make_model(
+                Eigen::VectorXd{
+                    {1.0, std::numeric_limits<double>::quiet_NaN(), 3.0}}),
+            ContainsSubstring(
+                "phenotype variance must be finite and positive"));
+    }
+}
 
 TEST_CASE("BayesModel rejects design row mismatches", "[bayes_model]")
 {

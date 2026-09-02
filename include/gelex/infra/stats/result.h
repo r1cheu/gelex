@@ -34,17 +34,6 @@ struct VectorRunningStatsResult
     Eigen::VectorXd stddev;
 };
 
-struct RunningStatsResult
-{
-    Eigen::VectorXd mean;
-    Eigen::VectorXd stddev;
-};
-
-struct CategoryProbResult
-{
-    Eigen::MatrixXd value;
-};
-
 }  // namespace gelex
 
 #endif  // GELEX_INFRA_STATS_RESULT_H_

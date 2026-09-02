@@ -19,7 +19,6 @@
 #include <catch2/catch_test_macros.hpp>
 #include <cmath>
 #include <concepts>
-#include <utility>
 
 #include "gelex/exception.h"
 #include "gelex/infra/stats/detail/running_stats.h"
@@ -29,7 +28,6 @@ namespace gelex
 {
 
 using Catch::Approx;
-using gelex::detail::CategoricalFrequency;
 using gelex::detail::ScalarRunningStats;
 using gelex::detail::VectorRunningStats;
 
@@ -93,33 +91,6 @@ TEST_CASE(
         REQUIRE(result.mean.isApprox(Eigen::VectorXd{{2.0, 5.0}}));
         REQUIRE(result.stddev.isApprox(
             Eigen::VectorXd{{std::sqrt(2.0), std::sqrt(8.0)}}));
-    }
-}
-
-TEST_CASE(
-    "CategoricalFrequency computes category probabilities",
-    "[infra][stats][running_stats]")
-{
-    CategoricalFrequency frequency{3, 4};
-
-    SECTION("no update gives zero probabilities")
-    {
-        const auto result = std::move(frequency).take_probabilities();
-        REQUIRE(result.value.isApprox(Eigen::MatrixXd::Zero(3, 4)));
-    }
-
-    SECTION("counts normalized by update count")
-    {
-        frequency.update(Eigen::VectorXi{{0, 1, 3}});
-        frequency.update(Eigen::VectorXi{{1, 1, 0}});
-        frequency.update(Eigen::VectorXi{{1, 2, 3}});
-
-        const Eigen::MatrixXd expected{
-            {1.0 / 3.0, 2.0 / 3.0, 0.0, 0.0},
-            {0.0, 2.0 / 3.0, 1.0 / 3.0, 0.0},
-            {1.0 / 3.0, 0.0, 0.0, 2.0 / 3.0}};
-        const auto result = std::move(frequency).take_probabilities();
-        REQUIRE(result.value.isApprox(expected));
     }
 }
 

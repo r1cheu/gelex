@@ -20,7 +20,7 @@
 #include <Eigen/Core>
 #include <random>
 
-#include "gelex/bayes/design.h"
+#include "gelex/bayes/design_data.h"
 #include "gelex/bayes/genetic/prior.h"
 #include "gelex/bayes/genetic/state.h"
 #include "gelex/bayes/state.h"
@@ -113,13 +113,6 @@ class GaussianKernel
     NormalSampler<double> normal_{0.0};
     Eigen::VectorXd previous_adjusted_response_;
 };
-
-template <VarianceLayout Kind>
-[[nodiscard]] auto make_mode_kernel(const GaussianPrior<Kind>& prior)
-    -> GaussianKernel<Kind>
-{
-    return GaussianKernel<Kind>{prior};
-}
 
 }  // namespace gelex::detail
 

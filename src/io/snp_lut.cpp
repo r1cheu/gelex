@@ -23,7 +23,7 @@
 #include <fmt/format.h>
 #include <span>
 
-#include "gelex/bayes/design.h"
+#include "gelex/bayes/design_data.h"
 #include "gelex/exception.h"
 #include "gelex/io/binary_reader.h"
 #include "gelex/io/binary_writer.h"

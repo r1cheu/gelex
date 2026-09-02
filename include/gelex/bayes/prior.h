@@ -21,6 +21,9 @@
 #include <utility>
 #include <vector>
 
+#include "gelex/bayes/detail/prior_factory.h"
+#include "gelex/bayes/model.h"
+#include "gelex/bayes/recipe.h"
 #include "gelex/bayes/variance_parameter.h"
 
 namespace gelex
@@ -29,16 +32,10 @@ namespace gelex
 template <typename GeneticPrior>
 class BayesPrior;
 
-namespace detail
-{
-
-template <typename GeneticPrior>
-auto make_bayes_prior(
-    std::vector<VarianceParameter> random,
-    GeneticPrior genetic,
-    VarianceParameter residual) -> BayesPrior<GeneticPrior>;
-
-}  // namespace detail
+template <GeneticModeSet Modes, typename SemanticMethod>
+[[nodiscard]] auto make_prior(
+    const BayesRecipe<Modes, SemanticMethod>& recipe,
+    const BayesModel& model);
 
 template <typename GeneticPrior>
 class BayesPrior
@@ -73,31 +70,32 @@ class BayesPrior
     {
     }
 
-    template <typename T>
-    friend auto detail::make_bayes_prior(
-        std::vector<VarianceParameter> random,
-        T genetic,
-        VarianceParameter residual) -> BayesPrior<T>;
+    template <GeneticModeSet Modes, typename SemanticMethod>
+    friend auto make_prior(
+        const BayesRecipe<Modes, SemanticMethod>& recipe,
+        const BayesModel& model);
 
     std::vector<VarianceParameter> random_;
     GeneticPrior genetic_;
     VarianceParameter residual_;
 };
 
-namespace detail
+template <GeneticModeSet Modes, typename SemanticMethod>
+[[nodiscard]] auto make_prior(
+    const BayesRecipe<Modes, SemanticMethod>& recipe,
+    const BayesModel& model)
 {
-
-template <typename GeneticPrior>
-auto make_bayes_prior(
-    std::vector<VarianceParameter> random,
-    GeneticPrior genetic,
-    VarianceParameter residual) -> BayesPrior<GeneticPrior>
-{
-    return BayesPrior<GeneticPrior>{
+    const double phenotype_variance = model.phenotype_variance();
+    const detail::MarkerVarianceCalibrator calibrator{model, recipe.variance()};
+    auto genetic = detail::make_genetic_prior<Modes>(
+        SemanticMethod{}, recipe.genetic_spec(), calibrator);
+    auto random = detail::make_random_prior(
+        model, recipe.variance(), phenotype_variance);
+    auto residual = detail::make_mean_calibrated_variance_parameter(
+        phenotype_variance * recipe.variance().residual());
+    return BayesPrior<decltype(genetic)>{
         std::move(random), std::move(genetic), residual};
 }
-
-}  // namespace detail
 
 }  // namespace gelex
 

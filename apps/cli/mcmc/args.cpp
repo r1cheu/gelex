@@ -61,7 +61,7 @@ auto setup_mcmc_command(CLI::App& program, int& exit_code) -> void
         ->group("Model")
         ->type_name("<MODEL>")
         ->capture_default_str()
-        ->check(cli::bayes_recipe_scheme_validator())
+        ->check(cli::bayes_method_validator())
         ->required();
     cmd.add_option_function<std::string>(
            "--mode",
@@ -147,32 +147,10 @@ auto setup_mcmc_command(CLI::App& program, int& exit_code) -> void
         ->type_name("<N>")
         ->check(CLI::PositiveNumber)
         ->capture_default_str();
-    cmd.add_option("--burn-in", config->burn_in, "Burn-in iterations")
-        ->group("Runtime")
-        ->type_name("<N>")
-        ->check(cli::non_negative_number())
-        ->capture_default_str();
-    cmd.add_option("--thin", config->thin, "Sample every N iterations")
-        ->group("Runtime")
-        ->type_name("<N>")
-        ->check(CLI::PositiveNumber)
-        ->capture_default_str();
     cmd.add_option("--seed", config->seed, "Random seed")
         ->group("Runtime")
         ->type_name("<N>")
         ->capture_default_str();
-    cmd.add_option(
-           "--checkpoint-step",
-           config->checkpoint_step,
-           "Checkpoint every N iterations; omit for final")
-        ->group("Runtime")
-        ->type_name("<N>")
-        ->check(cli::non_negative_number());
-    cmd.add_option(
-           "--from-ckpt", config->from_ckpt, "Resume from checkpoint file")
-        ->group("Runtime")
-        ->type_name("<CKPT>")
-        ->check(CLI::ExistingFile);
     cmd.add_option("-t,--threads", config->threads, "CPU threads")
         ->group("Runtime")
         ->type_name("<N>")

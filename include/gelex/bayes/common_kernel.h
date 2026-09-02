@@ -20,7 +20,7 @@
 #include <Eigen/Core>
 #include <random>
 
-#include "gelex/bayes/design.h"
+#include "gelex/bayes/design_data.h"
 #include "gelex/bayes/state.h"
 #include "gelex/bayes/variance_parameter.h"
 #include "gelex/infra/stats/normal_sampler.h"

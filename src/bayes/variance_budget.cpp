@@ -49,12 +49,13 @@ VarianceBudget::VarianceBudget(Shares shares)
     validate_variance_share(shares.dominance, "dominance");
     validate_variance_share(shares.random, "random");
 
-    const double total = shares.additive + shares.dominance + shares.random;
-    if (!(total < 1.0))
+    const double remaining = residual();
+    if (!(remaining > 0.0))
     {
         throw GelexException(
             fmt::format(
-                "variance shares must sum to less than 1, got {}", total));
+                "variance shares must sum to less than 1, got {}",
+                1.0 - remaining));
     }
 }
 

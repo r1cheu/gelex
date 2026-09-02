@@ -24,7 +24,7 @@
 #include <cstdint>
 #include <random>
 
-#include "gelex/bayes/design.h"
+#include "gelex/bayes/design_data.h"
 #include "gelex/bayes/detail/fitted_value_update.h"
 #include "gelex/bayes/genetic/prior.h"
 #include "gelex/bayes/genetic/probability_updater.h"
@@ -199,14 +199,6 @@ class ScaledMixtureKernel
     NormalSampler<double> normal_{0.0};
     std::uniform_real_distribution<double> uniform_{0.0, 1.0};
 };
-
-template <std::size_t ClassCount, UpdatePolicy ProbabilitiesUpdate>
-[[nodiscard]] auto make_mode_kernel(
-    const ScaledMixturePrior<ClassCount, ProbabilitiesUpdate>& prior)
-    -> ScaledMixtureKernel<ClassCount, ProbabilitiesUpdate>
-{
-    return ScaledMixtureKernel<ClassCount, ProbabilitiesUpdate>{prior};
-}
 
 }  // namespace gelex::detail
 

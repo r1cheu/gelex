@@ -23,7 +23,7 @@
 #include <string_view>
 #include <vector>
 
-#include "gelex/bayes/recipe_options.h"
+#include "gelex/bayes/builtin_method.h"
 #include "gelex/data/genotype_method.h"
 #include "gelex/infra/stats/rank_inverse_norm_transform.h"
 #include "gelex/types/genetic_mode.h"
@@ -146,7 +146,7 @@ TEST_CASE(
         [](const auto& entry) { return entry.first; });
     expect_sync(
         "MODEL",
-        gelex::bayes::bayes_recipe_scheme_names,
+        gelex::bayes_method_names,
         [](const auto& entry) { return entry.second; });
     expect_sync(
         "MODE",

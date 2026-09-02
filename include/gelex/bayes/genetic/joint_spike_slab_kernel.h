@@ -28,9 +28,8 @@
 #include <span>
 #include <type_traits>
 
-#include "gelex/bayes/design.h"
-#include "gelex/bayes/detail/genetic_state_compilation.h"
-#include "gelex/bayes/genetic/joint_topology.h"
+#include "gelex/bayes/design_data.h"
+#include "gelex/bayes/detail/state_factory.h"
 #include "gelex/bayes/genetic/prior.h"
 #include "gelex/bayes/genetic/probability_updater.h"
 #include "gelex/bayes/genetic/state.h"
@@ -39,6 +38,7 @@
 #include "gelex/infra/stats/normal_sampler.h"
 #include "gelex/infra/stats/scaled_inv_chi2_sampler.h"
 #include "gelex/types/genetic_mode.h"
+#include "gelex/types/mode_values.h"
 
 namespace gelex::detail
 {
@@ -53,12 +53,12 @@ class JointSpikeSlabKernel
 
     using AdditivePrior = GaussianPrior<VarianceLayout::Pooled>;
     using DominancePrior = HalfNormalPrior<Axis>;
-    using ModePriors = IndependentTopology<
+    using ModePriors = ModeValues<
         GeneticMode::A | GeneticMode::D,
         AdditivePrior,
         DominancePrior>;
     using JointPrior = JointSpikeSlabPrior<ClassCount, ProbabilitiesUpdate>;
-    using GeneticPrior = JointTopology<ModePriors, JointPrior>;
+    using GeneticPrior = JointModeValues<ModePriors, JointPrior>;
     using GeneticState = genetic_state_t<GeneticPrior>;
     using DominancePosterior = HalfNormalSampler<double>::Posterior;
 
@@ -602,22 +602,6 @@ class JointSpikeSlabKernel
     HalfNormalSampler<double> half_normal_;
     std::uniform_real_distribution<double> uniform_{0.0, 1.0};
 };
-
-template <
-    std::size_t ClassCount,
-    UpdatePolicy ProbabilitiesUpdate,
-    HalfNormalAsymmetry Axis>
-[[nodiscard]] auto make_genetic_kernel(
-    const JointTopology<
-        IndependentTopology<
-            GeneticMode::A | GeneticMode::D,
-            GaussianPrior<VarianceLayout::Pooled>,
-            HalfNormalPrior<Axis>>,
-        JointSpikeSlabPrior<ClassCount, ProbabilitiesUpdate>>& prior)
-    -> JointSpikeSlabKernel<ClassCount, ProbabilitiesUpdate, Axis>
-{
-    return JointSpikeSlabKernel<ClassCount, ProbabilitiesUpdate, Axis>{prior};
-}
 
 }  // namespace gelex::detail
 

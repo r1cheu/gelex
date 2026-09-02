@@ -18,7 +18,8 @@
 
 #include <algorithm>
 #include <cmath>
-#include <utility>
+
+#include "gelex/exception.h"
 
 namespace gelex::detail
 {
@@ -60,56 +61,6 @@ auto VectorRunningStats::result() const -> VectorRunningStatsResult
         output.stddev = variance.array().sqrt();
     }
     return output;
-}
-
-auto RunningStats::result() const -> RunningStatsResult
-{
-    RunningStatsResult output;
-
-    if (rows_ == 0)
-    {
-        return output;
-    }
-
-    output.mean = mean_;
-    output.stddev = Eigen::VectorXd::Zero(rows_);
-
-    if (count_ <= 1)
-    {
-        return output;
-    }
-
-    Eigen::VectorXd variance = m2_ / static_cast<double>(count_ - 1);
-    variance = variance.cwiseMax(0.0);
-    output.stddev = variance.array().sqrt();
-    return output;
-}
-
-CategoricalFrequency::CategoricalFrequency(
-    Eigen::Index n_items,
-    Eigen::Index n_categories)
-    : probabilities_(Eigen::MatrixXd::Zero(n_items, n_categories))
-{
-}
-
-auto CategoricalFrequency::update(
-    const Eigen::Ref<const Eigen::VectorXi>& categories) -> void
-{
-    const auto old_count = count_;
-    ++count_;
-    probabilities_
-        *= static_cast<double>(old_count) / static_cast<double>(count_);
-
-    const double increment = 1.0 / static_cast<double>(count_);
-    for (Eigen::Index i = 0; i < categories.size(); ++i)
-    {
-        probabilities_(i, categories(i)) += increment;
-    }
-}
-
-auto CategoricalFrequency::take_probabilities() && -> CategoryProbResult
-{
-    return CategoryProbResult{std::move(probabilities_)};
 }
 
 }  // namespace gelex::detail

@@ -22,8 +22,8 @@
 #include <cstddef>
 #include <span>
 
-#include "gelex/bayes/design.h"
 #include "gelex/bayes/genetic/state.h"
+#include "gelex/bayes/genetic_projection.h"
 
 namespace gelex::detail
 {

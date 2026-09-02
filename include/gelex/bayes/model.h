@@ -21,13 +21,11 @@
 #include <span>
 #include <vector>
 
-#include "gelex/bayes/design.h"
+#include "gelex/bayes/design_data.h"
 #include "gelex/types/fixed_designs.h"
 
 namespace gelex
 {
-
-class FieldVisitor;
 
 class BayesModel
 {
@@ -44,18 +42,19 @@ class BayesModel
     auto operator=(BayesModel&&) noexcept -> BayesModel& = default;
     ~BayesModel() = default;
 
-    const FixedDesign& fixed() const { return fixed_; }
+    auto fixed() const -> const FixedDesign& { return fixed_; }
 
-    std::span<const bayes::RandomDesign> random() const { return random_; }
+    auto random() const -> std::span<const bayes::RandomDesign>
+    {
+        return random_;
+    }
 
-    const bayes::GeneticDesign& genetic() const { return genetic_; }
+    auto genetic() const -> const bayes::GeneticDesign& { return genetic_; }
 
-    const Eigen::VectorXd& phenotype() const { return phenotype_; }
+    auto phenotype() const -> const Eigen::VectorXd& { return phenotype_; }
 
-    double phenotype_variance() const { return phenotype_var_; }
-    Eigen::Index num_individuals() const { return num_individuals_; }
-
-    auto visit(FieldVisitor& visitor) const -> void;
+    auto phenotype_variance() const -> double { return phenotype_var_; }
+    auto num_individuals() const -> Eigen::Index { return num_individuals_; }
 
    private:
     Eigen::Index num_individuals_{};
