@@ -18,7 +18,6 @@
 
 #include <Eigen/Core>
 #include <cstdint>
-#include <filesystem>
 #include <optional>
 #include <string>
 #include <utility>
@@ -32,10 +31,9 @@
 #include "gelex/data/bed.h"
 #include "gelex/data/dataframe/index.h"
 #include "gelex/data/genotype_method.h"
-#include "gelex/data/genotype_reader.h"
 #include "gelex/exception.h"
 #include "gelex/io/mcmc.h"
-#include "gelex/io/snpstats.h"
+#include "gelex/io/snp_lut.h"
 #include "gelex/types/genetic_mode.h"
 
 #include "cli/bayes_recipe_options.h"
@@ -48,63 +46,26 @@
 class MCMCDataHandler
 {
    public:
-    MCMCDataHandler(
-        const cli::McmcConfig& config,
-        gelex::GeneticModeSet requested_effects,
-        cli::GenoReporter& reporter,
-        gelex::Bed& bed)
-        : config_(config),
-          requested_effects_(requested_effects),
-          reporter_(reporter),
-          bed_(bed)
+    MCMCDataHandler(cli::GenoReporter& reporter, gelex::Bed& bed)
+        : reporter_(reporter), bed_(bed)
     {
     }
 
     auto load_indices(
         std::vector<const gelex::DataFrameIndex<std::string>*>& indices) -> void
     {
-        genotype_method_ = config_.geno_method;
         indices.push_back(&bed_.sample_index());
     }
 
     auto gather(const gelex::DataFrameIndex<std::string>& common_index) -> void
     {
         bed_.gather(common_index);
-        auto reader = gelex::GenotypeReader(bed_, reporter_.as_observer());
-
-        gelex::BinaryWriter writer(config_.out + ".snpstats");
-
-        auto genotypes
-            = config_.mmap ? reader.read_mmap(
-                                 requested_effects_,
-                                 genotype_method_,
-                                 std::filesystem::path{config_.out},
-                                 static_cast<std::size_t>(config_.chunk_size))
-                           : reader.read_in_memory(
-                                 requested_effects_,
-                                 genotype_method_,
-                                 static_cast<std::size_t>(config_.chunk_size));
-
         reporter_.show_total(bed_.num_snps());
-        for (auto& [mode, genotype] : genotypes)
-        {
-            reporter_.show_loaded(
-                mode, genotype.cols(), genotype.num_invalid());
-            gelex::write_snp_stats(writer, mode, genotype.stats());
-            genetics_.emplace_back(mode, std::move(genotype));
-        }
     }
 
-    auto results() && -> std::vector<gelex::bayes::GeneticDesign>
-    {
-        return std::move(genetics_);
-    }
+    auto results() && -> gelex::Bed { return std::move(bed_); }
 
    private:
-    const cli::McmcConfig& config_;
-    gelex::GeneticModeSet requested_effects_;
-    gelex::GenotypeMethod genotype_method_;
-    std::vector<gelex::bayes::GeneticDesign> genetics_;
     cli::GenoReporter& reporter_;
     gelex::Bed& bed_;
 };
@@ -112,7 +73,7 @@ class MCMCDataHandler
 auto mcmc_execute(const cli::McmcConfig& config) -> int
 {
     auto recipe_options = cli::make_bayes_recipe_options(config);
-    gelex::Params params{
+    gelex::MCMCParams params{
         .n_iters = config.iters,
         .n_burn_in = config.burn_in,
         .n_thin = config.thin,
@@ -130,7 +91,7 @@ auto mcmc_execute(const cli::McmcConfig& config) -> int
     cli::setup_parallelization(config.threads);
 
     auto bed = gelex::open_bed(config.bfile);
-    MCMCDataHandler handler(config, recipe_options.modes, geno_reporter, bed);
+    MCMCDataHandler handler(geno_reporter, bed);
 
     cli::printer().block(cli::section("Genotype Processing:"));
     cli::BaseData data = cli::load_base_data(handler, config.base_data);
@@ -140,13 +101,23 @@ auto mcmc_execute(const cli::McmcConfig& config) -> int
             "No common samples across phenotype, genotype (.fam), and "
             "covariates. Check that sample IDs match across input files.");
     }
+
+    auto genetic_design = gelex::bayes::GeneticDesign{
+        std::move(handler).results(),
+        recipe_options.modes,
+        config.geno_method,
+        geno_reporter.as_observer()};
+
     auto bayes_recipe = gelex::bayes::BayesRecipe(std::move(recipe_options));
 
     auto model = gelex::BayesModel(
         std::move(data.phenotype),
         std::move(data.fixed_design),
         {},
-        std::move(handler).results());
+        std::move(genetic_design));
+
+    geno_reporter.show_loaded(model.genetic());
+    gelex::write_snp_luts(config.out + ".snplut", model.genetic());
 
     reporter.show_dataset_summary(model, data.pheno_name);
     auto prior = bayes_recipe.make_prior(model);

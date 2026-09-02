@@ -22,7 +22,7 @@
 namespace gelex
 {
 
-struct Params
+struct MCMCParams
 {
     Eigen::Index n_iters{};
     Eigen::Index n_burn_in{};

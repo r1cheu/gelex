@@ -27,7 +27,6 @@
 #include <utility>
 #include <variant>
 
-#include "gelex/algo/mcmc/invariant.h"
 #include "gelex/bayes/genetic/gaussian_prior.h"
 #include "gelex/bayes/genetic/gaussian_prior_state.h"
 #include "gelex/bayes/genetic/half_normal_prior.h"
@@ -42,37 +41,18 @@
 #include "gelex/infra/stats/scaled_inv_chi2_sampler.h"
 #include "gelex/types/genetic_mode.h"
 
+#include "algo/mcmc/invariant.h"
+
 namespace gelex
 {
 
 JointGaussianMixtureStep::JointGaussianMixtureStep(
-    const bayes::GeneticDesign& additive,
-    const bayes::GeneticDesign& dominance,
-    const bayes::JointGeneticPrior& prior,
-    bayes::JointGeneticBlockState& block,
-    bayes::ResidualState& residual,
-    std::mt19937_64& rng)
-    : JointGaussianMixtureStep(
-          additive,
-          dominance,
-          std::get<bayes::JointGaussianMixturePrior>(prior),
-          std::get<bayes::JointGaussianMixtureState>(block.prior_state()),
-          block,
-          residual,
-          rng)
-{
-}
-
-JointGaussianMixtureStep::JointGaussianMixtureStep(
-    const bayes::GeneticDesign& additive,
-    const bayes::GeneticDesign& dominance,
+    const bayes::GeneticDesign& design,
     const bayes::JointGaussianMixturePrior& prior,
-    bayes::JointGaussianMixtureState& prior_state,
     bayes::JointGeneticBlockState& block,
     bayes::ResidualState& residual,
     std::mt19937_64& rng)
-    : additive_design_(additive),
-      dominance_design_(dominance),
+    : design_(design),
       variance_samplers_(
           [&prior]
           {
@@ -82,11 +62,6 @@ JointGaussianMixtureStep::JointGaussianMixtureStep(
                   ScaledInvChi2Sampler<double>{
                       prior.variance(GeneticMode::D).parameter().prior()}};
           }()),
-      variance_{
-          &prior_state.variance(GeneticMode::A),
-          &prior_state.variance(GeneticMode::D)},
-      assignment_(prior_state.assignment()),
-      proportion_(prior_state.proportion()),
       proportion_sampler_(
           [&prior] -> std::optional<DirichletSampler<double>>
           {
@@ -97,25 +72,36 @@ JointGaussianMixtureStep::JointGaussianMixtureStep(
               return DirichletSampler<double>{
                   prior.proportion().prior()->concentration()};
           }()),
-      additive_(block.state(GeneticMode::A)),
-      dominance_(block.state(GeneticMode::D)),
+      block_(block),
       residual_(residual),
       normal_(0.0),
-      proportion_count_(Eigen::VectorXi::Zero(proportion_.size())),
+      proportion_count_(
+          Eigen::VectorXi::Zero(
+              std::get<bayes::JointGaussianMixtureState>(block.prior_state())
+                  .proportion()
+                  .size())),
       rng_(rng)
 {
     std::ranges::set_intersection(
-        additive_design_.valid_indices(),
-        dominance_design_.valid_indices(),
+        design_.valid_indices(GeneticMode::A),
+        design_.valid_indices(GeneticMode::D),
         std::back_inserter(valid_indices_));
 }
 
 auto JointGaussianMixtureStep::step() -> void
 {
-    const auto additive_x = additive_design_.X.matrix();
-    const auto dominance_x = dominance_design_.X.matrix();
-    auto& additive_coeffs = additive_.coeffs;
-    auto& dominance_coeffs = dominance_.coeffs;
+    auto& prior_state
+        = std::get<bayes::JointGaussianMixtureState>(block_.prior_state());
+    auto& additive_variance = prior_state.variance(GeneticMode::A);
+    auto& dominance_variance = prior_state.variance(GeneticMode::D);
+    auto& assignment = prior_state.assignment();
+    auto& proportion = prior_state.proportion();
+    auto& additive = block_.state(GeneticMode::A);
+    auto& dominance = block_.state(GeneticMode::D);
+    const auto& additive_xtx_diag = design_.xtx_diag(GeneticMode::A);
+    const auto& dominance_xtx_diag = design_.xtx_diag(GeneticMode::D);
+    auto& additive_coeffs = additive.coeffs;
+    auto& dominance_coeffs = dominance.coeffs;
 
     normal_.reset();
     uniform_.reset();
@@ -127,38 +113,34 @@ auto JointGaussianMixtureStep::step() -> void
     {
         proportion_sampler_->reset();
     }
-    logpi_ = proportion_.array().log();
+    logpi_ = proportion.array().log();
     proportion_count_.setZero();
 
     std::array<Eigen::Index, 2> variance_n{0, 0};
     std::array<double, 2> sum_squares{0.0, 0.0};
     for (const Eigen::Index i : valid_indices_)
     {
-        const auto additive_column = additive_x.col(i);
-        const auto dominance_column = dominance_x.col(i);
         const double old_additive_i = additive_coeffs(i);
         const double old_dominance_i = dominance_coeffs(i);
         const double additive_rhs
-            = additive_column.dot(residual_.y_adj)
-              + (additive_design_.XtX_diag(i) * old_additive_i);
+            = design_.dot(GeneticMode::A, i, residual_.y_adj)
+              + (additive_xtx_diag(i) * old_additive_i);
         const double dominance_rhs
-            = dominance_column.dot(residual_.y_adj)
-              + (dominance_design_.XtX_diag(i) * old_dominance_i);
+            = design_.dot(GeneticMode::D, i, residual_.y_adj)
+              + (dominance_xtx_diag(i) * old_dominance_i);
         const auto additive_post
-            = normal_
-                  .set_prior_var(*variance_[std::to_underlying(GeneticMode::A)])
+            = normal_.set_prior_var(additive_variance)
                   .posterior_with_logL(
                       NormalSampler<double>::Kernel{
-                          .quadratic = additive_design_.XtX_diag(i),
+                          .quadratic = additive_xtx_diag(i),
                           .linear = additive_rhs,
                           .scale = residual_.variance,
                       });
         const auto dominance_post
-            = normal_
-                  .set_prior_var(*variance_[std::to_underlying(GeneticMode::D)])
+            = normal_.set_prior_var(dominance_variance)
                   .posterior_with_logL(
                       NormalSampler<double>::Kernel{
-                          .quadratic = dominance_design_.XtX_diag(i),
+                          .quadratic = dominance_xtx_diag(i),
                           .linear = dominance_rhs,
                           .scale = residual_.variance,
                       });
@@ -186,21 +168,14 @@ auto JointGaussianMixtureStep::step() -> void
             }
         }
 
-        JointGeneticAdjustmentGuard guard{
-            additive_column,
-            dominance_column,
-            additive_coeffs(i),
-            dominance_coeffs(i),
-            residual_,
-            additive_,
-            dominance_};
+        JointGeneticAdjustmentGuard guard{design_, i, block_, residual_};
         additive_coeffs(i) = (component == 1 || component == 3)
                                  ? normal_.draw(additive_post.params, rng_)
                                  : 0.0;
         dominance_coeffs(i) = (component == 2 || component == 3)
                                   ? normal_.draw(dominance_post.params, rng_)
                                   : 0.0;
-        assignment_(i) = component;
+        assignment(i) = component;
 
         ++proportion_count_(component);
         if (component == 1 || component == 3)
@@ -221,47 +196,26 @@ auto JointGaussianMixtureStep::step() -> void
     for (auto mode : modes)
     {
         const auto index = std::to_underlying(mode);
-        *variance_[index] = variance_samplers_[index](
+        prior_state.variance(mode) = variance_samplers_[index](
             {variance_n[index], sum_squares[index]}, rng_);
     }
     if (proportion_sampler_)
     {
-        proportion_ = (*proportion_sampler_)(proportion_count_, rng_);
+        proportion = (*proportion_sampler_)(proportion_count_, rng_);
     }
-    additive_.variance
-        = detail::vecvar(additive_.u, detail::VarNormType::Population);
-    dominance_.variance
-        = detail::vecvar(dominance_.u, detail::VarNormType::Population);
+    additive.variance
+        = detail::vecvar(additive.u, detail::VarNormType::Population);
+    dominance.variance
+        = detail::vecvar(dominance.u, detail::VarNormType::Population);
 }
 
 JointHalfNormalMixtureStep::JointHalfNormalMixtureStep(
-    const bayes::GeneticDesign& additive,
-    const bayes::GeneticDesign& dominance,
-    const bayes::JointGeneticPrior& prior,
-    bayes::JointGeneticBlockState& block,
-    bayes::ResidualState& residual,
-    std::mt19937_64& rng)
-    : JointHalfNormalMixtureStep(
-          additive,
-          dominance,
-          std::get<bayes::JointHalfNormalMixturePrior>(prior),
-          std::get<bayes::JointHalfNormalMixtureState>(block.prior_state()),
-          block,
-          residual,
-          rng)
-{
-}
-
-JointHalfNormalMixtureStep::JointHalfNormalMixtureStep(
-    const bayes::GeneticDesign& additive,
-    const bayes::GeneticDesign& dominance,
+    const bayes::GeneticDesign& design,
     const bayes::JointHalfNormalMixturePrior& prior,
-    bayes::JointHalfNormalMixtureState& prior_state,
     bayes::JointGeneticBlockState& block,
     bayes::ResidualState& residual,
     std::mt19937_64& rng)
-    : additive_design_(additive),
-      dominance_design_(dominance),
+    : design_(design),
       variance_samplers_(
           [&prior]
           {
@@ -271,11 +225,6 @@ JointHalfNormalMixtureStep::JointHalfNormalMixtureStep(
                   ScaledInvChi2Sampler<double>{
                       prior.variance(GeneticMode::D).parameter().prior()}};
           }()),
-      variance_{
-          &prior_state.variance(GeneticMode::A),
-          &prior_state.variance(GeneticMode::D)},
-      assignment_(prior_state.assignment()),
-      proportion_(prior_state.proportion()),
       proportion_sampler_(
           [&prior] -> std::optional<DirichletSampler<double>>
           {
@@ -286,30 +235,43 @@ JointHalfNormalMixtureStep::JointHalfNormalMixtureStep(
               return DirichletSampler<double>{
                   prior.proportion().prior()->concentration()};
           }()),
-      dominance_sign_(prior_state.dominance_sign()),
-      additive_(block.state(GeneticMode::A)),
-      dominance_(block.state(GeneticMode::D)),
+      block_(block),
       residual_(residual),
       normal_(0.0),
-      half_normal_(prior_state.variance(GeneticMode::D)),
+      half_normal_(
+          std::get<bayes::JointHalfNormalMixtureState>(block.prior_state())
+              .variance(GeneticMode::D)),
       sign_sampler_(
           prior.dominance_positive_probability().prior().alpha(),
           prior.dominance_positive_probability().prior().beta()),
-      proportion_count_(Eigen::VectorXi::Zero(proportion_.size())),
+      proportion_count_(
+          Eigen::VectorXi::Zero(
+              std::get<bayes::JointHalfNormalMixtureState>(block.prior_state())
+                  .proportion()
+                  .size())),
       rng_(rng)
 {
     std::ranges::set_intersection(
-        additive_design_.valid_indices(),
-        dominance_design_.valid_indices(),
+        design_.valid_indices(GeneticMode::A),
+        design_.valid_indices(GeneticMode::D),
         std::back_inserter(valid_indices_));
 }
 
 auto JointHalfNormalMixtureStep::step() -> void
 {
-    const auto additive_x = additive_design_.X.matrix();
-    const auto dominance_x = dominance_design_.X.matrix();
-    auto& additive_coeffs = additive_.coeffs;
-    auto& dominance_coeffs = dominance_.coeffs;
+    auto& prior_state
+        = std::get<bayes::JointHalfNormalMixtureState>(block_.prior_state());
+    auto& additive_variance = prior_state.variance(GeneticMode::A);
+    auto& dominance_variance = prior_state.variance(GeneticMode::D);
+    auto& assignment = prior_state.assignment();
+    auto& proportion = prior_state.proportion();
+    auto& dominance_sign = prior_state.dominance_sign();
+    auto& additive = block_.state(GeneticMode::A);
+    auto& dominance = block_.state(GeneticMode::D);
+    const auto& additive_xtx_diag = design_.xtx_diag(GeneticMode::A);
+    const auto& dominance_xtx_diag = design_.xtx_diag(GeneticMode::D);
+    auto& additive_coeffs = additive.coeffs;
+    auto& dominance_coeffs = dominance.coeffs;
 
     normal_.reset();
     half_normal_.reset();
@@ -323,7 +285,7 @@ auto JointHalfNormalMixtureStep::step() -> void
     {
         proportion_sampler_->reset();
     }
-    logpi_ = proportion_.array().log();
+    logpi_ = proportion.array().log();
     proportion_count_.setZero();
 
     std::array<Eigen::Index, 2> variance_n{0, 0};
@@ -331,48 +293,44 @@ auto JointHalfNormalMixtureStep::step() -> void
     BetaSampler<double>::Likelihood sign_likelihood{};
     for (const Eigen::Index i : valid_indices_)
     {
-        const auto additive_column = additive_x.col(i);
-        const auto dominance_column = dominance_x.col(i);
         const double old_additive_i = additive_coeffs(i);
         const double old_dominance_i = dominance_coeffs(i);
         const double additive_rhs
-            = additive_column.dot(residual_.y_adj)
-              + (additive_design_.XtX_diag(i) * old_additive_i);
+            = design_.dot(GeneticMode::A, i, residual_.y_adj)
+              + (additive_xtx_diag(i) * old_additive_i);
         const double dominance_rhs
-            = dominance_column.dot(residual_.y_adj)
-              + (dominance_design_.XtX_diag(i) * old_dominance_i);
+            = design_.dot(GeneticMode::D, i, residual_.y_adj)
+              + (dominance_xtx_diag(i) * old_dominance_i);
         const auto additive_post
-            = normal_
-                  .set_prior_var(*variance_[std::to_underlying(GeneticMode::A)])
+            = normal_.set_prior_var(additive_variance)
                   .posterior_with_logL(
                       NormalSampler<double>::Kernel{
-                          .quadratic = additive_design_.XtX_diag(i),
+                          .quadratic = additive_xtx_diag(i),
                           .linear = additive_rhs,
                           .scale = residual_.variance,
                       });
         const auto dominance_positive_post
-            = half_normal_
-                  .set_prior_var(*variance_[std::to_underlying(GeneticMode::D)])
+            = half_normal_.set_prior_var(dominance_variance)
                   .posterior_with_logL(
                       HalfNormalSampler<double>::Kernel{
-                          .quadratic = dominance_design_.XtX_diag(i),
+                          .quadratic = dominance_xtx_diag(i),
                           .linear = dominance_rhs,
                           .scale = residual_.variance,
                       },
                       static_cast<std::int8_t>(1));
         const auto dominance_negative_post = half_normal_.posterior_with_logL(
             HalfNormalSampler<double>::Kernel{
-                .quadratic = dominance_design_.XtX_diag(i),
+                .quadratic = dominance_xtx_diag(i),
                 .linear = dominance_rhs,
                 .scale = residual_.variance,
             },
             static_cast<std::int8_t>(-1));
 
         const double positive_sign_log_weight
-            = std::log(dominance_sign_.positive_probability)
+            = std::log(dominance_sign.positive_probability)
               + dominance_positive_post.log_marginal_kernel;
         const double negative_sign_log_weight
-            = std::log(1.0 - dominance_sign_.positive_probability)
+            = std::log(1.0 - dominance_sign.positive_probability)
               + dominance_negative_post.log_marginal_kernel;
         const double max_sign_log_weight
             = positive_sign_log_weight > negative_sign_log_weight
@@ -419,31 +377,24 @@ auto JointHalfNormalMixtureStep::step() -> void
                 = std::exp(positive_sign_log_weight - max_sign_log_weight);
             if (sign_threshold < positive_sign_probability)
             {
-                dominance_sign_.sign(i) = 1;
+                dominance_sign.sign(i) = 1;
                 dominance_post = &dominance_positive_post;
                 ++sign_likelihood.n_success;
             }
             else
             {
-                dominance_sign_.sign(i) = 0;
+                dominance_sign.sign(i) = 0;
                 ++sign_likelihood.n_fail;
             }
         }
 
-        JointGeneticAdjustmentGuard guard{
-            additive_column,
-            dominance_column,
-            additive_coeffs(i),
-            dominance_coeffs(i),
-            residual_,
-            additive_,
-            dominance_};
+        JointGeneticAdjustmentGuard guard{design_, i, block_, residual_};
         additive_coeffs(i) = (component == 1 || component == 3)
                                  ? normal_.draw(additive_post.params, rng_)
                                  : 0.0;
         dominance_coeffs(i)
             = dominance_active ? half_normal_.draw(*dominance_post, rng_) : 0.0;
-        assignment_(i) = component;
+        assignment(i) = component;
 
         ++proportion_count_(component);
         if (component == 1 || component == 3)
@@ -464,18 +415,18 @@ auto JointHalfNormalMixtureStep::step() -> void
     for (auto mode : modes)
     {
         const auto index = std::to_underlying(mode);
-        *variance_[index] = variance_samplers_[index](
+        prior_state.variance(mode) = variance_samplers_[index](
             {variance_n[index], sum_squares[index]}, rng_);
     }
     if (proportion_sampler_)
     {
-        proportion_ = (*proportion_sampler_)(proportion_count_, rng_);
+        proportion = (*proportion_sampler_)(proportion_count_, rng_);
     }
-    dominance_sign_.positive_probability = sign_sampler_(sign_likelihood, rng_);
-    additive_.variance
-        = detail::vecvar(additive_.u, detail::VarNormType::Population);
-    dominance_.variance
-        = detail::vecvar(dominance_.u, detail::VarNormType::Population);
+    dominance_sign.positive_probability = sign_sampler_(sign_likelihood, rng_);
+    additive.variance
+        = detail::vecvar(additive.u, detail::VarNormType::Population);
+    dominance.variance
+        = detail::vecvar(dominance.u, detail::VarNormType::Population);
 }
 
 }  // namespace gelex

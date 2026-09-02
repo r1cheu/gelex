@@ -24,8 +24,6 @@
 #include <string_view>
 #include <utility>
 
-#include "gelex/exception.h"
-
 namespace gelex
 {
 
@@ -108,36 +106,6 @@ constexpr auto is_hwe(GenotypeMethod method) -> bool
             return true;
         default:
             return false;
-    }
-}
-
-inline auto genotype_method_from_byte(uint8_t b) -> GenotypeMethod
-{
-    switch (b)
-    {
-        case std::to_underlying(GenotypeMethod::StandardizeHWE):
-            return GenotypeMethod::StandardizeHWE;
-        case std::to_underlying(GenotypeMethod::CenterHWE):
-            return GenotypeMethod::CenterHWE;
-        case std::to_underlying(GenotypeMethod::Standardize):
-            return GenotypeMethod::Standardize;
-        case std::to_underlying(GenotypeMethod::Center):
-            return GenotypeMethod::Center;
-        case std::to_underlying(GenotypeMethod::OrthStandardizeHWE):
-            return GenotypeMethod::OrthStandardizeHWE;
-        case std::to_underlying(GenotypeMethod::OrthCenterHWE):
-            return GenotypeMethod::OrthCenterHWE;
-        case std::to_underlying(GenotypeMethod::OrthStandardize):
-            return GenotypeMethod::OrthStandardize;
-        case std::to_underlying(GenotypeMethod::OrthCenter):
-            return GenotypeMethod::OrthCenter;
-        case std::to_underlying(GenotypeMethod::NOIAStandardize):
-            return GenotypeMethod::NOIAStandardize;
-        case std::to_underlying(GenotypeMethod::NOIACenter):
-            return GenotypeMethod::NOIACenter;
-        default:
-            throw GelexException(
-                fmt::format("Invalid genotype method byte: {}", b));
     }
 }
 

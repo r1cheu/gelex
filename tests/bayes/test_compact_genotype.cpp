@@ -1,0 +1,224 @@
+/*
+ * Copyright 2026 RuLei Chen
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#include <Eigen/Core>
+#include <catch2/catch_approx.hpp>
+#include <catch2/catch_test_macros.hpp>
+#include <cmath>
+#include <cstddef>
+#include <cstdint>
+#include <limits>
+#include <string>
+#include <type_traits>
+#include <utility>
+#include <vector>
+
+#include "gelex/bayes/design.h"
+#include "gelex/data/bed.h"
+#include "gelex/data/dataframe/index.h"
+#include "gelex/data/encode/encoder.h"
+#include "gelex/data/encode/spec.h"
+#include "gelex/data/genotype_method.h"
+#include "gelex/exception.h"
+#include "gelex/types/genetic_mode.h"
+
+#include "bayes/compact_genotype.h"
+#include "bed_fixture.h"
+#include "compact_genotype_fixture.h"
+
+using gelex::GeneticMode;
+using gelex::GenotypeMethod;
+
+TEST_CASE(
+    "CompactGenotype caches gathered raw codes and frequencies",
+    "[bayes][compact]")
+{
+    STATIC_REQUIRE(
+        !std::is_copy_constructible_v<gelex::bayes::CompactGenotype>);
+    STATIC_REQUIRE(std::is_move_constructible_v<gelex::bayes::CompactGenotype>);
+
+    gelex::test::BedFixture fixture;
+    const double missing = std::numeric_limits<double>::quiet_NaN();
+    const Eigen::MatrixXd genotypes{
+        {0.0, 0.0, missing},
+        {1.0, 2.0, missing},
+        {2.0, 1.0, missing},
+        {0.0, 2.0, missing}};
+    const std::vector<std::string> sample_ids{"a", "b", "c", "d"};
+    const auto prefix
+        = fixture.create_deterministic_bed_files(genotypes, sample_ids).first;
+    auto bed = gelex::open_bed(prefix.string());
+    const auto source_keys = bed.sample_index().keys();
+    bed.gather(
+        gelex::DataFrameIndex<std::string>{std::vector<std::string>{
+            source_keys[3], source_keys[1], source_keys[0]}});
+
+    std::size_t progress_events = 0;
+    bool done = false;
+    const gelex::bayes::CompactGenotype genotype{
+        std::move(bed),
+        [&](const gelex::GenotypeProgressEvent& event)
+        {
+            if (event.done)
+            {
+                done = true;
+            }
+            else
+            {
+                ++progress_events;
+            }
+        }};
+
+    REQUIRE(genotype.rows() == 3);
+    REQUIRE(genotype.cols() == 3);
+    REQUIRE(genotype.size_bytes() == 9);
+    REQUIRE(genotype.a1_frequency().isApprox(
+        Eigen::VectorXd{{1.0 / 6.0, 2.0 / 3.0, 0.0}}));
+    REQUIRE(progress_events == 3);
+    REQUIRE(done);
+}
+
+TEST_CASE(
+    "Compact designs match dense encodings for every genotype method",
+    "[bayes][compact]")
+{
+    gelex::test::BedFixture fixture;
+    const double missing = std::numeric_limits<double>::quiet_NaN();
+    const Eigen::MatrixXd genotypes{
+        {0.0, 0.0, missing},
+        {1.0, 2.0, missing},
+        {2.0, 1.0, missing},
+        {0.0, 2.0, missing}};
+    const auto prefix = fixture.create_deterministic_bed_files(genotypes).first;
+
+    for (const auto method :
+         {GenotypeMethod::StandardizeHWE,
+          GenotypeMethod::CenterHWE,
+          GenotypeMethod::Standardize,
+          GenotypeMethod::Center,
+          GenotypeMethod::OrthStandardizeHWE,
+          GenotypeMethod::OrthCenterHWE,
+          GenotypeMethod::OrthStandardize,
+          GenotypeMethod::OrthCenter,
+          GenotypeMethod::NOIAStandardize,
+          GenotypeMethod::NOIACenter})
+    {
+        auto genetic = gelex::bayes::GeneticDesign{
+            gelex::open_bed(prefix.string()),
+            GeneticMode::A | GeneticMode::D,
+            method};
+        const auto oracle_bed = gelex::open_bed(prefix.string());
+        const gelex::LocusEncoder encoder{oracle_bed};
+
+        for (const auto mode : gelex::ALL_GENETIC_MODES)
+        {
+            Eigen::MatrixXd dense(genetic.rows(), genetic.cols());
+            std::vector<Eigen::Index> valid_indices;
+            for (Eigen::Index marker = 0; marker < genetic.cols(); ++marker)
+            {
+                const auto stats = encoder.count(marker);
+                const auto encoding = encoder.encoding(
+                    marker,
+                    stats,
+                    gelex::encoding_spec_from_method(mode, method));
+                encoder.expand(marker, encoding, dense.col(marker));
+                if (encoding.valid)
+                {
+                    valid_indices.push_back(marker);
+                }
+
+                const Eigen::VectorXd probe{{0.5, -1.0, 2.0, 0.25}};
+                Eigen::VectorXd expanded = Eigen::VectorXd::Zero(4);
+                genetic.axpy(mode, marker, 1.0, expanded);
+                CHECK(expanded.isApprox(dense.col(marker)));
+                CHECK(
+                    genetic.dot(mode, marker, probe)
+                    == Catch::Approx(dense.col(marker).dot(probe)));
+            }
+
+            CHECK(genetic.xtx_diag(mode).isApprox(
+                dense.colwise().squaredNorm().transpose()));
+            Eigen::RowVectorXd variance(dense.cols());
+            for (Eigen::Index marker = 0; marker < dense.cols(); ++marker)
+            {
+                const double mean = dense.col(marker).mean();
+                variance[marker]
+                    = dense.col(marker).array().square().mean() - mean * mean;
+            }
+            CHECK(genetic.col_var(mode).isApprox(variance));
+            CHECK(
+                std::vector<Eigen::Index>{
+                    genetic.valid_indices(mode).begin(),
+                    genetic.valid_indices(mode).end()}
+                == valid_indices);
+        }
+
+        Eigen::RowVectorXd covariance(genetic.cols());
+        for (Eigen::Index marker = 0; marker < genetic.cols(); ++marker)
+        {
+            Eigen::VectorXd additive_column = Eigen::VectorXd::Zero(4);
+            Eigen::VectorXd dominance_column = Eigen::VectorXd::Zero(4);
+            genetic.axpy(GeneticMode::A, marker, 1.0, additive_column);
+            genetic.axpy(GeneticMode::D, marker, 1.0, dominance_column);
+            covariance[marker]
+                = (additive_column.array() * dominance_column.array()).mean()
+                  - (additive_column.mean() * dominance_column.mean());
+        }
+        CHECK(genetic.col_covariance(GeneticMode::A, GeneticMode::D)
+                  .isApprox(covariance));
+    }
+}
+
+TEST_CASE(
+    "GeneticDesign resolves an omitted mode only when unambiguous",
+    "[bayes][compact]")
+{
+    auto single = gelex::test::make_genetic_design(
+        Eigen::MatrixXd{{0.0}, {1.0}, {2.0}});
+    const Eigen::VectorXd probe{{1.0, 2.0, 3.0}};
+    Eigen::VectorXd implicit = Eigen::VectorXd::Zero(3);
+    Eigen::VectorXd explicit_additive = Eigen::VectorXd::Zero(3);
+
+    single.axpy(0, 1.0, implicit);
+    single.axpy(GeneticMode::A, 0, 1.0, explicit_additive);
+
+    REQUIRE(implicit.isApprox(explicit_additive));
+    REQUIRE(single.dot(0, probe) == single.dot(GeneticMode::A, 0, probe));
+    REQUIRE(single.xtx_diag().isApprox(single.xtx_diag(GeneticMode::A)));
+    REQUIRE(single.col_var().isApprox(single.col_var(GeneticMode::A)));
+    REQUIRE(
+        single.valid_indices().size()
+        == single.valid_indices(GeneticMode::A).size());
+    REQUIRE(single.snp_luts().isApprox(single.snp_luts(GeneticMode::A)));
+
+    auto empty = gelex::test::make_genetic_design(
+        Eigen::MatrixXd{{0.0}, {1.0}, {2.0}}, gelex::GeneticModeSet{});
+    auto joint = gelex::test::make_genetic_design(
+        Eigen::MatrixXd{{0.0}, {1.0}, {2.0}}, GeneticMode::A | GeneticMode::D);
+
+    REQUIRE_THROWS_AS(empty.xtx_diag(), gelex::GelexException);
+    REQUIRE_THROWS_AS(joint.xtx_diag(), gelex::GelexException);
+    REQUIRE_THROWS_AS(single.xtx_diag(GeneticMode::D), gelex::GelexException);
+}
+
+TEST_CASE("CompactGenotype supports a single marker BED", "[bayes][compact]")
+{
+    const gelex::bayes::CompactGenotype genotype{
+        gelex::test::make_bed(Eigen::MatrixXd{{0.0}, {1.0}, {2.0}})};
+    REQUIRE(genotype.rows() == 3);
+    REQUIRE(genotype.cols() == 1);
+    REQUIRE(genotype.size_bytes() == 3);
+}

@@ -14,23 +14,18 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_DATA_SNP_STATS_H_
-#define GELEX_DATA_SNP_STATS_H_
+#ifndef GELEX_DATA_SNP_LUT_H_
+#define GELEX_DATA_SNP_LUT_H_
 
 #include <Eigen/Core>
-#include <cstdint>
-#include <vector>
 
 namespace gelex
 {
 
-struct SnpStats
-{
-    Eigen::MatrixXd code;
-    Eigen::VectorXd A1freq;
-    std::vector<int64_t> valid_indices;
-};
+// Indexed by raw BED code: 00=A1A1, 01=missing, 10=A1A2, 11=A2A2.
+using SnpLut = Eigen::Array4d;
+using SnpLutMatrix = Eigen::Array<double, 4, Eigen::Dynamic, Eigen::ColMajor>;
 
 }  // namespace gelex
 
-#endif  // GELEX_DATA_SNP_STATS_H_
+#endif  // GELEX_DATA_SNP_LUT_H_

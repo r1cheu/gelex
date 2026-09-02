@@ -67,7 +67,8 @@ auto Result::append_pve_records(const BayesModel& model, std::size_t n_records)
 
     Eigen::VectorXd additive_beta;
     Eigen::VectorXd dominance_beta;
-    const auto pve_computer = detail::PveComputer{model, phenotype_var_};
+    const auto pve_computer
+        = detail::PveComputer{model.genetic(), phenotype_var_};
     for (std::size_t i = 0; i < n_records; ++i)
     {
         const auto& record = records_[i];

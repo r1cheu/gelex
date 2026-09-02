@@ -18,18 +18,22 @@
 #define GELEX_BAYES_DESIGN_H_
 
 #include <Eigen/Core>
-#include <cstdint>
+#include <memory>
+#include <span>
 #include <string>
+#include <utility>
 #include <vector>
 
-#include "gelex/data/genotype.h"
-#include "gelex/infra/stats/detail/var.h"
+#include "gelex/data/bed.h"
+#include "gelex/data/genotype_method.h"
+#include "gelex/data/snp_lut.h"
+#include "gelex/infra/logging/geno_event.h"
 #include "gelex/types/genetic_mode.h"
 
 namespace gelex
 {
 class FieldVisitor;
-}
+}  // namespace gelex
 
 namespace gelex::bayes
 {
@@ -47,34 +51,74 @@ struct RandomDesign
 
     std::string name;
     std::vector<std::string> levels;
-
     Eigen::MatrixXd X;
     Eigen::VectorXd XtX_diag;
 
     auto visit(FieldVisitor& visitor) const -> void;
 };
 
-struct GeneticDesign
+class GeneticDesign
 {
-    GeneticDesign(GeneticMode type, gelex::Genotype&& X)
-        : type(type), X(std::move(X))
-    {
-        XtX_diag = this->X.matrix().colwise().squaredNorm();
-        col_var = gelex::detail::matvar<0>(
-            this->X.matrix(), gelex::detail::VarNormType::Population);
-    }
+   public:
+    GeneticDesign(
+        gelex::Bed bed,
+        GeneticModeSet modes,
+        GenotypeMethod geno_method,
+        gelex::GenoObserver observer = {});
 
-    GeneticMode type;
-    gelex::Genotype X;
-    Eigen::VectorXd XtX_diag;
-    Eigen::RowVectorXd col_var;
+    GeneticDesign(const GeneticDesign&) = delete;
+    auto operator=(const GeneticDesign&) -> GeneticDesign& = delete;
+    GeneticDesign(GeneticDesign&&) noexcept;
+    auto operator=(GeneticDesign&&) noexcept -> GeneticDesign&;
+    ~GeneticDesign();
 
-    auto valid_indices() const -> const std::vector<int64_t>&
-    {
-        return X.valid_indices();
-    }
+    [[nodiscard]] auto rows() const noexcept -> Eigen::Index;
+    [[nodiscard]] auto cols() const noexcept -> Eigen::Index;
+    [[nodiscard]] auto modes() const noexcept -> GeneticModeSet;
 
-    auto num_invalid() const -> Eigen::Index { return X.num_invalid(); }
+    [[nodiscard]] auto a1_frequency() const noexcept -> const Eigen::VectorXd&;
+
+    [[nodiscard]] auto xtx_diag() const -> const Eigen::VectorXd&;
+    [[nodiscard]] auto xtx_diag(GeneticMode mode) const
+        -> const Eigen::VectorXd&;
+
+    [[nodiscard]] auto col_var() const -> const Eigen::RowVectorXd&;
+    [[nodiscard]] auto col_var(GeneticMode mode) const
+        -> const Eigen::RowVectorXd&;
+
+    [[nodiscard]] auto valid_indices() const -> std::span<const Eigen::Index>;
+    [[nodiscard]] auto valid_indices(GeneticMode mode) const
+        -> std::span<const Eigen::Index>;
+
+    [[nodiscard]] auto dot(
+        Eigen::Index marker,
+        const Eigen::Ref<const Eigen::VectorXd>& values) const -> double;
+    [[nodiscard]] auto dot(
+        GeneticMode mode,
+        Eigen::Index marker,
+        const Eigen::Ref<const Eigen::VectorXd>& values) const -> double;
+
+    auto axpy(
+        Eigen::Index marker,
+        double scale,
+        Eigen::Ref<Eigen::VectorXd> values) const -> void;
+    auto axpy(
+        GeneticMode mode,
+        Eigen::Index marker,
+        double scale,
+        Eigen::Ref<Eigen::VectorXd> values) const -> void;
+
+    [[nodiscard]] auto snp_luts() const -> const gelex::SnpLutMatrix&;
+    [[nodiscard]] auto snp_luts(GeneticMode mode) const
+        -> const gelex::SnpLutMatrix&;
+
+    [[nodiscard]] auto col_covariance(
+        GeneticMode lhs_mode,
+        GeneticMode rhs_mode) const -> Eigen::RowVectorXd;
+
+   private:
+    class Impl;
+    std::unique_ptr<Impl> impl_;
 };
 
 }  // namespace gelex::bayes

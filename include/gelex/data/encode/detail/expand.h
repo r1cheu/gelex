@@ -22,35 +22,18 @@
 #include <cstdint>
 #include <span>
 
-#include "gelex/data/encode/types.h"
-
 namespace gelex::detail
 {
 
 // Expands one 2-bit-packed BED variant directly into its encoded column,
-// gathering source samples to target rows. Fuses decode (code -> dosage) and
-// encoding (dosage -> encoded value) into a single 4-entry lookup indexed by
-// the raw .bed code:
-//   00 -> dosage 2 -> code[2]   01 -> missing_encoded_value
-//   10 -> dosage 1 -> code[1]   11 -> dosage 0 -> code[0]
+// gathering source samples to target rows through a 4-entry lookup indexed by
+// the raw .bed code: 00 -> A1A1, 01 -> missing, 10 -> A1A2, 11 -> A2A2.
 inline auto expand_encoded_column(
     std::span<const std::uint8_t> variant_bytes,
     std::span<const Eigen::Index> target_to_source,
-    const LocusEncoding& encoding,
+    const Eigen::Ref<const Eigen::Array4d>& lut,
     Eigen::Ref<Eigen::VectorXd> out) -> void
 {
-    if (!encoding.valid)
-    {
-        out.setZero();
-        return;
-    }
-
-    const Eigen::Array4d lut{
-        encoding.code[2],
-        encoding.missing_encoded_value,
-        encoding.code[1],
-        encoding.code[0]};
-
     for (Eigen::Index row = 0;
          row < static_cast<Eigen::Index>(target_to_source.size());
          ++row)

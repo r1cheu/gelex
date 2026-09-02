@@ -88,15 +88,15 @@ SingleGeneticBlockState::SingleGeneticBlockState(
     const GeneticDesign& design,
     const SingleGeneticPrior& prior)
     : mode_{gelex::bayes::mode(prior)},
-      state_{design.X.cols(), design.X.rows()},
-      prior_state_(make_state(prior, design.X.cols(), design.X.rows()))
+      state_{design.cols(), design.rows()},
+      prior_state_(make_state(prior, design.cols(), design.rows()))
 {
-    if (design.type != mode_)
+    if (!design.modes().contains(mode_))
     {
         throw GelexException(
             fmt::format(
-                "SingleGeneticBlockState: design mode {} != prior mode {}",
-                design.type,
+                "SingleGeneticBlockState: missing genetic projection for mode "
+                "{}",
                 mode_));
     }
 }
@@ -111,38 +111,21 @@ auto SingleGeneticBlockState::visit(FieldVisitor& visitor) -> void
 }
 
 JointGeneticBlockState::JointGeneticBlockState(
-    const GeneticDesign& additive,
-    const GeneticDesign& dominance,
+    const GeneticDesign& design,
     const JointGeneticPrior& prior)
-    : additive_{additive.X.cols(), additive.X.rows()},
-      dominance_{dominance.X.cols(), dominance.X.rows()},
-      prior_state_(make_state(prior, additive.X.cols(), additive.X.rows()))
+    : additive_{design.cols(), design.rows()},
+      dominance_{design.cols(), design.rows()},
+      prior_state_(make_state(prior, design.cols(), design.rows()))
 {
-    if (additive.type != GeneticMode::A)
+    if (!design.modes().contains(GeneticMode::A))
     {
         throw GelexException(
-            fmt::format(
-                "JointGeneticBlockState: additive design has mode {}",
-                additive.type));
+            "JointGeneticBlockState: missing genetic projection for mode A");
     }
-    if (dominance.type != GeneticMode::D)
+    if (!design.modes().contains(GeneticMode::D))
     {
         throw GelexException(
-            fmt::format(
-                "JointGeneticBlockState: dominance design has mode {}",
-                dominance.type));
-    }
-    if (additive.X.rows() != dominance.X.rows()
-        || additive.X.cols() != dominance.X.cols())
-    {
-        throw GelexException(
-            fmt::format(
-                "JointGeneticBlockState: genetic designs must share shape; "
-                "A is {}x{}, D is {}x{}",
-                additive.X.rows(),
-                additive.X.cols(),
-                dominance.X.rows(),
-                dominance.X.cols()));
+            "JointGeneticBlockState: missing genetic projection for mode D");
     }
 }
 
@@ -226,38 +209,15 @@ BayesState::BayesState(const BayesModel& model, const bayes::BayesPrior& prior)
                         std::decay_t<decltype(genetic_prior)>,
                         bayes::SingleGeneticPrior>)
                 {
-                    const auto prior_mode = bayes::mode(genetic_prior);
-                    const auto* design = model.genetic(prior_mode);
-                    if (design == nullptr)
-                    {
-                        throw GelexException(
-                            fmt::format(
-                                "BayesState: missing genetic design for "
-                                "mode {}",
-                                prior_mode));
-                    }
                     genetics_.emplace_back(
-                        bayes::SingleGeneticBlockState{*design, genetic_prior});
+                        bayes::SingleGeneticBlockState{
+                            model.genetic(), genetic_prior});
                 }
                 else
                 {
-                    const auto* additive = model.genetic(GeneticMode::A);
-                    if (additive == nullptr)
-                    {
-                        throw GelexException(
-                            "BayesState: missing genetic design for mode A");
-                    }
-
-                    const auto* dominance = model.genetic(GeneticMode::D);
-                    if (dominance == nullptr)
-                    {
-                        throw GelexException(
-                            "BayesState: missing genetic design for mode D");
-                    }
-
                     genetics_.emplace_back(
                         bayes::JointGeneticBlockState{
-                            *additive, *dominance, genetic_prior});
+                            model.genetic(), genetic_prior});
                 }
             },
             block);

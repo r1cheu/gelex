@@ -31,7 +31,7 @@
 #include "gelex/data/reader.h"
 #include "gelex/data/snp_alignment.h"
 #include "gelex/exception.h"
-#include "gelex/io/snpstats.h"
+#include "gelex/io/snp_lut.h"
 #include "gelex/types/genetic_mode.h"
 
 #include "cli/formatter.h"
@@ -49,27 +49,36 @@ auto predict_execute(const cli::PredictConfig& config) -> int
 
     // Load and parse the trained model.
     auto snp_effects = gelex::read_snp_effects(gfile_prefix + ".snpeff");
-    auto snp_stats = gelex::load_snp_stats(gfile_prefix + ".snpstats");
+    auto snp_luts = gelex::load_snp_luts(gfile_prefix + ".snplut");
     auto param = gelex::read_param(gfile_prefix + ".param");
 
-    if (snp_stats.empty())
+    if (snp_luts.empty())
     {
         throw gelex::GelexException(
-            ".snpstats file contains neither additive nor dominance stats.");
+            ".snplut file contains neither additive nor dominance LUTs.");
     }
 
     gelex::ModeMap<Eigen::VectorXd> effects;
-    for (const auto mode : std::views::keys(snp_stats))
+    for (const auto& [mode, luts] : snp_luts)
     {
         const auto column = fmt::format("BETA_{}", mode);
         if (!snp_effects.contains(column))
         {
             throw gelex::GelexException(
                 fmt::format(
-                    ".snpstats file contains {} stats, but SNP effects file "
+                    ".snplut file contains a {} LUT, but SNP effects file "
                     "does not have '{}' column.",
                     mode,
                     column));
+        }
+        if (luts.cols() != snp_effects.rows())
+        {
+            throw gelex::GelexException(
+                fmt::format(
+                    ".snplut mode {} has {} SNPs, but SNP effects file has {}",
+                    mode,
+                    luts.cols(),
+                    snp_effects.rows()));
         }
         effects.emplace(mode, snp_effects[column].to_mat<double>());
     }
@@ -140,10 +149,10 @@ auto predict_execute(const cli::PredictConfig& config) -> int
     }
 
     gelex::ModeMap<Eigen::MatrixXd> geno;
-    for (const auto& [mode, stats] : snp_stats)
+    for (const auto& [mode, luts] : snp_luts)
     {
         geno.emplace(
-            mode, gelex::expand_aligned_genotypes(bed, alignment, stats));
+            mode, gelex::expand_aligned_genotypes(bed, alignment, luts));
     }
 
     // Compute predictions.

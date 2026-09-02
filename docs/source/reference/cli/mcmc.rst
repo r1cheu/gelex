@@ -157,14 +157,8 @@ Options
 
 .. rubric:: Performance
 
-``-c, --chunk-size`` ``10000``
-   Number of SNPs per processing chunk. Lower values reduce peak memory.
-
 ``-t, --threads`` ``half of available CPU cores``
    Number of CPU threads to use.
-
-``--mmap`` ``false``
-   Enable memory-mapped I/O. Usually lowers RAM pressure and may reduce speed.
 
 Output Files
 ------------
@@ -181,7 +175,7 @@ After a successful run, check files with your output prefix first.
    * - ``<out>.snpeff``
      - Estimated SNP effects
      - Read by ``gelex predict --gfile <out>``
-   * - ``<out>.snpstats``
+   * - ``<out>.snplut``
      - Per-SNP genotype statistics used for coding
      - Read by ``gelex predict --gfile <out>``
    * - ``<out>.param``
@@ -206,11 +200,6 @@ Warnings and Notes
    20%-50% of ``--iters``. Increase ``--iters`` when posterior summaries are
    unstable across runs.
 
-.. note::
-
-   If memory is limited, reduce ``--chunk-size`` first, then enable
-   ``--mmap``. This usually lowers RAM usage with a possible runtime penalty.
-
 Examples
 --------
 
@@ -223,7 +212,7 @@ Examples
       -m RR \
       -o model_rr
 
-Expected outputs: ``model_rr.snpeff``, ``model_rr.snpstats``, ``model_rr.param``, ``model_rr.summary``, ``model_rr.log``.
+Expected outputs: ``model_rr.snpeff``, ``model_rr.snplut``, ``model_rr.param``, ``model_rr.summary``, ``model_rr.log``.
 
 .. code-block:: bash
    :caption: Accuracy-Oriented Training (R)
@@ -234,7 +223,7 @@ Expected outputs: ``model_rr.snpeff``, ``model_rr.snpstats``, ``model_rr.param``
       -m R \
       -o model_bayesr
 
-Expected outputs: ``model_bayesr.snpeff``, ``model_bayesr.snpstats``, ``model_bayesr.param``, ``model_bayesr.summary``, ``model_bayesr.log``.
+Expected outputs: ``model_bayesr.snpeff``, ``model_bayesr.snplut``, ``model_bayesr.param``, ``model_bayesr.summary``, ``model_bayesr.log``.
 
 .. code-block:: bash
    :caption: Sparse Effects with Variable Selection (B)

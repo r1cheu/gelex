@@ -18,15 +18,17 @@
 
 #include <Eigen/Core>
 
-#include "gelex/bayes/model.h"
+#include "gelex/bayes/design.h"
 #include "gelex/exception.h"
 #include "gelex/types/genetic_mode.h"
 
 namespace gelex::detail
 {
 
-PveComputer::PveComputer(const BayesModel& model, double phenotype_var)
-    : model_(model), phenotype_var_(phenotype_var)
+PveComputer::PveComputer(
+    const bayes::GeneticDesign& design,
+    double phenotype_var)
+    : design_(design), phenotype_var_(phenotype_var)
 {
     if (phenotype_var_ <= 0.0)
     {
@@ -34,43 +36,26 @@ PveComputer::PveComputer(const BayesModel& model, double phenotype_var)
             "PveComputer: phenotype variance must be positive");
     }
 
-    const auto* additive = model_.genetic(GeneticMode::A);
-    const auto* dominance = model_.genetic(GeneticMode::D);
-    if (additive == nullptr || dominance == nullptr)
+    if (!design_.modes().contains(GeneticMode::A)
+        || !design_.modes().contains(GeneticMode::D))
     {
         return;
     }
 
-    if (additive->X.cols() != dominance->X.cols())
-    {
-        throw GelexException("PveComputer: joint A/D design size mismatch");
-    }
-
-    cov_ad_ = Eigen::RowVectorXd::Zero(additive->X.cols());
-    for (Eigen::Index i = 0; i < additive->X.cols(); ++i)
-    {
-        cov_ad_(i)
-            = additive->X.matrix().col(i).dot(dominance->X.matrix().col(i))
-              / static_cast<double>(additive->X.rows());
-    }
+    cov_ad_ = design_.col_covariance(GeneticMode::A, GeneticMode::D);
 }
 
 auto PveComputer::single(
     GeneticMode mode,
     const Eigen::Ref<const Eigen::VectorXd>& beta) const -> Eigen::VectorXd
 {
-    const auto* design = model_.genetic(mode);
-    if (design == nullptr)
-    {
-        throw GelexException("PveComputer: missing genetic design");
-    }
-
-    if (design->col_var.size() != beta.size())
+    const auto& col_var = design_.col_var(mode);
+    if (col_var.size() != beta.size())
     {
         throw GelexException("PveComputer: beta and col_var size mismatch");
     }
 
-    return (design->col_var.transpose().array() * beta.array().square()
+    return (col_var.transpose().array() * beta.array().square()
             / phenotype_var_)
         .matrix()
         .eval();
@@ -80,23 +65,18 @@ auto PveComputer::total(
     const Eigen::Ref<const Eigen::VectorXd>& beta_A,
     const Eigen::Ref<const Eigen::VectorXd>& beta_D) const -> Eigen::VectorXd
 {
-    const auto* additive = model_.genetic(GeneticMode::A);
-    const auto* dominance = model_.genetic(GeneticMode::D);
-    if (additive == nullptr || dominance == nullptr)
-    {
-        throw GelexException("PveComputer: missing A/D genetic design");
-    }
-
+    const auto& additive_col_var = design_.col_var(GeneticMode::A);
+    const auto& dominance_col_var = design_.col_var(GeneticMode::D);
     if (beta_A.size() != beta_D.size()
-        || beta_A.size() != additive->col_var.size()
-        || beta_A.size() != dominance->col_var.size()
+        || beta_A.size() != additive_col_var.size()
+        || beta_A.size() != dominance_col_var.size()
         || beta_A.size() != cov_ad_.size())
     {
         throw GelexException("PveComputer: total A/D size mismatch");
     }
 
-    return (beta_A.array().square() * additive->col_var.transpose().array()
-            + beta_D.array().square() * dominance->col_var.transpose().array()
+    return (beta_A.array().square() * additive_col_var.transpose().array()
+            + beta_D.array().square() * dominance_col_var.transpose().array()
             + 2.0 * beta_A.array() * beta_D.array()
                   * cov_ad_.transpose().array())
                .matrix()

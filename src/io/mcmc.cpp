@@ -201,9 +201,7 @@ auto write_snp_eff(
     const bool has_dominance = column_indices.contains("BETA_D");
     const bool needs_total_pve = has_additive && has_dominance;
 
-    const auto* allele_design = has_additive ? model.genetic(GeneticMode::A)
-                                             : model.genetic(GeneticMode::D);
-    const auto& A1freq = allele_design->X.A1freq();
+    const auto& A1freq = model.genetic().a1_frequency();
     const auto n_snps = A1freq.size();
 
     auto bim = read_bim(bim_path);

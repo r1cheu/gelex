@@ -15,9 +15,11 @@
  */
 
 #include <Eigen/Core>
+#include <array>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <cmath>
+#include <cstddef>
 #include <limits>
 
 #include "gelex/data/encode/detail/encoding.h"
@@ -36,9 +38,9 @@ using namespace gelex;
 namespace
 {
 constexpr double TOLERANCE = 1e-12;
+constexpr std::array<Eigen::Index, 3> RAW_CODE_BY_DOSAGE{3, 2, 0};
 
-// Standardizes one genotype column through the fused per-locus path: tabulate
-// classes, then derive the standardized codes.
+// Standardizes one genotype column through the fused per-locus path.
 auto encode_column(const Eigen::VectorXd& column, const EncodingSpec& spec)
     -> LocusEncoding
 {
@@ -117,7 +119,7 @@ TEST_CASE(
 }
 
 TEST_CASE(
-    "make_locus_encoding fits additive center-scale code",
+    "make_locus_encoding fits additive center-scale LUT",
     "[data][encoding]")
 {
     const gelex::LocusStats stats{
@@ -137,14 +139,14 @@ TEST_CASE(
     REQUIRE_THAT(encoding.mean, WithinRel(1.0, TOLERANCE));
     REQUIRE_THAT(encoding.var, WithinRel(0.5, TOLERANCE));
     REQUIRE_THAT(encoding.sd, WithinRel(sd, TOLERANCE));
-    REQUIRE_THAT(encoding.code[0], WithinRel(-1.0 / sd, TOLERANCE));
-    REQUIRE_THAT(encoding.code[1], WithinAbs(0.0, TOLERANCE));
-    REQUIRE_THAT(encoding.code[2], WithinRel(1.0 / sd, TOLERANCE));
-    REQUIRE_THAT(encoding.missing_encoded_value, WithinAbs(0.0, TOLERANCE));
+    REQUIRE_THAT(encoding.lut[3], WithinRel(-1.0 / sd, TOLERANCE));
+    REQUIRE_THAT(encoding.lut[2], WithinAbs(0.0, TOLERANCE));
+    REQUIRE_THAT(encoding.lut[0], WithinRel(1.0 / sd, TOLERANCE));
+    REQUIRE_THAT(encoding.lut[1], WithinAbs(0.0, TOLERANCE));
 }
 
 TEST_CASE(
-    "additive locus codes match genotype processor values",
+    "additive locus LUTs match genotype processor values",
     "[data][encoding]")
 {
     const Eigen::VectorXd genotypes{{0.0, 1.0, 2.0, 1.0, 0.0}};
@@ -159,9 +161,9 @@ TEST_CASE(
         REQUIRE(enc.valid);
         REQUIRE_THAT(enc.mean, WithinRel(0.8, TOLERANCE));
         REQUIRE_THAT(enc.sd, WithinRel(sd, TOLERANCE));
-        REQUIRE_THAT(enc.code[0], WithinRel(-0.8 / sd, TOLERANCE));
-        REQUIRE_THAT(enc.code[1], WithinRel(0.2 / sd, TOLERANCE));
-        REQUIRE_THAT(enc.code[2], WithinRel(1.2 / sd, TOLERANCE));
+        REQUIRE_THAT(enc.lut[3], WithinRel(-0.8 / sd, TOLERANCE));
+        REQUIRE_THAT(enc.lut[2], WithinRel(0.2 / sd, TOLERANCE));
+        REQUIRE_THAT(enc.lut[0], WithinRel(1.2 / sd, TOLERANCE));
     }
 
     SECTION("empirical center")
@@ -172,9 +174,9 @@ TEST_CASE(
 
         REQUIRE(enc.valid);
         REQUIRE_THAT(enc.mean, WithinRel(0.8, TOLERANCE));
-        REQUIRE_THAT(enc.code[0], WithinRel(-0.8, TOLERANCE));
-        REQUIRE_THAT(enc.code[1], WithinRel(0.2, TOLERANCE));
-        REQUIRE_THAT(enc.code[2], WithinRel(1.2, TOLERANCE));
+        REQUIRE_THAT(enc.lut[3], WithinRel(-0.8, TOLERANCE));
+        REQUIRE_THAT(enc.lut[2], WithinRel(0.2, TOLERANCE));
+        REQUIRE_THAT(enc.lut[0], WithinRel(1.2, TOLERANCE));
     }
 
     SECTION("theoretical center-scale")
@@ -187,14 +189,14 @@ TEST_CASE(
         REQUIRE(enc.valid);
         REQUIRE_THAT(enc.mean, WithinRel(0.8, TOLERANCE));
         REQUIRE_THAT(enc.sd, WithinRel(sd, TOLERANCE));
-        REQUIRE_THAT(enc.code[0], WithinRel(-0.8 / sd, TOLERANCE));
-        REQUIRE_THAT(enc.code[1], WithinRel(0.2 / sd, TOLERANCE));
-        REQUIRE_THAT(enc.code[2], WithinRel(1.2 / sd, TOLERANCE));
+        REQUIRE_THAT(enc.lut[3], WithinRel(-0.8 / sd, TOLERANCE));
+        REQUIRE_THAT(enc.lut[2], WithinRel(0.2 / sd, TOLERANCE));
+        REQUIRE_THAT(enc.lut[0], WithinRel(1.2 / sd, TOLERANCE));
     }
 }
 
 TEST_CASE(
-    "dominance locus codes match genotype processor values",
+    "dominance locus LUTs match genotype processor values",
     "[data][encoding]")
 {
     SECTION("heterozygote empirical center-scale")
@@ -209,9 +211,9 @@ TEST_CASE(
         REQUIRE(enc.valid);
         REQUIRE_THAT(enc.mean, WithinRel(mean, TOLERANCE));
         REQUIRE_THAT(enc.sd, WithinRel(sd, TOLERANCE));
-        REQUIRE_THAT(enc.code[0], WithinRel(-mean / sd, TOLERANCE));
-        REQUIRE_THAT(enc.code[1], WithinRel((1.0 - mean) / sd, TOLERANCE));
-        REQUIRE_THAT(enc.code[2], WithinRel(-mean / sd, TOLERANCE));
+        REQUIRE_THAT(enc.lut[3], WithinRel(-mean / sd, TOLERANCE));
+        REQUIRE_THAT(enc.lut[2], WithinRel((1.0 - mean) / sd, TOLERANCE));
+        REQUIRE_THAT(enc.lut[0], WithinRel(-mean / sd, TOLERANCE));
     }
 
     SECTION("heterozygote theoretical center-scale")
@@ -227,9 +229,9 @@ TEST_CASE(
         REQUIRE(enc.valid);
         REQUIRE_THAT(enc.mean, WithinRel(mean, TOLERANCE));
         REQUIRE_THAT(enc.sd, WithinRel(sd, TOLERANCE));
-        REQUIRE_THAT(enc.code[0], WithinRel(-mean / sd, TOLERANCE));
-        REQUIRE_THAT(enc.code[1], WithinRel((1.0 - mean) / sd, TOLERANCE));
-        REQUIRE_THAT(enc.code[2], WithinRel(-mean / sd, TOLERANCE));
+        REQUIRE_THAT(enc.lut[3], WithinRel(-mean / sd, TOLERANCE));
+        REQUIRE_THAT(enc.lut[2], WithinRel((1.0 - mean) / sd, TOLERANCE));
+        REQUIRE_THAT(enc.lut[0], WithinRel(-mean / sd, TOLERANCE));
     }
 
     SECTION("orthogonal empirical center")
@@ -241,9 +243,9 @@ TEST_CASE(
 
         REQUIRE(enc.valid);
         REQUIRE_THAT(enc.mean, WithinRel(0.24, TOLERANCE));
-        REQUIRE_THAT(enc.code[0], WithinRel(-0.24, TOLERANCE));
-        REQUIRE_THAT(enc.code[1], WithinRel(0.56, TOLERANCE));
-        REQUIRE_THAT(enc.code[2], WithinRel(-0.64, TOLERANCE));
+        REQUIRE_THAT(enc.lut[3], WithinRel(-0.24, TOLERANCE));
+        REQUIRE_THAT(enc.lut[2], WithinRel(0.56, TOLERANCE));
+        REQUIRE_THAT(enc.lut[0], WithinRel(-0.64, TOLERANCE));
     }
 
     SECTION("orthogonal empirical center-scale")
@@ -257,9 +259,9 @@ TEST_CASE(
         REQUIRE(enc.valid);
         REQUIRE_THAT(enc.mean, WithinRel(0.24, TOLERANCE));
         REQUIRE_THAT(enc.sd, WithinRel(sd, TOLERANCE));
-        REQUIRE_THAT(enc.code[0], WithinRel(-0.24 / sd, TOLERANCE));
-        REQUIRE_THAT(enc.code[1], WithinRel(0.56 / sd, TOLERANCE));
-        REQUIRE_THAT(enc.code[2], WithinRel(-0.64 / sd, TOLERANCE));
+        REQUIRE_THAT(enc.lut[3], WithinRel(-0.24 / sd, TOLERANCE));
+        REQUIRE_THAT(enc.lut[2], WithinRel(0.56 / sd, TOLERANCE));
+        REQUIRE_THAT(enc.lut[0], WithinRel(-0.64 / sd, TOLERANCE));
     }
 
     SECTION("orthogonal theoretical center-scale")
@@ -273,15 +275,13 @@ TEST_CASE(
         REQUIRE(enc.valid);
         REQUIRE_THAT(enc.mean, WithinRel(0.32, TOLERANCE));
         REQUIRE_THAT(enc.sd, WithinRel(sd, TOLERANCE));
-        REQUIRE_THAT(enc.code[0], WithinRel(-0.32 / sd, TOLERANCE));
-        REQUIRE_THAT(enc.code[1], WithinRel(0.48 / sd, TOLERANCE));
-        REQUIRE_THAT(enc.code[2], WithinRel(-0.72 / sd, TOLERANCE));
+        REQUIRE_THAT(enc.lut[3], WithinRel(-0.32 / sd, TOLERANCE));
+        REQUIRE_THAT(enc.lut[2], WithinRel(0.48 / sd, TOLERANCE));
+        REQUIRE_THAT(enc.lut[0], WithinRel(-0.72 / sd, TOLERANCE));
     }
 }
 
-TEST_CASE(
-    "NOIA locus codes match genotype processor values",
-    "[data][encoding]")
+TEST_CASE("NOIA locus LUTs match genotype processor values", "[data][encoding]")
 {
     const double cA1A1{-0.32 / 0.56};
     const double cA1A2{0.32 / 0.56};
@@ -298,9 +298,9 @@ TEST_CASE(
         REQUIRE(enc.valid);
         REQUIRE_THAT(enc.mean, WithinRel(0.8, TOLERANCE));
         REQUIRE_THAT(enc.sd, WithinRel(sd, TOLERANCE));
-        REQUIRE_THAT(enc.code[0], WithinRel(-0.8 / sd, TOLERANCE));
-        REQUIRE_THAT(enc.code[1], WithinRel(0.2 / sd, TOLERANCE));
-        REQUIRE_THAT(enc.code[2], WithinRel(1.2 / sd, TOLERANCE));
+        REQUIRE_THAT(enc.lut[3], WithinRel(-0.8 / sd, TOLERANCE));
+        REQUIRE_THAT(enc.lut[2], WithinRel(0.2 / sd, TOLERANCE));
+        REQUIRE_THAT(enc.lut[0], WithinRel(1.2 / sd, TOLERANCE));
     }
 
     SECTION("dominance center")
@@ -312,9 +312,9 @@ TEST_CASE(
 
         REQUIRE(enc.valid);
         REQUIRE_THAT(enc.mean, WithinAbs(0.0, TOLERANCE));
-        REQUIRE_THAT(enc.code[0], WithinRel(cA2A2, TOLERANCE));
-        REQUIRE_THAT(enc.code[1], WithinRel(cA1A2, TOLERANCE));
-        REQUIRE_THAT(enc.code[2], WithinRel(cA1A1, TOLERANCE));
+        REQUIRE_THAT(enc.lut[3], WithinRel(cA2A2, TOLERANCE));
+        REQUIRE_THAT(enc.lut[2], WithinRel(cA1A2, TOLERANCE));
+        REQUIRE_THAT(enc.lut[0], WithinRel(cA1A1, TOLERANCE));
     }
 
     SECTION("dominance center-scale")
@@ -329,12 +329,12 @@ TEST_CASE(
 
         REQUIRE(enc.valid);
         REQUIRE_THAT(enc.sd, WithinRel(sd, TOLERANCE));
-        REQUIRE_THAT(enc.code[0], WithinRel(cA2A2 / sd, TOLERANCE));
-        REQUIRE_THAT(enc.code[1], WithinRel(cA1A2 / sd, TOLERANCE));
-        REQUIRE_THAT(enc.code[2], WithinRel(cA1A1 / sd, TOLERANCE));
+        REQUIRE_THAT(enc.lut[3], WithinRel(cA2A2 / sd, TOLERANCE));
+        REQUIRE_THAT(enc.lut[2], WithinRel(cA1A2 / sd, TOLERANCE));
+        REQUIRE_THAT(enc.lut[0], WithinRel(cA1A1 / sd, TOLERANCE));
     }
 
-    SECTION("additive and dominance center codes are sample-orthogonal")
+    SECTION("additive and dominance center LUTs are sample-orthogonal")
     {
         const Eigen::VectorXd genotypes{
             {2.0, 2.0, 2.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0}};
@@ -350,7 +350,8 @@ TEST_CASE(
             Eigen::VectorXd out(genotypes.size());
             for (Eigen::Index i = 0; i < genotypes.size(); ++i)
             {
-                out[i] = enc.code[static_cast<Eigen::Index>(genotypes[i])];
+                out[i] = enc.lut[RAW_CODE_BY_DOSAGE[static_cast<std::size_t>(
+                    genotypes[i])]];
             }
             return out;
         };
@@ -370,7 +371,9 @@ TEST_CASE(
         const EncodingSpec spec{encoding_spec_from_method(
             GeneticMode::A, GenotypeMethod::Standardize)};
 
-        REQUIRE_FALSE(encode_column(genotypes, spec).valid);
+        const LocusEncoding enc{encode_column(genotypes, spec)};
+        REQUIRE_FALSE(enc.valid);
+        REQUIRE(enc.lut.isZero());
     }
 
     SECTION("NOIA dominance without heterozygotes")
@@ -379,10 +382,12 @@ TEST_CASE(
         const EncodingSpec spec{encoding_spec_from_method(
             GeneticMode::D, GenotypeMethod::NOIAStandardize)};
 
-        REQUIRE_FALSE(encode_column(genotypes, spec).valid);
+        const LocusEncoding enc{encode_column(genotypes, spec)};
+        REQUIRE_FALSE(enc.valid);
+        REQUIRE(enc.lut.isZero());
     }
 
-    SECTION("missing genotype encodes to the analytic mean after centering")
+    SECTION("centered encoding maps missing genotype to zero")
     {
         const double nan_value{std::numeric_limits<double>::quiet_NaN()};
         const Eigen::VectorXd genotypes{{0.0, 1.0, nan_value, 2.0, 1.0}};
@@ -391,6 +396,21 @@ TEST_CASE(
         const LocusEncoding enc{encode_column(genotypes, spec)};
 
         REQUIRE(enc.valid);
-        REQUIRE_THAT(enc.missing_encoded_value, WithinAbs(0.0, TOLERANCE));
+        REQUIRE_THAT(enc.lut[1], WithinAbs(0.0, TOLERANCE));
+    }
+
+    SECTION("unnormalized encoding maps missing genotype to the analytic mean")
+    {
+        const Eigen::VectorXd genotypes{
+            {0.0, 1.0, std::numeric_limits<double>::quiet_NaN(), 2.0, 1.0}};
+        const EncodingSpec spec{
+            .effect = GeneticMode::A,
+            .normalization = Normalization::None,
+            .moment_basis = MomentBasis::Empirical};
+        const LocusEncoding enc{encode_column(genotypes, spec)};
+
+        REQUIRE(enc.valid);
+        REQUIRE_THAT(enc.mean, WithinAbs(1.0, TOLERANCE));
+        REQUIRE_THAT(enc.lut[1], WithinAbs(enc.mean, TOLERANCE));
     }
 }

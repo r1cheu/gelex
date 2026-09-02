@@ -39,12 +39,6 @@ auto setup_post_command(CLI::App& program, int& exit_code) -> void
         ->expected(1, -1)
         ->allow_extra_args()
         ->required();
-    cmd.add_option(
-           "-g,--gfile",
-           config->gfile,
-           "Genotype binary prefix for SNP diagnostics")
-        ->group("I/O")
-        ->type_name("<GFILE>");
     cmd.add_option("-o,--out", config->out, "Output prefix for logs")
         ->group("I/O")
         ->type_name("<PREFIX>")

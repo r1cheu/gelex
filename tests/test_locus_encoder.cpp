@@ -15,6 +15,7 @@
  */
 
 #include <Eigen/Core>
+#include <array>
 #include <catch2/catch_test_macros.hpp>
 #include <cmath>
 #include <cstddef>
@@ -33,6 +34,8 @@
 
 namespace
 {
+constexpr std::array<Eigen::Index, 3> RAW_CODE_BY_DOSAGE{3, 2, 0};
+
 using gelex::LocusEncoder;
 
 constexpr auto METHOD = gelex::GenotypeMethod::OrthStandardize;
@@ -63,8 +66,7 @@ auto make_dataset() -> Dataset
         std::move(bed)};
 }
 
-// Independent dosage-indexed oracle: maps each sample's dosage class through
-// the encoded code, mirroring what expand does from packed bytes.
+// Independent dosage-indexed oracle for the raw BED lookup.
 auto expected_column(
     const gelex::LocusEncoding& encoding,
     const Eigen::Ref<const Eigen::VectorXd>& dosage) -> Eigen::VectorXd
@@ -73,8 +75,10 @@ auto expected_column(
     for (Eigen::Index i = 0; i < dosage.size(); ++i)
     {
         const double d = dosage[i];
-        want[i] = std::isnan(d) ? encoding.missing_encoded_value
-                                : encoding.code(static_cast<Eigen::Index>(d));
+        const Eigen::Index raw_code
+            = std::isnan(d) ? 1
+                            : RAW_CODE_BY_DOSAGE[static_cast<std::size_t>(d)];
+        want[i] = encoding.lut[raw_code];
     }
     return want;
 }
@@ -102,7 +106,7 @@ TEST_CASE(
 }
 
 TEST_CASE(
-    "LocusEncoder expand maps each dosage class through the code per mode",
+    "LocusEncoder expand maps each raw code through the LUT per mode",
     "[data][locus_encoder]")
 {
     const Dataset data = make_dataset();
@@ -162,11 +166,10 @@ TEST_CASE("LocusEncoder shares one count across specs", "[data][locus_encoder]")
     }
 }
 
-// Anchors the prediction allele-flip strategy: swapping code[0]<->code[2] on
-// the training encoding is equivalent to standardizing 2 - dosage, so flipped
-// SNPs need no separate expand path.
+// Anchors the prediction allele-flip strategy: swapping LUT rows 0/3 is
+// equivalent to standardizing 2 - dosage.
 TEST_CASE(
-    "LocusEncoder::expand with swapped codes equals a 2 - dosage flip",
+    "LocusEncoder::expand with swapped LUT entries equals a 2 - dosage flip",
     "[data][locus_encoder]")
 {
     const Dataset data = make_dataset();
@@ -182,7 +185,7 @@ TEST_CASE(
             = encoder.encoding(snp, stats, spec);
 
         gelex::LocusEncoding flipped = encoding;
-        std::swap(flipped.code(0), flipped.code(2));
+        std::swap(flipped.lut(0), flipped.lut(3));
 
         Eigen::VectorXd got(n);
         encoder.expand(snp, flipped, got);
@@ -191,9 +194,14 @@ TEST_CASE(
         for (Eigen::Index i = 0; i < n; ++i)
         {
             const double d = data.genotypes(i, snp);
-            want[i] = std::isnan(d)
-                          ? encoding.missing_encoded_value
-                          : encoding.code(2 - static_cast<Eigen::Index>(d));
+            if (std::isnan(d))
+            {
+                want[i] = encoding.lut[1];
+                continue;
+            }
+            const auto flipped_dosage
+                = static_cast<std::size_t>(2 - static_cast<Eigen::Index>(d));
+            want[i] = encoding.lut[RAW_CODE_BY_DOSAGE[flipped_dosage]];
         }
 
         INFO("snp=" << snp);

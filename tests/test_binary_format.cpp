@@ -30,23 +30,17 @@
 #include <string_view>
 #include <vector>
 
-#include "gelex/data/genotype_method.h"
-#include "gelex/data/genotype_reader.h"
 #include "gelex/data/reader.h"
 #include "gelex/exception.h"
 #include "gelex/io/binary_reader.h"
 #include "gelex/io/binary_writer.h"
-#include "gelex/types/genetic_mode.h"
 
-#include "bed_fixture.h"
 #include "file_fixture.h"
 
 namespace
 {
 
 namespace fs = std::filesystem;
-using namespace gelex;
-using namespace gelex;
 using namespace gelex;
 
 }  // namespace
@@ -437,177 +431,6 @@ TEST_CASE("BinaryWriter close commits complete container", "[binary_container]")
     BinaryReader reader(container_path.string());
     REQUIRE(reader.to_map<double>("state/fixed/coeffs")
                 .isApprox(Eigen::MatrixXd{{1.0, 2.0}}));
-}
-
-TEST_CASE(
-    "GenotypeReader memory and mmap reads produce identical results",
-    "[genotype_reader][diagnostic]")
-{
-    constexpr Eigen::Index NUM_SAMPLES = 50;
-    constexpr Eigen::Index NUM_SNPS = 200;
-    constexpr uint64_t SEED = 42;
-    constexpr double MISSING_RATE = 0.02;
-
-    test::BedFixture bed_fixture;
-    auto [prefix, raw_genotypes] = bed_fixture.create_bed_files(
-        NUM_SAMPLES, NUM_SNPS, MISSING_RATE, 0.05, 0.5, SEED);
-
-    auto bed = open_bed(prefix.string());
-
-    GenotypeReader mat_reader(bed);
-    auto mat_results = mat_reader.read_in_memory(
-        GeneticModeSet{GeneticMode::A}, GenotypeMethod::StandardizeHWE);
-    const auto& mat_result = mat_results.at(GeneticMode::A);
-
-    auto output_prefix
-        = bed_fixture.get_file_fixture().get_test_dir() / "mmap_out";
-    GenotypeReader map_reader(bed);
-    auto map_results = map_reader.read_mmap(
-        GeneticModeSet{GeneticMode::A},
-        GenotypeMethod::StandardizeHWE,
-        output_prefix);
-    const auto& map_result = map_results.at(GeneticMode::A);
-
-    SECTION("matrix dimensions match")
-    {
-        REQUIRE(mat_result.rows() == map_result.rows());
-        REQUIRE(mat_result.cols() == map_result.cols());
-    }
-
-    SECTION("genotype matrix data is bit-exact")
-    {
-        const auto& mat_data = mat_result.matrix();
-        const auto& map_data = map_result.matrix();
-
-        bool all_equal = true;
-        Eigen::Index first_diff_row = -1;
-        Eigen::Index first_diff_col = -1;
-        for (Eigen::Index c = 0; c < mat_data.cols() && all_equal; ++c)
-        {
-            for (Eigen::Index r = 0; r < mat_data.rows() && all_equal; ++r)
-            {
-                if (mat_data(r, c) != map_data(r, c))
-                {
-                    all_equal = false;
-                    first_diff_row = r;
-                    first_diff_col = c;
-                }
-            }
-        }
-        if (!all_equal)
-        {
-            UNSCOPED_INFO(
-                "First difference at ("
-                << first_diff_row << ", " << first_diff_col
-                << "): mat=" << mat_data(first_diff_row, first_diff_col)
-                << " map=" << map_data(first_diff_row, first_diff_col));
-        }
-        REQUIRE(all_equal);
-    }
-
-    SECTION("code matrices match")
-    {
-        const auto& mat_code = mat_result.stats().code;
-        const auto& map_code = map_result.stats().code;
-        REQUIRE(mat_code.rows() == map_code.rows());
-        REQUIRE(mat_code.cols() == map_code.cols());
-
-        bool all_equal = true;
-        Eigen::Index first_diff_row = -1;
-        Eigen::Index first_diff_col = -1;
-        for (Eigen::Index c = 0; c < mat_code.cols() && all_equal; ++c)
-        {
-            for (Eigen::Index r = 0; r < mat_code.rows() && all_equal; ++r)
-            {
-                if (mat_code(r, c) != map_code(r, c))
-                {
-                    all_equal = false;
-                    first_diff_row = r;
-                    first_diff_col = c;
-                }
-            }
-        }
-        if (!all_equal)
-        {
-            UNSCOPED_INFO(
-                "Code diff at ("
-                << first_diff_row << ", " << first_diff_col
-                << "): mat=" << mat_code(first_diff_row, first_diff_col)
-                << " map=" << map_code(first_diff_row, first_diff_col));
-        }
-        REQUIRE(all_equal);
-    }
-
-    SECTION("A1 frequency vectors match")
-    {
-        const auto& mat_freq = mat_result.A1freq();
-        const auto& map_freq = map_result.A1freq();
-        REQUIRE(mat_freq.size() == map_freq.size());
-
-        bool all_equal = true;
-        Eigen::Index first_diff = -1;
-        for (Eigen::Index i = 0; i < mat_freq.size(); ++i)
-        {
-            if (mat_freq(i) != map_freq(i))
-            {
-                all_equal = false;
-                first_diff = i;
-                break;
-            }
-        }
-        if (!all_equal)
-        {
-            UNSCOPED_INFO(
-                "A1 freq diff at index " << first_diff
-                                         << ": mat=" << mat_freq(first_diff)
-                                         << " map=" << map_freq(first_diff));
-        }
-        REQUIRE(all_equal);
-    }
-
-    SECTION("invalid counts match")
-    {
-        REQUIRE(mat_result.num_invalid() == map_result.num_invalid());
-    }
-}
-
-TEST_CASE(
-    "SnpStats container round-trip preserves values",
-    "[binary_container][snpstats]")
-{
-    test::FileFixture fixture;
-    const auto& dir = fixture.get_test_dir();
-
-    constexpr int NUM_VARIANTS = 100;
-    Eigen::VectorXd means = Eigen::VectorXd::LinSpaced(NUM_VARIANTS, 0.1, 0.9);
-    Eigen::VectorXd variances
-        = Eigen::VectorXd::LinSpaced(NUM_VARIANTS, 0.01, 0.25);
-
-    auto container_path = dir / "snpstats_test.geno";
-    {
-        BinaryWriter writer(container_path.string());
-
-        auto stats_handle
-            = writer.reserve<double>("Additive/snp_stats", NUM_VARIANTS, 2);
-        writer.write(stats_handle, means);
-        writer.write(stats_handle, variances);
-    }
-
-    BinaryReader reader(container_path.string());
-    auto stats_mat = reader.to_mat<double>("Additive/snp_stats");
-
-    REQUIRE(stats_mat.rows() == NUM_VARIANTS);
-    REQUIRE(stats_mat.cols() == 2);
-
-    SECTION("col(0) matches means")
-    {
-        REQUIRE(stats_mat.col(0).isApprox(means));
-    }
-
-    SECTION("col(1) matches variances")
-    {
-        REQUIRE(stats_mat.col(1).isApprox(variances));
-    }
 }
 
 TEST_CASE("Container string section round-trip", "[binary_container]")

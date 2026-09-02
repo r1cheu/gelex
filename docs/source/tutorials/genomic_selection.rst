@@ -89,7 +89,7 @@ Outputs
 The ``mcmc`` command generates several files sharing the ``--out`` prefix:
 
 *   ``<out>.snpeff``: Estimated SNP effects (used for prediction).
-*   ``<out>.snpstats``: Per-SNP genotype statistics (used for prediction).
+*   ``<out>.snplut``: Per-SNP genotype encoding lookup tables (used for prediction).
 *   ``<out>.param``: Estimated hyper-parameters and covariate effects.
 *   ``<out>.summary``: Posterior summary of model parameters.
 *   ``<out>.log``: Log of the MCMC process.
@@ -115,7 +115,7 @@ Basic Usage
 
 .. note::
    ``--gfile`` takes the fitted-model **prefix** (the ``mcmc`` ``--out`` value),
-   not a single file. ``predict`` reads ``<prefix>.snpeff``, ``<prefix>.snpstats``
+   not a single file. ``predict`` reads ``<prefix>.snpeff``, ``<prefix>.snplut``
    and ``<prefix>.param`` from it. ``--out`` is likewise a prefix: the result is
    written to ``<out>.pred.tsv``.
 

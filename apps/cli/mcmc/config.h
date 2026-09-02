@@ -56,12 +56,10 @@ struct McmcConfig
     int burn_in{3000};
     int thin{1};
     int seed{42};
-    int chunk_size{10000};
     int threads{
         std::max(1, static_cast<int>(std::thread::hardware_concurrency() / 2))};
     std::optional<int> checkpoint_step;
     std::optional<std::string> from_ckpt;
-    bool mmap{false};
 };
 
 }  // namespace cli

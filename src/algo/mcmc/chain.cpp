@@ -149,24 +149,13 @@ auto Chain::make(
                     std::is_same_v<Prior, bayes::SingleGeneticPrior>
                     && std::is_same_v<Block, bayes::SingleGeneticBlockState>)
                 {
-                    const auto mode = bayes::mode(genetic_prior);
-                    const auto* design = model.genetic(mode);
-                    if (design == nullptr)
-                    {
-                        throw GelexException(
-                            fmt::format(
-                                "Chain::make: missing genetic design for mode "
-                                "{}",
-                                mode));
-                    }
-
                     std::visit(
-                        [&]<typename Leaf>(const Leaf&)
+                        [&]<typename Leaf>(const Leaf& leaf_prior)
                         {
                             single_genetics.emplace_back(
                                 std::in_place_type<step_for_prior_t<Leaf>>,
-                                *design,
-                                genetic_prior,
+                                model.genetic(),
+                                leaf_prior,
                                 block,
                                 state.residual(),
                                 rng);
@@ -177,27 +166,13 @@ auto Chain::make(
                     std::is_same_v<Prior, bayes::JointGeneticPrior>
                     && std::is_same_v<Block, bayes::JointGeneticBlockState>)
                 {
-                    const auto* additive = model.genetic(GeneticMode::A);
-                    if (additive == nullptr)
-                    {
-                        throw GelexException(
-                            "Chain::make: missing genetic design for mode A");
-                    }
-                    const auto* dominance = model.genetic(GeneticMode::D);
-                    if (dominance == nullptr)
-                    {
-                        throw GelexException(
-                            "Chain::make: missing genetic design for mode D");
-                    }
-
                     std::visit(
-                        [&]<typename Leaf>(const Leaf&)
+                        [&]<typename Leaf>(const Leaf& leaf_prior)
                         {
                             joint_genetics.emplace_back(
                                 std::in_place_type<step_for_prior_t<Leaf>>,
-                                *additive,
-                                *dominance,
-                                genetic_prior,
+                                model.genetic(),
+                                leaf_prior,
                                 block,
                                 state.residual(),
                                 rng);
