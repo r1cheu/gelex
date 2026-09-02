@@ -18,16 +18,20 @@
 #define GELEX_BAYES_GENETIC_KERNEL_SPIKE_SLAB_H_
 
 #include <Eigen/Core>
+#include <array>
+#include <cstddef>
 #include <cstdint>
 #include <random>
 
-#include "gelex/bayes/genetic/kernel/allocation_updater.h"
+#include "gelex/bayes/detail/normal_variance_conjugate_updater.h"
+#include "gelex/bayes/genetic/kernel/coefficient_likelihood.h"
+#include "gelex/bayes/genetic/kernel/dirichlet_conjugate_updater.h"
+#include "gelex/bayes/genetic/kernel/normal_prior_provider.h"
 #include "gelex/bayes/genetic/prior.h"
 #include "gelex/bayes/genetic/state.h"
 #include "gelex/bayes/genotype/design.h"
 #include "gelex/bayes/state.h"
-#include "gelex/bayes/stats/normal_sampler.h"
-#include "gelex/bayes/stats/scaled_inv_chi2_sampler.h"
+#include "gelex/bayes/stats/log_categorical_distribution.h"
 #include "gelex/genetic_mode.h"
 
 namespace gelex::detail
@@ -41,8 +45,9 @@ class SpikeSlabKernel
 
    public:
     explicit SpikeSlabKernel(const Prior& prior)
-        : variance_sampler_{prior.variance.prior()},
-          allocation_updater_{prior.probability}
+        : variance_updater_{prior.variance.prior},
+          probability_updater_{
+              make_dirichlet_conjugate_updater<2>(prior.probability)}
     {
     }
 
@@ -55,43 +60,42 @@ class SpikeSlabKernel
     {
         const auto& projection = design.projection(Mode);
         const auto valid_indices = projection.valid_indices();
-        const auto& xtx_diag = projection.xtx_diag();
         auto& coefficients = state.coefficients;
         auto& family_state = state.family_state;
         auto& variance = family_state.variance;
 
         previous_adjusted_response_ = residual.adjusted_response;
-        normal_.reset();
-        variance_sampler_.reset();
-        allocation_updater_.begin_sweep(family_state.probability);
-        if constexpr (Kind == VarianceLayout::Pooled)
-        {
-            normal_.set_prior_var(variance);
-        }
-        Eigen::Index pooled_active_count = 0;
+        std::normal_distribution<double> normal_distribution;
+        const auto log_probabilities = make_log_weights(
+            std::array{
+                1.0 - family_state.probability, family_state.probability});
+        std::array<std::size_t, 2> allocation_counts{};
+        const auto normal_prior_for_marker
+            = make_normal_prior_provider<Kind>(variance);
+
+        std::size_t pooled_active_count = 0;
         double pooled_sum_squares = 0.0;
         for (const Eigen::Index marker : valid_indices)
         {
-            if constexpr (Kind == VarianceLayout::Unpooled)
-            {
-                normal_.set_prior_var(variance(marker));
-            }
-
             const double old_value = coefficients(marker);
-            const double linear
-                = projection.dot(marker, residual.adjusted_response)
-                  + (xtx_diag(marker) * old_value);
-            const auto coefficient_posterior = normal_.posterior_with_logL(
-                NormalSampler<double>::Kernel{
-                    .quadratic = xtx_diag(marker),
-                    .linear = linear,
-                    .scale = residual.variance});
-            const auto allocation_posterior = allocation_updater_.posterior(
-                {0.0, coefficient_posterior.log_likelihood_kernel});
-            const bool is_active
-                = allocation_updater_.draw(allocation_posterior, rng);
+            const auto likelihood = make_coefficient_likelihood(
+                projection, marker, old_value, residual);
+            const auto slab_kernel
+                = likelihood + normal_prior_for_marker(marker);
+
+            const auto allocation_parameters = make_mixture_posterior_weights(
+                log_probabilities, std::array{0.0, slab_kernel.log_integral()});
+            const std::size_t allocation
+                = allocation_distribution_(rng, allocation_parameters);
+            if constexpr (WeightUpdate == MixtureWeightUpdate::Enabled)
+            {
+                // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
+                ++allocation_counts[allocation];
+            }
+            const bool is_active = allocation == 1;
             const double new_value
-                = is_active ? normal_.draw(coefficient_posterior.params, rng)
+                = is_active ? normal_distribution(
+                                  rng, slab_kernel.normal_parameters())
                             : 0.0;
             const double squared_effect = new_value * new_value;
 
@@ -111,11 +115,10 @@ class SpikeSlabKernel
             }
             if constexpr (Kind == VarianceLayout::Unpooled)
             {
-                // The inactive slab coefficient is integrated out, so it is
-                // not a zero-valued Gaussian observation of its variance.
-                variance(marker) = variance_sampler_(
-                    {.n = is_active ? 1 : 0, .sum_squares = squared_effect},
-                    rng);
+                // An inactive slab is integrated out and contributes no
+                // Gaussian observation to its variance posterior.
+                variance_updater_.update(
+                    variance(marker), is_active ? 1 : 0, squared_effect, rng);
             }
         }
 
@@ -123,17 +126,20 @@ class SpikeSlabKernel
             += previous_adjusted_response_ - residual.adjusted_response;
         if constexpr (Kind == VarianceLayout::Pooled)
         {
-            variance = variance_sampler_(
-                {.n = pooled_active_count, .sum_squares = pooled_sum_squares},
-                rng);
+            variance_updater_.update(
+                variance, pooled_active_count, pooled_sum_squares, rng);
         }
-        allocation_updater_.update(family_state.probability, rng);
+        std::array probabilities{
+            1.0 - family_state.probability, family_state.probability};
+        probability_updater_.update(probabilities, allocation_counts, rng);
+        family_state.probability = probabilities[1];
     }
 
    private:
-    ScaledInvChi2Sampler<double> variance_sampler_;
-    BinaryAllocationUpdater<WeightUpdate> allocation_updater_;
-    NormalSampler<double> normal_{0.0};
+    NormalVarianceConjugateUpdater variance_updater_;
+    [[no_unique_address]] DirichletConjugateUpdater<2, WeightUpdate>
+        probability_updater_;
+    LogCategoricalDistribution<2> allocation_distribution_;
     Eigen::VectorXd previous_adjusted_response_;
 };
 

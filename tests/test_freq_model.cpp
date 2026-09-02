@@ -578,7 +578,7 @@ TEST_CASE(
     qcovar_values.col(0)
         = Eigen::VectorXd::LinSpaced(num_samples, 20, 50);  // age
     qcovar_values.col(1)
-        = Eigen::VectorXd::LinSpaced(num_samples, 160, 185);  // height
+        = Eigen::VectorXd{{160.0, 172.0, 165.0, 180.0, 174.0, 185.0}};
     auto qcovar_content
         = make_qcovar_content(sample_ids, qcovar_values, {"Age", "Height"});
     auto qcovar_path = files.create_text_file(qcovar_content, ".qcovar");

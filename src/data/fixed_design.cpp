@@ -17,10 +17,12 @@
 #include "gelex/data/fixed_design.h"
 
 #include <Eigen/Core>
+#include <Eigen/QR>
 #include <cstddef>
 #include <utility>
 
 #include "gelex/data/dataframe/constants.h"
+#include "gelex/exception.h"
 
 namespace gelex
 {
@@ -85,6 +87,14 @@ auto FixedDesign::make(
     design.matrix_.middleCols(1 + quantitative_columns, discrete_columns)
         = discrete.X;
     design.xtx_diag_ = design.matrix_.colwise().squaredNorm();
+    if (!design.matrix_.allFinite())
+    {
+        throw GelexException("FixedDesign: X must contain only finite values");
+    }
+    if (design.matrix_.fullPivHouseholderQr().rank() != total_columns)
+    {
+        throw GelexException("FixedDesign: X must have full column rank");
+    }
     return design;
 }
 

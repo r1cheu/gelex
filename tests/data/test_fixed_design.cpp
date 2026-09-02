@@ -17,6 +17,7 @@
 #include <algorithm>
 #include <catch2/catch_test_macros.hpp>
 #include <fmt/format.h>
+#include <limits>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -25,6 +26,7 @@
 #include "gelex/data/dataframe/constants.h"
 #include "gelex/data/dataframe/reader.h"
 #include "gelex/data/fixed_design.h"
+#include "gelex/exception.h"
 
 #include "file_fixture.h"
 
@@ -37,12 +39,16 @@ TEST_CASE(
         = "id\tage\n"
           "s1\t10.0\n"
           "s2\t20.0\n"
-          "s3\t30.0\n";
+          "s3\t15.0\n"
+          "s4\t25.0\n"
+          "s5\t35.0\n";
     constexpr std::string_view dcontent
         = "id\tsex\tbatch\n"
-          "s1\tF\tB\n"
+          "s1\tF\tA\n"
           "s2\tM\tA\n"
-          "s3\tM\tC\n";
+          "s3\tF\tB\n"
+          "s4\tF\tC\n"
+          "s5\tM\tB\n";
 
     gelex::ReadOptions options;
     options.index_cols = {0};
@@ -69,4 +75,40 @@ TEST_CASE(
     REQUIRE(design.discrete_terms().size() == 2);
     REQUIRE(design.discrete_terms()[0].name == "sex");
     REQUIRE(design.discrete_terms()[1].name == "batch");
+}
+
+TEST_CASE(
+    "FixedDesign rejects matrices without full column rank",
+    "[data][fixed_design]")
+{
+    SECTION("zero column")
+    {
+        REQUIRE_THROWS_AS(
+            gelex::FixedDesign::make(
+                gelex::QuantitativeCovariate{
+                    .names = {"zero"},
+                    .X = Eigen::MatrixXd{{0.0}, {0.0}, {0.0}}}),
+            gelex::GelexException);
+    }
+
+    SECTION("linearly dependent columns")
+    {
+        REQUIRE_THROWS_AS(
+            gelex::FixedDesign::make(
+                gelex::QuantitativeCovariate{
+                    .names = {"x", "twice_x"},
+                    .X = Eigen::MatrixXd{{1.0, 2.0}, {2.0, 4.0}, {3.0, 6.0}}}),
+            gelex::GelexException);
+    }
+}
+
+TEST_CASE("FixedDesign rejects non-finite matrices", "[data][fixed_design]")
+{
+    REQUIRE_THROWS_AS(
+        gelex::FixedDesign::make(
+            gelex::QuantitativeCovariate{
+                .names = {"x"},
+                .X = Eigen::
+                    MatrixXd{{1.0}, {std::numeric_limits<double>::infinity()}}}),
+        gelex::GelexException);
 }

@@ -162,7 +162,6 @@ template <VarianceLayout Kind>
 {
     return {
         .variance = builder.scalar("variance"),
-        .assignment = builder.category<3>("assignment", builder.marker_count()),
         .positive_probability = builder.scalar("positive_probability")};
 }
 

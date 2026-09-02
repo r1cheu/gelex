@@ -299,17 +299,13 @@ TEST_CASE(
 
     {
         auto draws = gelex::make_draws(prior, model, path.string(), 2);
-        auto& dominance
-            = state.genetic().get<gelex::GeneticMode::D>().family_state;
 
         state.genetic().joint().assignment
             = Eigen::VectorX<std::uint8_t>{{0, 1}};
-        dominance.assignment = Eigen::VectorX<std::uint8_t>{{2, 0}};
         draws.append(state);
 
         state.genetic().joint().assignment
             = Eigen::VectorX<std::uint8_t>{{2, 3}};
-        dominance.assignment = Eigen::VectorX<std::uint8_t>{{0, 0}};
         draws.append(state);
 
         const auto result = gelex::make_result(model, draws);

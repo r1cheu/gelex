@@ -302,8 +302,6 @@ TEST_CASE(
         auto& dominance = state.mode_values().get<GeneticMode::D>();
         dominance.coefficients = Eigen::VectorXd{{3.0, 4.0}};
         dominance.family_state.variance = 0.25;
-        dominance.family_state.assignment
-            = Eigen::VectorX<std::uint8_t>{{0, 2}};
         dominance.family_state.positive_probability = 0.7;
 
         state.joint().assignment = Eigen::VectorX<std::uint8_t>{{1, 3}};
@@ -316,10 +314,6 @@ TEST_CASE(
         REQUIRE(
             draws.family<GeneticMode::D>().positive_probability.result().mean
             == Approx(0.7));
-        REQUIRE(draws.family<GeneticMode::D>()
-                    .assignment.result()
-                    .probabilities.isApprox(
-                        Eigen::MatrixXd{{1.0, 0.0, 0.0}, {0.0, 0.0, 1.0}}));
         const auto pip = gelex::detail::make_pip(draws);
         REQUIRE(pip.get<GeneticMode::A>().probabilities().isApprox(
             Eigen::VectorXd{{1.0, 1.0}}));
@@ -338,10 +332,6 @@ TEST_CASE(
                 .isApprox(Eigen::MatrixXd{{0.25}}));
     REQUIRE(reader.to_map<double>("genetic/D/positive_probability")
                 .isApprox(Eigen::MatrixXd{{0.7}}));
-    REQUIRE(reader.to_map<std::uint8_t>("genetic/D/assignment")
-                .isApprox(
-                    Eigen::Matrix<std::uint8_t, Eigen::Dynamic, Eigen::Dynamic>{
-                        {0}, {2}}));
     REQUIRE(reader.to_map<std::uint8_t>("genetic/joint/assignment")
                 .isApprox(
                     Eigen::Matrix<std::uint8_t, Eigen::Dynamic, Eigen::Dynamic>{

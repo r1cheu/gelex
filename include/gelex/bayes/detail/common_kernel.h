@@ -18,54 +18,48 @@
 #define GELEX_BAYES_DETAIL_COMMON_KERNEL_H_
 
 #include <Eigen/Core>
+#include <cstddef>
 #include <random>
 
 #include "gelex/bayes/design.h"
+#include "gelex/bayes/detail/normal_variance_conjugate_updater.h"
+#include "gelex/bayes/parameter.h"
 #include "gelex/bayes/state.h"
-#include "gelex/bayes/stats/normal_sampler.h"
-#include "gelex/bayes/stats/scaled_inv_chi2_sampler.h"
-#include "gelex/bayes/variance/parameter.h"
+#include "gelex/bayes/stats/quadratic_log_kernel.h"
 #include "gelex/data/fixed_design.h"
 
 namespace gelex::detail
 {
 
-class FixedEffectKernel
+inline auto update_fixed_effects(
+    const FixedDesign& design,
+    FixedEffectState& state,
+    ResidualState& residual,
+    std::mt19937_64& rng) -> void
 {
-   public:
-    auto step(
-        const FixedDesign& design,
-        FixedEffectState& state,
-        ResidualState& residual,
-        std::mt19937_64& rng) -> void
+    std::normal_distribution<double> normal_distribution;
+    for (Eigen::Index index = 0; index < state.coefficients.size(); ++index)
     {
-        normal_.reset();
-        for (Eigen::Index index = 0; index < state.coefficients.size(); ++index)
-        {
-            const auto column = design.X().col(index);
-            const double old_value = state.coefficients(index);
-            const double quadratic = design.xtx_diag()(index);
-            const double linear = column.dot(residual.adjusted_response)
-                                  + (quadratic * old_value);
-            const double new_value = normal_.draw(
-                {.mean = linear / quadratic,
-                 .var = residual.variance / quadratic},
-                rng);
-            state.coefficients(index) = new_value;
-            residual.adjusted_response.array()
-                += (old_value - new_value) * column.array();
-        }
+        const auto column = design.X().col(index);
+        const double old_value = state.coefficients(index);
+        const double quadratic = design.xtx_diag()(index);
+        const double linear
+            = column.dot(residual.adjusted_response) + (quadratic * old_value);
+        const auto likelihood = gelex::make_coefficient_likelihood(
+            quadratic, linear, residual.variance);
+        const double new_value
+            = normal_distribution(rng, likelihood.normal_parameters());
+        state.coefficients(index) = new_value;
+        residual.adjusted_response.array()
+            += (old_value - new_value) * column.array();
     }
-
-   private:
-    NormalSampler<double> normal_{0.0};
-};
+}
 
 class RandomEffectKernel
 {
    public:
     explicit RandomEffectKernel(const VarianceParameter& parameter)
-        : variance_sampler_{parameter.prior()}
+        : variance_updater_{parameter.prior}
     {
     }
 
@@ -75,9 +69,8 @@ class RandomEffectKernel
         ResidualState& residual,
         std::mt19937_64& rng) -> void
     {
-        normal_.reset();
-        normal_.set_prior_var(state.variance);
-        variance_sampler_.reset();
+        std::normal_distribution<double> normal_distribution;
+        const auto coefficient_prior = gelex::make_normal_prior(state.variance);
 
         state.fitted_values.setZero();
         for (Eigen::Index index = 0; index < state.coefficients.size(); ++index)
@@ -87,11 +80,11 @@ class RandomEffectKernel
             const double quadratic = design.xtx_diag()(index);
             const double linear = column.dot(residual.adjusted_response)
                                   + (quadratic * old_value);
-            const double new_value = normal_(
-                {.quadratic = quadratic,
-                 .linear = linear,
-                 .scale = residual.variance},
-                rng);
+            const auto likelihood = gelex::make_coefficient_likelihood(
+                quadratic, linear, residual.variance);
+            const auto posterior = likelihood + coefficient_prior;
+            const double new_value
+                = normal_distribution(rng, posterior.normal_parameters());
             state.coefficients(index) = new_value;
             state.fitted_values.array() += new_value * column.array();
             const double difference = old_value - new_value;
@@ -102,36 +95,36 @@ class RandomEffectKernel
             }
         }
 
-        state.variance = variance_sampler_(
-            {.n = state.coefficients.size(),
-             .sum_squares = state.coefficients.squaredNorm()},
+        variance_updater_.update(
+            state.variance,
+            static_cast<std::size_t>(state.coefficients.size()),
+            state.coefficients.squaredNorm(),
             rng);
     }
 
    private:
-    ScaledInvChi2Sampler<double> variance_sampler_;
-    NormalSampler<double> normal_{0.0};
+    NormalVarianceConjugateUpdater variance_updater_;
 };
 
 class ResidualVarianceKernel
 {
    public:
     explicit ResidualVarianceKernel(const VarianceParameter& parameter)
-        : sampler_{parameter.prior()}
+        : variance_updater_{parameter.prior}
     {
     }
 
     auto step(ResidualState& state, std::mt19937_64& rng) -> void
     {
-        sampler_.reset();
-        state.variance = sampler_(
-            {.n = state.adjusted_response.size(),
-             .sum_squares = state.adjusted_response.squaredNorm()},
+        variance_updater_.update(
+            state.variance,
+            static_cast<std::size_t>(state.adjusted_response.size()),
+            state.adjusted_response.squaredNorm(),
             rng);
     }
 
    private:
-    ScaledInvChi2Sampler<double> sampler_;
+    NormalVarianceConjugateUpdater variance_updater_;
 };
 
 }  // namespace gelex::detail

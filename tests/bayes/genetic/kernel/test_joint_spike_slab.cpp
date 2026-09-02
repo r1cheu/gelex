@@ -75,7 +75,6 @@ struct AssignmentObservation
 {
     std::size_t class_index{};
     double coefficient{};
-    std::uint8_t sign{};
 };
 
 static_assert(std::same_as<
@@ -162,8 +161,6 @@ auto initialize_non_null_state(const gelex::BayesModel& model, State& state)
     additive.coefficients = Eigen::VectorXd{{0.0, 0.3, 0.0, -0.2}};
     dominance.coefficients = Eigen::VectorXd{{0.0, 0.0, -0.4, 0.5}};
     joint.assignment = Eigen::VectorX<std::uint8_t>{{0, 1, 2, 3}};
-    dominance.family_state.assignment
-        = Eigen::VectorX<std::uint8_t>{{0, 0, 1, 2}};
 
     additive.family_state.fitted_values = reconstruct_total(
         model.genetic(), gelex::GeneticMode::A, additive.coefficients);
@@ -220,13 +217,6 @@ auto require_additive_assignment(const AssignmentObservation& observation)
     }
 }
 
-auto require_active_dominance_assignment(
-    const AssignmentObservation& observation) -> void
-{
-    REQUIRE((observation.sign == 1 || observation.sign == 2));
-    REQUIRE((observation.coefficient > 0.0) == (observation.sign == 2));
-}
-
 auto require_dominance_assignment(const AssignmentObservation& observation)
     -> void
 {
@@ -234,11 +224,10 @@ auto require_dominance_assignment(const AssignmentObservation& observation)
         = observation.class_index == 2 || observation.class_index == 3;
     if (active)
     {
-        require_active_dominance_assignment(observation);
+        REQUIRE(observation.coefficient != 0.0);
         return;
     }
     REQUIRE(observation.coefficient == 0.0);
-    REQUIRE(observation.sign == 0);
 }
 
 template <typename State>
@@ -259,8 +248,7 @@ auto require_assignment_invariants(const State& state) -> void
              .coefficient = additive.coefficients(marker)});
         require_dominance_assignment(
             {.class_index = class_index,
-             .coefficient = dominance.coefficients(marker),
-             .sign = dominance.family_state.assignment(marker)});
+             .coefficient = dominance.coefficients(marker)});
     }
 }
 

@@ -14,17 +14,48 @@
  * limitations under the License.
  */
 
+#include <algorithm>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <cmath>
+#include <numbers>
 
 #include "gelex/exception.h"
 #include "gelex/infra/normal.h"
 
 using Catch::Matchers::WithinAbs;
 using Catch::Matchers::WithinRel;
+using gelex::log_norm_cdf;
 using gelex::norm_cdf;
 using gelex::norm_ppf;
+
+TEST_CASE("log_norm_cdf is stable in the extreme tail", "[math_utils]")
+{
+    constexpr double z = -14.0;
+    constexpr double z_squared = z * z;
+    constexpr double z_fourth = z_squared * z_squared;
+    constexpr double z_sixth = z_fourth * z_squared;
+    const double expected
+        = (-0.5 * z_squared) - (0.5 * std::log(2.0 * std::numbers::pi))
+          - std::log(-z)
+          + std::log1p(
+              (-1.0 / z_squared) + (3.0 / z_fourth) - (15.0 / z_sixth));
+
+    const double negative_log_probability = log_norm_cdf(z);
+    const double positive_log_probability = log_norm_cdf(-z);
+    const double maximum_log_probability
+        = std::max(negative_log_probability, positive_log_probability);
+    const double log_probability_sum
+        = maximum_log_probability
+          + std::log(
+              std::exp(negative_log_probability - maximum_log_probability)
+              + std::exp(positive_log_probability - maximum_log_probability));
+
+    CHECK(std::isfinite(negative_log_probability));
+    CHECK_THAT(negative_log_probability, WithinAbs(expected, 1e-6));
+    CHECK_THAT(log_probability_sum, WithinAbs(0.0, 1e-12));
+}
 
 // Reference values from scipy.stats.norm.ppf
 TEST_CASE("norm_ppf known values", "[math_utils]")

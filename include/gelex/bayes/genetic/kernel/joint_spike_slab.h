@@ -18,23 +18,27 @@
 #define GELEX_BAYES_GENETIC_KERNEL_JOINT_SPIKE_SLAB_H_
 
 #include <Eigen/Core>
+#include <algorithm>
 #include <array>
 #include <cassert>
+#include <cmath>
 #include <cstddef>
-#include <cstdint>
 #include <random>
 #include <span>
 
+#include "gelex/bayes/detail/normal_variance_conjugate_updater.h"
 #include "gelex/bayes/detail/state_factory.h"
-#include "gelex/bayes/genetic/kernel/allocation_updater.h"
-#include "gelex/bayes/genetic/kernel/half_normal_updater.h"
+#include "gelex/bayes/genetic/kernel/coefficient_likelihood.h"
+#include "gelex/bayes/genetic/kernel/dirichlet_conjugate_updater.h"
 #include "gelex/bayes/genetic/prior.h"
 #include "gelex/bayes/genetic/state.h"
 #include "gelex/bayes/genotype/design.h"
 #include "gelex/bayes/mode_values.h"
 #include "gelex/bayes/state.h"
-#include "gelex/bayes/stats/normal_sampler.h"
-#include "gelex/bayes/stats/scaled_inv_chi2_sampler.h"
+#include "gelex/bayes/stats/half_quadratic_log_kernel.h"
+#include "gelex/bayes/stats/log_categorical_distribution.h"
+#include "gelex/bayes/stats/quadratic_log_kernel.h"
+#include "gelex/bayes/stats/truncated_normal_distribution.h"
 #include "gelex/genetic_mode.h"
 
 namespace gelex::detail
@@ -55,25 +59,17 @@ class JointSpikeSlabKernel
     using GeneticPrior = JointModeValues<ModePriors, JointPrior>;
     using GeneticState = genetic_state_t<GeneticPrior>;
     using JointState = JointSpikeSlabState<ClassCount>;
-    using DominanceUpdater = HalfNormalUpdater;
-    using DominanceSample = typename DominanceUpdater::Sample;
+    using SignParameters = LogCategoricalDistribution<2>::param_type;
 
     static constexpr std::size_t class_count = ClassCount;
+    static constexpr std::size_t negative_index = 0;
+    static constexpr std::size_t positive_index = 1;
 
-    struct MarkerLikelihood
+    struct DominancePosterior
     {
-        double additive_quadratic{};
-        double additive_linear{};
-        double dominance_quadratic{};
-        double dominance_linear{};
-        double residual_variance{};
-    };
-
-    struct MarkerSample
-    {
-        std::size_t class_index{};
-        double additive{};
-        DominanceSample dominance{};
+        HalfQuadraticLogKernel::Evaluation coefficient;
+        SignParameters sign;
+        double log_integral{};
     };
 
     struct CoefficientTransition
@@ -86,11 +82,18 @@ class JointSpikeSlabKernel
 
    public:
     explicit JointSpikeSlabKernel(const GeneticPrior& prior)
-        : additive_variance_sampler_{prior.mode_values()
+        : additive_variance_updater_{prior.mode_values()
                                          .template get<GeneticMode::A>()
-                                         .variance.prior()},
-          allocation_updater_{prior.joint().probabilities},
-          dominance_updater_{prior.mode_values().template get<GeneticMode::D>()}
+                                         .variance.prior},
+          dominance_variance_updater_{prior.mode_values()
+                                          .template get<GeneticMode::D>()
+                                          .variance.prior},
+          dominance_sign_updater_{make_dirichlet_conjugate_updater<2>(
+              prior.mode_values()
+                  .template get<GeneticMode::D>()
+                  .positive_probability)},
+          probability_updater_{make_dirichlet_conjugate_updater<class_count>(
+              prior.joint().probabilities)}
     {
     }
 
@@ -108,52 +111,100 @@ class JointSpikeSlabKernel
         auto& joint = state.joint();
         auto& additive_family = additive.family_state;
         auto& dominance_family = dominance.family_state;
-        const auto& additive_xtx_diag = additive_projection.xtx_diag();
-        const auto& dominance_xtx_diag = dominance_projection.xtx_diag();
+        std::normal_distribution<double> normal_distribution;
+        TruncatedNormalDistribution<> dominance_distribution;
 
-        additive_variance_sampler_.reset();
-        normal_.reset();
-        allocation_updater_.begin_sweep(joint.probabilities);
-        normal_.set_prior_var(additive_family.variance);
-        dominance_updater_.begin_sweep(dominance_family);
+        const auto log_probabilities = make_log_weights(joint.probabilities);
+        const auto dominance_log_probabilities = make_log_weights(
+            std::array{
+                1.0 - dominance_family.positive_probability,
+                dominance_family.positive_probability});
+        std::array<std::size_t, class_count> allocation_counts{};
+        std::array<std::size_t, 2> dominance_sign_counts{};
 
-        ScaledInvChi2Sampler<double>::Likelihood additive_statistics{};
+        const auto additive_prior = make_normal_prior(additive_family.variance);
+        const auto dominance_prior
+            = make_half_normal_prior(dominance_family.variance);
+
+        std::size_t additive_count = 0;
+        double additive_sum_squares = 0.0;
+        std::size_t dominance_count = 0;
+        double dominance_sum_squares = 0.0;
         for (const Eigen::Index marker : valid_indices)
         {
             const double old_additive = additive.coefficients(marker);
             const double old_dominance = dominance.coefficients(marker);
             const auto old_class_index
                 = static_cast<std::size_t>(joint.assignment(marker));
-            const double additive_linear
-                = additive_projection.dot(marker, residual.adjusted_response)
-                  + (additive_xtx_diag(marker) * old_additive);
-            const double dominance_linear
-                = dominance_projection.dot(marker, residual.adjusted_response)
-                  + (dominance_xtx_diag(marker) * old_dominance);
-            const auto sample = draw_marker(
-                {.additive_quadratic = additive_xtx_diag(marker),
-                 .additive_linear = additive_linear,
-                 .dominance_quadratic = dominance_xtx_diag(marker),
-                 .dominance_linear = dominance_linear,
-                 .residual_variance = residual.variance},
-                rng);
+            const auto additive_likelihood = make_coefficient_likelihood(
+                additive_projection, marker, old_additive, residual);
+            const auto dominance_likelihood = make_coefficient_likelihood(
+                dominance_projection, marker, old_dominance, residual);
+            const auto additive_posterior
+                = additive_likelihood + additive_prior;
+            const double additive_log_integral
+                = additive_posterior.log_integral();
+            const auto dominance_posterior = make_dominance_posterior(
+                dominance_likelihood,
+                dominance_prior,
+                dominance_log_probabilities);
 
-            dominance_family.assignment(marker) = static_cast<std::uint8_t>(
-                is_active<GeneticMode::D>(sample.class_index)
-                    ? static_cast<std::uint8_t>(sample.dominance.positive) + 1
-                    : 0);
+            // NOIA A and D columns are orthogonal, so the AD marginal
+            // likelihood factorizes into the two mode-local marginals.
+            const auto allocation_parameters = make_mixture_posterior_weights(
+                log_probabilities,
+                std::array{
+                    0.0,
+                    additive_log_integral,
+                    dominance_posterior.log_integral,
+                    additive_log_integral + dominance_posterior.log_integral});
+            const std::size_t class_index
+                = allocation_distribution_(rng, allocation_parameters);
+            if constexpr (WeightUpdate == MixtureWeightUpdate::Enabled)
+            {
+                // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
+                ++allocation_counts[class_index];
+            }
 
-            additive.coefficients(marker) = sample.additive;
-            dominance.coefficients(marker) = sample.dominance.coefficient;
-            joint.assignment(marker)
-                = static_cast<std::uint8_t>(sample.class_index);
+            const bool additive_active = is_active<GeneticMode::A>(class_index);
+            const bool dominance_active
+                = is_active<GeneticMode::D>(class_index);
+            double new_additive = 0.0;
+            double new_dominance = 0.0;
+            if (additive_active)
+            {
+                new_additive = normal_distribution(
+                    rng, additive_posterior.normal_parameters());
+                ++additive_count;
+                additive_sum_squares += new_additive * new_additive;
+            }
+            if (dominance_active)
+            {
+                const std::size_t sign_index
+                    = sign_distribution_(rng, dominance_posterior.sign);
+                // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
+                ++dominance_sign_counts[sign_index];
+                const HalfLine support = sign_index == positive_index
+                                             ? HalfLine::Positive
+                                             : HalfLine::Negative;
+                new_dominance = dominance_distribution(
+                    rng,
+                    dominance_posterior.coefficient.truncated_normal_parameters(
+                        support));
+                ++dominance_count;
+                dominance_sum_squares += new_dominance * new_dominance;
+            }
+
+            additive.coefficients(marker) = new_additive;
+            dominance.coefficients(marker) = new_dominance;
+            joint.assignment(marker) = static_cast<std::uint8_t>(class_index);
             apply_fitted_value_transition<GeneticMode::A>(
                 additive_projection,
                 marker,
                 {.old_class_index = old_class_index,
-                 .new_class_index = sample.class_index,
+                 .new_class_index = class_index,
                  .old_coefficient = old_additive,
-                 .new_coefficient = sample.additive},
+                 .new_coefficient = new_additive},
                 additive_family.fitted_values,
                 joint,
                 residual.adjusted_response);
@@ -161,25 +212,35 @@ class JointSpikeSlabKernel
                 dominance_projection,
                 marker,
                 {.old_class_index = old_class_index,
-                 .new_class_index = sample.class_index,
+                 .new_class_index = class_index,
                  .old_coefficient = old_dominance,
-                 .new_coefficient = sample.dominance.coefficient},
+                 .new_coefficient = new_dominance},
                 dominance_family.fitted_values,
                 joint,
                 residual.adjusted_response);
-
-            if (is_active<GeneticMode::A>(sample.class_index))
-            {
-                ++additive_statistics.n;
-                additive_statistics.sum_squares
-                    += sample.additive * sample.additive;
-            }
         }
 
-        additive_family.variance
-            = additive_variance_sampler_(additive_statistics, rng);
-        dominance_updater_.update(dominance_family, rng);
-        allocation_updater_.update(joint.probabilities, rng);
+        additive_variance_updater_.update(
+            additive_family.variance,
+            additive_count,
+            additive_sum_squares,
+            rng);
+        dominance_variance_updater_.update(
+            dominance_family.variance,
+            dominance_count,
+            dominance_sum_squares,
+            rng);
+
+        std::array dominance_sign_probabilities{
+            1.0 - dominance_family.positive_probability,
+            dominance_family.positive_probability};
+        dominance_sign_updater_.update(
+            dominance_sign_probabilities, dominance_sign_counts, rng);
+        dominance_family.positive_probability
+            = dominance_sign_probabilities[positive_index];
+
+        probability_updater_.update(
+            joint.probabilities, allocation_counts, rng);
     }
 
    private:
@@ -192,42 +253,35 @@ class JointSpikeSlabKernel
                != JointState::no_component;
     }
 
-    auto draw_marker(const MarkerLikelihood& likelihood, std::mt19937_64& rng)
-        -> MarkerSample
+    [[nodiscard]] static auto make_dominance_posterior(
+        const QuadraticLogKernel& likelihood,
+        const HalfQuadraticLogKernel& prior,
+        const std::array<double, 2>& log_probabilities) -> DominancePosterior
     {
-        const auto additive_posterior = normal_.posterior_with_logL(
-            {.quadratic = likelihood.additive_quadratic,
-             .linear = likelihood.additive_linear,
-             .scale = likelihood.residual_variance});
-        const auto dominance_posterior = dominance_updater_.posterior_with_logL(
-            {.quadratic = likelihood.dominance_quadratic,
-             .linear = likelihood.dominance_linear,
-             .scale = likelihood.residual_variance});
+        const auto coefficient_posterior = (likelihood + prior).evaluate();
+        const std::array component_log_integrals{
+            coefficient_posterior.log_integral(HalfLine::Negative),
+            coefficient_posterior.log_integral(HalfLine::Positive)};
+        const auto sign_parameters = make_mixture_posterior_weights(
+            log_probabilities, component_log_integrals);
 
-        // NOIA A and D columns are orthogonal, so the AD marginal likelihood
-        // factorizes into the two mode-local marginals.
-        const auto allocation_posterior = allocation_updater_.posterior(
-            std::array{
-                0.0,
-                additive_posterior.log_likelihood_kernel,
-                dominance_posterior.log_marginal_kernel,
-                additive_posterior.log_likelihood_kernel
-                    + dominance_posterior.log_marginal_kernel});
-        const std::size_t class_index
-            = allocation_updater_.draw(allocation_posterior, rng);
-        const bool additive_active = is_active<GeneticMode::A>(class_index);
-        const bool dominance_active = is_active<GeneticMode::D>(class_index);
-        const DominanceSample dominance_sample
-            = dominance_active
-                  ? dominance_updater_.draw(dominance_posterior, rng)
-                  : DominanceSample{};
-
+        const double negative_log_weight
+            = log_probabilities[negative_index]
+              + component_log_integrals[negative_index];
+        const double positive_log_weight
+            = log_probabilities[positive_index]
+              + component_log_integrals[positive_index];
+        const double maximum_log_weight
+            = std::max(negative_log_weight, positive_log_weight);
+        const double log_integral
+            = maximum_log_weight
+              + std::log(
+                  std::exp(negative_log_weight - maximum_log_weight)
+                  + std::exp(positive_log_weight - maximum_log_weight));
         return {
-            .class_index = class_index,
-            .additive = additive_active
-                            ? normal_.draw(additive_posterior.params, rng)
-                            : 0.0,
-            .dominance = dominance_sample};
+            .coefficient = coefficient_posterior,
+            .sign = sign_parameters,
+            .log_integral = log_integral};
     }
 
     template <GeneticMode Mode>
@@ -316,10 +370,14 @@ class JointSpikeSlabKernel
         }
     }
 
-    ScaledInvChi2Sampler<double> additive_variance_sampler_;
-    CategoricalAllocationUpdater<WeightUpdate, class_count> allocation_updater_;
-    DominanceUpdater dominance_updater_;
-    NormalSampler<double> normal_{0.0};
+    NormalVarianceConjugateUpdater additive_variance_updater_;
+    NormalVarianceConjugateUpdater dominance_variance_updater_;
+    DirichletConjugateUpdater<2, MixtureWeightUpdate::Enabled>
+        dominance_sign_updater_;
+    [[no_unique_address]] DirichletConjugateUpdater<class_count, WeightUpdate>
+        probability_updater_;
+    LogCategoricalDistribution<class_count> allocation_distribution_;
+    LogCategoricalDistribution<2> sign_distribution_;
 };
 
 }  // namespace gelex::detail

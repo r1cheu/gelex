@@ -17,7 +17,7 @@
 #ifndef GELEX_BAYES_VARIANCE_DETAIL_CALIBRATION_H_
 #define GELEX_BAYES_VARIANCE_DETAIL_CALIBRATION_H_
 
-#include "gelex/bayes/variance/parameter.h"
+#include "gelex/bayes/parameter.h"
 #include "gelex/genetic_mode.h"
 
 namespace gelex

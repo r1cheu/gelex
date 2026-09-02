@@ -147,7 +147,7 @@ template <typename GeneticPrior>
             RandomEffectState{
                 .coefficients = Eigen::VectorXd::Zero(design.X().cols()),
                 .fitted_values = Eigen::VectorXd::Zero(design.X().rows()),
-                .variance = parameter.initial_value()});
+                .variance = parameter.initial});
     }
 
     return BayesState<GeneticPrior>{
@@ -157,7 +157,7 @@ template <typename GeneticPrior>
         detail::make_state(prior.genetic(), model.genetic()),
         ResidualState{
             .adjusted_response = model.phenotype(),
-            .variance = prior.residual().initial_value()}};
+            .variance = prior.residual().initial}};
 }
 
 }  // namespace gelex

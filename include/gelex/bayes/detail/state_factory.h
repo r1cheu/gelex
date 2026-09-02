@@ -44,12 +44,11 @@ auto initial_marker_variance(
 {
     if constexpr (Kind == VarianceLayout::Pooled)
     {
-        return parameter.initial_value();
+        return parameter.initial;
     }
     else
     {
-        return Eigen::VectorXd::Constant(
-            marker_count, parameter.initial_value());
+        return Eigen::VectorXd::Constant(marker_count, parameter.initial);
     }
 }
 
@@ -69,9 +68,7 @@ inline auto make_state(
     GeneticStateDimensions dimensions) -> HalfNormalState
 {
     return {
-        .variance = prior.variance.initial_value(),
-        .assignment
-        = Eigen::VectorX<std::uint8_t>::Zero(dimensions.marker_count),
+        .variance = prior.variance.initial,
         .positive_probability = prior.positive_probability.initial,
         .fitted_values = Eigen::VectorXd::Zero(dimensions.individual_count)};
 }
@@ -96,7 +93,7 @@ auto make_state(
     GeneticStateDimensions dimensions) -> ScaledMixtureState<ClassCount>
 {
     auto state = ScaledMixtureState<ClassCount>{
-        .variance = prior.variance.initial_value(),
+        .variance = prior.variance.initial,
         .assignment
         = Eigen::VectorX<std::uint8_t>::Zero(dimensions.marker_count),
         .probabilities = prior.probabilities.initial,
