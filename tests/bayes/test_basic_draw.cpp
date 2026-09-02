@@ -18,6 +18,7 @@
 #include <array>
 #include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
 #include <cmath>
 #include <cstdint>
 #include <span>
@@ -34,6 +35,7 @@ namespace gelex
 {
 
 using Catch::Approx;
+using Catch::Matchers::ContainsSubstring;
 
 TEST_CASE("Basic draws expose their payload identifiers", "[bayes][draw]")
 {
@@ -134,6 +136,32 @@ TEST_CASE(
                 .isApprox(
                     Eigen::Matrix<std::uint8_t, Eigen::Dynamic, Eigen::Dynamic>{
                         {0, 2}, {1, 1}}));
+}
+
+TEST_CASE(
+    "Draws reject statistics requested before any sample",
+    "[bayes][draw]")
+{
+    test::FileFixture fixture;
+    BinaryWriter writer(
+        (fixture.get_test_dir() / "empty_draws.draws").string());
+
+    const ScalarDraw scalar{
+        writer.reserve<double>("scalar/path", BinaryShape{1, 1})};
+    const VectorDraw vector{
+        writer.reserve<float>("vector/path", BinaryShape{2, 1})};
+    const CategoryDraw<3> category{
+        writer.reserve<std::uint8_t>("category/path", BinaryShape{2, 1})};
+
+    REQUIRE_THROWS_WITH(
+        scalar.result(),
+        ContainsSubstring("posterior 'scalar/path' has no recorded draws"));
+    REQUIRE_THROWS_WITH(
+        vector.result(),
+        ContainsSubstring("posterior 'vector/path' has no recorded draws"));
+    REQUIRE_THROWS_WITH(
+        category.result(),
+        ContainsSubstring("posterior 'category/path' has no recorded draws"));
 }
 
 }  // namespace gelex

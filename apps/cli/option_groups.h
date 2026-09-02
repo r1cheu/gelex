@@ -25,9 +25,13 @@ class App;
 namespace cli
 {
 struct BaseDataConfig;
+struct RandomDesignDataConfig;
 struct RemlDataConfig;
 
 auto add_common_io_options(CLI::App& cmd, BaseDataConfig& config) -> void;
+
+auto add_random_design_options(CLI::App& cmd, RandomDesignDataConfig& config)
+    -> void;
 
 auto add_random_effect_options(CLI::App& cmd, RemlDataConfig& config) -> void;
 }  // namespace cli

@@ -46,6 +46,8 @@ class ScalarRunningStats
         m2_ += delta * delta2;
     }
 
+    [[nodiscard]] auto empty() const noexcept -> bool { return count_ == 0; }
+
     auto result() const noexcept -> ScalarRunningStatsResult;
 
    private:
@@ -70,6 +72,8 @@ class VectorRunningStats
         mean_ += delta_ * inv_count;
         m2_.array() += delta_.array() * (value.array() - mean_.array());
     }
+
+    [[nodiscard]] auto empty() const noexcept -> bool { return count_ == 0; }
 
     auto result() const -> VectorRunningStatsResult;
 
@@ -120,6 +124,8 @@ class CategoryRunningStats
                 static_cast<Eigen::Index>(category));
         }
     }
+
+    [[nodiscard]] auto empty() const noexcept -> bool { return count_ == 0; }
 
     auto result() const -> CategoryRunningStatsResult
     {

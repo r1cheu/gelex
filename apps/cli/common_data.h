@@ -90,7 +90,8 @@ auto load_base_data(Handler& handler, const BaseDataConfig& config) -> BaseData
     {
         throw gelex::GelexException(
             "No samples remain after intersecting phenotype, covariate, and "
-            "GRM IDs; check that FID/IID match across all input files");
+            "input sample IDs; check that FID/IID match across all input "
+            "files");
     }
 
     phenotype.gather(common_index);

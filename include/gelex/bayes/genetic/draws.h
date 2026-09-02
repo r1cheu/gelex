@@ -53,7 +53,7 @@ using marker_variance_draw_t = typename MarkerVarianceDrawType<Kind>::type;
 
 template <UpdatePolicy Policy, typename Draw>
 using policy_draw_t
-    = std::conditional_t<Policy == UpdatePolicy::Fixed, EmptyDraw, Draw>;
+    = std::conditional_t<Policy == UpdatePolicy::Sampled, Draw, EmptyDraw>;
 
 }  // namespace detail
 

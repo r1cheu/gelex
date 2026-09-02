@@ -19,6 +19,7 @@
 #include <CLI/CLI.hpp>
 
 #include "cli/common_data.h"
+#include "cli/random_design_data.h"
 #include "cli/reml_data.h"
 #include "cli/validators.h"
 
@@ -59,6 +60,29 @@ auto add_common_io_options(CLI::App& cmd, BaseDataConfig& config) -> void
         ->check(CLI::ExistingFile);
 }
 
+auto add_random_design_options(CLI::App& cmd, RandomDesignDataConfig& config)
+    -> void
+{
+    cmd.add_option(
+           "--drand",
+           config.drand_path,
+           "Discrete random-effect TSV (FID\tIID\tFactor\t...); each factor "
+           "column defines one one-hot random-effect block")
+        ->group("I/O")
+        ->type_name("<DRAND>")
+        ->check(CLI::ExistingFile);
+    cmd.add_option(
+           "--qrand",
+           config.qrand_paths,
+           "Quantitative random-effect matrix TSV (FID\tIID\tValue\t...); "
+           "each file defines one quantitative random-effect block")
+        ->group("I/O")
+        ->type_name("<QRAND>")
+        ->expected(1, -1)
+        ->allow_extra_args()
+        ->check(CLI::ExistingFile);
+}
+
 auto add_random_effect_options(CLI::App& cmd, RemlDataConfig& config) -> void
 {
     cmd.add_option(
@@ -69,24 +93,7 @@ auto add_random_effect_options(CLI::App& cmd, RemlDataConfig& config) -> void
         ->type_name("<GRM>")
         ->expected(1, -1)
         ->allow_extra_args();
-    cmd.add_option(
-           "--drand",
-           config.drand_path,
-           "Discrete random-effect TSV (FID\tIID\tFactor\t...); each factor "
-           "column becomes a variance component via one-hot ZZ^T")
-        ->group("I/O")
-        ->type_name("<DRAND>")
-        ->check(CLI::ExistingFile);
-    cmd.add_option(
-           "--qrand",
-           config.qrand_paths,
-           "Quantitative random-effect matrix TSV (FID\tIID\tValue\t...); "
-           "each file forms one linear-kernel component ZZ^T")
-        ->group("I/O")
-        ->type_name("<QRAND>")
-        ->expected(1, -1)
-        ->allow_extra_args()
-        ->check(CLI::ExistingFile);
+    add_random_design_options(cmd, config.designs);
     cmd.add_option(
            "--interaction",
            config.interactions,

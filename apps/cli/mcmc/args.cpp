@@ -20,6 +20,8 @@
 #include <memory>
 #include <string>
 
+#include "gelex/genetic_mode.h"
+
 #include "cli/command_harness.h"
 #include "cli/lexical_cast.h"
 #include "cli/option_groups.h"
@@ -36,6 +38,7 @@ auto setup_mcmc_command(CLI::App& program, int& exit_code) -> void
     cmd.description("Fit genomic prediction models with MCMC");
 
     cli::add_common_io_options(cmd, config->base_data);
+    cli::add_random_design_options(cmd, config->random);
     cmd.add_option(
            "-b,--bfile",
            config->bfile,
@@ -56,13 +59,14 @@ auto setup_mcmc_command(CLI::App& program, int& exit_code) -> void
         ->type_name("<CODING>")
         ->default_str("OSH")
         ->check(cli::genotype_method_validator());
-    cmd.add_option(
-           "-m,--method", config->method, "Bayesian model: RR, A, B, C, R, CD")
+    cmd.add_option_function<std::string>(
+           "-m,--method",
+           cli::lexical_assigner(config->method),
+           "Bayesian model: RR, A, B, C, R, CD")
         ->group("Model")
         ->type_name("<MODEL>")
-        ->capture_default_str()
-        ->check(cli::bayes_method_validator())
-        ->required();
+        ->default_str("RR")
+        ->check(cli::bayes_method_validator());
     cmd.add_option_function<std::string>(
            "--mode",
            cli::lexical_assigner(config->mode),
@@ -72,77 +76,89 @@ auto setup_mcmc_command(CLI::App& program, int& exit_code) -> void
         ->default_str("A")
         ->check(cli::genetic_mode_set_validator());
     cmd.add_option(
-           "--random-pve",
-           config->random_pve,
-           "Non-SNP random-effect variance fraction (0,1)")
+           "--h2",
+           config->genetic_variance_shares.get<gelex::GeneticMode::A>(),
+           "Additive heritability (0,1)")
         ->group("Model")
         ->type_name("<P>")
         ->check(cli::open_unit_interval());
-    cmd.add_option("--h2", config->h2, "Additive heritability (0,1)")
-        ->group("Model")
-        ->type_name("<P>")
-        ->check(cli::open_unit_interval());
-    cmd.add_option("--d2", config->d2, "Dominance heritability (0,1)")
+    cmd.add_option(
+           "--d2",
+           config->genetic_variance_shares.get<gelex::GeneticMode::D>(),
+           "Dominance heritability (0,1)")
         ->group("Model")
         ->type_name("<P>")
         ->check(cli::open_unit_interval());
     cmd.add_option(
            "--dom-pos-prob",
-           config->dom_pos_prob,
+           config->dominance_positive_probability,
            "Initial probability dominance effects are positive")
         ->group("Model")
         ->type_name("<P>")
         ->check(cli::open_unit_interval());
-    cmd.add_option("--pi", config->pi, "Additive mixture proportions (B/C/R)")
+    cmd.add_option(
+           "--random-pve",
+           config->random_pve,
+           "Total variance fraction for non-SNP random effects")
+        ->group("Model")
+        ->type_name("<P>")
+        ->check(cli::open_unit_interval());
+    cmd.add_option(
+           "--pi",
+           config->mixture_probabilities.get<gelex::GeneticMode::A>(),
+           "Additive mixture proportions (B/C/R)")
         ->group("Model")
         ->type_name("<P>")
         ->check(CLI::PositiveNumber)
         ->expected(1, -1)
         ->allow_extra_args();
     cmd.add_option(
-           "--dpi", config->dpi, "Dominance mixture proportions (B/C/R)")
+           "--dpi",
+           config->mixture_probabilities.get<gelex::GeneticMode::D>(),
+           "Dominance mixture proportions (B/C/R)")
         ->group("Model")
         ->type_name("<P>")
         ->check(CLI::PositiveNumber)
         ->expected(1, -1)
         ->allow_extra_args();
     cmd.add_option(
-           "--scale", config->scale, "Additive variance multipliers (R)")
+           "--scale",
+           config->mixture_scales.get<gelex::GeneticMode::A>(),
+           "Additive variance multipliers (R)")
         ->group("Model")
         ->type_name("<SCALE>")
         ->check(cli::non_negative_number())
         ->expected(1, -1)
         ->allow_extra_args();
     cmd.add_option(
-           "--dscale", config->dscale, "Dominance variance multipliers (R)")
+           "--dscale",
+           config->mixture_scales.get<gelex::GeneticMode::D>(),
+           "Dominance variance multipliers (R)")
         ->group("Model")
         ->type_name("<SCALE>")
         ->check(cli::non_negative_number())
         ->expected(1, -1)
         ->allow_extra_args();
-    cmd.add_option("--jpi", config->jpi, "Joint allocation proportions (CD)")
+    cmd.add_option(
+           "--jpi",
+           config->mixture_probabilities.joint(),
+           "Joint allocation proportions (CD)")
         ->group("Model")
         ->type_name("<P>")
         ->check(CLI::PositiveNumber)
         ->expected(1, -1)
         ->allow_extra_args();
-    cmd.add_flag(
-           "--sample-pi",
-           config->sample_pi,
-           "Sample additive mixture proportions")
-        ->group("Model");
-    cmd.add_flag(
-           "--sample-dpi",
-           config->sample_dpi,
-           "Sample dominance mixture proportions")
-        ->group("Model");
-    cmd.add_flag(
-           "--sample-jpi",
-           config->sample_jpi,
-           "Sample joint allocation proportions (CD)")
-        ->group("Model");
-
     cmd.add_option("--iters", config->iters, "MCMC iterations")
+        ->group("Runtime")
+        ->type_name("<N>")
+        ->check(CLI::PositiveNumber)
+        ->capture_default_str();
+    cmd.add_option("--burn-in", config->burn_in, "Burn-in iterations")
+        ->group("Runtime")
+        ->type_name("<N>")
+        ->check(cli::non_negative_number())
+        ->capture_default_str();
+    cmd.add_option("--thin", config->thin, "Sample every N iterations")
         ->group("Runtime")
         ->type_name("<N>")
         ->check(CLI::PositiveNumber)
