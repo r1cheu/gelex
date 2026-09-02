@@ -23,7 +23,7 @@
 #include <span>
 
 #include "gelex/bayes/genetic/state.h"
-#include "gelex/bayes/genetic_projection.h"
+#include "gelex/bayes/genotype/projection.h"
 
 namespace gelex::detail
 {

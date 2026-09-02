@@ -20,14 +20,14 @@
 #include <string>
 #include <type_traits>
 
-#include "gelex/bayes/builtin_recipe.h"
+#include "gelex/bayes/builtin_method.h"
 #include "gelex/bayes/genetic_family.h"
+#include "gelex/bayes/mode_values.h"
 #include "gelex/bayes/recipe.h"
 #include "gelex/bayes/spec.h"
 #include "gelex/bayes/variance_budget.h"
 #include "gelex/exception.h"
-#include "gelex/types/genetic_mode.h"
-#include "gelex/types/mode_values.h"
+#include "gelex/genetic_mode.h"
 
 using Catch::Matchers::ContainsSubstring;
 using gelex::BayesMethod;

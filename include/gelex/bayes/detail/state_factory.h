@@ -21,12 +21,12 @@
 #include <cstdint>
 #include <utility>
 
-#include "gelex/bayes/design_data.h"
 #include "gelex/bayes/genetic/prior.h"
 #include "gelex/bayes/genetic/state.h"
+#include "gelex/bayes/genotype/design.h"
+#include "gelex/bayes/mode_values.h"
 #include "gelex/exception.h"
-#include "gelex/types/genetic_mode.h"
-#include "gelex/types/mode_values.h"
+#include "gelex/genetic_mode.h"
 
 namespace gelex::detail
 {

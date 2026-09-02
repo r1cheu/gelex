@@ -30,9 +30,9 @@
 #include "gelex/data/dataframe/index.h"
 #include "gelex/data/reader.h"
 #include "gelex/data/snp_alignment.h"
+#include "gelex/data/snp_lut_io.h"
 #include "gelex/exception.h"
-#include "gelex/io/snp_lut.h"
-#include "gelex/types/genetic_mode.h"
+#include "gelex/genetic_mode.h"
 
 #include "cli/formatter.h"
 #include "cli/report_printer.h"

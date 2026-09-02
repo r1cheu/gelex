@@ -22,8 +22,8 @@
 #include <variant>
 #include <vector>
 
-#include "gelex/algo/reml/summary.h"
-#include "gelex/infra/logging/reml_event.h"
+#include "gelex/freq/reml/progress.h"
+#include "gelex/freq/reml/summary.h"
 
 #include "cli/table.h"
 

@@ -19,7 +19,7 @@
 #include <cstddef>
 #include <fmt/format.h>
 
-#include "gelex/infra/logging/grm_event.h"
+#include "gelex/data/grm/progress.h"
 
 #include "cli/formatter.h"
 #include "cli/progress_bar.h"

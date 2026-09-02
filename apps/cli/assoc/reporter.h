@@ -22,7 +22,7 @@
 #include <string_view>
 #include <vector>
 
-#include "gelex/algo/reml/summary.h"
+#include "gelex/freq/reml/summary.h"
 
 #include "cli/progress_bar.h"
 #include "cli/timer.h"

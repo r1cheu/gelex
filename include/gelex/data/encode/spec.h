@@ -19,7 +19,7 @@
 
 #include "gelex/data/encode/types.h"
 #include "gelex/data/genotype_method.h"
-#include "gelex/types/genetic_mode.h"
+#include "gelex/genetic_mode.h"
 
 namespace gelex
 {

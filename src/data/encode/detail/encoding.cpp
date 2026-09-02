@@ -22,7 +22,7 @@
 
 #include "gelex/data/encode/stats.h"
 #include "gelex/data/encode/types.h"
-#include "gelex/types/genetic_mode.h"
+#include "gelex/genetic_mode.h"
 
 namespace gelex::detail
 {

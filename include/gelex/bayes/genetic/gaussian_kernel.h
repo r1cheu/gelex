@@ -20,13 +20,13 @@
 #include <Eigen/Core>
 #include <random>
 
-#include "gelex/bayes/design_data.h"
 #include "gelex/bayes/genetic/prior.h"
 #include "gelex/bayes/genetic/state.h"
+#include "gelex/bayes/genotype/design.h"
 #include "gelex/bayes/state.h"
-#include "gelex/infra/stats/normal_sampler.h"
-#include "gelex/infra/stats/scaled_inv_chi2_sampler.h"
-#include "gelex/types/genetic_mode.h"
+#include "gelex/bayes/stats/normal_sampler.h"
+#include "gelex/bayes/stats/scaled_inv_chi2_sampler.h"
+#include "gelex/genetic_mode.h"
 
 namespace gelex::detail
 {

@@ -28,9 +28,10 @@
 #include <utility>
 #include <vector>
 
-#include "gelex/data/covariates.h"
+#include "gelex/data/grm/io.h"
 #include "gelex/data/reader.h"
 #include "gelex/exception.h"
+#include "gelex/freq/design_factory.h"
 
 namespace cli
 {
@@ -123,20 +124,20 @@ auto RemlDataLoader::gather(
     if (drand_)
     {
         drand_->gather(common_index);
-        random_designs_ = gelex::make_random_designs(*drand_);
+        random_designs_ = gelex::freq::make_random_designs(*drand_);
     }
     for (auto&& [i, frame] : std::views::enumerate(qrand_))
     {
         frame.gather(common_index);
         random_designs_.push_back(
-            gelex::make_quantitative_random_design(
+            gelex::freq::make_quantitative_random_design(
                 frame,
                 std::filesystem::path(
                     config_.qrand_paths[static_cast<std::size_t>(i)])
                     .stem()
                     .string()));
     }
-    auto grm_designs = gelex::make_grm_designs(config_.grm, common_index);
+    auto grm_designs = gelex::freq::make_grm_designs(config_.grm, common_index);
     random_designs_.insert(
         random_designs_.end(),
         std::make_move_iterator(grm_designs.begin()),
@@ -153,7 +154,7 @@ auto RemlDataLoader::gather(
     {
         auto [lhs, rhs] = split_interaction(spec);
         random_designs_.push_back(
-            gelex::make_interaction_design(
+            gelex::freq::make_interaction_design(
                 spec, resolve_operand(lhs), resolve_operand(rhs)));
     }
 }

@@ -28,8 +28,8 @@
 #include "gelex/bayes/genetic/prior.h"
 #include "gelex/bayes/genetic/scaled_mixture_kernel.h"
 #include "gelex/bayes/genetic/spike_slab_kernel.h"
-#include "gelex/types/genetic_mode.h"
-#include "gelex/types/mode_values.h"
+#include "gelex/bayes/mode_values.h"
+#include "gelex/genetic_mode.h"
 
 namespace gelex::detail
 {

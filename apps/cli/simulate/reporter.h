@@ -19,7 +19,7 @@
 
 #include <optional>
 
-#include "gelex/infra/logging/simulate_event.h"
+#include "gelex/simulate/progress.h"
 
 #include "cli/progress_bar.h"
 

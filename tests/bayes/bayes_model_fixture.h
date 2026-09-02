@@ -22,12 +22,13 @@
 #include <utility>
 #include <vector>
 
-#include "gelex/bayes/design_data.h"
+#include "gelex/bayes/genotype/design.h"
 #include "gelex/bayes/model.h"
-#include "gelex/types/fixed_designs.h"
-#include "gelex/types/genetic_mode.h"
+#include "gelex/data/fixed_design.h"
+#include "gelex/genetic_mode.h"
 
 #include "compact_genotype_fixture.h"
+#include "random_design_fixture.h"
 
 namespace gelex::test
 {
@@ -40,10 +41,10 @@ inline auto make_random_effect_model(
     auto genetic = make_genetic_design(
         Eigen::MatrixXd{{0.0, 1.0}, {1.0, 0.0}, {2.0, 1.0}}, modes);
     std::vector<bayes::RandomDesign> random;
-    random.emplace_back(
+    random.push_back(make_random_design(
         "batch",
         std::vector<std::string>{"batch_1", "batch_2"},
-        Eigen::MatrixXd{{1.0, 0.0}, {0.0, 1.0}, {1.0, 0.0}});
+        Eigen::MatrixXd{{1.0, 0.0}, {0.0, 1.0}, {1.0, 0.0}}));
     return BayesModel{
         Eigen::VectorXd{{1.0, 2.0, 3.0}},
         FixedDesign::make(3),

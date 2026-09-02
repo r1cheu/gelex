@@ -28,14 +28,14 @@
 #include "gelex/bayes/genetic/state.h"
 #include "gelex/bayes/genetic_family.h"
 #include "gelex/bayes/kernel.h"
+#include "gelex/bayes/mode_values.h"
 #include "gelex/bayes/prior.h"
 #include "gelex/bayes/recipe.h"
 #include "gelex/bayes/spec.h"
 #include "gelex/bayes/state.h"
 #include "gelex/bayes/variance_budget.h"
 #include "gelex/data/genotype_method.h"
-#include "gelex/types/genetic_mode.h"
-#include "gelex/types/mode_values.h"
+#include "gelex/genetic_mode.h"
 
 #include "compact_genotype_fixture.h"
 
@@ -212,7 +212,7 @@ auto require_fitted_value_invariants(
          .dominance = dominance.coefficients},
         joint.assignment);
     const Eigen::VectorXd fixed_fitted_values
-        = model.fixed().X * state.fixed().coefficients;
+        = model.fixed().X() * state.fixed().coefficients;
 
     REQUIRE(
         additive.family_state.fitted_values.isApprox(additive_fitted_values));

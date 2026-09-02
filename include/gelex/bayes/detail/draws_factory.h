@@ -25,17 +25,17 @@
 #include <string_view>
 #include <utility>
 
-#include "gelex/bayes/design_data.h"
+#include "gelex/bayes/basic_draw.h"
 #include "gelex/bayes/detail/state_factory.h"
-#include "gelex/bayes/draw.h"
 #include "gelex/bayes/genetic/draws.h"
 #include "gelex/bayes/genetic/prior.h"
 #include "gelex/bayes/genetic/state.h"
 #include "gelex/bayes/genetic_family.h"
+#include "gelex/bayes/genotype/design.h"
+#include "gelex/bayes/mode_values.h"
+#include "gelex/genetic_mode.h"
 #include "gelex/io/binary_format.h"
 #include "gelex/io/binary_writer.h"
-#include "gelex/types/genetic_mode.h"
-#include "gelex/types/mode_values.h"
 
 namespace gelex::detail
 {

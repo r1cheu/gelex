@@ -24,9 +24,9 @@
 
 #include "gelex/data/bed.h"
 #include "gelex/data/grm/grm.h"
+#include "gelex/data/grm/io.h"
 #include "gelex/data/marker_range.h"
-#include "gelex/data/writer.h"
-#include "gelex/types/genetic_mode.h"
+#include "gelex/genetic_mode.h"
 
 #include "cli/formatter.h"
 #include "cli/report_printer.h"

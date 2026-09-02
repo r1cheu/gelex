@@ -20,7 +20,7 @@
 #include <nanobench.h>
 #include <vector>
 
-#include "gelex/infra/stats/normal_sampler.h"
+#include "gelex/bayes/stats/normal_sampler.h"
 
 namespace
 {

@@ -21,11 +21,11 @@
 #include <type_traits>
 #include <utility>
 
-#include "gelex/bayes/draw.h"
+#include "gelex/bayes/basic_draw.h"
 #include "gelex/bayes/genetic/state.h"
 #include "gelex/bayes/genetic_family.h"
-#include "gelex/infra/stats/detail/var.h"
-#include "gelex/types/genetic_mode.h"
+#include "gelex/genetic_mode.h"
+#include "gelex/infra/var.h"
 
 namespace gelex
 {
@@ -130,8 +130,7 @@ struct ScaledMixtureDraws
         assignment.append(state.assignment);
         probabilities.append(state.probabilities);
         component_explained_variance.append(
-            detail::matvar<0>(
-                state.fitted_values, detail::VarNormType::Population));
+            matvar<0>(state.fitted_values, VarNormType::Population));
     }
 };
 
@@ -147,8 +146,7 @@ struct JointSpikeSlabDraws
         assignment.append(state.assignment);
         probabilities.append(state.probabilities);
         component_explained_variance.append(
-            detail::matvar<0>(
-                state.fitted_values, detail::VarNormType::Population));
+            matvar<0>(state.fitted_values, VarNormType::Population));
     }
 };
 

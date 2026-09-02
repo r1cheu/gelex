@@ -5,7 +5,7 @@
 #include <nanobind/stl/vector.h>
 
 #include "gelex/data/encode/stats.h"
-#include "gelex/types/genetic_mode.h"
+#include "gelex/genetic_mode.h"
 
 #include "gelex_py/register.h"
 

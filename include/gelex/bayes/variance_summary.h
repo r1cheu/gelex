@@ -25,11 +25,11 @@
 #include <utility>
 
 #include "gelex/bayes/genetic/state.h"
+#include "gelex/bayes/mode_values.h"
 #include "gelex/bayes/state.h"
 #include "gelex/exception.h"
-#include "gelex/infra/stats/detail/var.h"
-#include "gelex/types/genetic_mode.h"
-#include "gelex/types/mode_values.h"
+#include "gelex/genetic_mode.h"
+#include "gelex/infra/var.h"
 
 namespace gelex
 {
@@ -152,21 +152,18 @@ template <typename GeneticPrior>
     double random_total = 0.0;
     for (const auto& block : state.random())
     {
-        random_total += detail::vecvar(
-            block.fitted_values, detail::VarNormType::Population);
+        random_total += vecvar(block.fitted_values, VarNormType::Population);
     }
 
     return VarianceSummary<modes>{
         generate_mode_values<modes>(
             [&]<GeneticMode Mode>()
             {
-                return detail::vecvar(
+                return vecvar(
                     genetic_value(genetic.template get<Mode>()),
-                    detail::VarNormType::Population);
+                    VarNormType::Population);
             }),
-        detail::vecvar(
-            total_genetic_value<modes>(genetic),
-            detail::VarNormType::Population),
+        vecvar(total_genetic_value<modes>(genetic), VarNormType::Population),
         random_total,
         state.residual().variance};
 }

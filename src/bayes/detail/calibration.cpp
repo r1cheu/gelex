@@ -22,7 +22,7 @@
 #include "gelex/bayes/model.h"
 #include "gelex/bayes/variance_budget.h"
 #include "gelex/exception.h"
-#include "gelex/types/genetic_mode.h"
+#include "gelex/genetic_mode.h"
 
 namespace gelex
 {

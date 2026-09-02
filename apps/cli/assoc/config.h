@@ -22,7 +22,7 @@
 #include <thread>
 
 #include "gelex/data/genotype_method.h"
-#include "gelex/types/genetic_mode.h"
+#include "gelex/genetic_mode.h"
 
 #include "cli/common_data.h"
 #include "cli/reml_data.h"

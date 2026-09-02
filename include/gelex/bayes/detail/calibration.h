@@ -18,7 +18,7 @@
 #define GELEX_BAYES_DETAIL_CALIBRATION_H_
 
 #include "gelex/bayes/variance_parameter.h"
-#include "gelex/types/genetic_mode.h"
+#include "gelex/genetic_mode.h"
 
 namespace gelex
 {

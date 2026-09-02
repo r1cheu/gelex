@@ -28,8 +28,8 @@
 #include "gelex/bayes/state.h"
 #include "gelex/bayes/variance_budget.h"
 #include "gelex/exception.h"
+#include "gelex/genetic_mode.h"
 #include "gelex/io/binary_reader.h"
-#include "gelex/types/genetic_mode.h"
 
 #include "bayes_model_fixture.h"
 #include "file_fixture.h"

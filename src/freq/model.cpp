@@ -20,9 +20,9 @@
 #include <utility>
 #include <vector>
 
+#include "gelex/data/fixed_design.h"
 #include "gelex/freq/design.h"
-#include "gelex/infra/stats/detail/var.h"
-#include "gelex/types/fixed_designs.h"
+#include "gelex/infra/var.h"
 
 namespace gelex
 {
@@ -32,8 +32,7 @@ FreqModel::FreqModel(
     FixedDesign fixed_design,
     std::vector<freq::RandomDesign> random)
     : phenotype_(std::move(phenotype)),
-      phenotype_variance_(
-          detail::vecvar(phenotype_, detail::VarNormType::Population)),
+      phenotype_variance_(vecvar(phenotype_, VarNormType::Population)),
       fixed_(std::move(fixed_design)),
       random_(std::move(random))
 {

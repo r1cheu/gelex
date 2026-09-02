@@ -24,8 +24,8 @@
 #include <random>
 
 #include "gelex/bayes/genetic/prior.h"
-#include "gelex/infra/stats/beta_sampler.h"
-#include "gelex/infra/stats/dirichlet_sampler.h"
+#include "gelex/bayes/stats/beta_sampler.h"
+#include "gelex/bayes/stats/dirichlet_sampler.h"
 
 namespace gelex::detail
 {

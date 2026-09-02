@@ -27,19 +27,19 @@
 #include <utility>
 #include <vector>
 
+#include "gelex/bayes/basic_draw.h"
 #include "gelex/bayes/detail/draws_factory.h"
-#include "gelex/bayes/draw.h"
+#include "gelex/bayes/mode_values.h"
 #include "gelex/bayes/model.h"
 #include "gelex/bayes/prior.h"
 #include "gelex/bayes/state.h"
 #include "gelex/bayes/variance_summary.h"
 #include "gelex/exception.h"
+#include "gelex/genetic_mode.h"
 #include "gelex/infra/log.h"
-#include "gelex/infra/stats/detail/var.h"
+#include "gelex/infra/var.h"
 #include "gelex/io/binary_format.h"
 #include "gelex/io/binary_writer.h"
-#include "gelex/types/genetic_mode.h"
-#include "gelex/types/mode_values.h"
 
 namespace gelex
 {
@@ -62,8 +62,7 @@ class RandomEffectDraws
         coefficients_.append(state.coefficients);
         variance_.append(state.variance);
         explained_variance_.append(
-            detail::vecvar(
-                state.fitted_values, detail::VarNormType::Population));
+            vecvar(state.fitted_values, VarNormType::Population));
     }
 
     [[nodiscard]] auto coefficients() const noexcept -> const VectorDraw&
@@ -185,7 +184,7 @@ class BayesDraws
           fixed_{writer_.reserve<float>(
               "fixed/coefficients",
               BinaryShape{
-                  static_cast<std::uint64_t>(model.fixed().X.cols()),
+                  static_cast<std::uint64_t>(model.fixed().X().cols()),
                   draw_count})},
           random_{make_random_draws(model, writer_, draw_count)},
           genetic_{detail::make_genetic_draws(
@@ -285,15 +284,15 @@ class BayesDraws
         {
             random.emplace_back(
                 VectorDraw{writer.reserve<float>(
-                    fmt::format("random/{}/coefficients", design.name),
+                    fmt::format("random/{}/coefficients", design.name()),
                     BinaryShape{
-                        static_cast<std::uint64_t>(design.X.cols()),
+                        static_cast<std::uint64_t>(design.X().cols()),
                         draw_count})},
                 ScalarDraw{writer.reserve<double>(
-                    fmt::format("random/{}/variance", design.name),
+                    fmt::format("random/{}/variance", design.name()),
                     BinaryShape{1, draw_count})},
                 ScalarDraw{writer.reserve<double>(
-                    fmt::format("random/{}/explained_variance", design.name),
+                    fmt::format("random/{}/explained_variance", design.name()),
                     BinaryShape{1, draw_count})});
         }
         return random;

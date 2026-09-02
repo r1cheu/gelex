@@ -22,7 +22,7 @@
 #include <functional>
 #include <utility>
 
-#include "gelex/types/genetic_mode.h"
+#include "gelex/genetic_mode.h"
 
 namespace gelex
 {

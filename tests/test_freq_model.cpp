@@ -28,11 +28,12 @@
 #include "gelex/data/covariates.h"
 #include "gelex/data/dataframe/dataframe.h"
 #include "gelex/data/dataframe/index.h"
+#include "gelex/data/fixed_design.h"
+#include "gelex/data/grm/io.h"
 #include "gelex/data/reader.h"
 #include "gelex/data/sample_id.h"
-#include "gelex/data/writer.h"
+#include "gelex/freq/design_factory.h"
 #include "gelex/freq/model.h"
-#include "gelex/types/fixed_designs.h"
 
 #include "bed_fixture.h"
 #include "file_fixture.h"
@@ -231,17 +232,25 @@ auto make_freq_model(
     }
 
     auto pheno_vec = phenotype.col(0).to_mat<double>();
-    auto fixed
-        = (!qcovar && !dcovar)
-              ? FixedDesign::make(static_cast<Eigen::Index>(common.size()))
-              : FixedDesign::make(
-                    qcovar ? std::make_optional(
-                                 make_quantitative_covariate(*qcovar))
-                           : std::nullopt,
-                    dcovar
-                        ? std::make_optional(make_discrete_covariate(*dcovar))
-                        : std::nullopt);
-    auto random = make_grm_designs(grm_prefixes, common);
+    auto fixed = [&]() -> FixedDesign
+    {
+        if (qcovar && dcovar)
+        {
+            return FixedDesign::make(
+                make_quantitative_covariate(*qcovar),
+                make_discrete_covariate(*dcovar));
+        }
+        if (qcovar)
+        {
+            return FixedDesign::make(make_quantitative_covariate(*qcovar));
+        }
+        if (dcovar)
+        {
+            return FixedDesign::make(make_discrete_covariate(*dcovar));
+        }
+        return FixedDesign::make(static_cast<Eigen::Index>(common.size()));
+    }();
+    auto random = freq::make_grm_designs(grm_prefixes, common);
 
     return FreqModel(std::move(pheno_vec), std::move(fixed), std::move(random));
 }
@@ -294,8 +303,8 @@ TEST_CASE(
     SECTION("Verify fixed effects (intercept only)")
     {
         // without covariates, should have intercept column only
-        REQUIRE(model.fixed().X.rows() == num_samples);
-        REQUIRE(model.fixed().X.cols() >= 1);
+        REQUIRE(model.fixed().X().rows() == num_samples);
+        REQUIRE(model.fixed().X().cols() >= 1);
     }
 
     SECTION("Verify no random effects")
@@ -536,7 +545,7 @@ TEST_CASE(
 
     SECTION("Verify fixed effects matrix is filtered")
     {
-        REQUIRE(model.fixed().X.rows() == grm_samples);
+        REQUIRE(model.fixed().X().rows() == grm_samples);
     }
 }
 
@@ -585,16 +594,15 @@ TEST_CASE(
     SECTION("Verify fixed effects include covariates")
     {
         // expected columns: intercept + 2 qcovars = 3
-        REQUIRE(model.fixed().X.rows() == num_samples);
-        REQUIRE(model.fixed().X.cols() == 3);
+        REQUIRE(model.fixed().X().rows() == num_samples);
+        REQUIRE(model.fixed().X().cols() == 3);
     }
 
     SECTION("Verify fixed effect names")
     {
-        REQUIRE(model.fixed().names.size() == 3);
-        REQUIRE(model.fixed().names[0] == "Intercept");
-        REQUIRE(model.fixed().names[1] == "Age");
-        REQUIRE(model.fixed().names[2] == "Height");
+        REQUIRE(model.fixed().quantitative_names().size() == 2);
+        REQUIRE(model.fixed().quantitative_names()[0] == "Age");
+        REQUIRE(model.fixed().quantitative_names()[1] == "Height");
     }
 }
 
@@ -644,8 +652,8 @@ TEST_CASE(
     SECTION("Verify fixed effects include dummy coded discrete covariate")
     {
         // expected columns: intercept + (3 levels - 1 reference) = 3
-        REQUIRE(model.fixed().X.rows() == num_samples);
-        REQUIRE(model.fixed().X.cols() == 3);
+        REQUIRE(model.fixed().X().rows() == num_samples);
+        REQUIRE(model.fixed().X().cols() == 3);
     }
 }
 

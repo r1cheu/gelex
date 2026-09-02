@@ -17,7 +17,6 @@
 #ifndef GELEX_DATA_READER_H_
 #define GELEX_DATA_READER_H_
 
-#include <Eigen/Core>
 #include <cstddef>
 #include <filesystem>
 #include <string>
@@ -42,14 +41,6 @@ auto read_pheno(
 auto read_qcovar(const std::filesystem::path& path) -> DataFrame<std::string>;
 
 auto read_dcovar(const std::filesystem::path& path) -> DataFrame<std::string>;
-
-auto read_grm_ids(const std::string& prefix)
-    -> gelex::DataFrameIndex<std::string>;
-
-auto read_grm(
-    const std::string& prefix,
-    const DataFrameIndex<std::string>* index = nullptr,
-    bool normalize = true) -> Eigen::MatrixXd;
 
 };  // namespace gelex
 

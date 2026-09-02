@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_DATA_GRM_H_
-#define GELEX_DATA_GRM_H_
+#ifndef GELEX_DATA_GRM_GRM_H_
+#define GELEX_DATA_GRM_GRM_H_
 
 #include <Eigen/Core>
 #include <functional>
@@ -25,9 +25,9 @@
 #include <vector>
 
 #include "gelex/data/genotype_method.h"
+#include "gelex/data/grm/progress.h"
 #include "gelex/data/marker_range.h"
-#include "gelex/infra/logging/grm_event.h"
-#include "gelex/types/genetic_mode.h"
+#include "gelex/genetic_mode.h"
 
 namespace gelex
 {
@@ -76,4 +76,4 @@ class GrmBuilder
 
 }  // namespace gelex
 
-#endif  // GELEX_DATA_GRM_H_
+#endif  // GELEX_DATA_GRM_GRM_H_

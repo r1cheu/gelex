@@ -25,17 +25,18 @@
 
 #include "gelex/bayes/genetic/prior.h"
 #include "gelex/bayes/genetic_family.h"
+#include "gelex/bayes/mode_values.h"
 #include "gelex/bayes/model.h"
 #include "gelex/bayes/prior.h"
 #include "gelex/bayes/recipe.h"
 #include "gelex/bayes/spec.h"
 #include "gelex/bayes/variance_budget.h"
+#include "gelex/data/fixed_design.h"
 #include "gelex/exception.h"
-#include "gelex/types/fixed_designs.h"
-#include "gelex/types/genetic_mode.h"
-#include "gelex/types/mode_values.h"
+#include "gelex/genetic_mode.h"
 
 #include "compact_genotype_fixture.h"
+#include "random_design_fixture.h"
 
 using Catch::Approx;
 using gelex::BayesModel;
@@ -407,10 +408,14 @@ TEST_CASE(
     "[bayes][prior]")
 {
     auto model = make_model_with_random(
-        {gelex::bayes::RandomDesign{
-             "first", {"first"}, Eigen::MatrixXd{{0.0}, {1.0}, {2.0}}},
-         gelex::bayes::RandomDesign{
-             "second", {"second"}, Eigen::MatrixXd{{0.0}, {2.0}, {4.0}}}});
+        {gelex::test::make_random_design(
+             "first",
+             std::vector<std::string>{"first"},
+             Eigen::MatrixXd{{0.0}, {1.0}, {2.0}}),
+         gelex::test::make_random_design(
+             "second",
+             std::vector<std::string>{"second"},
+             Eigen::MatrixXd{{0.0}, {2.0}, {4.0}})});
     const auto recipe = BayesRecipe<mode_a, PooledGaussianFamily>{
         VarianceBudget{{.additive = 0.4, .random = 0.2}}};
 
@@ -422,7 +427,7 @@ TEST_CASE(
          std::views::zip(prior.random(), model.random()))
     {
         REQUIRE(
-            parameter.initial_value() * projection_variance(design.X)
+            parameter.initial_value() * projection_variance(design.X())
             == Approx(block_target));
         REQUIRE(parameter.prior().degrees_of_freedom() == 4.0);
         REQUIRE(
@@ -446,8 +451,11 @@ TEST_CASE(
 
     SECTION("a design without a share")
     {
-        const auto model = make_model_with_random({gelex::bayes::RandomDesign{
-            "random", {"random"}, Eigen::MatrixXd{{0.0}, {1.0}, {2.0}}}});
+        const auto model
+            = make_model_with_random({gelex::test::make_random_design(
+                "random",
+                std::vector<std::string>{"random"},
+                Eigen::MatrixXd{{0.0}, {1.0}, {2.0}})});
 
         REQUIRE_THROWS_AS(
             make_prior(
@@ -460,8 +468,10 @@ TEST_CASE(
     "make_prior rejects a random block with zero projection variance",
     "[bayes][prior]")
 {
-    const auto model = make_model_with_random({gelex::bayes::RandomDesign{
-        "constant", {"constant"}, Eigen::MatrixXd{{1.0}, {1.0}, {1.0}}}});
+    const auto model = make_model_with_random({gelex::test::make_random_design(
+        "constant",
+        std::vector<std::string>{"constant"},
+        Eigen::MatrixXd{{1.0}, {1.0}, {1.0}})});
     const auto recipe = BayesRecipe<mode_a, PooledGaussianFamily>{
         VarianceBudget{{.additive = 0.4, .random = 0.1}}};
 

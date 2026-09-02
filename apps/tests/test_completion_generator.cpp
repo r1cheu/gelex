@@ -25,8 +25,8 @@
 
 #include "gelex/bayes/builtin_method.h"
 #include "gelex/data/genotype_method.h"
-#include "gelex/infra/stats/rank_inverse_norm_transform.h"
-#include "gelex/types/genetic_mode.h"
+#include "gelex/data/rank_inverse_norm_transform.h"
+#include "gelex/genetic_mode.h"
 
 #include "cli/completion/choice_descriptions.h"
 #include "cli/completion/completion_generator.h"
