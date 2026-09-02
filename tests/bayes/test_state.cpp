@@ -137,11 +137,11 @@ concept ValidJointSpikeSlabState
 static_assert(
     ScaledMixtureState<ScaledMixture::class_count>::component_count == 4);
 static_assert(
-    JointSpikeSlabState<JointSpikeSlab::class_count>::component_count == 3);
+    JointSpikeSlabState<JointSpikeSlab::class_count>::component_count == 4);
 static_assert(ValidScaledMixtureState<256>);
 static_assert(!ValidScaledMixtureState<257>);
-static_assert(ValidJointSpikeSlabState<256>);
-static_assert(!ValidJointSpikeSlabState<257>);
+static_assert(ValidJointSpikeSlabState<4>);
+static_assert(!ValidJointSpikeSlabState<3>);
 
 static_assert(std::same_as<
               decltype(SpikeSlabState<VarianceLayout::Pooled>::assignment),

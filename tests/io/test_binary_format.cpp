@@ -68,7 +68,6 @@ TEST_CASE("GELEXBF2 has a stable wire layout", "[io][binary_format]")
     {
         gelex::BinaryWriter writer(container_path.string());
         writer.reserve<double>("x", gelex::BinaryShape{1, 1}).append(1.0);
-        writer.close();
     }
 
     constexpr auto directory_offset = gelex::detail::payload_alignment;
@@ -126,7 +125,6 @@ TEST_CASE("GELEXBF2 stores variable-length identifiers", "[io][binary_format]")
         gelex::BinaryWriter writer(container_path.string());
         writer.reserve<std::uint8_t>(identifier, gelex::BinaryShape{1, 1})
             .append(std::uint8_t{7});
-        writer.close();
     }
 
     std::ifstream input(container_path, std::ios::binary);

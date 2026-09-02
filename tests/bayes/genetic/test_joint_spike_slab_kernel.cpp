@@ -25,6 +25,7 @@
 #include <utility>
 
 #include "gelex/bayes/genetic/prior.h"
+#include "gelex/bayes/genetic/state.h"
 #include "gelex/bayes/genetic_family.h"
 #include "gelex/bayes/kernel.h"
 #include "gelex/bayes/prior.h"
@@ -88,17 +89,17 @@ struct AssignmentObservation
 };
 
 static_assert(std::same_as<
-              decltype(gelex::make_kernel(
-                  std::declval<const gelex::BayesPrior<SampledCountPrior>&>())),
+              decltype(gelex::BayesKernel{
+                  std::declval<const gelex::BayesPrior<SampledCountPrior>&>()}),
               gelex::BayesKernel<SampledCountPrior>>);
 static_assert(std::same_as<
-              decltype(gelex::make_kernel(
-                  std::declval<const gelex::BayesPrior<FixedCountPrior>&>())),
+              decltype(gelex::BayesKernel{
+                  std::declval<const gelex::BayesPrior<FixedCountPrior>&>()}),
               gelex::BayesKernel<FixedCountPrior>>);
 static_assert(
     std::same_as<
-        decltype(gelex::make_kernel(
-            std::declval<const gelex::BayesPrior<SampledMagnitudePrior>&>())),
+        decltype(gelex::BayesKernel{
+            std::declval<const gelex::BayesPrior<SampledMagnitudePrior>&>()}),
         gelex::BayesKernel<SampledMagnitudePrior>>);
 
 auto make_model() -> gelex::BayesModel
@@ -135,9 +136,12 @@ auto reconstruct_joint_fitted_values(
     const JointCoefficients& coefficients,
     const Eigen::VectorX<std::uint8_t>& assignment) -> Eigen::MatrixXd
 {
-    Eigen::MatrixXd fitted_values = Eigen::MatrixXd::Zero(design.rows(), 3);
-    constexpr std::array additive_component{-1, 0, -1, 2};
-    constexpr std::array dominance_component{-1, -1, 1, 2};
+    using JointState
+        = gelex::JointSpikeSlabState<gelex::JointSpikeSlab::class_count>;
+    Eigen::MatrixXd fitted_values = Eigen::MatrixXd::Zero(
+        design.rows(), static_cast<Eigen::Index>(JointState::component_count));
+    constexpr auto additive_component = JointState::additive_components;
+    constexpr auto dominance_component = JointState::dominance_components;
     const auto& additive_projection = design.projection(gelex::GeneticMode::A);
     const auto& dominance_projection = design.projection(gelex::GeneticMode::D);
     for (Eigen::Index marker = 0; marker < assignment.size(); ++marker)
@@ -315,7 +319,7 @@ TEST_CASE(
             gelex::VarianceBudget{{.additive = 0.4, .dominance = 0.1}}},
         model);
     auto state = gelex::make_state(prior, model);
-    auto kernel = gelex::make_kernel(prior);
+    gelex::BayesKernel kernel(prior);
     std::mt19937_64 rng{123};
     initialize_non_null_state(model, state);
 
@@ -353,7 +357,7 @@ TEST_CASE(
             gelex::VarianceBudget{{.additive = 0.4, .dominance = 0.1}}},
         model);
     auto state = gelex::make_state(prior, model);
-    auto kernel = gelex::make_kernel(prior);
+    gelex::BayesKernel kernel(prior);
     std::mt19937_64 rng{321};
     initialize_non_null_state(model, state);
 
@@ -382,7 +386,7 @@ TEST_CASE(
             gelex::VarianceBudget{{.additive = 0.4, .dominance = 0.1}}},
         model);
     auto state = gelex::make_state(prior, model);
-    auto kernel = gelex::make_kernel(prior);
+    gelex::BayesKernel kernel(prior);
     std::mt19937_64 rng{456};
     initialize_non_null_state(model, state);
 

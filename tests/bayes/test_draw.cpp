@@ -47,7 +47,6 @@ TEST_CASE(
 
         draw.append(2.0);
         draw.append(4.0);
-        writer.close();
         result = draw.result();
     }
 
@@ -74,7 +73,6 @@ TEST_CASE(
         const std::array first{1.0, 3.0};
         draw.append(std::span{first});
         draw.append(Eigen::VectorXd{{3.0, 7.0}});
-        writer.close();
         result = draw.result();
     }
 
@@ -103,7 +101,6 @@ TEST_CASE(
         const std::array<std::uint8_t, 2> first{0, 1};
         draw.append(std::span{first});
         draw.append(Eigen::VectorX<std::uint8_t>{{2, 1}});
-        writer.close();
         result = draw.result();
     }
 

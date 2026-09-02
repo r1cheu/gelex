@@ -105,16 +105,26 @@ struct ScaledMixtureState
         fitted_values;
 };
 
+// Classes are NULL, A-only, D-only and AD; fitted_values holds one column per
+// (mode, class) cell in which that mode is active, so every column carries a
+// single mode and the two columns of a mode sum to that mode's total.
 template <std::size_t ClassCount>
-    requires(
-        ClassCount > 1
-        && ClassCount <= static_cast<std::size_t>(
-                             std::numeric_limits<std::uint8_t>::max())
-                             + 1)
+    requires(ClassCount == 4)
 struct JointSpikeSlabState
 {
     static constexpr std::size_t class_count = ClassCount;
-    static constexpr std::size_t component_count = class_count - 1;
+    static constexpr std::size_t component_count = 4;
+    static constexpr int no_component = -1;
+    static constexpr std::array<int, class_count> additive_components{
+        no_component,
+        0,
+        no_component,
+        1};
+    static constexpr std::array<int, class_count> dominance_components{
+        no_component,
+        no_component,
+        2,
+        3};
 
     Eigen::VectorX<std::uint8_t> assignment;
     std::array<double, class_count> probabilities{};
@@ -128,6 +138,40 @@ struct GeneticModeState
     Eigen::VectorXd coefficients;
     FamilyState family_state;
 };
+
+template <VarianceLayout Kind>
+[[nodiscard]] auto genetic_value(const GaussianState<Kind>& state)
+    -> const Eigen::VectorXd&
+{
+    return state.fitted_values;
+}
+
+template <HalfNormalAsymmetry Axis>
+[[nodiscard]] auto genetic_value(const HalfNormalState<Axis>& state)
+    -> const Eigen::VectorXd&
+{
+    return state.fitted_values;
+}
+
+template <VarianceLayout Kind>
+[[nodiscard]] auto genetic_value(const SpikeSlabState<Kind>& state)
+    -> const Eigen::VectorXd&
+{
+    return state.fitted_values;
+}
+
+template <std::size_t ClassCount>
+[[nodiscard]] auto genetic_value(const ScaledMixtureState<ClassCount>& state)
+{
+    return state.fitted_values.rowwise().sum();
+}
+
+template <typename FamilyState>
+[[nodiscard]] auto genetic_value(const GeneticModeState<FamilyState>& state)
+    -> decltype(auto)
+{
+    return genetic_value(state.family_state);
+}
 
 }  // namespace gelex
 

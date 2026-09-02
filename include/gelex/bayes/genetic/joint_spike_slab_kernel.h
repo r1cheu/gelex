@@ -60,6 +60,7 @@ class JointSpikeSlabKernel
     using JointPrior = JointSpikeSlabPrior<ClassCount, ProbabilitiesUpdate>;
     using GeneticPrior = JointModeValues<ModePriors, JointPrior>;
     using GeneticState = genetic_state_t<GeneticPrior>;
+    using JointState = JointSpikeSlabState<ClassCount>;
     using DominancePosterior = HalfNormalSampler<double>::Posterior;
 
     struct NoPositiveProbabilityUpdater
@@ -74,18 +75,6 @@ class JointSpikeSlabKernel
     static constexpr std::size_t class_count = ClassCount;
     static constexpr std::size_t negative_sign_index = 0;
     static constexpr std::size_t positive_sign_index = 1;
-    static constexpr int no_fitted_component = -1;
-
-    static constexpr std::array<int, class_count> additive_fitted_indices{
-        no_fitted_component,
-        0,
-        no_fitted_component,
-        2};  // NULL, A, D, AD
-    static constexpr std::array<int, class_count> dominance_fitted_indices{
-        no_fitted_component,
-        no_fitted_component,
-        1,
-        2};  // NULL, A, D, AD
 
     struct MarkerLikelihood
     {
@@ -368,15 +357,15 @@ class JointSpikeSlabKernel
     {
         if (class_index >= class_count)
         {
-            return no_fitted_component;
+            return JointState::no_component;
         }
         if constexpr (Mode == GeneticMode::A)
         {
-            return additive_fitted_indices[class_index];
+            return JointState::additive_components[class_index];
         }
         else
         {
-            return dominance_fitted_indices[class_index];
+            return JointState::dominance_components[class_index];
         }
     }
 
@@ -387,7 +376,7 @@ class JointSpikeSlabKernel
         Eigen::Index marker,
         CoefficientTransition transition,
         Eigen::VectorXd& total_fitted_values,
-        JointSpikeSlabState<ClassCount>& joint_state,
+        JointState& joint_state,
         Eigen::VectorXd& adjusted_response) -> void
     {
         std::array<bayes::AxpyTarget, 4> targets{};
@@ -412,7 +401,7 @@ class JointSpikeSlabKernel
         {
             const int component_index
                 = fitted_component_index<Mode>(class_index);
-            if (component_index == no_fitted_component || delta == 0.0)
+            if (component_index == JointState::no_component || delta == 0.0)
             {
                 return;
             }
@@ -513,7 +502,7 @@ class JointSpikeSlabKernel
     }
 
     auto update_probabilities(
-        JointSpikeSlabState<ClassCount>& joint_state,
+        JointState& joint_state,
         HalfNormalState<Axis>& dominance_state,
         std::mt19937_64& rng) -> void
     {

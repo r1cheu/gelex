@@ -16,6 +16,7 @@
 
 #include <Eigen/Core>
 #include <catch2/catch_test_macros.hpp>
+#include <fmt/format.h>
 #include <fstream>
 #include <iterator>
 #include <optional>
@@ -23,6 +24,7 @@
 #include <utility>
 #include <vector>
 
+#include "gelex/data/dataframe/constants.h"
 #include "gelex/exception.h"
 #include "gelex/freq/design.h"
 #include "gelex/freq/model.h"
@@ -162,6 +164,11 @@ TEST_CASE("REML writers write result files", "[reml][io]")
             = {std::nullopt, std::nullopt, std::vector<std::string>{"A", "B"}},
             .reference_levels
             = {std::nullopt, std::nullopt, std::string{"base"}},
+            .column_names
+            = {"Intercept",
+               "age",
+               fmt::format("batch{}A", gelex::separator),
+               fmt::format("batch{}B", gelex::separator)},
             .X = Eigen::MatrixXd{{1.0, 2.0, 1.0, 0.0}, {1.0, 4.0, 0.0, 1.0}},
             .XtX_diag = Eigen::VectorXd{{2.0, 20.0, 1.0, 1.0}}};
         gelex::FreqModel fixed_model{
@@ -183,7 +190,10 @@ TEST_CASE("REML writers write result files", "[reml][io]")
             std::istreambuf_iterator<char>{}};
 
         REQUIRE(
-            content.find("FID\tIID\tIntercept\tage\tbatch_A\tbatch_B\tTOTAL\n")
+            content.find(
+                fmt::format(
+                    "FID\tIID\tIntercept\tage\tbatch{0}A\tbatch{0}B\tTOTAL\n",
+                    gelex::separator))
             == 0);
         REQUIRE(
             content.find(

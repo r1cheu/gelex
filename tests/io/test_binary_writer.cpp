@@ -65,7 +65,6 @@ TEST_CASE(
             double_payload.append(expected_double.col(column));
             uint8_payload.append(expected_uint8.col(column));
         }
-        writer.close();
     }
 
     gelex::BinaryReader reader(container_path.string());
@@ -123,7 +122,6 @@ TEST_CASE("PayloadWriter transfers ownership on move", "[io][binary_writer]")
 
     REQUIRE_THROWS_AS(payload.append(1.0), gelex::GelexException);
     moved_payload.append(1.0);
-    writer.close();
 }
 
 TEST_CASE("BinaryWriter commits incomplete payloads", "[io][binary_writer]")
@@ -146,7 +144,6 @@ TEST_CASE("BinaryWriter commits incomplete payloads", "[io][binary_writer]")
             = writer.reserve<double>("partial", gelex::BinaryShape{2, 3});
         full.append(3.0);
         partial.append(Eigen::VectorXd{{1.0, 2.0}});
-        writer.close();
     }
     gelex::set_sink({});
 
@@ -161,44 +158,70 @@ TEST_CASE("BinaryWriter commits incomplete payloads", "[io][binary_writer]")
         Eigen::MatrixXd{{1.0}, {2.0}}));
 }
 
-TEST_CASE("BinaryWriter rejects operations after close", "[io][binary_writer]")
+TEST_CASE("BinaryWriter commits an empty container", "[io][binary_writer]")
 {
     test::FileFixture fixture;
-    gelex::BinaryWriter writer(
-        (fixture.get_test_dir() / "closed.samples").string());
-    auto payload = writer.reserve<double>("value", gelex::BinaryShape{1, 1});
-    payload.append(1.0);
-    writer.close();
+    const auto container_path = fixture.get_test_dir() / "empty.samples";
+    {
+        gelex::BinaryWriter writer(container_path.string());
+    }
 
-    REQUIRE_THROWS_AS(payload.append(2.0), gelex::GelexException);
-    REQUIRE_THROWS_AS(
-        (writer.reserve<double>("other", gelex::BinaryShape{1, 1})),
-        gelex::GelexException);
-    REQUIRE_THROWS_AS(writer.close(), gelex::GelexException);
+    const gelex::BinaryReader reader(container_path.string());
+    REQUIRE(reader.size() == 0);
 }
 
-TEST_CASE("BinaryWriter without close discards output", "[io][binary_writer]")
+TEST_CASE(
+    "BinaryWriter discards output during stack unwinding",
+    "[io][binary_writer]")
 {
     test::FileFixture fixture;
     const auto container_path = fixture.get_test_dir() / "discarded.samples";
-    std::vector<std::string> warnings;
-    gelex::set_sink(
-        [&warnings](gelex::Level level, std::string_view message)
+    auto temporary_path = container_path;
+    temporary_path += ".tmp";
+
+    REQUIRE_THROWS_AS(
+        [&]
         {
-            if (level == gelex::Level::Warn)
+            gelex::BinaryWriter writer(container_path.string());
+            writer.reserve<double>("value", gelex::BinaryShape{1, 1})
+                .append(1.0);
+            throw gelex::GelexException("stop writing");
+        }(),
+        gelex::GelexException);
+
+    REQUIRE_FALSE(fs::exists(container_path));
+    REQUIRE_FALSE(fs::exists(temporary_path));
+}
+
+TEST_CASE("BinaryWriter contains finalization failures", "[io][binary_writer]")
+{
+    test::FileFixture fixture;
+    const auto container_path
+        = fixture.get_test_dir() / "failed_finalization.samples";
+    auto temporary_path = container_path;
+    temporary_path += ".tmp";
+    std::vector<std::string> errors;
+    gelex::set_sink(
+        [&errors](gelex::Level level, std::string_view message)
+        {
+            if (level == gelex::Level::Error)
             {
-                warnings.emplace_back(message);
+                errors.emplace_back(message);
             }
         });
+    bool obstacle_created = false;
     {
         gelex::BinaryWriter writer(container_path.string());
         writer.reserve<double>("value", gelex::BinaryShape{1, 1}).append(1.0);
+        obstacle_created = fs::create_directory(container_path);
     }
     gelex::set_sink({});
 
-    REQUIRE_FALSE(fs::exists(container_path));
-    REQUIRE(warnings.size() == 1);
+    REQUIRE(obstacle_created);
+    REQUIRE(fs::is_directory(container_path));
+    REQUIRE_FALSE(fs::exists(temporary_path));
+    REQUIRE(errors.size() == 1);
     CHECK_THAT(
-        warnings.front(),
-        Catch::Matchers::ContainsSubstring("destroyed without close()"));
+        errors.front(),
+        Catch::Matchers::ContainsSubstring("failed to finalize"));
 }

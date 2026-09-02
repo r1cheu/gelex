@@ -82,8 +82,6 @@ class BinaryWriter
     auto operator=(BinaryWriter&&) -> BinaryWriter& = delete;
     ~BinaryWriter() noexcept;
 
-    auto close() -> void;
-
     template <detail::SupportedDtype T>
     [[nodiscard]] auto reserve(std::string_view identifier, BinaryShape shape)
         -> PayloadWriter<T>
@@ -112,6 +110,7 @@ class BinaryWriter
         std::size_t index,
         BinaryType type,
         std::span<const std::byte> bytes) -> void;
+    auto finalize() -> void;
     auto check_duplicate_identifier(std::string_view identifier) const -> void;
     static auto align_up(std::uint64_t value, std::uint64_t alignment)
         -> std::uint64_t;
@@ -126,7 +125,6 @@ class BinaryWriter
     detail::AtomicOutputStream file_;
     std::uint64_t next_offset_{0};
     std::uint64_t file_cursor_{0};
-    bool closed_{false};
 };
 
 template <detail::SupportedDtype T>

@@ -37,6 +37,7 @@ struct DiscreteCovariate
     std::vector<std::string> names;
     std::vector<std::vector<std::string>> levels;
     std::vector<std::string> reference_levels;
+    std::vector<std::string> column_names;
     Eigen::MatrixXd X;
 };
 
@@ -45,6 +46,7 @@ struct FixedDesign
     std::vector<std::string> names;
     std::vector<std::optional<std::vector<std::string>>> levels;
     std::vector<std::optional<std::string>> reference_levels;
+    std::vector<std::string> column_names;
     Eigen::MatrixXd X;
     Eigen::VectorXd XtX_diag;
 

@@ -16,14 +16,17 @@
 
 #include <Eigen/Core>
 #include <catch2/catch_test_macros.hpp>
+#include <fmt/format.h>
 #include <string>
 #include <string_view>
+#include <vector>
 
 #include "gelex/data/covariates.h"
 #include "gelex/data/dataframe/constants.h"
 #include "gelex/data/dataframe/reader.h"
 #include "gelex/data/reader.h"
 #include "gelex/exception.h"
+#include "gelex/types/fixed_designs.h"
 
 #include "file_fixture.h"
 
@@ -84,6 +87,54 @@ TEST_CASE(
 
     Eigen::MatrixXd expected{{0.0, 1.0}, {1.0, 0.0}, {1.0, 1.0}};
     REQUIRE(covariate.X.isApprox(expected));
+
+    REQUIRE(
+        covariate.column_names
+        == std::vector<std::string>{
+            fmt::format("sex{}M", separator),
+            fmt::format("batch{}B", separator)});
+}
+
+TEST_CASE(
+    "FixedDesign names one column per non-reference level",
+    "[covariates]")
+{
+    FileFixture files;
+    constexpr std::string_view qcontent
+        = "id\tage\n"
+          "s1\t10.0\n"
+          "s2\t20.0\n"
+          "s3\t30.0\n";
+    constexpr std::string_view dcontent
+        = "id\tsex\tbatch\n"
+          "s1\tF\tB\n"
+          "s2\tM\tA\n"
+          "s3\tM\tC\n";
+
+    ReadOptions options;
+    options.index_cols = {0};
+    auto qframe = read_dataframe<std::string, double>(
+        files.create_text_file(qcontent, ".tsv").string(), options);
+    auto dframe = read_dataframe<std::string, std::string>(
+        files.create_text_file(dcontent, ".tsv").string(), options);
+
+    auto design = gelex::FixedDesign::make(
+        gelex::make_quantitative_covariate(qframe),
+        gelex::make_discrete_covariate(dframe));
+
+    // sex drops reference F, batch drops reference A: 1 + 1 + 1 + 2 columns.
+    REQUIRE(design.X.cols() == 5);
+    REQUIRE(
+        design.column_names
+        == std::vector<std::string>{
+            std::string{gelex::intercept_name},
+            "age",
+            fmt::format("sex{}M", separator),
+            fmt::format("batch{}B", separator),
+            fmt::format("batch{}C", separator)});
+    REQUIRE(
+        design.names
+        == std::vector<std::string>{"Intercept", "age", "sex", "batch"});
 }
 
 TEST_CASE(
