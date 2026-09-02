@@ -124,10 +124,9 @@ constexpr auto accepts_mode_scales(gelex::BayesMethod method) noexcept -> bool
 
 auto validate_mcmc_config(const McmcConfig& config) -> void
 {
-    if (config.method == gelex::BayesMethod::CD
-        && config.mode != McmcConfig::option_modes)
+    if (config.method == gelex::BayesMethod::CD)
     {
-        throw gelex::GelexException("--method CD requires --mode AD");
+        throw gelex::GelexException("--method CD is not supported currently");
     }
 
     validate_mode_options(
@@ -153,22 +152,6 @@ auto validate_mcmc_config(const McmcConfig& config) -> void
             fmt::format(
                 "--jpi is not valid for --method {}",
                 method_name(config.method)));
-    }
-
-    if (config.dominance_positive_probability)
-    {
-        if (!config.mode.contains(gelex::GeneticMode::D))
-        {
-            throw gelex::GelexException(
-                "--dom-pos-prob requires --mode to include D");
-        }
-        if (config.method != gelex::BayesMethod::CD)
-        {
-            throw gelex::GelexException(
-                fmt::format(
-                    "--dom-pos-prob is not valid for --method {}",
-                    method_name(config.method)));
-        }
     }
 
     if (config.random.has_random_design() != config.random_pve.has_value())

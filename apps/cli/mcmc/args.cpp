@@ -90,13 +90,6 @@ auto setup_mcmc_command(CLI::App& program, int& exit_code) -> void
         ->type_name("<P>")
         ->check(cli::open_unit_interval());
     cmd.add_option(
-           "--dom-pos-prob",
-           config->dominance_positive_probability,
-           "Initial probability dominance effects are positive")
-        ->group("Model")
-        ->type_name("<P>")
-        ->check(cli::open_unit_interval());
-    cmd.add_option(
            "--random-pve",
            config->random_pve,
            "Total variance fraction for non-SNP random effects")

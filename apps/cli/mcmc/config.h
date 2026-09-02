@@ -55,7 +55,6 @@ struct McmcConfig
         mixture_probabilities;
     gelex::HomogeneousModeValues<option_modes, std::vector<double>>
         mixture_scales;
-    std::optional<double> dominance_positive_probability;
     std::optional<double> random_pve;
     int iters{5000};
     int burn_in{3000};

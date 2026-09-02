@@ -173,10 +173,7 @@ auto make_genetic_spec(
 {
     auto mode_specs
         = gelex::ModeValues<Modes, gelex::Gaussian, gelex::HalfNormal>{
-            gelex::Gaussian{},
-            config.dominance_positive_probability
-                ? gelex::HalfNormal{*config.dominance_positive_probability}
-                : gelex::HalfNormal{}};
+            gelex::Gaussian{}, gelex::HalfNormal{}};
 
     const auto& probability_values = config.mixture_probabilities.joint();
     auto joint_spec = probability_values.empty()
@@ -224,16 +221,8 @@ decltype(auto) dispatch_mcmc_method(
                 std::forward<Function>(function),
                 make_mcmc_recipe<Modes, gelex::BayesMethod::R>(config));
         case gelex::BayesMethod::CD:
-            if constexpr (Modes == additive_dominance_mode)
-            {
-                return std::invoke(
-                    std::forward<Function>(function),
-                    make_mcmc_recipe<Modes, gelex::BayesMethod::CD>(config));
-            }
-            else
-            {
-                throw gelex::GelexException("--method CD requires --mode AD");
-            }
+            throw gelex::GelexException(
+                "--method CD is not supported currently");
     }
     throw gelex::GelexException("unsupported Bayesian method");
 }

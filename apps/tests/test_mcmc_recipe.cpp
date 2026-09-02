@@ -91,7 +91,7 @@ TEST_CASE(
 }
 
 TEST_CASE(
-    "MCMC recipe adapter maps scaled-mixture and joint options",
+    "MCMC recipe adapter maps scaled-mixture options",
     "[cli][mcmc][recipe]")
 {
     cli::McmcConfig scaled_config;
@@ -114,23 +114,6 @@ TEST_CASE(
                     .scales()
                 == std::array{0.0, 0.001, 0.01, 0.1, 1.0});
         });
-
-    cli::McmcConfig joint_config;
-    joint_config.dominance_positive_probability = 0.7;
-    joint_config.mixture_probabilities.joint() = {0.7, 0.1, 0.1, 0.1};
-    inspect_mcmc_recipe<mode_ad, gelex::BayesMethod::CD>(
-        std::move(joint_config),
-        [](const auto& recipe)
-        {
-            REQUIRE(
-                recipe.genetic_spec()
-                    .template get<gelex::GeneticMode::D>()
-                    .positive_probability()
-                == 0.7);
-            REQUIRE(
-                recipe.genetic_spec().joint().probabilities()
-                == std::array{0.7, 0.1, 0.1, 0.1});
-        });
 }
 
 TEST_CASE(
@@ -146,7 +129,7 @@ TEST_CASE(
             cli::McmcConfig config;
             config.mode = mode;
             config.method = method;
-            if (method == gelex::BayesMethod::CD && mode != mode_ad)
+            if (method == gelex::BayesMethod::CD)
             {
                 REQUIRE_THROWS_AS(
                     cli::dispatch_mcmc_recipe(config, [](const auto&) {}),
@@ -183,11 +166,6 @@ TEST_CASE(
         config.mixture_scales.get<gelex::GeneticMode::D>()
             = {0.0, 0.001, 0.01, 0.1, 1.0};
     }
-    SECTION("dominance positive probability")
-    {
-        config.dominance_positive_probability = 0.7;
-    }
-
     REQUIRE_THROWS_AS(
         cli::dispatch_mcmc_recipe(config, [](const auto&) {}),
         gelex::GelexException);
@@ -215,12 +193,6 @@ TEST_CASE(
         config.method = gelex::BayesMethod::R;
         config.mixture_probabilities.joint() = {0.7, 0.1, 0.1, 0.1};
     }
-    SECTION("dominance positive probability")
-    {
-        config.method = gelex::BayesMethod::R;
-        config.dominance_positive_probability = 0.7;
-    }
-
     REQUIRE_THROWS_AS(
         cli::dispatch_mcmc_recipe(config, [](const auto&) {}),
         gelex::GelexException);
@@ -242,13 +214,6 @@ TEST_CASE(
         config.method = gelex::BayesMethod::R;
         config.mixture_probabilities.get<gelex::GeneticMode::A>() = {0.2, 0.2};
     }
-    SECTION("joint probability")
-    {
-        config.mode = mode_ad;
-        config.method = gelex::BayesMethod::CD;
-        config.mixture_probabilities.joint() = {0.5, 0.5};
-    }
-
     REQUIRE_THROWS_AS(
         cli::dispatch_mcmc_recipe(config, [](const auto&) {}),
         gelex::GelexException);
