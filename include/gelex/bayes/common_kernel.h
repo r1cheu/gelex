@@ -79,6 +79,7 @@ class RandomEffectKernel
         normal_.set_prior_var(state.variance);
         variance_sampler_.reset();
 
+        state.fitted_values.setZero();
         for (Eigen::Index index = 0; index < state.coefficients.size(); ++index)
         {
             const auto column = design.X.col(index);
@@ -92,6 +93,7 @@ class RandomEffectKernel
                  .scale = residual.variance},
                 rng);
             state.coefficients(index) = new_value;
+            state.fitted_values.array() += new_value * column.array();
             const double difference = old_value - new_value;
             if (difference != 0.0)
             {

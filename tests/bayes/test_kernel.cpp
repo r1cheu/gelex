@@ -102,63 +102,49 @@ static_assert(!std::is_empty_v<gelex::detail::SimplexUpdater<
 
 static_assert(
     std::same_as<
-        decltype(gelex::make_kernel(
-            std::declval<const gelex::BayesPrior<AdditiveGeneticPrior>&>())),
+        decltype(gelex::BayesKernel{
+            std::declval<const gelex::BayesPrior<AdditiveGeneticPrior>&>()}),
         gelex::BayesKernel<AdditiveGeneticPrior>>);
 
-static_assert(
-    std::same_as<
-        decltype(gelex::make_kernel(
-            std::declval<
-                const gelex::BayesPrior<AdditiveDominanceGeneticPrior>&>())),
-        gelex::BayesKernel<AdditiveDominanceGeneticPrior>>);
-
-static_assert(
-    std::same_as<
-        decltype(gelex::make_kernel(
-            std::declval<
-                const gelex::BayesPrior<UnpooledAdditiveGeneticPrior>&>())),
-        gelex::BayesKernel<UnpooledAdditiveGeneticPrior>>);
-
-static_assert(
-    std::same_as<
-        decltype(gelex::make_kernel(
-            std::declval<
-                const gelex::BayesPrior<PooledSpikeSlabGeneticPrior>&>())),
-        gelex::BayesKernel<PooledSpikeSlabGeneticPrior>>);
-
-static_assert(
-    std::same_as<
-        decltype(gelex::make_kernel(
-            std::declval<
-                const gelex::BayesPrior<PooledSpikeSlabADGeneticPrior>&>())),
-        gelex::BayesKernel<PooledSpikeSlabADGeneticPrior>>);
-
-static_assert(
-    std::same_as<
-        decltype(gelex::make_kernel(
-            std::declval<
-                const gelex::BayesPrior<UnpooledSpikeSlabGeneticPrior>&>())),
-        gelex::BayesKernel<UnpooledSpikeSlabGeneticPrior>>);
-
-static_assert(
-    std::same_as<
-        decltype(gelex::make_kernel(
-            std::declval<
-                const gelex::BayesPrior<SampledScaledMixtureGeneticPrior>&>())),
-        gelex::BayesKernel<SampledScaledMixtureGeneticPrior>>);
-
-static_assert(
-    std::same_as<
-        decltype(gelex::make_kernel(
-            std::declval<
-                const gelex::BayesPrior<FixedScaledMixtureGeneticPrior>&>())),
-        gelex::BayesKernel<FixedScaledMixtureGeneticPrior>>);
+static_assert(std::same_as<
+              decltype(gelex::BayesKernel{std::declval<
+                  const gelex::BayesPrior<AdditiveDominanceGeneticPrior>&>()}),
+              gelex::BayesKernel<AdditiveDominanceGeneticPrior>>);
 
 static_assert(std::same_as<
-              decltype(gelex::make_kernel(
-                  std::declval<
-                      const gelex::BayesPrior<HeterogeneousGeneticPrior>&>())),
+              decltype(gelex::BayesKernel{std::declval<
+                  const gelex::BayesPrior<UnpooledAdditiveGeneticPrior>&>()}),
+              gelex::BayesKernel<UnpooledAdditiveGeneticPrior>>);
+
+static_assert(std::same_as<
+              decltype(gelex::BayesKernel{std::declval<
+                  const gelex::BayesPrior<PooledSpikeSlabGeneticPrior>&>()}),
+              gelex::BayesKernel<PooledSpikeSlabGeneticPrior>>);
+
+static_assert(std::same_as<
+              decltype(gelex::BayesKernel{std::declval<
+                  const gelex::BayesPrior<PooledSpikeSlabADGeneticPrior>&>()}),
+              gelex::BayesKernel<PooledSpikeSlabADGeneticPrior>>);
+
+static_assert(std::same_as<
+              decltype(gelex::BayesKernel{std::declval<
+                  const gelex::BayesPrior<UnpooledSpikeSlabGeneticPrior>&>()}),
+              gelex::BayesKernel<UnpooledSpikeSlabGeneticPrior>>);
+
+static_assert(
+    std::same_as<
+        decltype(gelex::BayesKernel{std::declval<
+            const gelex::BayesPrior<SampledScaledMixtureGeneticPrior>&>()}),
+        gelex::BayesKernel<SampledScaledMixtureGeneticPrior>>);
+
+static_assert(std::same_as<
+              decltype(gelex::BayesKernel{std::declval<
+                  const gelex::BayesPrior<FixedScaledMixtureGeneticPrior>&>()}),
+              gelex::BayesKernel<FixedScaledMixtureGeneticPrior>>);
+
+static_assert(std::same_as<
+              decltype(gelex::BayesKernel{std::declval<
+                  const gelex::BayesPrior<HeterogeneousGeneticPrior>&>()}),
               gelex::BayesKernel<HeterogeneousGeneticPrior>>);
 static_assert(
     std::is_destructible_v<gelex::BayesKernel<HeterogeneousGeneticPrior>>);
@@ -245,7 +231,7 @@ TEST_CASE(
     const auto prior = gelex::make_prior(
         gelex::BayesRecipe<mode_a, Family>::defaults(), model);
     auto state = gelex::make_state(prior, model);
-    auto kernel = gelex::make_kernel(prior);
+    gelex::BayesKernel kernel(prior);
     std::mt19937_64 rng{123};
 
     kernel.step(model, state, rng);
@@ -273,7 +259,7 @@ TEST_CASE(
     const auto prior = gelex::make_prior(
         gelex::BayesRecipe<mode_ad, Family>::defaults(), model);
     auto state = gelex::make_state(prior, model);
-    auto kernel = gelex::make_kernel(prior);
+    gelex::BayesKernel kernel(prior);
     std::mt19937_64 rng{123};
 
     kernel.step(model, state, rng);
@@ -307,7 +293,7 @@ TEST_CASE(
     const auto prior = gelex::make_prior(
         gelex::BayesRecipe<mode_a, UnpooledFamily>::defaults(), model);
     auto state = gelex::make_state(prior, model);
-    auto kernel = gelex::make_kernel(prior);
+    gelex::BayesKernel kernel(prior);
     const double invalid_marker_variance
         = state.genetic().get<gelex::GeneticMode::A>().family_state.variance(1);
     std::mt19937_64 rng{123};
@@ -338,7 +324,7 @@ TEST_CASE(
     const auto prior = gelex::make_prior(
         gelex::BayesRecipe<mode_ad, Family>::defaults(), model);
     auto state = gelex::make_state(prior, model);
-    auto kernel = gelex::make_kernel(prior);
+    gelex::BayesKernel kernel(prior);
     const auto incomplete_model = make_model();
     std::mt19937_64 rng{123};
     const auto initial_rng = rng;
@@ -363,10 +349,15 @@ TEST_CASE(
             gelex::VarianceBudget{{.additive = 0.4, .random = 0.1}}},
         model);
     auto state = gelex::make_state(prior, model);
-    auto kernel = gelex::make_kernel(prior);
+    gelex::BayesKernel kernel(prior);
     std::mt19937_64 rng{123};
 
-    kernel.step(model, state, rng);
+    // The fitted cache is rebuilt each sweep, so a missing reset only shows up
+    // from the second one onwards.
+    for (int sweep = 0; sweep < 3; ++sweep)
+    {
+        kernel.step(model, state, rng);
+    }
 
     const auto& random = state.random().front();
     const auto& genetic = state.genetic().get<gelex::GeneticMode::A>();
@@ -379,6 +370,7 @@ TEST_CASE(
 
     REQUIRE(random.coefficients.allFinite());
     REQUIRE(random.variance > 0.0);
+    REQUIRE(random.fitted_values.isApprox(random_fitted));
     REQUIRE((state.residual().adjusted_response + fixed_fitted + random_fitted
              + genetic_fitted)
                 .isApprox(model.phenotype()));
@@ -395,7 +387,7 @@ TEST_CASE(
             gelex::VarianceBudget{{.additive = 0.4}}},
         model);
     auto state = gelex::make_state(prior, model);
-    auto kernel = gelex::make_kernel(prior);
+    gelex::BayesKernel kernel(prior);
     std::mt19937_64 rng{123};
 
     kernel.step(model, state, rng);
@@ -439,7 +431,7 @@ TEST_CASE(
             gelex::VarianceBudget{{.additive = 0.4, .dominance = 0.1}}},
         model);
     auto state = gelex::make_state(prior, model);
-    auto kernel = gelex::make_kernel(prior);
+    gelex::BayesKernel kernel(prior);
     std::mt19937_64 rng{123};
 
     kernel.step(model, state, rng);
@@ -485,7 +477,7 @@ TEST_CASE(
             gelex::VarianceBudget{{.additive = 0.4}}},
         model);
     auto state = gelex::make_state(prior, model);
-    auto kernel = gelex::make_kernel(prior);
+    gelex::BayesKernel kernel(prior);
     auto& initial_family
         = state.genetic().get<gelex::GeneticMode::A>().family_state;
     const Eigen::VectorXd initial_variance = initial_family.variance;
@@ -522,7 +514,7 @@ TEST_CASE(
             gelex::VarianceBudget{{.additive = 0.4}}},
         model);
     auto state = gelex::make_state(prior, model);
-    auto kernel = gelex::make_kernel(prior);
+    gelex::BayesKernel kernel(prior);
     std::mt19937_64 rng{123};
 
     kernel.step(model, state, rng);
@@ -576,7 +568,7 @@ TEST_CASE(
             gelex::VarianceBudget{{.additive = 0.4}}},
         model);
     auto state = gelex::make_state(prior, model);
-    auto kernel = gelex::make_kernel(prior);
+    gelex::BayesKernel kernel(prior);
     std::mt19937_64 rng{123};
 
     kernel.step(model, state, rng);

@@ -44,6 +44,7 @@ auto make_discrete_covariate(const DataFrame<std::string>& frame)
     std::vector<std::string> names;
     std::vector<std::vector<std::string>> levels;
     std::vector<std::string> reference_levels;
+    std::vector<std::string> column_names;
     std::vector<EncodedResult<>> encoded_results;
 
     for (std::size_t i = 0; i < frame.cols(); ++i)
@@ -59,6 +60,10 @@ auto make_discrete_covariate(const DataFrame<std::string>& frame)
         encoded_results.push_back(
             encode(col, std::span<const std::string>(all_levels).subspan(1)));
         levels.push_back(std::move(all_levels));
+        column_names.insert(
+            column_names.end(),
+            std::make_move_iterator(encoded_results.back().level_names.begin()),
+            std::make_move_iterator(encoded_results.back().level_names.end()));
     }
 
     Eigen::Index total_cols = 0;
@@ -79,6 +84,7 @@ auto make_discrete_covariate(const DataFrame<std::string>& frame)
         .names = std::move(names),
         .levels = std::move(levels),
         .reference_levels = std::move(reference_levels),
+        .column_names = std::move(column_names),
         .X = std::move(X)};
 }
 

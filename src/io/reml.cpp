@@ -20,6 +20,7 @@
 #include <cstddef>
 #include <fmt/format.h>
 #include <iterator>
+#include <ranges>
 #include <span>
 #include <string>
 #include <string_view>
@@ -47,41 +48,20 @@ auto write_summary(
     writer.write_header(
         {"term", "type", "estimate", "se", "ratio", "ratio_se", "pvalue"});
 
-    std::vector<std::string> fixed_names;
-    fixed_names.reserve(static_cast<std::size_t>(model.fixed().X.cols()));
-    for (std::size_t i = 0; i < model.fixed().names.size(); ++i)
+    for (auto [idx, name] : model.fixed().column_names | std::views::enumerate)
     {
-        if (model.fixed().levels[i])
-        {
-            for (const auto& level : *model.fixed().levels[i])
-            {
-                fixed_names.emplace_back(model.fixed().names[i] + "_" + level);
-            }
-        }
-        else
-        {
-            fixed_names.emplace_back(model.fixed().names[i]);
-        }
-    }
-
-    for (Eigen::Index i = 0; i < state.fixed().coeffs.size(); ++i)
-    {
-        const auto row = static_cast<std::size_t>(i);
-        const auto term = row < fixed_names.size() ? fixed_names[row]
-                                                   : fmt::format("X{}", i);
         writer.write(
             fmt::format(
                 "{}\tfixed\t{:.8e}\t{:.8e}\t-\t-\t{:.8e}",
-                term,
-                state.fixed().coeffs(i),
-                state.fixed().se(i),
+                name,
+                state.fixed().coeffs(idx),
+                state.fixed().se(idx),
                 wald_p_twosided(
-                    state.fixed().coeffs(i) / state.fixed().se(i))));
+                    state.fixed().coeffs(idx) / state.fixed().se(idx))));
     }
 
-    for (std::size_t i = 0; i < state.random().size(); ++i)
+    for (auto [idx, random] : state.random() | std::views::enumerate)
     {
-        const auto& random = state.random()[i];
         const std::string pvalue
             = random.at_boundary
                   ? std::string{"-"}
@@ -91,7 +71,7 @@ auto write_summary(
         writer.write(
             fmt::format(
                 "{}\tvariance\t{:.8e}\t{:.8e}\t{:.8e}\t{:.8e}\t{}",
-                model.random()[i].name,
+                model.random()[idx].name,
                 random.variance,
                 random.variance_se,
                 random.variance_ratio,
@@ -123,30 +103,7 @@ auto write_effects(
                 sample_ids.size(),
                 model.num_individuals()));
     }
-
-    std::vector<std::string> fixed_names;
-    fixed_names.reserve(static_cast<std::size_t>(model.fixed().X.cols()));
-    for (std::size_t i = 0; i < model.fixed().names.size(); ++i)
-    {
-        if (model.fixed().levels[i])
-        {
-            for (const auto& level : *model.fixed().levels[i])
-            {
-                fixed_names.push_back(model.fixed().names[i] + "_" + level);
-            }
-        }
-        else
-        {
-            fixed_names.push_back(model.fixed().names[i]);
-        }
-    }
-
-    for (auto i = static_cast<Eigen::Index>(fixed_names.size());
-         i < model.fixed().X.cols();
-         ++i)
-    {
-        fixed_names.push_back(fmt::format("X{}", i));
-    }
+    const auto& fixed_names = model.fixed().column_names;
 
     std::vector<std::string> random_names;
     std::vector<const Eigen::VectorXd*> random_blups;

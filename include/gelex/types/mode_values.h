@@ -208,6 +208,33 @@ class JointModeValues
         return mode_values_;
     }
 
+    template <GeneticMode Mode>
+        requires(modes.contains(Mode))
+    [[nodiscard]] constexpr auto get() noexcept -> mode_value_type<Mode>&
+    {
+        return mode_values_.template get<Mode>();
+    }
+
+    template <GeneticMode Mode>
+        requires(modes.contains(Mode))
+    [[nodiscard]] constexpr auto get() const noexcept
+        -> const mode_value_type<Mode>&
+    {
+        return mode_values_.template get<Mode>();
+    }
+
+    template <typename Function>
+    constexpr auto for_each(Function&& function) -> void
+    {
+        mode_values_.for_each(std::forward<Function>(function));
+    }
+
+    template <typename Function>
+    constexpr auto for_each(Function&& function) const -> void
+    {
+        mode_values_.for_each(std::forward<Function>(function));
+    }
+
     [[nodiscard]] constexpr auto joint() noexcept -> JointT& { return joint_; }
 
     [[nodiscard]] constexpr auto joint() const noexcept -> const JointT&

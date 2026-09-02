@@ -20,6 +20,7 @@
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
+#include <exception>
 #include <fmt/format.h>
 #include <ios>
 #include <limits>
@@ -55,25 +56,36 @@ BinaryWriter::BinaryWriter(std::string_view output_path)
 
 BinaryWriter::~BinaryWriter() noexcept
 {
-    if (closed_ || reservations_.empty())
+    if (std::uncaught_exceptions() > 0)
     {
         return;
     }
-    warn(
-        fmt::format(
-            "{}: destroyed without close(), discarding {} reserved payload(s)",
-            file_.path().string(),
-            reservations_.size()));
+
+    try
+    {
+        finalize();
+    }
+    catch (const std::exception& exception)
+    {
+        try
+        {
+            error(
+                fmt::format(
+                    "{}: failed to finalize, discarding output: {}",
+                    file_.path().string(),
+                    exception.what()));
+        }
+        catch (...)  // NOLINT(bugprone-empty-catch): dtor must be noexcept
+        {
+        }
+    }
+    catch (...)  // NOLINT(bugprone-empty-catch): dtor must be noexcept
+    {
+    }
 }
 
-auto BinaryWriter::close() -> void
+auto BinaryWriter::finalize() -> void
 {
-    if (closed_)
-    {
-        throw GelexException(
-            fmt::format("{}: writer is closed", file_.path().string()));
-    }
-
     // A reservation is an upper bound; the directory records what was actually
     // written so a shortfall costs the tail, not the whole file.
     std::size_t truncated = 0;
@@ -125,7 +137,6 @@ auto BinaryWriter::close() -> void
     write_footer(
         directory_offset, static_cast<std::uint64_t>(reservations_.size()));
     file_.commit();
-    closed_ = true;
 }
 
 auto BinaryWriter::check_duplicate_identifier(std::string_view identifier) const
@@ -149,11 +160,6 @@ auto BinaryWriter::reserve_payload(
     BinaryType type,
     BinaryShape shape) -> std::size_t
 {
-    if (closed_)
-    {
-        throw GelexException(
-            fmt::format("{}: writer is closed", file_.path().string()));
-    }
     if (identifier.empty())
     {
         throw GelexException(
@@ -194,11 +200,6 @@ auto BinaryWriter::append_bytes(
     BinaryType type,
     std::span<const std::byte> bytes) -> void
 {
-    if (closed_)
-    {
-        throw GelexException(
-            fmt::format("{}: writer is closed", file_.path().string()));
-    }
     assert(index < reservations_.size());
 
     if (!std::in_range<std::streamsize>(bytes.size()))

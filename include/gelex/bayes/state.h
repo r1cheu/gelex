@@ -40,6 +40,7 @@ struct FixedEffectState
 struct RandomEffectState
 {
     Eigen::VectorXd coefficients;
+    Eigen::VectorXd fitted_values;
     double variance{};
 };
 
@@ -149,6 +150,7 @@ template <typename GeneticPrior>
         random.push_back(
             RandomEffectState{
                 .coefficients = Eigen::VectorXd::Zero(design.X.cols()),
+                .fitted_values = Eigen::VectorXd::Zero(design.X.rows()),
                 .variance = parameter.initial_value()});
     }
 

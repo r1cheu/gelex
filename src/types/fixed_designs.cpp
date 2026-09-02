@@ -17,8 +17,10 @@
 #include "gelex/types/fixed_designs.h"
 
 #include <Eigen/Core>
+#include <fmt/format.h>
 #include <iterator>
 #include <optional>
+#include <utility>
 
 #include "gelex/data/dataframe/constants.h"
 #include "gelex/exception.h"
@@ -50,9 +52,6 @@ auto FixedDesign::make(
     const auto dcov_cols = dcovariate ? dcovariate->X.cols() : 0;
     const auto n_cols = 1 + qcov_cols + dcov_cols;
 
-    fe.names.reserve(n_cols);
-    fe.names.emplace_back(intercept_name);
-
     auto move_insert = [](auto& container, auto begin, auto end)
     {
         container.insert(
@@ -60,6 +59,30 @@ auto FixedDesign::make(
             std::make_move_iterator(begin),
             std::make_move_iterator(end));
     };
+
+    // column_names is per column of X, names/levels/reference_levels are per
+    // term; a discrete term spans one column per non-reference level. Built
+    // first so the quantitative names can still be copied before names moves
+    // them.
+    fe.column_names.reserve(n_cols);
+    fe.column_names.emplace_back(intercept_name);
+    if (qcovariate)
+    {
+        fe.column_names.insert(
+            fe.column_names.end(),
+            qcovariate->names.begin(),
+            qcovariate->names.end());
+    }
+    if (dcovariate)
+    {
+        move_insert(
+            fe.column_names,
+            dcovariate->column_names.begin(),
+            dcovariate->column_names.end());
+    }
+
+    fe.names.reserve(n_cols);
+    fe.names.emplace_back(intercept_name);
 
     if (qcovariate)
     {
@@ -115,6 +138,15 @@ auto FixedDesign::make(
     }
     fe.XtX_diag = fe.X.colwise().squaredNorm();
 
+    if (std::cmp_not_equal(fe.column_names.size(), fe.X.cols()))
+    {
+        throw gelex::GelexException(
+            fmt::format(
+                "FixedDesign: {} column names for {} design columns",
+                fe.column_names.size(),
+                fe.X.cols()));
+    }
+
     return fe;
 }
 
@@ -126,6 +158,9 @@ auto FixedDesign::make(Eigen::Index n_samples) -> FixedDesign
 
     fe.names.reserve(n_cols);
     fe.names.emplace_back(intercept_name);
+
+    fe.column_names.reserve(n_cols);
+    fe.column_names.emplace_back(intercept_name);
 
     fe.levels.reserve(n_cols);
     fe.levels.emplace_back(std::nullopt);

@@ -95,7 +95,6 @@ TEMPLATE_TEST_CASE(
     {
         gelex::BinaryWriter writer(container_path.string());
         write_matrix(writer, "values", expected);
-        writer.close();
     }
 
     gelex::BinaryReader reader(container_path.string());
@@ -124,7 +123,6 @@ TEST_CASE("BinaryReader exposes payload metadata", "[io][binary_reader]")
         writer.reserve<double>("zeta", gelex::BinaryShape{1, 1}).append(3.0);
         writer.reserve<double>("alpha", gelex::BinaryShape{1, 1}).append(1.0);
         writer.reserve<double>("beta", gelex::BinaryShape{1, 1}).append(2.0);
-        writer.close();
     }
 
     gelex::BinaryReader reader(container_path.string());
@@ -153,7 +151,6 @@ TEST_CASE("BinaryReader rejects dtype mismatch", "[io][binary_reader]")
     {
         gelex::BinaryWriter writer(container_path.string());
         writer.reserve<double>("value", gelex::BinaryShape{1, 1}).append(1.0);
-        writer.close();
     }
 
     gelex::BinaryReader reader(container_path.string());

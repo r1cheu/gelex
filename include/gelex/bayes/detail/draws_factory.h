@@ -30,6 +30,7 @@
 #include "gelex/bayes/draw.h"
 #include "gelex/bayes/genetic/draws.h"
 #include "gelex/bayes/genetic/prior.h"
+#include "gelex/bayes/genetic/state.h"
 #include "gelex/bayes/genetic_family.h"
 #include "gelex/io/binary_format.h"
 #include "gelex/io/binary_writer.h"
@@ -138,6 +139,15 @@ template <UpdatePolicy Policy, std::size_t ClassCount>
             "probabilities", static_cast<Eigen::Index>(ClassCount));
     }
 }
+// rows non-additive: they are shares, not a decomposition of genetic variance.
+template <std::size_t ComponentCount>
+[[nodiscard]] auto make_component_explained_variance_draw(
+    GeneticDrawsBuilder& builder) -> VectorDraw
+{
+    return builder.vector(
+        "component_explained_variance",
+        static_cast<Eigen::Index>(ComponentCount));
+}
 
 template <VarianceLayout Kind>
 [[nodiscard]] auto make_family_draws(
@@ -191,9 +201,13 @@ template <std::size_t ClassCount, UpdatePolicy ProbabilitiesUpdate>
         .assignment
         = builder.category<ClassCount>("assignment", builder.marker_count()),
         .probabilities
-        = make_probabilities_draw<ProbabilitiesUpdate, ClassCount>(builder)};
+        = make_probabilities_draw<ProbabilitiesUpdate, ClassCount>(builder),
+        .component_explained_variance = make_component_explained_variance_draw<
+            ScaledMixtureState<ClassCount>::component_count>(builder)};
 }
 
+// Rows follow the fitted column layout of JointSpikeSlabState: A in A-only,
+// A in AD, D in D-only, D in AD.
 template <std::size_t ClassCount, UpdatePolicy ProbabilitiesUpdate>
 [[nodiscard]] auto make_family_draws(
     const JointSpikeSlabPrior<ClassCount, ProbabilitiesUpdate>& /*prior*/,
@@ -204,7 +218,9 @@ template <std::size_t ClassCount, UpdatePolicy ProbabilitiesUpdate>
         .assignment
         = builder.category<ClassCount>("assignment", builder.marker_count()),
         .probabilities
-        = make_probabilities_draw<ProbabilitiesUpdate, ClassCount>(builder)};
+        = make_probabilities_draw<ProbabilitiesUpdate, ClassCount>(builder),
+        .component_explained_variance = make_component_explained_variance_draw<
+            JointSpikeSlabState<ClassCount>::component_count>(builder)};
 }
 
 template <typename Prior>

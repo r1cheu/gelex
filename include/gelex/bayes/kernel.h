@@ -33,16 +33,20 @@ namespace gelex
 {
 
 template <typename GeneticPrior>
-class BayesKernel;
-
-template <typename GeneticPrior>
-[[nodiscard]] auto make_kernel(const BayesPrior<GeneticPrior>& prior)
-    -> BayesKernel<GeneticPrior>;
-
-template <typename GeneticPrior>
 class BayesKernel
 {
    public:
+    explicit BayesKernel(const BayesPrior<GeneticPrior>& prior)
+        : genetic_{detail::make_genetic_kernel(prior.genetic())},
+          residual_{prior.residual()}
+    {
+        random_.reserve(prior.random().size());
+        for (const auto& parameter : prior.random())
+        {
+            random_.emplace_back(parameter);
+        }
+    }
+
     auto step(
         const BayesModel& model,
         BayesState<GeneticPrior>& state,
@@ -89,32 +93,11 @@ class BayesKernel
         }
     }
 
-    explicit BayesKernel(const BayesPrior<GeneticPrior>& prior)
-        : genetic_{detail::make_genetic_kernel(prior.genetic())},
-          residual_{prior.residual()}
-    {
-        random_.reserve(prior.random().size());
-        for (const auto& parameter : prior.random())
-        {
-            random_.emplace_back(parameter);
-        }
-    }
-
-    template <typename T>
-    friend auto make_kernel(const BayesPrior<T>& prior) -> BayesKernel<T>;
-
     detail::FixedEffectKernel fixed_;
     std::vector<detail::RandomEffectKernel> random_;
     detail::genetic_kernel_t<GeneticPrior> genetic_;
     detail::ResidualVarianceKernel residual_;
 };
-
-template <typename GeneticPrior>
-[[nodiscard]] auto make_kernel(const BayesPrior<GeneticPrior>& prior)
-    -> BayesKernel<GeneticPrior>
-{
-    return BayesKernel<GeneticPrior>{prior};
-}
 
 }  // namespace gelex
 

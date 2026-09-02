@@ -194,7 +194,6 @@ TEST_CASE(
         additive.family_state.assignment = Eigen::VectorX<std::uint8_t>{{1, 1}};
         additive.family_state.probability = 0.5;
         draws.append(state);
-        writer.close();
 
         const auto& leaf = draws.get<GeneticMode::A>();
         REQUIRE(leaf.coefficients.result().mean.isApprox(
@@ -232,7 +231,6 @@ TEST_CASE("a fixed probability reserves no payload", "[bayes][draws][genetic]")
         auto draws = gelex::detail::make_genetic_draws(
             prior.genetic(), model.genetic(), writer, 1);
         draws.append(state);
-        writer.close();
     }
 
     const gelex::BinaryReader reader(path.string());
@@ -243,7 +241,8 @@ TEST_CASE("a fixed probability reserves no payload", "[bayes][draws][genetic]")
 }
 
 TEST_CASE(
-    "scaled-mixture draws record the class simplex per draw",
+    "scaled-mixture draws record the class simplex and per-class explained "
+    "variance",
     "[bayes][draws][genetic]")
 {
     gelex::test::FileFixture fixture;
@@ -262,8 +261,9 @@ TEST_CASE(
         auto& additive = state.get<GeneticMode::A>();
         additive.family_state.assignment = Eigen::VectorX<std::uint8_t>{{0, 4}};
         additive.family_state.probabilities = {0.5, 0.2, 0.15, 0.1, 0.05};
+        additive.family_state.fitted_values = Eigen::MatrixXd{
+            {0.0, 1.0, 2.0, 0.0}, {3.0, 1.0, 0.0, 0.0}, {0.0, 1.0, 4.0, 0.0}};
         draws.append(state);
-        writer.close();
     }
 
     const gelex::BinaryReader reader(path.string());
@@ -274,6 +274,8 @@ TEST_CASE(
                 .isApprox(
                     Eigen::Matrix<std::uint8_t, Eigen::Dynamic, Eigen::Dynamic>{
                         {0}, {4}}));
+    REQUIRE(reader.to_map<float>("genetic/A/component_explained_variance")
+                .isApprox(Eigen::MatrixXf{{2.0}, {0.0}, {8.0 / 3.0}, {0.0}}));
 }
 
 TEST_CASE(
@@ -306,8 +308,10 @@ TEST_CASE(
 
         state.joint().assignment = Eigen::VectorX<std::uint8_t>{{1, 3}};
         state.joint().probabilities = {0.7, 0.1, 0.1, 0.1};
+        // Columns are A in A-only, A in AD, D in D-only, D in AD.
+        state.joint().fitted_values = Eigen::MatrixXd{
+            {1.0, 0.0, 2.0, 0.0}, {2.0, 0.0, 2.0, 4.0}, {3.0, 3.0, 2.0, 2.0}};
         draws.append(state);
-        writer.close();
 
         REQUIRE(
             draws.get<GeneticMode::D>()
@@ -339,6 +343,9 @@ TEST_CASE(
                         {1}, {3}}));
     REQUIRE(reader.to_map<float>("genetic/joint/probabilities")
                 .isApprox(Eigen::MatrixXf{{0.7}, {0.1}, {0.1}, {0.1}}));
+    REQUIRE(
+        reader.to_map<float>("genetic/joint/component_explained_variance")
+            .isApprox(Eigen::MatrixXf{{2.0 / 3.0}, {2.0}, {0.0}, {8.0 / 3.0}}));
 }
 
 TEST_CASE(
@@ -363,7 +370,6 @@ TEST_CASE(
         dominance.family_state.assignment
             = Eigen::VectorX<std::uint8_t>{{2, 0}};
         draws.append(state);
-        writer.close();
 
         REQUIRE(draws.get<GeneticMode::D>()
                     .family_draws.assignment.result()

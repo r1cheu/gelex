@@ -161,7 +161,6 @@ auto create_snp_luts(
                 std::span<const double>{
                     luts.data(), static_cast<std::size_t>(luts.size())});
     }
-    writer.close();
 }
 
 auto create_snp_effects_file(

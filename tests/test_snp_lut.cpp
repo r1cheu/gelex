@@ -49,26 +49,27 @@ TEST_CASE("SNP LUT round-trip preserves missing values", "[snp_lut]")
                            .array();
 
     const auto path = dir / "test_ad.snplut";
-    gelex::BinaryWriter writer(path.string());
-    writer
-        .reserve<double>(
-            "A/lut",
-            gelex::BinaryShape{
-                static_cast<std::uint64_t>(add.rows()),
-                static_cast<std::uint64_t>(add.cols())})
-        .write(
-            std::span<const double>{
-                add.data(), static_cast<std::size_t>(add.size())});
-    writer
-        .reserve<double>(
-            "D/lut",
-            gelex::BinaryShape{
-                static_cast<std::uint64_t>(dom.rows()),
-                static_cast<std::uint64_t>(dom.cols())})
-        .write(
-            std::span<const double>{
-                dom.data(), static_cast<std::size_t>(dom.size())});
-    writer.close();
+    {
+        gelex::BinaryWriter writer(path.string());
+        writer
+            .reserve<double>(
+                "A/lut",
+                gelex::BinaryShape{
+                    static_cast<std::uint64_t>(add.rows()),
+                    static_cast<std::uint64_t>(add.cols())})
+            .write(
+                std::span<const double>{
+                    add.data(), static_cast<std::size_t>(add.size())});
+        writer
+            .reserve<double>(
+                "D/lut",
+                gelex::BinaryShape{
+                    static_cast<std::uint64_t>(dom.rows()),
+                    static_cast<std::uint64_t>(dom.cols())})
+            .write(
+                std::span<const double>{
+                    dom.data(), static_cast<std::size_t>(dom.size())});
+    }
 
     const auto actual = load_snp_luts(path);
     REQUIRE(actual.size() == 2);
@@ -83,17 +84,18 @@ TEST_CASE("load_snp_luts rejects invalid LUT rows", "[snp_lut]")
     const auto path = fixture.get_test_dir() / "invalid_rows.snplut";
     const Eigen::MatrixXd invalid = Eigen::MatrixXd::Zero(3, 2);
 
-    gelex::BinaryWriter writer(path.string());
-    writer
-        .reserve<double>(
-            "A/lut",
-            gelex::BinaryShape{
-                static_cast<std::uint64_t>(invalid.rows()),
-                static_cast<std::uint64_t>(invalid.cols())})
-        .write(
-            std::span<const double>{
-                invalid.data(), static_cast<std::size_t>(invalid.size())});
-    writer.close();
+    {
+        gelex::BinaryWriter writer(path.string());
+        writer
+            .reserve<double>(
+                "A/lut",
+                gelex::BinaryShape{
+                    static_cast<std::uint64_t>(invalid.rows()),
+                    static_cast<std::uint64_t>(invalid.cols())})
+            .write(
+                std::span<const double>{
+                    invalid.data(), static_cast<std::size_t>(invalid.size())});
+    }
 
     REQUIRE_THROWS_AS(load_snp_luts(path), GelexException);
 }
