@@ -59,3 +59,17 @@ pixi r benchmark             # run benchmarks
 - When designing the API, adhere to STL conventions.
 - Use Eigen::isApprox for testing instead of element-wise comparisons.
 - Prefer Eigen init-list construction (`Eigen::MatrixXd{{1,2},{3,4}}`, `Eigen::VectorXd{{1,2,3}}`) over `<<` streaming or per-cell assignment.
+
+## Agent skills
+
+### Issue tracker
+
+Issues live in the `r1cheu/gelex` GitHub Issues, accessed via the `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+The five canonical triage roles, each label string equal to its name. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.
