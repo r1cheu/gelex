@@ -54,7 +54,7 @@ auto initial_marker_variance(
 }
 
 template <VarianceLayout Kind>
-auto make_parameter_state(
+auto make_family_state(
     const GaussianPrior<Kind>& prior,
     GeneticStateDimensions dimensions) -> GaussianState<Kind>
 {
@@ -64,7 +64,7 @@ auto make_parameter_state(
         .fitted_values = Eigen::VectorXd::Zero(dimensions.individual_count)};
 }
 
-inline auto make_parameter_state(
+inline auto make_family_state(
     const HalfNormalPrior<HalfNormalAsymmetry::Count>& prior,
     GeneticStateDimensions dimensions)
     -> HalfNormalState<HalfNormalAsymmetry::Count>
@@ -77,7 +77,7 @@ inline auto make_parameter_state(
         .fitted_values = Eigen::VectorXd::Zero(dimensions.individual_count)};
 }
 
-inline auto make_parameter_state(
+inline auto make_family_state(
     const HalfNormalPrior<HalfNormalAsymmetry::Magnitude>& prior,
     GeneticStateDimensions dimensions)
     -> HalfNormalState<HalfNormalAsymmetry::Magnitude>
@@ -91,7 +91,7 @@ inline auto make_parameter_state(
 }
 
 template <VarianceLayout Kind, UpdatePolicy ProbabilityUpdate>
-auto make_parameter_state(
+auto make_family_state(
     const SpikeSlabPrior<Kind, ProbabilityUpdate>& prior,
     GeneticStateDimensions dimensions) -> SpikeSlabState<Kind>
 {
@@ -105,7 +105,7 @@ auto make_parameter_state(
 }
 
 template <std::size_t ClassCount, UpdatePolicy ProbabilitiesUpdate>
-auto make_parameter_state(
+auto make_family_state(
     const ScaledMixturePrior<ClassCount, ProbabilitiesUpdate>& prior,
     GeneticStateDimensions dimensions) -> ScaledMixtureState<ClassCount>
 {
@@ -122,7 +122,7 @@ auto make_parameter_state(
 }
 
 template <std::size_t ClassCount, UpdatePolicy ProbabilitiesUpdate>
-auto make_parameter_state(
+auto make_family_state(
     const JointSpikeSlabPrior<ClassCount, ProbabilitiesUpdate>& prior,
     GeneticStateDimensions dimensions) -> JointSpikeSlabState<ClassCount>
 {
@@ -141,7 +141,7 @@ auto make_parameter_state(
 template <typename Prior>
 auto make_mode_state(const Prior& prior, GeneticStateDimensions dimensions)
 {
-    auto family_state = make_parameter_state(prior, dimensions);
+    auto family_state = make_family_state(prior, dimensions);
     using State = GeneticModeState<decltype(family_state)>;
     return State{
         .coefficients = Eigen::VectorXd::Zero(dimensions.marker_count),
@@ -190,8 +190,7 @@ auto make_genetic_state(
         [&]<GeneticMode /*Mode*/>(const auto& mode_prior)
         { return make_mode_state(mode_prior, dimensions); });
     return JointModeValues{
-        std::move(mode_states),
-        make_parameter_state(prior.joint(), dimensions)};
+        std::move(mode_states), make_family_state(prior.joint(), dimensions)};
 }
 
 template <typename Prior>

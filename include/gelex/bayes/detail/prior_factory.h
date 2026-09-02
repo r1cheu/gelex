@@ -26,8 +26,8 @@
 #include "gelex/bayes/detail/calibration.h"
 #include "gelex/bayes/detail/genetic_spec.h"
 #include "gelex/bayes/genetic/prior.h"
+#include "gelex/bayes/genetic_family.h"
 #include "gelex/bayes/model.h"
-#include "gelex/bayes/semantic_method.h"
 #include "gelex/bayes/spec.h"
 #include "gelex/bayes/variance_budget.h"
 #include "gelex/exception.h"
@@ -83,7 +83,7 @@ constexpr auto initial_activity(const JointSpikeSlab& spec) -> double
 
 template <GeneticModeSet Modes, VarianceLayout Kind>
 auto make_genetic_prior(
-    GaussianMethod<Kind> /*method*/,
+    GaussianFamily<Kind> /*family*/,
     const Gaussian& /*genetic_spec*/,
     const MarkerVarianceCalibrator& calibrator)
 {
@@ -97,8 +97,8 @@ template <
     VarianceLayout Kind,
     UpdatePolicy ProbabilityUpdate>
 auto make_genetic_prior(
-    SpikeSlabMethod<Kind, ProbabilityUpdate> /*method*/,
-    const genetic_spec_t<Modes, SpikeSlabMethod<Kind, ProbabilityUpdate>>&
+    SpikeSlabFamily<Kind, ProbabilityUpdate> /*family*/,
+    const genetic_spec_t<Modes, SpikeSlabFamily<Kind, ProbabilityUpdate>>&
         genetic_spec,
     const MarkerVarianceCalibrator& calibrator)
 {
@@ -116,8 +116,8 @@ auto make_genetic_prior(
 
 template <GeneticModeSet Modes, UpdatePolicy ProbabilitiesUpdate>
 auto make_genetic_prior(
-    ScaledMixtureMethod<ProbabilitiesUpdate> /*method*/,
-    const genetic_spec_t<Modes, ScaledMixtureMethod<ProbabilitiesUpdate>>&
+    ScaledMixtureFamily<ProbabilitiesUpdate> /*family*/,
+    const genetic_spec_t<Modes, ScaledMixtureFamily<ProbabilitiesUpdate>>&
         genetic_spec,
     const MarkerVarianceCalibrator& calibrator)
 {
@@ -143,10 +143,10 @@ template <
     HalfNormalAsymmetry Axis>
     requires(Modes == (GeneticMode::A | GeneticMode::D))
 auto make_genetic_prior(
-    JointSpikeSlabMethod<ProbabilitiesUpdate, Axis> /*method*/,
+    JointSpikeSlabFamily<ProbabilitiesUpdate, Axis> /*family*/,
     const genetic_spec_t<
         Modes,
-        JointSpikeSlabMethod<ProbabilitiesUpdate, Axis>>& genetic_spec,
+        JointSpikeSlabFamily<ProbabilitiesUpdate, Axis>>& genetic_spec,
     const MarkerVarianceCalibrator& calibrator)
 {
     const auto& joint_spec = genetic_spec.joint();

@@ -16,6 +16,7 @@
 
 #include "gelex/io/binary_writer.h"
 
+#include <cassert>
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
@@ -73,20 +74,45 @@ auto BinaryWriter::close() -> void
             fmt::format("{}: writer is closed", file_.path().string()));
     }
 
-    for (const auto& reservation : reservations_)
+    // A reservation is an upper bound; the directory records what was actually
+    // written so a shortfall costs the tail, not the whole file.
+    std::size_t truncated = 0;
+    for (auto& reservation : reservations_)
     {
-        const auto expected = detail::checked_add(
-            reservation.entry.offset, reservation.entry.size);
-        if (reservation.cursor != expected)
+        auto& entry = reservation.entry;
+        const auto written = reservation.cursor - entry.offset;
+        if (written == entry.size)
+        {
+            continue;
+        }
+
+        auto& descriptor = entry.info.descriptor;
+        const auto column_bytes = detail::checked_product(
+            descriptor.shape[0], detail::binary_type_size(descriptor.type));
+        if (written % column_bytes != 0)
         {
             throw GelexException(
                 fmt::format(
-                    "{}: payload not fully written: cursor={}, "
-                    "expected={}",
+                    "{}: payload \"{}\" ends mid-column: {} of {} bytes "
+                    "written",
                     file_.path().string(),
-                    reservation.cursor,
-                    expected));
+                    entry.info.identifier,
+                    written,
+                    entry.size));
         }
+        descriptor.shape[1] = written / column_bytes;
+        entry.size = written;
+        ++truncated;
+    }
+    if (truncated != 0)
+    {
+        warn(
+            fmt::format(
+                "{}: {} of {} payload(s) partially written, committing the "
+                "columns written so far",
+                file_.path().string(),
+                truncated,
+                reservations_.size()));
     }
 
     const auto directory_offset
@@ -173,12 +199,7 @@ auto BinaryWriter::append_bytes(
         throw GelexException(
             fmt::format("{}: writer is closed", file_.path().string()));
     }
-    if (index >= reservations_.size())
-    {
-        throw GelexException(
-            fmt::format(
-                "{}: invalid payload index {}", file_.path().string(), index));
-    }
+    assert(index < reservations_.size());
 
     if (!std::in_range<std::streamsize>(bytes.size()))
     {
@@ -188,11 +209,7 @@ auto BinaryWriter::append_bytes(
     }
 
     auto& reservation = reservations_[index];
-    if (reservation.entry.info.descriptor.type != type)
-    {
-        throw GelexException(
-            fmt::format("{}: payload type mismatch", file_.path().string()));
-    }
+    assert(reservation.entry.info.descriptor.type == type);
     const auto byte_count = static_cast<std::uint64_t>(bytes.size());
     const auto written = reservation.cursor - reservation.entry.offset;
     if (byte_count > reservation.entry.size - written)

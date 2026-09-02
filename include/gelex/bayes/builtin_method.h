@@ -22,7 +22,7 @@
 #include <string_view>
 #include <utility>
 
-#include "gelex/bayes/semantic_method.h"
+#include "gelex/bayes/genetic_family.h"
 
 namespace gelex
 {
@@ -50,48 +50,48 @@ namespace detail
 {
 
 template <BayesMethod Method>
-struct SemanticMethodFor;
+struct GeneticFamilyFor;
 
 template <>
-struct SemanticMethodFor<BayesMethod::RR>
+struct GeneticFamilyFor<BayesMethod::RR>
 {
-    using type = GaussianMethod<VarianceLayout::Pooled>;
+    using type = GaussianFamily<VarianceLayout::Pooled>;
 };
 
 template <>
-struct SemanticMethodFor<BayesMethod::A>
+struct GeneticFamilyFor<BayesMethod::A>
 {
-    using type = GaussianMethod<VarianceLayout::Unpooled>;
+    using type = GaussianFamily<VarianceLayout::Unpooled>;
 };
 
 template <>
-struct SemanticMethodFor<BayesMethod::B>
+struct GeneticFamilyFor<BayesMethod::B>
 {
-    using type = SpikeSlabMethod<VarianceLayout::Unpooled>;
+    using type = SpikeSlabFamily<VarianceLayout::Unpooled>;
 };
 
 template <>
-struct SemanticMethodFor<BayesMethod::C>
+struct GeneticFamilyFor<BayesMethod::C>
 {
-    using type = SpikeSlabMethod<VarianceLayout::Pooled>;
+    using type = SpikeSlabFamily<VarianceLayout::Pooled>;
 };
 
 template <>
-struct SemanticMethodFor<BayesMethod::R>
+struct GeneticFamilyFor<BayesMethod::R>
 {
-    using type = ScaledMixtureMethod<>;
+    using type = ScaledMixtureFamily<>;
 };
 
 template <>
-struct SemanticMethodFor<BayesMethod::CD>
+struct GeneticFamilyFor<BayesMethod::CD>
 {
-    using type = JointSpikeSlabMethod<>;
+    using type = JointSpikeSlabFamily<>;
 };
 
 }  // namespace detail
 
 template <BayesMethod Method>
-using semantic_method_t = typename detail::SemanticMethodFor<Method>::type;
+using genetic_family_t = typename detail::GeneticFamilyFor<Method>::type;
 
 }  // namespace gelex
 

@@ -22,7 +22,7 @@
 #include <type_traits>
 #include <utility>
 
-#include "gelex/bayes/semantic_method.h"
+#include "gelex/bayes/genetic_family.h"
 #include "gelex/bayes/variance_parameter.h"
 
 namespace gelex

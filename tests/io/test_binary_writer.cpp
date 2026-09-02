@@ -18,7 +18,6 @@
 #include <array>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
-#include <cstddef>
 #include <cstdint>
 #include <filesystem>
 #include <span>
@@ -63,17 +62,8 @@ TEST_CASE(
 
         for (Eigen::Index column = 0; column < expected_double.cols(); ++column)
         {
-            const auto double_column = expected_double.col(column);
-            double_payload.append(
-                std::span<const double>{
-                    double_column.data(),
-                    static_cast<std::size_t>(double_column.size())});
-
-            const auto uint8_column = expected_uint8.col(column);
-            uint8_payload.append(
-                std::span<const std::uint8_t>{
-                    uint8_column.data(),
-                    static_cast<std::size_t>(uint8_column.size())});
+            double_payload.append(expected_double.col(column));
+            uint8_payload.append(expected_uint8.col(column));
         }
         writer.close();
     }
@@ -113,10 +103,10 @@ TEST_CASE("BinaryWriter rejects payload overflow", "[io][binary_writer]")
     gelex::BinaryWriter writer(
         (fixture.get_test_dir() / "overflow.samples").string());
     auto payload = writer.reserve<double>("value", gelex::BinaryShape{2, 1});
-    const std::array<double, 3> values{1.0, 2.0, 3.0};
+    const std::array<double, 2> values{1.0, 2.0};
 
-    REQUIRE_THROWS_AS(
-        payload.append(std::span<const double>{values}), gelex::GelexException);
+    payload.append(std::span<const double>{values});
+    REQUIRE_THROWS_AS(payload.append(values), gelex::GelexException);
 }
 
 TEST_CASE("PayloadWriter transfers ownership on move", "[io][binary_writer]")
@@ -136,14 +126,39 @@ TEST_CASE("PayloadWriter transfers ownership on move", "[io][binary_writer]")
     writer.close();
 }
 
-TEST_CASE("BinaryWriter rejects incomplete payloads", "[io][binary_writer]")
+TEST_CASE("BinaryWriter commits incomplete payloads", "[io][binary_writer]")
 {
     test::FileFixture fixture;
-    gelex::BinaryWriter writer(
-        (fixture.get_test_dir() / "incomplete.samples").string());
-    writer.reserve<double>("value", gelex::BinaryShape{1, 2}).append(1.0);
+    const auto container_path = fixture.get_test_dir() / "incomplete.samples";
+    std::vector<std::string> warnings;
+    gelex::set_sink(
+        [&warnings](gelex::Level level, std::string_view message)
+        {
+            if (level == gelex::Level::Warn)
+            {
+                warnings.emplace_back(message);
+            }
+        });
+    {
+        gelex::BinaryWriter writer(container_path.string());
+        auto full = writer.reserve<double>("full", gelex::BinaryShape{1, 1});
+        auto partial
+            = writer.reserve<double>("partial", gelex::BinaryShape{2, 3});
+        full.append(3.0);
+        partial.append(Eigen::VectorXd{{1.0, 2.0}});
+        writer.close();
+    }
+    gelex::set_sink({});
 
-    REQUIRE_THROWS_AS(writer.close(), gelex::GelexException);
+    REQUIRE(warnings.size() == 1);
+    CHECK_THAT(
+        warnings.front(),
+        Catch::Matchers::ContainsSubstring("1 of 2 payload(s)"));
+
+    const gelex::BinaryReader reader(container_path.string());
+    REQUIRE(reader.to_map<double>("full").isApprox(Eigen::MatrixXd{{3.0}}));
+    REQUIRE(reader.to_map<double>("partial").isApprox(
+        Eigen::MatrixXd{{1.0}, {2.0}}));
 }
 
 TEST_CASE("BinaryWriter rejects operations after close", "[io][binary_writer]")

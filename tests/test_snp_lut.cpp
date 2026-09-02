@@ -56,7 +56,7 @@ TEST_CASE("SNP LUT round-trip preserves missing values", "[snp_lut]")
             gelex::BinaryShape{
                 static_cast<std::uint64_t>(add.rows()),
                 static_cast<std::uint64_t>(add.cols())})
-        .append(
+        .write(
             std::span<const double>{
                 add.data(), static_cast<std::size_t>(add.size())});
     writer
@@ -65,7 +65,7 @@ TEST_CASE("SNP LUT round-trip preserves missing values", "[snp_lut]")
             gelex::BinaryShape{
                 static_cast<std::uint64_t>(dom.rows()),
                 static_cast<std::uint64_t>(dom.cols())})
-        .append(
+        .write(
             std::span<const double>{
                 dom.data(), static_cast<std::size_t>(dom.size())});
     writer.close();
@@ -90,7 +90,7 @@ TEST_CASE("load_snp_luts rejects invalid LUT rows", "[snp_lut]")
             gelex::BinaryShape{
                 static_cast<std::uint64_t>(invalid.rows()),
                 static_cast<std::uint64_t>(invalid.cols())})
-        .append(
+        .write(
             std::span<const double>{
                 invalid.data(), static_cast<std::size_t>(invalid.size())});
     writer.close();

@@ -19,8 +19,15 @@
 
 #include <Eigen/Core>
 #include <cassert>
+#include <cmath>
 #include <cstddef>
+#include <cstdint>
+#include <limits>
+#include <ranges>
+#include <span>
+#include <utility>
 
+#include "gelex/exception.h"
 #include "gelex/infra/stats/result.h"
 
 namespace gelex::detail
@@ -71,6 +78,62 @@ class VectorRunningStats
     Eigen::VectorXd mean_;
     Eigen::VectorXd m2_;
     Eigen::VectorXd delta_;
+};
+
+template <std::size_t CategoryCount>
+    requires(
+        CategoryCount > 1
+        && CategoryCount <= static_cast<std::size_t>(
+                                std::numeric_limits<std::uint8_t>::max())
+                                + 1)
+class CategoryRunningStats
+{
+    using CountMatrix = Eigen::Matrix<
+        std::uint32_t,
+        Eigen::Dynamic,
+        static_cast<int>(CategoryCount),
+        Eigen::RowMajor>;
+
+   public:
+    explicit CategoryRunningStats(Eigen::Index size)
+    {
+        if (size <= 0)
+        {
+            throw GelexException(
+                "CategoryRunningStats requires a positive size");
+        }
+        counts_
+            = CountMatrix::Zero(size, static_cast<Eigen::Index>(CategoryCount));
+    }
+
+    auto update(std::span<const std::uint8_t> values) noexcept -> void
+    {
+        assert(std::cmp_equal(values.size(), counts_.rows()));
+        assert(count_ < std::numeric_limits<std::uint32_t>::max());
+
+        ++count_;
+        for (const auto [index, category] : values | std::views::enumerate)
+        {
+            assert(static_cast<std::size_t>(category) < CategoryCount);
+            ++counts_(
+                static_cast<Eigen::Index>(index),
+                static_cast<Eigen::Index>(category));
+        }
+    }
+
+    auto result() const -> CategoryRunningStatsResult
+    {
+        assert(count_ > 0);
+
+        Eigen::MatrixXd probabilities = counts_.template cast<double>();
+        probabilities /= static_cast<double>(count_);
+        return CategoryRunningStatsResult{
+            .probabilities = std::move(probabilities)};
+    }
+
+   private:
+    CountMatrix counts_;
+    std::uint32_t count_{0};
 };
 
 }  // namespace gelex::detail

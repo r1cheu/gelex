@@ -34,6 +34,11 @@ struct VectorRunningStatsResult
     Eigen::VectorXd stddev;
 };
 
+struct CategoryRunningStatsResult
+{
+    Eigen::MatrixXd probabilities;
+};
+
 }  // namespace gelex
 
 #endif  // GELEX_INFRA_STATS_RESULT_H_

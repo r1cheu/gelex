@@ -93,8 +93,7 @@ auto CompactGenotype::size_bytes() const noexcept -> std::size_t
 auto CompactGenotype::col(Eigen::Index index) const noexcept
     -> std::span<const std::uint8_t>
 {
-    return std::span<const std::uint8_t>{
-        raw_codes_.col(index).data(), static_cast<std::size_t>(rows())};
+    return raw_codes_.col(index);
 }
 
 }  // namespace gelex::bayes

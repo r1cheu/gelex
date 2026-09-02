@@ -23,7 +23,7 @@
 #include <cstdint>
 #include <limits>
 
-#include "gelex/bayes/semantic_method.h"
+#include "gelex/bayes/genetic_family.h"
 
 namespace gelex
 {

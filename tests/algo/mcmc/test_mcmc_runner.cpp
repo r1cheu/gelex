@@ -21,9 +21,9 @@
 #include <vector>
 
 #include "gelex/algo/mcmc/mcmc_runner.h"
+#include "gelex/bayes/genetic_family.h"
 #include "gelex/bayes/prior.h"
 #include "gelex/bayes/recipe.h"
-#include "gelex/bayes/semantic_method.h"
 #include "gelex/exception.h"
 #include "gelex/types/genetic_mode.h"
 
@@ -33,7 +33,7 @@ namespace
 {
 
 constexpr auto mode_a = gelex::GeneticModeSet{gelex::GeneticMode::A};
-using Method = gelex::GaussianMethod<gelex::VarianceLayout::Pooled>;
+using Family = gelex::GaussianFamily<gelex::VarianceLayout::Pooled>;
 
 }  // namespace
 
@@ -45,7 +45,7 @@ TEST_CASE(
         Eigen::MatrixXd{{0.0, 1.0}, {1.0, 1.0}, {2.0, 1.0}, {0.0, 1.0}},
         Eigen::VectorXd{{1.0, -0.5, 0.25, 2.0}});
     const auto prior = gelex::make_prior(
-        gelex::BayesRecipe<mode_a, Method>::defaults(), model);
+        gelex::BayesRecipe<mode_a, Family>::defaults(), model);
     constexpr int iterations = 4;
     gelex::MCMCRunner runner{iterations};
     std::vector<std::size_t> completed_iterations;
