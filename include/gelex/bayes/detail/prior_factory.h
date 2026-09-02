@@ -148,7 +148,7 @@ auto make_prior(
     const auto& joint_spec = genetic_spec.joint();
     auto mode_priors = transform_mode_values(
         genetic_spec.mode_values(),
-        [&]<GeneticMode Mode>(const auto& mode_spec)
+        [&]<GeneticMode Mode>(const auto&)
         {
             auto variance = calibrator.calibrate(
                 Mode, initial_activity<Mode>(joint_spec));
@@ -159,12 +159,7 @@ auto make_prior(
             }
             else
             {
-                return HalfNormalPrior{
-                    .variance = std::move(variance),
-                    .positive_probability
-                    = make_parameter<MixtureWeightUpdate::Enabled>(
-                        mode_spec.positive_probability(),
-                        make_beta_prior(1.0, 1.0))};
+                return HalfNormalPrior{.variance = std::move(variance)};
             }
         });
 

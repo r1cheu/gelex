@@ -28,6 +28,7 @@
 
 #include "gelex/bayes/genotype/progress.h"
 #include "gelex/bayes/genotype/projection.h"
+#include "gelex/bayes/marker_covariate.h"
 #include "gelex/data/bed.h"
 #include "gelex/data/dataframe/dataframe.h"
 #include "gelex/data/genotype_method.h"
@@ -45,10 +46,12 @@ class GeneticDesign
         gelex::Bed bed,
         GeneticModeSet modes,
         GenotypeMethod geno_method,
+        std::optional<MarkerCovariate> marker_covariate = std::nullopt,
         const gelex::GenoObserver& observer = {});
 
     explicit GeneticDesign(
         gelex::Bed bed,
+        std::optional<MarkerCovariate> marker_covariate = std::nullopt,
         const gelex::GenoObserver& observer = {});
 
     GeneticDesign(const GeneticDesign&) = delete;
@@ -77,6 +80,12 @@ class GeneticDesign
         return marker_metadata_;
     }
 
+    [[nodiscard]] auto marker_covariate() const noexcept
+        -> const std::optional<MarkerCovariate>&
+    {
+        return marker_covariate_;
+    }
+
     [[nodiscard]] auto projection(GeneticMode mode) const
         -> const GeneticProjection&;
 
@@ -86,6 +95,7 @@ class GeneticDesign
    private:
     std::unique_ptr<CompactGenotype> genotype_;
     DataFrame<std::string> marker_metadata_;
+    std::optional<MarkerCovariate> marker_covariate_;
     std::array<std::optional<GeneticProjection>, all_genetic_modes.size()>
         projections_;
     std::vector<Eigen::Index> common_valid_indices_;

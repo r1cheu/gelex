@@ -105,7 +105,7 @@ auto read_bim(const std::filesystem::path& path) -> DataFrame<std::string>
     options.delimiter = detect_delimiter(path);
     options.index_cols = {1};
     options.select_cols = {0, 3, 4, 5};
-    options.names = {"chrom", "pos", "A1", "A2"};
+    options.names = {"CHR", "BP", "A1", "A2"};
     return read_dataframe<std::string>(path, options, schema);
 }
 

@@ -22,22 +22,31 @@
 #include <cstddef>
 #include <cstdint>
 #include <random>
+#include <string>
 #include <utility>
+#include <vector>
 
 #include "gelex/bayes/genetic/prior.h"
 #include "gelex/bayes/genetic/state.h"
 #include "gelex/bayes/genetic_family.h"
+#include "gelex/bayes/genotype/design.h"
 #include "gelex/bayes/kernel.h"
+#include "gelex/bayes/marker_covariate.h"
 #include "gelex/bayes/mode_values.h"
+#include "gelex/bayes/model.h"
 #include "gelex/bayes/prior.h"
 #include "gelex/bayes/recipe.h"
 #include "gelex/bayes/spec.h"
 #include "gelex/bayes/state.h"
 #include "gelex/bayes/variance/budget.h"
+#include "gelex/data/bed.h"
+#include "gelex/data/dataframe/column.h"
+#include "gelex/data/dataframe/reader.h"
+#include "gelex/data/fixed_design.h"
 #include "gelex/data/genotype_method.h"
 #include "gelex/genetic_mode.h"
 
-#include "compact_genotype_fixture.h"
+#include "bed_fixture.h"
 
 using Catch::Approx;
 
@@ -88,17 +97,53 @@ static_assert(std::same_as<
 
 auto make_model() -> gelex::BayesModel
 {
-    return gelex::test::make_compact_model(
-        Eigen::MatrixXd{
-            {0.0, 0.0, 1.0, 2.0},
-            {1.0, 0.0, 2.0, 1.0},
-            {2.0, 1.0, 0.0, 0.0},
-            {0.0, 2.0, 1.0, 1.0},
-            {1.0, 2.0, 0.0, 2.0},
-            {2.0, 1.0, 2.0, 0.0}},
-        Eigen::VectorXd{{1.0, -0.5, 0.25, 2.0, -1.0, 0.75}},
+    const Eigen::MatrixXd genotypes{
+        {0.0, 0.0, 1.0, 2.0},
+        {1.0, 0.0, 2.0, 1.0},
+        {2.0, 1.0, 0.0, 0.0},
+        {0.0, 2.0, 1.0, 1.0},
+        {1.0, 2.0, 0.0, 2.0},
+        {2.0, 1.0, 2.0, 0.0}};
+    gelex::test::BedFixture fixture;
+    const auto [prefix, raw] = fixture.create_deterministic_bed_files(
+        genotypes,
+        {},
+        {"marker_1", "marker_2", "marker_3", "marker_4"},
+        {"1", "1", "1", "1"},
+        {{'A', 'G'}, {'A', 'G'}, {'A', 'G'}, {'A', 'G'}});
+    static_cast<void>(raw);
+    auto bed = gelex::open_bed(prefix.string());
+
+    const auto annotation_path = fixture.get_file_fixture().create_text_file(
+        "CHR\tSNP\tBP\tA1\tA2\tAnnotation\n"
+        "1\tmarker_1\t1\tA\tG\t-0.5\n"
+        "1\tmarker_2\t2\tA\tG\t0.0\n"
+        "1\tmarker_3\t3\tA\tG\t0.5\n"
+        "1\tmarker_4\t4\tA\tG\t1.0\n",
+        ".anno");
+    gelex::ReadOptions options;
+    options.index_cols = {1};
+    auto annotation_frame = gelex::read_dataframe<std::string>(
+        annotation_path,
+        options,
+        std::vector{
+            gelex::ColumnType::String,
+            gelex::ColumnType::Int,
+            gelex::ColumnType::String,
+            gelex::ColumnType::String,
+            gelex::ColumnType::Double});
+    auto marker_covariate = gelex::bayes::make_marker_covariate(
+        std::move(annotation_frame), bed.bim());
+    auto genetic = gelex::bayes::GeneticDesign{
+        std::move(bed),
         mode_ad,
-        gelex::GenotypeMethod::NOIACenter);
+        gelex::GenotypeMethod::NOIACenter,
+        std::move(marker_covariate)};
+    return gelex::BayesModel{
+        Eigen::VectorXd{{1.0, -0.5, 0.25, 2.0, -1.0, 0.75}},
+        gelex::FixedDesign::make(genotypes.rows()),
+        {},
+        std::move(genetic)};
 }
 
 auto reconstruct_total(
@@ -283,7 +328,7 @@ TEST_CASE(
     const auto prior = gelex::make_prior(
         gelex::BayesRecipe<mode_ad, Family>{
             JointGeneticSpec{
-                JointModeSpecs{gelex::Gaussian{}, gelex::HalfNormal{0.6}},
+                JointModeSpecs{gelex::Gaussian{}, gelex::HalfNormal{}},
                 gelex::JointSpikeSlab{probabilities}},
             gelex::VarianceBudget{{.additive = 0.4, .dominance = 0.1}}},
         model);
@@ -302,8 +347,7 @@ TEST_CASE(
         = mode_states.get<gelex::GeneticMode::D>().family_state;
     REQUIRE(additive.variance > 0.0);
     REQUIRE(dominance.variance > 0.0);
-    REQUIRE(dominance.positive_probability > 0.0);
-    REQUIRE(dominance.positive_probability < 1.0);
+    REQUIRE(dominance.probit_coefficients.allFinite());
     require_probability_simplex(state.genetic().joint().probabilities);
 }
 
@@ -318,7 +362,7 @@ TEST_CASE(
     const auto prior = gelex::make_prior(
         gelex::BayesRecipe<mode_ad, Family>{
             JointGeneticSpec{
-                JointModeSpecs{gelex::Gaussian{}, gelex::HalfNormal{0.75}},
+                JointModeSpecs{gelex::Gaussian{}, gelex::HalfNormal{}},
                 gelex::JointSpikeSlab{probabilities}},
             gelex::VarianceBudget{{.additive = 0.4, .dominance = 0.1}}},
         model);

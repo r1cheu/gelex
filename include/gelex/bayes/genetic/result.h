@@ -163,7 +163,7 @@ struct GaussianPosteriorResult
 struct HalfNormalPosteriorResult
 {
     ScalarPosteriorResult variance;
-    ScalarPosteriorResult positive_probability;
+    VectorPosteriorResult probit_coefficients;
 };
 
 template <VarianceLayout Kind, MixtureWeightUpdate WeightUpdate>

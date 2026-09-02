@@ -65,16 +65,33 @@ namespace
     return specs;
 }
 
+auto validate_marker_covariate(
+    const std::optional<gelex::bayes::MarkerCovariate>& marker_covariate,
+    Eigen::Index marker_count) -> void
+{
+    if (marker_covariate && marker_covariate->X().cols() != marker_count)
+    {
+        throw gelex::GelexException(
+            fmt::format(
+                "GeneticDesign: marker covariate columns {} != marker count {}",
+                marker_covariate->X().cols(),
+                marker_count));
+    }
+}
+
 }  // namespace
 
 GeneticDesign::GeneticDesign(
     gelex::Bed bed,
     GeneticModeSet modes,
     GenotypeMethod geno_method,
+    std::optional<MarkerCovariate> marker_covariate,
     const gelex::GenoObserver& observer)
     : genotype_{std::make_unique<CompactGenotype>(bed, observer)},
-      marker_metadata_{std::move(bed).bim()}
+      marker_metadata_{std::move(bed).bim()},
+      marker_covariate_{std::move(marker_covariate)}
 {
+    validate_marker_covariate(marker_covariate_, genotype_->cols());
     const auto projection_specs
         = encoding_specs_from_method(modes, geno_method);
     for (const auto& spec : projection_specs)
@@ -95,10 +112,13 @@ GeneticDesign::GeneticDesign(
 
 GeneticDesign::GeneticDesign(
     gelex::Bed bed,
+    std::optional<MarkerCovariate> marker_covariate,
     const gelex::GenoObserver& observer)
     : genotype_{std::make_unique<CompactGenotype>(bed, observer)},
-      marker_metadata_{std::move(bed).bim()}
+      marker_metadata_{std::move(bed).bim()},
+      marker_covariate_{std::move(marker_covariate)}
 {
+    validate_marker_covariate(marker_covariate_, genotype_->cols());
 }
 
 GeneticDesign::GeneticDesign(GeneticDesign&&) noexcept = default;

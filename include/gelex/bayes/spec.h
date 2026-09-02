@@ -44,21 +44,8 @@ class SpikeSlab
     double probability_;
 };
 
-class HalfNormal
+struct HalfNormal
 {
-    static constexpr double default_positive_probability = 0.5;
-
-   public:
-    HalfNormal();
-    explicit HalfNormal(double positive_probability);
-
-    [[nodiscard]] auto positive_probability() const noexcept -> double
-    {
-        return positive_probability_;
-    }
-
-   private:
-    double positive_probability_;
 };
 
 class ScaledMixture

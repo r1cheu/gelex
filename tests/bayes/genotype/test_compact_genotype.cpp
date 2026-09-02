@@ -242,13 +242,13 @@ TEST_CASE("GeneticDesign retains marker metadata", "[bayes][compact]")
         == std::vector<std::string>{"marker_1", "marker_2"});
     REQUIRE(
         std::vector<std::string>{
-            metadata["chrom"].as<std::string>().begin(),
-            metadata["chrom"].as<std::string>().end()}
+            metadata["CHR"].as<std::string>().begin(),
+            metadata["CHR"].as<std::string>().end()}
         == std::vector<std::string>{"3", "7"});
     REQUIRE(
         std::vector<std::int32_t>{
-            metadata["pos"].as<std::int32_t>().begin(),
-            metadata["pos"].as<std::int32_t>().end()}
+            metadata["BP"].as<std::int32_t>().begin(),
+            metadata["BP"].as<std::int32_t>().end()}
         == std::vector<std::int32_t>{1, 2});
     REQUIRE(
         std::vector<std::string>{

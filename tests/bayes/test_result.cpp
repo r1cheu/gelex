@@ -397,7 +397,7 @@ TEST_CASE("BayesResult projects half-normal joint fields", "[bayes][result]")
                                       .template get<gelex::GeneticMode::D>()
                                       .family_state;
                 dominance.variance = 0.25;
-                dominance.positive_probability = 0.7;
+                dominance.probit_coefficients = Eigen::Vector2d{{0.7, -0.2}};
                 auto& joint = state.genetic().joint();
                 joint.assignment = Eigen::VectorX<std::uint8_t>{{1, 3}};
                 joint.probabilities = {0.7, 0.1, 0.1, 0.1};
@@ -411,11 +411,10 @@ TEST_CASE("BayesResult projects half-normal joint fields", "[bayes][result]")
 
         REQUIRE(dominance.variance.identifier() == "genetic/D/variance");
         REQUIRE(
-            dominance.positive_probability.identifier()
-            == "genetic/D/positive_probability");
-        REQUIRE(
-            dominance.positive_probability.statistics().mean
-            == Catch::Approx(0.7));
+            dominance.probit_coefficients.identifier()
+            == "genetic/D/probit_coefficients");
+        REQUIRE(dominance.probit_coefficients.statistics().mean.isApprox(
+            Eigen::Vector2d{{0.7, -0.2}}));
         REQUIRE(
             result.genetic_parameters().joint().probabilities.identifier()
             == "genetic/joint/probabilities");

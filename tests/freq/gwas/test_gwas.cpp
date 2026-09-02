@@ -90,7 +90,7 @@ TEST_CASE(
 {
     FileFixture files;
     const auto bim_path = files.create_text_file(
-        "SNP\tchrom\tpos\tA1\tA2\n"
+        "SNP\tCHR\tBP\tA1\tA2\n"
         "rs1\t1\t123\tA\tG\n",
         ".tsv");
 

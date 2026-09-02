@@ -37,7 +37,6 @@ struct GaussianPrior
 struct HalfNormalPrior
 {
     VarianceParameter variance;
-    ProbabilityParameter<MixtureWeightUpdate::Enabled> positive_probability;
 };
 
 template <

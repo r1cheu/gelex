@@ -162,7 +162,7 @@ template <VarianceLayout Kind>
 {
     return {
         .variance = builder.scalar("variance"),
-        .positive_probability = builder.scalar("positive_probability")};
+        .probit_coefficients = builder.vector("probit_coefficients", 2)};
 }
 
 template <VarianceLayout Kind, MixtureWeightUpdate WeightUpdate>

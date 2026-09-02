@@ -122,7 +122,7 @@ inline auto write_family_summary_rows(
     const HalfNormalPosteriorResult& result) -> void
 {
     write_summary_rows(writer, result.variance);
-    write_summary_rows(writer, result.positive_probability);
+    write_summary_rows(writer, result.probit_coefficients);
 }
 
 template <VarianceLayout Kind, MixtureWeightUpdate WeightUpdate>

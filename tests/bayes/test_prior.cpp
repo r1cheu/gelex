@@ -156,14 +156,6 @@ static_assert(CanMakePrior<BayesRecipe<mode_ad, DefaultJointSpikeSlabFamily>>);
 template <typename T>
 concept HasPrior = requires(const T& parameter) { parameter.prior; };
 
-template <typename T>
-concept HasPositiveProbability
-    = requires(const T& prior) { prior.positive_probability; };
-
-static_assert(HasPositiveProbability<HalfNormalPrior>);
-static_assert(
-    !HasPositiveProbability<JointSpikeSlabPrior<JointSpikeSlab::class_count>>);
-
 auto make_model(GeneticModeSet modes) -> BayesModel
 {
     return gelex::test::make_compact_model(
@@ -346,7 +338,7 @@ TEST_CASE("make_prior derives joint marginal activity", "[bayes][prior]")
     const auto model = make_model(mode_ad);
     const auto recipe = BayesRecipe<mode_ad, FixedJointSpikeSlabFamily>{
         JointSpikeSlabAD{
-            JointModeSpecs{Gaussian{}, HalfNormal{0.6}},
+            JointModeSpecs{Gaussian{}, HalfNormal{}},
             JointSpikeSlab{{0.8, 0.1, 0.05, 0.05}}},
         VarianceBudget{{.additive = 0.4, .dominance = 0.1}},
     };
@@ -360,13 +352,6 @@ TEST_CASE("make_prior derives joint marginal activity", "[bayes][prior]")
         prior.genetic().mode_values().get<GeneticMode::D>().variance.initial
         == Approx(expected_variance(model, GeneticMode::D, 0.1, 0.1)));
     static_assert(!HasPrior<decltype(prior.genetic().joint().probabilities)>);
-    const auto& dominance = prior.genetic().mode_values().get<GeneticMode::D>();
-    static_assert(HasPrior<decltype(dominance.positive_probability)>);
-    REQUIRE(dominance.positive_probability.initial == 0.6);
-    REQUIRE(
-        dominance.positive_probability.prior.dirichlet_parameters()
-            .concentrations()
-        == std::array<double, 2>{1.0, 1.0});
 }
 
 TEST_CASE(

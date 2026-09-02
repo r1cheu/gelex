@@ -50,8 +50,8 @@ TEST_CASE("read_bim - Valid file parsing", "[reader][bim]")
         REQUIRE(keys[3] == "rs13579");
         REQUIRE(keys[4] == "rs11223");
 
-        auto chrom = df["chrom"].as<std::string>();
-        auto pos = df["pos"].as<std::int32_t>();
+        auto chrom = df["CHR"].as<std::string>();
+        auto pos = df["BP"].as<std::int32_t>();
         auto a1 = df["A1"].as<std::string>();
         auto a2 = df["A2"].as<std::string>();
 

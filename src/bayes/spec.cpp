@@ -73,15 +73,6 @@ auto validate_probability_simplex(
 
 }  // namespace
 
-HalfNormal::HalfNormal() : HalfNormal{default_positive_probability} {}
-
-HalfNormal::HalfNormal(double positive_probability)
-    : positive_probability_{positive_probability}
-{
-    validate_open_probability(
-        positive_probability_, "half-normal positive probability");
-}
-
 SpikeSlab::SpikeSlab() : SpikeSlab{default_probability} {}
 
 SpikeSlab::SpikeSlab(double probability) : probability_{probability}
