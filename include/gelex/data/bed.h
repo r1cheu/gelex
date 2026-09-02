@@ -65,9 +65,14 @@ class Bed
         return bim_.index();
     }
 
-    [[nodiscard]] auto bim() const noexcept -> const DataFrame<std::string>&
+    [[nodiscard]] auto bim() const& noexcept -> const DataFrame<std::string>&
     {
         return bim_;
+    }
+
+    [[nodiscard]] auto bim() && -> DataFrame<std::string>
+    {
+        return std::move(bim_);
     }
 
     // Narrows the sample view to target, rebuilding the source->target

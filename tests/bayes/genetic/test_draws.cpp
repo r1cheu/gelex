@@ -22,6 +22,7 @@
 
 #include "gelex/bayes/basic_draw.h"
 #include "gelex/bayes/detail/draws_factory.h"
+#include "gelex/bayes/detail/pip_factory.h"
 #include "gelex/bayes/detail/state_factory.h"
 #include "gelex/bayes/genetic/draws.h"
 #include "gelex/bayes/genetic/prior.h"
@@ -45,14 +46,13 @@ using gelex::EmptyDraw;
 using gelex::GaussianDraws;
 using gelex::GaussianFamily;
 using gelex::GaussianPrior;
+using gelex::GeneticCoefficientDraws;
 using gelex::GeneticMode;
-using gelex::GeneticModeDraws;
 using gelex::GeneticModeSet;
-using gelex::HalfNormalAsymmetry;
 using gelex::HalfNormalDraws;
 using gelex::HalfNormalPrior;
-using gelex::IndependentDraws;
-using gelex::JointDraws;
+using gelex::IndependentGeneticDraws;
+using gelex::JointGeneticDraws;
 using gelex::JointModeValues;
 using gelex::JointSpikeSlab;
 using gelex::JointSpikeSlabDraws;
@@ -87,49 +87,41 @@ using FixedUnpooledSpikeSlabPriorA = ModeValues<
     mode_a,
     SpikeSlabPrior<VarianceLayout::Unpooled, MixtureWeightUpdate::Disabled>>;
 using JointPrior = JointModeValues<
-    ModeValues<
-        mode_ad,
-        GaussianPrior<VarianceLayout::Pooled>,
-        HalfNormalPrior<HalfNormalAsymmetry::Count>>,
+    ModeValues<mode_ad, GaussianPrior<VarianceLayout::Pooled>, HalfNormalPrior>,
     JointSpikeSlabPrior<JointSpikeSlab::class_count>>;
 
 using UnpooledSpikeSlabFamily = SpikeSlabFamily<VarianceLayout::Unpooled>;
 using FixedPooledSpikeSlabFamily
     = SpikeSlabFamily<VarianceLayout::Pooled, MixtureWeightUpdate::Disabled>;
-using MagnitudeJointSpikeSlabFamily = JointSpikeSlabFamily<
-    MixtureWeightUpdate::Enabled,
-    HalfNormalAsymmetry::Magnitude>;
 
-static_assert(
-    std::same_as<
-        genetic_draws_t<PooledGaussianPriorAD>,
-        IndependentDraws<
-            genetic_state_t<PooledGaussianPriorAD>,
-            ModeValues<
-                mode_ad,
-                GeneticModeDraws<GaussianDraws<VarianceLayout::Pooled>>,
-                GeneticModeDraws<GaussianDraws<VarianceLayout::Pooled>>>>>);
+static_assert(std::same_as<
+              genetic_draws_t<PooledGaussianPriorAD>,
+              IndependentGeneticDraws<
+                  GeneticCoefficientDraws<mode_ad>,
+                  ModeValues<
+                      mode_ad,
+                      GaussianDraws<VarianceLayout::Pooled>,
+                      GaussianDraws<VarianceLayout::Pooled>>>>);
 static_assert(std::same_as<
               genetic_draws_t<UnpooledSpikeSlabPriorA>,
-              IndependentDraws<
-                  genetic_state_t<UnpooledSpikeSlabPriorA>,
+              IndependentGeneticDraws<
+                  GeneticCoefficientDraws<mode_a>,
                   ModeValues<
                       mode_a,
-                      GeneticModeDraws<SpikeSlabDraws<
+                      SpikeSlabDraws<
                           VarianceLayout::Unpooled,
-                          MixtureWeightUpdate::Enabled>>>>>);
-static_assert(
-    std::same_as<
-        genetic_draws_t<JointPrior>,
-        JointDraws<
-            genetic_state_t<JointPrior>,
-            ModeValues<
-                mode_ad,
-                GeneticModeDraws<GaussianDraws<VarianceLayout::Pooled>>,
-                GeneticModeDraws<HalfNormalDraws<HalfNormalAsymmetry::Count>>>,
-            JointSpikeSlabDraws<
-                JointSpikeSlab::class_count,
-                MixtureWeightUpdate::Enabled>>>);
+                          MixtureWeightUpdate::Enabled>>>>);
+static_assert(std::same_as<
+              genetic_draws_t<JointPrior>,
+              JointGeneticDraws<
+                  GeneticCoefficientDraws<mode_ad>,
+                  ModeValues<
+                      mode_ad,
+                      GaussianDraws<VarianceLayout::Pooled>,
+                      HalfNormalDraws>,
+                  JointSpikeSlabDraws<
+                      JointSpikeSlab::class_count,
+                      MixtureWeightUpdate::Enabled>>>);
 
 // Unlike state, the draws tree does distinguish fixed from sampled parameters:
 // a fixed parameter maps to EmptyDraw and reserves no payload.
@@ -194,12 +186,18 @@ TEST_CASE(
         additive.family_state.probability = 0.5;
         draws.append(state);
 
-        const auto& leaf = draws.get<GeneticMode::A>();
-        REQUIRE(leaf.coefficients.result().mean.isApprox(
-            Eigen::VectorXd{{2.0, 3.0}}));
-        REQUIRE(leaf.family_draws.probability.result().mean == Approx(0.4));
-        REQUIRE(leaf.family_draws.assignment.result().probabilities.isApprox(
+        REQUIRE(
+            draws.coefficients().get<GeneticMode::A>().result().mean.isApprox(
+                Eigen::VectorXd{{2.0, 3.0}}));
+        const auto& family = draws.family<GeneticMode::A>();
+        REQUIRE(family.probability.result().mean == Approx(0.4));
+        REQUIRE(family.assignment.result().probabilities.isApprox(
             Eigen::MatrixXd{{0.5, 0.5}, {0.0, 1.0}}));
+        REQUIRE(
+            gelex::detail::make_pip(draws)
+                .get<GeneticMode::A>()
+                .probabilities()
+                .isApprox(Eigen::VectorXd{{0.5, 1.0}}));
     }
 
     const gelex::BinaryReader reader(path.string());
@@ -261,6 +259,12 @@ TEST_CASE(
         additive.family_state.fitted_values = Eigen::MatrixXd{
             {0.0, 1.0, 2.0, 0.0}, {3.0, 1.0, 0.0, 0.0}, {0.0, 1.0, 4.0, 0.0}};
         draws.append(state);
+
+        REQUIRE(
+            gelex::detail::make_pip(draws)
+                .get<GeneticMode::A>()
+                .probabilities()
+                .isApprox(Eigen::VectorXd{{0.0, 1.0}}));
     }
 
     const gelex::BinaryReader reader(path.string());
@@ -310,14 +314,19 @@ TEST_CASE(
         draws.append(state);
 
         REQUIRE(
-            draws.get<GeneticMode::D>()
-                .family_draws.positive_probability.result()
-                .mean
+            draws.family<GeneticMode::D>().positive_probability.result().mean
             == Approx(0.7));
-        REQUIRE(draws.get<GeneticMode::D>()
-                    .family_draws.assignment.result()
+        REQUIRE(draws.family<GeneticMode::D>()
+                    .assignment.result()
                     .probabilities.isApprox(
                         Eigen::MatrixXd{{1.0, 0.0, 0.0}, {0.0, 0.0, 1.0}}));
+        const auto pip = gelex::detail::make_pip(draws);
+        REQUIRE(pip.get<GeneticMode::A>().probabilities().isApprox(
+            Eigen::VectorXd{{1.0, 1.0}}));
+        REQUIRE(pip.get<GeneticMode::D>().probabilities().isApprox(
+            Eigen::VectorXd{{0.0, 1.0}}));
+        REQUIRE(
+            pip.joint().probabilities().isApprox(Eigen::VectorXd{{1.0, 1.0}}));
     }
 
     const gelex::BinaryReader reader(path.string());
@@ -342,42 +351,4 @@ TEST_CASE(
     REQUIRE(
         reader.to_map<float>("genetic/joint/component_explained_variance")
             .isApprox(Eigen::MatrixXf{{2.0 / 3.0}, {2.0}, {0.0}, {8.0 / 3.0}}));
-}
-
-TEST_CASE(
-    "magnitude half-normal draws record both variance axes",
-    "[bayes][draws][genetic]")
-{
-    gelex::test::FileFixture fixture;
-    const auto path = fixture.get_test_dir() / "magnitude.draws";
-    const auto model = make_model(mode_ad);
-    const auto prior = gelex::make_prior(
-        BayesRecipe<mode_ad, MagnitudeJointSpikeSlabFamily>::defaults(), model);
-    auto state = gelex::detail::make_state(prior.genetic(), model.genetic());
-
-    {
-        gelex::BinaryWriter writer(path.string());
-        auto draws = gelex::detail::make_draws(
-            prior.genetic(), model.genetic(), writer, 1);
-
-        auto& dominance = state.mode_values().get<GeneticMode::D>();
-        dominance.family_state.variances = {0.2, 0.8};
-        dominance.family_state.assignment
-            = Eigen::VectorX<std::uint8_t>{{2, 0}};
-        draws.append(state);
-
-        REQUIRE(draws.get<GeneticMode::D>()
-                    .family_draws.assignment.result()
-                    .probabilities.isApprox(
-                        Eigen::MatrixXd{{0.0, 0.0, 1.0}, {1.0, 0.0, 0.0}}));
-    }
-
-    const gelex::BinaryReader reader(path.string());
-    REQUIRE(reader.to_map<float>("genetic/D/variance")
-                .isApprox(Eigen::MatrixXf{{0.2}, {0.8}}));
-    REQUIRE(reader.to_map<std::uint8_t>("genetic/D/assignment")
-                .isApprox(
-                    Eigen::Matrix<std::uint8_t, Eigen::Dynamic, Eigen::Dynamic>{
-                        {2}, {0}}));
-    REQUIRE_FALSE(reader.contains("genetic/D/positive_probability"));
 }

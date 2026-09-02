@@ -28,6 +28,20 @@
 
 #include "bayes/genotype/compact_genotype.h"
 
+namespace
+{
+
+auto locus_counts(const gelex::LocusStats& stats) -> Eigen::Array4d
+{
+    return {
+        static_cast<double>(stats.nA1A1),
+        static_cast<double>(stats.n_missing),
+        static_cast<double>(stats.nA1A2),
+        static_cast<double>(stats.nA2A2)};
+}
+
+}  // namespace
+
 namespace gelex::bayes
 {
 
@@ -56,11 +70,7 @@ GeneticProjection::GeneticProjection(
         }
 
         luts_.col(index) = encoding.lut;
-        const Eigen::Array4d counts{
-            static_cast<double>(stats.nA1A1),
-            static_cast<double>(stats.n_missing),
-            static_cast<double>(stats.nA1A2),
-            static_cast<double>(stats.nA2A2)};
+        const Eigen::Array4d counts = locus_counts(stats);
         const auto values = luts_.col(index);
         const double sum = (counts * values).sum();
         const double sum_sq = (counts * values.square()).sum();
@@ -108,22 +118,25 @@ auto GeneticProjection::axpy(
 auto GeneticProjection::col_covariance(const GeneticProjection& rhs) const
     -> Eigen::RowVectorXd
 {
-    if (rows() == 0)
+    if (genotype_ != rhs.genotype_)
     {
-        throw GelexException("col_covariance: projections have no rows");
+        throw GelexException(
+            "col_covariance: projections must share one compact genotype");
     }
 
     Eigen::RowVectorXd covariance(cols());
-    Eigen::VectorXd lhs_column(rows());
-    Eigen::VectorXd rhs_column(rhs.rows());
     for (Eigen::Index marker = 0; marker < cols(); ++marker)
     {
-        lhs_column.setZero();
-        rhs_column.setZero();
-        axpy(marker, 1.0, lhs_column);
-        rhs.axpy(marker, 1.0, rhs_column);
-        covariance[marker] = (lhs_column.array() * rhs_column.array()).mean()
-                             - (lhs_column.mean() * rhs_column.mean());
+        const auto counts = locus_counts(
+            genotype_->locus_stats_[static_cast<std::size_t>(marker)]);
+        const Eigen::Array4d lhs_values = luts_.col(marker).array();
+        const Eigen::Array4d rhs_values = rhs.luts_.col(marker).array();
+        const double sample_size = counts.sum();
+        const double lhs_mean = (counts * lhs_values).sum() / sample_size;
+        const double rhs_mean = (counts * rhs_values).sum() / sample_size;
+        covariance[marker]
+            = ((counts * lhs_values * rhs_values).sum() / sample_size)
+              - (lhs_mean * rhs_mean);
     }
     return covariance;
 }

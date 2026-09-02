@@ -23,11 +23,13 @@
 #include <optional>
 #include <ranges>
 #include <span>
+#include <string>
 #include <vector>
 
 #include "gelex/bayes/genotype/progress.h"
 #include "gelex/bayes/genotype/projection.h"
 #include "gelex/data/bed.h"
+#include "gelex/data/dataframe/dataframe.h"
 #include "gelex/data/genotype_method.h"
 #include "gelex/genetic_mode.h"
 
@@ -43,9 +45,11 @@ class GeneticDesign
         gelex::Bed bed,
         GeneticModeSet modes,
         GenotypeMethod geno_method,
-        gelex::GenoObserver observer = {});
+        const gelex::GenoObserver& observer = {});
 
-    explicit GeneticDesign(gelex::Bed bed, gelex::GenoObserver observer = {});
+    explicit GeneticDesign(
+        gelex::Bed bed,
+        const gelex::GenoObserver& observer = {});
 
     GeneticDesign(const GeneticDesign&) = delete;
     auto operator=(const GeneticDesign&) -> GeneticDesign& = delete;
@@ -67,6 +71,12 @@ class GeneticDesign
 
     [[nodiscard]] auto a1_frequency() const noexcept -> const Eigen::VectorXd&;
 
+    [[nodiscard]] auto marker_metadata() const noexcept
+        -> const DataFrame<std::string>&
+    {
+        return marker_metadata_;
+    }
+
     [[nodiscard]] auto projection(GeneticMode mode) const
         -> const GeneticProjection&;
 
@@ -75,6 +85,7 @@ class GeneticDesign
 
    private:
     std::unique_ptr<CompactGenotype> genotype_;
+    DataFrame<std::string> marker_metadata_;
     std::array<std::optional<GeneticProjection>, all_genetic_modes.size()>
         projections_;
     std::vector<Eigen::Index> common_valid_indices_;

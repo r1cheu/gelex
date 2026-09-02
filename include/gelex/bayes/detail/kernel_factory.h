@@ -67,19 +67,16 @@ template <GeneticModeSet Modes, typename... ModePriors>
     return Sweep{std::move(mode_kernels)};
 }
 
-template <
-    std::size_t ClassCount,
-    MixtureWeightUpdate WeightUpdate,
-    HalfNormalAsymmetry Axis>
+template <std::size_t ClassCount, MixtureWeightUpdate WeightUpdate>
 [[nodiscard]] auto make_kernel(
     const JointModeValues<
         ModeValues<
             GeneticMode::A | GeneticMode::D,
             GaussianPrior<VarianceLayout::Pooled>,
-            HalfNormalPrior<Axis>>,
+            HalfNormalPrior>,
         JointSpikeSlabPrior<ClassCount, WeightUpdate>>& prior)
 {
-    return JointSpikeSlabKernel<ClassCount, WeightUpdate, Axis>{prior};
+    return JointSpikeSlabKernel<ClassCount, WeightUpdate>{prior};
 }
 
 template <typename GeneticPrior>

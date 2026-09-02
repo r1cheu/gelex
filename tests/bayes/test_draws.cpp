@@ -18,8 +18,10 @@
 #include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <concepts>
+#include <cstdint>
 #include <filesystem>
 #include <string>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -29,6 +31,7 @@
 #include "gelex/bayes/model.h"
 #include "gelex/bayes/prior.h"
 #include "gelex/bayes/recipe.h"
+#include "gelex/bayes/result.h"
 #include "gelex/bayes/state.h"
 #include "gelex/bayes/variance/budget.h"
 #include "gelex/data/fixed_design.h"
@@ -91,8 +94,9 @@ TEST_CASE("BayesDraws records every state component", "[bayes][draws]")
         REQUIRE(
             draws.random()[0].variance().result().mean == Catch::Approx(5.0));
         REQUIRE(draws.genetic()
+                    .coefficients()
                     .get<gelex::GeneticMode::A>()
-                    .coefficients.result()
+                    .result()
                     .mean.isApprox(Eigen::VectorXd{{6.0, 7.0}}));
         REQUIRE(draws.residual().result().mean == Catch::Approx(8.0));
     }
@@ -275,6 +279,173 @@ TEST_CASE("BayesDraws decomposes a joint spike-slab state", "[bayes][draws]")
                 .isApprox(Eigen::MatrixXd{{0.2}}));
     REQUIRE(reader.to_map<double>("random/batch/explained_variance")
                 .isApprox(Eigen::MatrixXd{{2.0}}));
+}
+
+TEST_CASE(
+    "BayesResult derives mode and joint PIP from joint assignments",
+    "[bayes][result]")
+{
+    using Family = gelex::JointSpikeSlabFamily<>;
+
+    gelex::test::FileFixture fixture;
+    const auto path = fixture.get_test_dir() / "joint_pip.draws";
+    const auto model = gelex::test::make_compact_model(
+        Eigen::MatrixXd{{0.0, 1.0}, {1.0, 0.0}, {2.0, 1.0}},
+        Eigen::VectorXd{{1.0, 2.0, 3.0}},
+        mode_ad);
+    const auto prior = gelex::make_prior(
+        gelex::BayesRecipe<mode_ad, Family>::defaults(), model);
+    auto state = gelex::make_state(prior, model);
+
+    {
+        auto draws = gelex::make_draws(prior, model, path.string(), 2);
+        auto& dominance
+            = state.genetic().get<gelex::GeneticMode::D>().family_state;
+
+        state.genetic().joint().assignment
+            = Eigen::VectorX<std::uint8_t>{{0, 1}};
+        dominance.assignment = Eigen::VectorX<std::uint8_t>{{2, 0}};
+        draws.append(state);
+
+        state.genetic().joint().assignment
+            = Eigen::VectorX<std::uint8_t>{{2, 3}};
+        dominance.assignment = Eigen::VectorX<std::uint8_t>{{0, 0}};
+        draws.append(state);
+
+        const auto result = gelex::make_result(model, draws);
+        const auto& marker_effects = result.marker_effects();
+        REQUIRE(marker_effects.get<gelex::GeneticMode::A>()
+                    .pip()
+                    .probabilities()
+                    .isApprox(Eigen::VectorXd{{0.0, 1.0}}));
+        REQUIRE(marker_effects.get<gelex::GeneticMode::D>()
+                    .pip()
+                    .probabilities()
+                    .isApprox(Eigen::VectorXd{{0.5, 0.5}}));
+        REQUIRE(marker_effects.joint().pip().probabilities().isApprox(
+            Eigen::VectorXd{{0.5, 1.0}}));
+    }
+
+    const gelex::BinaryReader reader(path.string());
+    REQUIRE(reader.contains("genetic/joint/assignment"));
+    REQUIRE_FALSE(reader.contains("genetic/A/pip"));
+    REQUIRE_FALSE(reader.contains("genetic/D/pip"));
+    REQUIRE_FALSE(reader.contains("genetic/joint/pip"));
+}
+
+TEST_CASE(
+    "BayesResult derives marker PVE from coefficient second moments",
+    "[bayes][result]")
+{
+    using Family = gelex::GaussianFamily<gelex::VarianceLayout::Pooled>;
+
+    gelex::test::FileFixture fixture;
+    const auto path = fixture.get_test_dir() / "marker_pve.draws";
+    const auto model = gelex::test::make_compact_model(
+        Eigen::MatrixXd{{0.0, 1.0}, {1.0, 0.0}, {2.0, 1.0}},
+        Eigen::VectorXd{{1.0, 2.0, 4.0}},
+        mode_a);
+    const auto prior = gelex::make_prior(
+        gelex::BayesRecipe<mode_a, Family>::defaults(), model);
+    auto state = gelex::make_state(prior, model);
+
+    {
+        auto draws = gelex::make_draws(prior, model, path.string(), 2);
+        auto& coefficients
+            = state.genetic().get<gelex::GeneticMode::A>().coefficients;
+        coefficients = Eigen::VectorXd{{1.0, 2.0}};
+        draws.append(state);
+        coefficients = Eigen::VectorXd{{-3.0, 4.0}};
+        draws.append(state);
+
+        const auto result = gelex::make_result(model, draws);
+        const Eigen::VectorXd expected = model.genetic()
+                                             .projection(gelex::GeneticMode::A)
+                                             .col_var()
+                                             .transpose()
+                                             .array()
+                                         * Eigen::VectorXd{{5.0, 10.0}}.array()
+                                         / model.phenotype_variance();
+        REQUIRE(result.marker_effects()
+                    .get<gelex::GeneticMode::A>()
+                    .pve()
+                    .values()
+                    .isApprox(expected));
+    }
+
+    const gelex::BinaryReader reader(path.string());
+    REQUIRE_FALSE(reader.contains("genetic/A/pve"));
+}
+
+TEST_CASE(
+    "BayesResult includes the additive dominance cross moment in joint marker "
+    "PVE",
+    "[bayes][result]")
+{
+    using Family = gelex::GaussianFamily<gelex::VarianceLayout::Pooled>;
+
+    gelex::test::FileFixture fixture;
+    const auto path = fixture.get_test_dir() / "joint_marker_pve.draws";
+    const auto model = gelex::test::make_compact_model(
+        Eigen::MatrixXd{{0.0, 0.0}, {0.0, 1.0}, {1.0, 1.0}, {2.0, 2.0}},
+        Eigen::VectorXd{{1.0, 2.0, 4.0, 8.0}},
+        mode_ad);
+    const auto prior = gelex::make_prior(
+        gelex::BayesRecipe<mode_ad, Family>::defaults(), model);
+    auto state = gelex::make_state(prior, model);
+
+    {
+        auto draws = gelex::make_draws(prior, model, path.string(), 2);
+        auto& additive
+            = state.genetic().get<gelex::GeneticMode::A>().coefficients;
+        auto& dominance
+            = state.genetic().get<gelex::GeneticMode::D>().coefficients;
+        additive = Eigen::VectorXd{{1.0, 2.0}};
+        dominance = Eigen::VectorXd{{3.0, 4.0}};
+        draws.append(state);
+        additive = Eigen::VectorXd{{-1.0, 4.0}};
+        dominance = Eigen::VectorXd{{5.0, -2.0}};
+        draws.append(state);
+
+        const auto result = gelex::make_result(model, draws);
+        const auto& marker_effects = result.marker_effects();
+        STATIC_REQUIRE(
+            std::same_as<
+                std::remove_cvref_t<decltype(marker_effects.joint().pip())>,
+                gelex::EmptyPosteriorResult>);
+        const auto& additive_projection
+            = model.genetic().projection(gelex::GeneticMode::A);
+        const auto& dominance_projection
+            = model.genetic().projection(gelex::GeneticMode::D);
+        const double phenotype_variance = model.phenotype_variance();
+        const Eigen::VectorXd expected_additive
+            = additive_projection.col_var().transpose().array()
+              * Eigen::VectorXd{{1.0, 10.0}}.array() / phenotype_variance;
+        const Eigen::VectorXd expected_dominance
+            = dominance_projection.col_var().transpose().array()
+              * Eigen::VectorXd{{17.0, 10.0}}.array() / phenotype_variance;
+        const Eigen::VectorXd expected_joint
+            = expected_additive + expected_dominance
+              + (2.0
+                 * additive_projection.col_covariance(dominance_projection)
+                       .transpose()
+                       .array()
+                 * Eigen::VectorXd{{-1.0, 0.0}}.array() / phenotype_variance)
+                    .matrix();
+
+        REQUIRE(
+            marker_effects.get<gelex::GeneticMode::A>().pve().values().isApprox(
+                expected_additive));
+        REQUIRE(
+            marker_effects.get<gelex::GeneticMode::D>().pve().values().isApprox(
+                expected_dominance));
+        REQUIRE(marker_effects.joint().pve().values().isApprox(expected_joint));
+    }
+
+    const gelex::BinaryReader reader(path.string());
+    REQUIRE_FALSE(reader.contains("genetic/A/pve"));
+    REQUIRE_FALSE(reader.contains("genetic/D/pve"));
+    REQUIRE_FALSE(reader.contains("genetic/joint/pve"));
 }
 
 // Scaled mixtures keep a per-class decomposition, so summing the modes folds

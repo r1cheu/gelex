@@ -27,7 +27,6 @@
 using Catch::Matchers::ContainsSubstring;
 using gelex::GelexException;
 using gelex::HalfNormal;
-using gelex::HalfNormalAsymmetry;
 using gelex::JointSpikeSlab;
 using gelex::ScaledMixture;
 using gelex::SpikeSlab;
@@ -39,8 +38,7 @@ constexpr double not_a_number = std::numeric_limits<double>::quiet_NaN();
 
 static_assert(ScaledMixture::class_count == 5);
 static_assert(JointSpikeSlab::class_count == 4);
-static_assert(
-    std::default_initializable<HalfNormal<HalfNormalAsymmetry::Magnitude>>);
+static_assert(std::default_initializable<HalfNormal>);
 
 auto message_of(auto&& construct) -> std::string
 {
@@ -62,7 +60,7 @@ TEST_CASE("Bayes structural specs provide defaults", "[bayes][spec]")
     const auto spike_slab = SpikeSlab{};
     REQUIRE(spike_slab.probability() == 0.01);
 
-    const auto half_normal = HalfNormal<HalfNormalAsymmetry::Count>{};
+    const auto half_normal = HalfNormal{};
     REQUIRE(half_normal.positive_probability() == 0.5);
 
     const auto scaled_mixture = ScaledMixture{};
@@ -82,7 +80,7 @@ TEST_CASE("Bayes structural specs accept resolved values", "[bayes][spec]")
     const auto spike_slab = SpikeSlab{0.2};
     REQUIRE(spike_slab.probability() == 0.2);
 
-    const auto half_normal = HalfNormal<HalfNormalAsymmetry::Count>{0.7};
+    const auto half_normal = HalfNormal{0.7};
     REQUIRE(half_normal.positive_probability() == 0.7);
 
     const auto scaled_mixture = ScaledMixture{
@@ -136,9 +134,7 @@ TEST_CASE("HalfNormal rejects invalid probabilities", "[bayes][spec]")
     }
 
     REQUIRE_THAT(
-        message_of(
-            [probability]
-            { return HalfNormal<HalfNormalAsymmetry::Count>{probability}; }),
+        message_of([probability] { return HalfNormal{probability}; }),
         ContainsSubstring("must lie in the open interval (0, 1)"));
 }
 

@@ -19,13 +19,12 @@
 
 #include <Eigen/Core>
 #include <array>
-#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <random>
 #include <span>
 
-#include "gelex/bayes/genetic/kernel/mixture_weight_updater.h"
+#include "gelex/bayes/genetic/kernel/allocation_updater.h"
 #include "gelex/bayes/genetic/prior.h"
 #include "gelex/bayes/genetic/state.h"
 #include "gelex/bayes/genotype/design.h"
@@ -54,7 +53,7 @@ class ScaledMixtureKernel
    public:
     explicit ScaledMixtureKernel(const Prior& prior)
         : variance_sampler_{prior.variance.prior()},
-          probabilities_updater_{prior.probabilities},
+          allocation_updater_{prior.probabilities},
           scales_{prior.scales}
     {
     }
@@ -73,20 +72,8 @@ class ScaledMixtureKernel
         auto& family_state = state.family_state;
 
         normal_.reset();
-        uniform_.reset();
         variance_sampler_.reset();
-        if constexpr (WeightUpdate == MixtureWeightUpdate::Enabled)
-        {
-            probabilities_updater_.reset();
-        }
-
-        std::array<double, ClassCount> log_probabilities{};
-        for (std::size_t class_index = 0; class_index < ClassCount;
-             ++class_index)
-        {
-            log_probabilities[class_index]
-                = std::log(family_state.probabilities[class_index]);
-        }
+        allocation_updater_.begin_sweep(family_state.probabilities);
 
         Eigen::Index active_count = 0;
         double scaled_sum_squares = 0.0;
@@ -103,7 +90,6 @@ class ScaledMixtureKernel
                  .linear = linear,
                  .scale = residual.variance},
                 family_state.variance,
-                log_probabilities,
                 rng);
             const double new_value
                 = sample.class_index == 0
@@ -119,7 +105,8 @@ class ScaledMixtureKernel
             const double coefficient_delta = new_value - old_value;
             if (coefficient_delta != 0.0)
             {
-                fitted_targets.at(fitted_target_count++) = bayes::AxpyTarget{
+                // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
+                fitted_targets[fitted_target_count++] = bayes::AxpyTarget{
                     -coefficient_delta, residual.adjusted_response};
             }
 
@@ -133,7 +120,8 @@ class ScaledMixtureKernel
 
                 const auto component_index
                     = static_cast<Eigen::Index>(class_index - 1);
-                fitted_targets.at(fitted_target_count++) = bayes::AxpyTarget{
+                // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
+                fitted_targets[fitted_target_count++] = bayes::AxpyTarget{
                     delta, family_state.fitted_values.col(component_index)};
             };
 
@@ -158,76 +146,54 @@ class ScaledMixtureKernel
             if (sample.class_index != 0)
             {
                 ++active_count;
+                // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
                 scaled_sum_squares
                     += (new_value * new_value) / scales_[sample.class_index];
-            }
-            if constexpr (WeightUpdate == MixtureWeightUpdate::Enabled)
-            {
-                probabilities_updater_.observe(sample.class_index);
             }
         }
 
         family_state.variance = variance_sampler_(
             {.n = active_count, .sum_squares = scaled_sum_squares}, rng);
-        if constexpr (WeightUpdate == MixtureWeightUpdate::Enabled)
-        {
-            probabilities_updater_.update(family_state.probabilities, rng);
-        }
+        allocation_updater_.update(family_state.probabilities, rng);
     }
 
    private:
     auto draw_component(
         const NormalSampler<double>::Kernel& likelihood,
         double variance,
-        const std::array<double, ClassCount>& log_probabilities,
         std::mt19937_64& rng) -> ComponentSample
     {
         std::array<Posterior, ClassCount> posteriors{};
-        std::array<double, ClassCount> weights{};
-        weights[0] = log_probabilities[0];
-        double max_log_weight = weights[0];
+        std::array<double, ClassCount> log_likelihood_kernels{};
         for (std::size_t class_index = 1; class_index < ClassCount;
              ++class_index)
         {
-            posteriors[class_index]
-                = normal_.set_prior_var(variance * scales_[class_index])
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
+            auto& coefficient_posterior = posteriors[class_index];
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
+            const double class_scale = scales_[class_index];
+            coefficient_posterior
+                = normal_.set_prior_var(variance * class_scale)
                       .posterior_with_logL(likelihood);
-            weights[class_index] = posteriors[class_index].log_likelihood_kernel
-                                   + log_probabilities[class_index];
-            max_log_weight = std::max(max_log_weight, weights[class_index]);
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
+            log_likelihood_kernels[class_index]
+                = coefficient_posterior.log_likelihood_kernel;
         }
 
-        double total_weight = 0.0;
-        for (double& weight : weights)
-        {
-            weight = std::exp(weight - max_log_weight);
-            total_weight += weight;
-        }
-
-        const double threshold = uniform_(rng) * total_weight;
-        double cumulative_weight = 0.0;
-        for (std::size_t class_index = 0; class_index < ClassCount;
-             ++class_index)
-        {
-            cumulative_weight += weights[class_index];
-            if (threshold < cumulative_weight)
-            {
-                return {
-                    .class_index = class_index,
-                    .coefficient_posterior = posteriors[class_index].params};
-            }
-        }
+        const auto allocation_posterior
+            = allocation_updater_.posterior(log_likelihood_kernels);
+        const std::size_t class_index
+            = allocation_updater_.draw(allocation_posterior, rng);
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         return {
-            .class_index = ClassCount - 1,
-            .coefficient_posterior = posteriors.back().params};
+            .class_index = class_index,
+            .coefficient_posterior = posteriors[class_index].params};
     }
 
     ScaledInvChi2Sampler<double> variance_sampler_;
-    [[no_unique_address]]
-    SimplexUpdater<WeightUpdate, ClassCount> probabilities_updater_;
+    CategoricalAllocationUpdater<WeightUpdate, ClassCount> allocation_updater_;
     std::array<double, ClassCount> scales_;
     NormalSampler<double> normal_{0.0};
-    std::uniform_real_distribution<double> uniform_{0.0, 1.0};
 };
 
 }  // namespace gelex::detail

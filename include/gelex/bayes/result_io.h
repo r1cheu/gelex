@@ -17,10 +17,19 @@
 #ifndef GELEX_BAYES_RESULT_IO_H_
 #define GELEX_BAYES_RESULT_IO_H_
 
+#include <Eigen/Core>
+#include <concepts>
+#include <cstddef>
+#include <cstdint>
 #include <fmt/format.h>
+#include <iterator>
+#include <string>
 #include <string_view>
+#include <type_traits>
 
 #include "gelex/bayes/detail/result_writer.h"
+#include "gelex/bayes/genetic/result.h"
+#include "gelex/bayes/genotype/design.h"
 #include "gelex/bayes/result.h"
 #include "gelex/genetic_mode.h"
 #include "gelex/io/detail/text_writer.h"
@@ -57,7 +66,7 @@ auto write_summary(
         detail::write_summary_rows(writer, random.explained_variance());
     }
 
-    detail::write_genetic_summary_rows(writer, result.genetic());
+    detail::write_genetic_summary_rows(writer, result.genetic_parameters());
     detail::write_summary_rows(writer, result.residual());
 
     const auto& variance_summary = result.variance_summary();
@@ -68,6 +77,109 @@ auto write_summary(
     detail::write_summary_rows(
         writer, variance_summary.total_explained_variance());
     detail::write_summary_rows(writer, variance_summary.total_heritability());
+}
+
+template <typename GeneticPrior>
+auto write_snpeff(
+    const BayesResult<GeneticPrior>& result,
+    const bayes::GeneticDesign& genetic_design,
+    std::string_view prefix) -> void
+{
+    const auto& marker_effects = result.marker_effects();
+
+    std::string header{"CHR\tSNP\tBP\tA1\tA2\tA1FREQ"};
+    marker_effects.for_each(
+        [&header]<GeneticMode Mode>(const auto& mode_effects)
+        {
+            fmt::format_to(
+                std::back_inserter(header),
+                "\tBETA_{}\tSE_{}\tPVE_{}",
+                Mode,
+                Mode,
+                Mode);
+            using PipResult = std::remove_cvref_t<decltype(mode_effects.pip())>;
+            if constexpr (std::same_as<PipResult, MarkerPipResult>)
+            {
+                fmt::format_to(std::back_inserter(header), "\tPIP_{}", Mode);
+            }
+        });
+    if constexpr (requires { marker_effects.joint(); })
+    {
+        header += "\tPVE";
+        using PipResult
+            = std::remove_cvref_t<decltype(marker_effects.joint().pip())>;
+        if constexpr (std::same_as<PipResult, MarkerPipResult>)
+        {
+            header += "\tPIP";
+        }
+    }
+
+    detail::TextWriter writer{fmt::format("{}.snpeff", prefix)};
+    writer.write(header);
+
+    const auto& marker_metadata = genetic_design.marker_metadata();
+    const auto marker_ids = marker_metadata.index().keys();
+    const auto chromosomes = marker_metadata["chrom"].as<std::string>();
+    const auto positions = marker_metadata["pos"].as<std::int32_t>();
+    const auto a1 = marker_metadata["A1"].as<std::string>();
+    const auto a2 = marker_metadata["A2"].as<std::string>();
+    const auto& a1_frequency = genetic_design.a1_frequency();
+
+    std::string line;
+    line.reserve(128 + (marker_effects.modes.size() * 64));
+    for (Eigen::Index marker = 0; marker < genetic_design.cols(); ++marker)
+    {
+        const auto row = static_cast<std::size_t>(marker);
+        line.clear();
+        fmt::format_to(
+            std::back_inserter(line),
+            "{}\t{}\t{}\t{}\t{}\t{:.8e}",
+            chromosomes[row],
+            marker_ids[row],
+            positions[row],
+            a1[row],
+            a2[row],
+            a1_frequency(marker));
+
+        marker_effects.for_each(
+            [&line, marker]<GeneticMode>(const auto& mode_effects)
+            {
+                const auto& statistics
+                    = mode_effects.coefficients().statistics();
+                fmt::format_to(
+                    std::back_inserter(line),
+                    "\t{:.8e}\t{:.8e}\t{:.8e}",
+                    statistics.mean(marker),
+                    statistics.stddev(marker),
+                    mode_effects.pve().values()(marker));
+                using PipResult
+                    = std::remove_cvref_t<decltype(mode_effects.pip())>;
+                if constexpr (std::same_as<PipResult, MarkerPipResult>)
+                {
+                    fmt::format_to(
+                        std::back_inserter(line),
+                        "\t{:.8e}",
+                        mode_effects.pip().probabilities()(marker));
+                }
+            });
+        if constexpr (requires { marker_effects.joint(); })
+        {
+            const auto& joint = marker_effects.joint();
+            fmt::format_to(
+                std::back_inserter(line),
+                "\t{:.8e}",
+                joint.pve().values()(marker));
+            using PipResult = std::remove_cvref_t<decltype(joint.pip())>;
+            if constexpr (std::same_as<PipResult, MarkerPipResult>)
+            {
+                fmt::format_to(
+                    std::back_inserter(line),
+                    "\t{:.8e}",
+                    joint.pip().probabilities()(marker));
+            }
+        }
+        writer.write(line);
+    }
 }
 
 }  // namespace gelex

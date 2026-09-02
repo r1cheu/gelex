@@ -27,7 +27,9 @@
 namespace gelex::bayes
 {
 
-CompactGenotype::CompactGenotype(gelex::Bed bed, gelex::GenoObserver observer)
+CompactGenotype::CompactGenotype(
+    const gelex::Bed& bed,
+    const gelex::GenoObserver& observer)
     : raw_codes_(bed.num_samples(), bed.num_snps()),
       locus_stats_(static_cast<std::size_t>(bed.num_snps())),
       a1_frequency_(bed.num_snps())

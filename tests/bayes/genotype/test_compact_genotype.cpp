@@ -70,7 +70,7 @@ TEST_CASE(
     std::size_t progress_events = 0;
     bool done = false;
     const gelex::bayes::CompactGenotype genotype{
-        std::move(bed),
+        bed,
         [&](const gelex::GenotypeProgressEvent& event)
         {
             if (event.done)
@@ -216,6 +216,50 @@ TEST_CASE("GeneticDesign exposes explicit projections", "[bayes][compact]")
     REQUIRE_THROWS_AS(single.projection(GeneticMode::D), gelex::GelexException);
     REQUIRE_NOTHROW(joint.projection(GeneticMode::A));
     REQUIRE_NOTHROW(joint.projection(GeneticMode::D));
+}
+
+TEST_CASE("GeneticDesign retains marker metadata", "[bayes][compact]")
+{
+    gelex::test::BedFixture fixture;
+    const auto prefix
+        = fixture
+              .create_deterministic_bed_files(
+                  Eigen::MatrixXd{{0.0, 1.0}, {1.0, 0.0}, {2.0, 1.0}},
+                  {},
+                  {"marker_1", "marker_2"},
+                  {"3", "7"},
+                  {{'A', 'G'}, {'C', 'T'}})
+              .first;
+    const gelex::bayes::GeneticDesign design{
+        gelex::open_bed(prefix.string()),
+        gelex::GeneticModeSet{GeneticMode::A},
+        GenotypeMethod::Center};
+
+    const auto& metadata = design.marker_metadata();
+    REQUIRE(
+        std::vector<std::string>{
+            metadata.index().keys().begin(), metadata.index().keys().end()}
+        == std::vector<std::string>{"marker_1", "marker_2"});
+    REQUIRE(
+        std::vector<std::string>{
+            metadata["chrom"].as<std::string>().begin(),
+            metadata["chrom"].as<std::string>().end()}
+        == std::vector<std::string>{"3", "7"});
+    REQUIRE(
+        std::vector<std::int32_t>{
+            metadata["pos"].as<std::int32_t>().begin(),
+            metadata["pos"].as<std::int32_t>().end()}
+        == std::vector<std::int32_t>{1, 2});
+    REQUIRE(
+        std::vector<std::string>{
+            metadata["A1"].as<std::string>().begin(),
+            metadata["A1"].as<std::string>().end()}
+        == std::vector<std::string>{"A", "C"});
+    REQUIRE(
+        std::vector<std::string>{
+            metadata["A2"].as<std::string>().begin(),
+            metadata["A2"].as<std::string>().end()}
+        == std::vector<std::string>{"G", "T"});
 }
 
 TEST_CASE("CompactGenotype supports a single marker BED", "[bayes][compact]")

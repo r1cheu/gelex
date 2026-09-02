@@ -43,23 +43,11 @@ struct GaussianState
     Eigen::VectorXd fitted_values;  // total
 };
 
-template <HalfNormalAsymmetry Axis>
-struct HalfNormalState;
-
-template <>
-struct HalfNormalState<HalfNormalAsymmetry::Count>
+struct HalfNormalState
 {
     double variance{};
     Eigen::VectorX<std::uint8_t> assignment;
     double positive_probability{};
-    Eigen::VectorXd fitted_values;  // total
-};
-
-template <>
-struct HalfNormalState<HalfNormalAsymmetry::Magnitude>
-{
-    std::array<double, 2> variances{};  // neg, pos
-    Eigen::VectorX<std::uint8_t> assignment;
     Eigen::VectorXd fitted_values;  // total
 };
 
@@ -131,8 +119,7 @@ template <VarianceLayout Kind>
     return state.fitted_values;
 }
 
-template <HalfNormalAsymmetry Axis>
-[[nodiscard]] auto genetic_value(const HalfNormalState<Axis>& state)
+[[nodiscard]] inline auto genetic_value(const HalfNormalState& state)
     -> const Eigen::VectorXd&
 {
     return state.fitted_values;

@@ -65,28 +65,14 @@ auto make_state(
 }
 
 inline auto make_state(
-    const HalfNormalPrior<HalfNormalAsymmetry::Count>& prior,
-    GeneticStateDimensions dimensions)
-    -> HalfNormalState<HalfNormalAsymmetry::Count>
+    const HalfNormalPrior& prior,
+    GeneticStateDimensions dimensions) -> HalfNormalState
 {
     return {
         .variance = prior.variance.initial_value(),
         .assignment
         = Eigen::VectorX<std::uint8_t>::Zero(dimensions.marker_count),
         .positive_probability = prior.positive_probability.initial,
-        .fitted_values = Eigen::VectorXd::Zero(dimensions.individual_count)};
-}
-
-inline auto make_state(
-    const HalfNormalPrior<HalfNormalAsymmetry::Magnitude>& prior,
-    GeneticStateDimensions dimensions)
-    -> HalfNormalState<HalfNormalAsymmetry::Magnitude>
-{
-    const double initial_variance = prior.variance.initial_value();
-    return {
-        .variances = {initial_variance, initial_variance},
-        .assignment
-        = Eigen::VectorX<std::uint8_t>::Zero(dimensions.marker_count),
         .fitted_values = Eigen::VectorXd::Zero(dimensions.individual_count)};
 }
 

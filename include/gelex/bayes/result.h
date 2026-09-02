@@ -84,7 +84,12 @@ class BayesResult
 {
    public:
     using genetic_prior_type = GeneticPrior;
-    using genetic_result_type = decltype(detail::make_result(
+    using genetic_parameter_result_type
+        = decltype(detail::make_genetic_parameters(
+            std::declval<const typename BayesDraws<
+                GeneticPrior>::genetic_draws_type&>()));
+    using marker_effect_result_type = decltype(detail::make_marker_effects(
+        std::declval<const BayesModel&>(),
         std::declval<
             const typename BayesDraws<GeneticPrior>::genetic_draws_type&>()));
 
@@ -102,9 +107,16 @@ class BayesResult
         return random_;
     }
 
-    [[nodiscard]] auto genetic() const noexcept -> const genetic_result_type&
+    [[nodiscard]] auto genetic_parameters() const noexcept
+        -> const genetic_parameter_result_type&
     {
-        return genetic_;
+        return genetic_parameters_;
+    }
+
+    [[nodiscard]] auto marker_effects() const noexcept
+        -> const marker_effect_result_type&
+    {
+        return marker_effects_;
     }
 
     [[nodiscard]] auto residual() const noexcept -> const ScalarPosteriorResult&
@@ -122,12 +134,14 @@ class BayesResult
     BayesResult(
         CoefficientPosteriorResult fixed,
         std::vector<RandomEffectResult> random,
-        genetic_result_type genetic,
+        genetic_parameter_result_type genetic_parameters,
+        marker_effect_result_type marker_effects,
         ScalarPosteriorResult residual,
         VarianceSummaryResult<modes> variance_summary)
         : fixed_{std::move(fixed)},
           random_{std::move(random)},
-          genetic_{std::move(genetic)},
+          genetic_parameters_{std::move(genetic_parameters)},
+          marker_effects_{std::move(marker_effects)},
           residual_{std::move(residual)},
           variance_summary_{std::move(variance_summary)}
     {
@@ -139,7 +153,8 @@ class BayesResult
 
     CoefficientPosteriorResult fixed_;
     std::vector<RandomEffectResult> random_;
-    genetic_result_type genetic_;
+    genetic_parameter_result_type genetic_parameters_;
+    marker_effect_result_type marker_effects_;
     ScalarPosteriorResult residual_;
     VarianceSummaryResult<modes> variance_summary_;
 };
@@ -176,14 +191,16 @@ auto make_result(const BayesModel& model, const BayesDraws<GeneticPrior>& draws)
             detail::make_result(explained_variance));
     }
 
-    auto genetic = detail::make_result(draws.genetic());
+    auto genetic_parameters = detail::make_genetic_parameters(draws.genetic());
+    auto marker_effects = detail::make_marker_effects(model, draws.genetic());
     auto residual = detail::make_result(draws.residual());
     auto variance_summary = detail::make_result(draws.variance_summary());
 
     return BayesResult<GeneticPrior>{
         std::move(fixed),
         std::move(random),
-        std::move(genetic),
+        std::move(genetic_parameters),
+        std::move(marker_effects),
         std::move(residual),
         std::move(variance_summary)};
 }

@@ -17,6 +17,7 @@
 #include <Eigen/Core>
 #include <array>
 #include <catch2/catch_test_macros.hpp>
+#include <cstdint>
 #include <filesystem>
 #include <fstream>
 #include <iterator>
@@ -26,6 +27,7 @@
 
 #include "gelex/bayes/draws.h"
 #include "gelex/bayes/genetic_family.h"
+#include "gelex/bayes/genotype/design.h"
 #include "gelex/bayes/model.h"
 #include "gelex/bayes/prior.h"
 #include "gelex/bayes/recipe.h"
@@ -33,11 +35,15 @@
 #include "gelex/bayes/result_io.h"
 #include "gelex/bayes/state.h"
 #include "gelex/bayes/variance/budget.h"
+#include "gelex/data/bed.h"
 #include "gelex/data/covariates.h"
 #include "gelex/data/dataframe/constants.h"
 #include "gelex/data/fixed_design.h"
+#include "gelex/data/genotype_method.h"
+#include "gelex/data/reader.h"
 #include "gelex/genetic_mode.h"
 
+#include "bed_fixture.h"
 #include "compact_genotype_fixture.h"
 #include "file_fixture.h"
 #include "random_design_fixture.h"
@@ -145,6 +151,41 @@ auto collect_genetic_result(
     draws.append(state);
     draws.append(state);
     return gelex::make_result(model, draws);
+}
+
+template <gelex::GeneticModeSet Modes, typename Family, typename Configure>
+auto write_genetic_snpeff(
+    const std::filesystem::path& draws_path,
+    const std::filesystem::path& output_prefix,
+    Configure configure) -> void
+{
+    gelex::test::BedFixture bed_fixture;
+    const auto bfile
+        = bed_fixture
+              .create_deterministic_bed_files(
+                  Eigen::MatrixXd{{0.0, 1.0}, {1.0, 0.0}, {2.0, 1.0}},
+                  {},
+                  {"marker_1", "marker_2"},
+                  {"3", "7"},
+                  {{'A', 'G'}, {'C', 'T'}})
+              .first;
+    auto model = gelex::BayesModel{
+        Eigen::VectorXd{{1.0, 2.0, 3.0}},
+        gelex::FixedDesign::make(3),
+        {},
+        gelex::bayes::GeneticDesign{
+            gelex::open_bed(bfile.string()),
+            Modes,
+            gelex::GenotypeMethod::Center}};
+    const auto prior = gelex::make_prior(
+        gelex::BayesRecipe<Modes, Family>::defaults(), model);
+    auto state = gelex::make_state(prior, model);
+    configure(state);
+
+    auto draws = gelex::make_draws(prior, model, draws_path.string(), 1);
+    draws.append(state);
+    const auto result = gelex::make_result(model, draws);
+    gelex::write_snpeff(result, model.genetic(), output_prefix.string());
 }
 
 }  // namespace
@@ -259,6 +300,7 @@ TEST_CASE(
         const auto content = read_text(output);
         REQUIRE_FALSE(content.contains("coefficients"));
         REQUIRE_FALSE(content.contains("assignment"));
+        REQUIRE_FALSE(content.contains("pip"));
     }
 
     SECTION("unpooled marker variance")
@@ -338,5 +380,126 @@ TEST_CASE(
                 "genetic/D/heritability\t0",
                 "genetic/total/explained_variance\t0",
                 "genetic/total/heritability\t0"});
+    }
+}
+
+TEST_CASE(
+    "Bayes SNP effect writer preserves marker metadata and posterior values",
+    "[bayes][result_io]")
+{
+    using Family = gelex::GaussianFamily<gelex::VarianceLayout::Pooled>;
+
+    gelex::test::FileFixture fixture;
+    const auto output = fixture.get_test_dir() / "gaussian";
+    write_genetic_snpeff<mode_a, Family>(
+        fixture.get_test_dir() / "gaussian.draws",
+        output,
+        [](auto& state)
+        {
+            auto& additive
+                = state.genetic().template get<gelex::GeneticMode::A>();
+            additive.coefficients = Eigen::VectorXd{{1.0, 1.5}};
+            additive.family_state.variance = 0.5;
+        });
+
+    REQUIRE(
+        read_text(output.string() + ".snpeff")
+        == "CHR\tSNP\tBP\tA1\tA2\tA1FREQ\tBETA_A\tSE_A\tPVE_A\n"
+           "3\tmarker_1\t1\tA\tG\t5.00000000e-01\t1.00000000e+00\t"
+           "0.00000000e+00\t1.00000000e+00\n"
+           "7\tmarker_2\t2\tC\tT\t3.33333333e-01\t1.50000000e+00\t"
+           "0.00000000e+00\t7.50000000e-01\n");
+}
+
+TEST_CASE(
+    "Bayes SNP effect writer derives optional columns from marker result "
+    "types",
+    "[bayes][result_io]")
+{
+    gelex::test::FileFixture fixture;
+
+    SECTION("mode PIP")
+    {
+        using Family = gelex::SpikeSlabFamily<gelex::VarianceLayout::Pooled>;
+        const auto output = fixture.get_test_dir() / "mode_pip";
+        write_genetic_snpeff<mode_a, Family>(
+            fixture.get_test_dir() / "mode_pip.draws",
+            output,
+            [](auto& state)
+            {
+                auto& family = state.genetic()
+                                   .template get<gelex::GeneticMode::A>()
+                                   .family_state;
+                family.assignment = Eigen::VectorX<std::uint8_t>{{0, 1}};
+            });
+
+        const auto output_path = output.string() + ".snpeff";
+        REQUIRE(read_text(output_path)
+                    .starts_with(
+                        "CHR\tSNP\tBP\tA1\tA2\tA1FREQ\tBETA_A\tSE_A\tPVE_A\t"
+                        "PIP_A\n"));
+        const auto marker_effects = gelex::read_snp_effects(output_path);
+        REQUIRE(
+            marker_effects["PIP_A"].to_mat<double>().isApprox(
+                Eigen::VectorXd{{0.0, 1.0}}));
+    }
+
+    SECTION("independent AD")
+    {
+        using Family = gelex::SpikeSlabFamily<gelex::VarianceLayout::Pooled>;
+        const auto output = fixture.get_test_dir() / "independent_ad";
+        write_genetic_snpeff<mode_ad, Family>(
+            fixture.get_test_dir() / "independent_ad.draws",
+            output,
+            [](auto& state)
+            {
+                state.genetic()
+                    .template get<gelex::GeneticMode::A>()
+                    .family_state.assignment
+                    = Eigen::VectorX<std::uint8_t>{{0, 1}};
+                state.genetic()
+                    .template get<gelex::GeneticMode::D>()
+                    .family_state.assignment
+                    = Eigen::VectorX<std::uint8_t>{{1, 0}};
+            });
+
+        const auto output_path = output.string() + ".snpeff";
+        REQUIRE(read_text(output_path)
+                    .starts_with(
+                        "CHR\tSNP\tBP\tA1\tA2\tA1FREQ\tBETA_A\tSE_A\tPVE_A\t"
+                        "PIP_A\tBETA_D\tSE_D\tPVE_D\tPIP_D\tPVE\n"));
+        const auto marker_effects = gelex::read_snp_effects(output_path);
+        REQUIRE(marker_effects.contains("PVE"));
+        REQUIRE_FALSE(marker_effects.contains("PIP"));
+    }
+
+    SECTION("joint AD")
+    {
+        using Family = gelex::JointSpikeSlabFamily<>;
+        const auto output = fixture.get_test_dir() / "joint_ad";
+        write_genetic_snpeff<mode_ad, Family>(
+            fixture.get_test_dir() / "joint_ad.draws",
+            output,
+            [](auto& state)
+            {
+                state.genetic().joint().assignment
+                    = Eigen::VectorX<std::uint8_t>{{1, 3}};
+            });
+
+        const auto output_path = output.string() + ".snpeff";
+        const auto content = read_text(output_path);
+        REQUIRE(content.starts_with(
+            "CHR\tSNP\tBP\tA1\tA2\tA1FREQ\tBETA_A\tSE_A\tPVE_A\t"
+            "PIP_A\tBETA_D\tSE_D\tPVE_D\tPIP_D\tPVE\tPIP\n"));
+        const auto marker_effects = gelex::read_snp_effects(output_path);
+        REQUIRE(
+            marker_effects["PIP_A"].to_mat<double>().isApprox(
+                Eigen::VectorXd::Ones(2)));
+        REQUIRE(
+            marker_effects["PIP_D"].to_mat<double>().isApprox(
+                Eigen::VectorXd{{0.0, 1.0}}));
+        REQUIRE(
+            marker_effects["PIP"].to_mat<double>().isApprox(
+                Eigen::VectorXd::Ones(2)));
     }
 }

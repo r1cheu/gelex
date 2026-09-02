@@ -26,7 +26,6 @@
 #include <utility>
 
 #include "gelex/bayes/basic_draw.h"
-#include "gelex/bayes/detail/state_factory.h"
 #include "gelex/bayes/genetic/draws.h"
 #include "gelex/bayes/genetic/prior.h"
 #include "gelex/bayes/genetic/state.h"
@@ -158,24 +157,13 @@ template <VarianceLayout Kind>
 }
 
 [[nodiscard]] inline auto make_draws(
-    const HalfNormalPrior<HalfNormalAsymmetry::Count>& /*prior*/,
-    GeneticDrawsBuilder& builder) -> HalfNormalDraws<HalfNormalAsymmetry::Count>
+    const HalfNormalPrior& /*prior*/,
+    GeneticDrawsBuilder& builder) -> HalfNormalDraws
 {
     return {
         .variance = builder.scalar("variance"),
         .assignment = builder.category<3>("assignment", builder.marker_count()),
         .positive_probability = builder.scalar("positive_probability")};
-}
-
-[[nodiscard]] inline auto make_draws(
-    const HalfNormalPrior<HalfNormalAsymmetry::Magnitude>& /*prior*/,
-    GeneticDrawsBuilder& builder)
-    -> HalfNormalDraws<HalfNormalAsymmetry::Magnitude>
-{
-    return {
-        .variances = builder.vector("variance", 2),
-        .assignment
-        = builder.category<3>("assignment", builder.marker_count())};
 }
 
 template <VarianceLayout Kind, MixtureWeightUpdate WeightUpdate>
@@ -224,22 +212,33 @@ template <std::size_t ClassCount, MixtureWeightUpdate WeightUpdate>
 }
 
 template <typename Prior>
-[[nodiscard]] auto make_draws(
+[[nodiscard]] auto make_family_draws(
     const Prior& prior,
     BinaryWriter& writer,
     std::string prefix,
     GeneticDrawsDimensions dimensions)
 {
     GeneticDrawsBuilder builder{writer, std::move(prefix), dimensions};
-    auto coefficients = builder.vector("coefficients", dimensions.marker_count);
-    auto family_draws = make_draws(prior, builder);
-    return GeneticModeDraws<decltype(family_draws)>{
-        .coefficients = std::move(coefficients),
-        .family_draws = std::move(family_draws)};
+    return make_draws(prior, builder);
+}
+
+template <GeneticModeSet Modes>
+[[nodiscard]] auto make_coefficient_draws(
+    BinaryWriter& writer,
+    const GeneticDrawsDimensions& dimensions)
+{
+    auto draws = generate_mode_values<Modes>(
+        [&]<GeneticMode Mode>()
+        {
+            GeneticDrawsBuilder builder{
+                writer, fmt::format("genetic/{}", Mode), dimensions};
+            return builder.vector("coefficients", dimensions.marker_count);
+        });
+    return GeneticCoefficientDraws<Modes>{std::move(draws)};
 }
 
 template <GeneticModeSet Modes, typename... Priors>
-[[nodiscard]] auto make_draws(
+[[nodiscard]] auto make_mode_family_draws(
     const ModeValues<Modes, Priors...>& prior,
     BinaryWriter& writer,
     GeneticDrawsDimensions dimensions)
@@ -248,7 +247,7 @@ template <GeneticModeSet Modes, typename... Priors>
         prior,
         [&]<GeneticMode Mode>(const auto& mode_prior)
         {
-            return make_draws(
+            return make_family_draws(
                 mode_prior,
                 writer,
                 fmt::format("genetic/{}", Mode),
@@ -265,10 +264,12 @@ template <GeneticModeSet Modes, typename... Priors>
 {
     const auto dimensions = GeneticDrawsDimensions{
         .marker_count = design.cols(), .draw_count = draw_count};
-    auto mode_draws = make_draws(prior, writer, dimensions);
-    using GeneticState = genetic_state_t<ModeValues<Modes, Priors...>>;
-    return IndependentDraws<GeneticState, decltype(mode_draws)>{
-        std::move(mode_draws)};
+    auto coefficient_draws = make_coefficient_draws<Modes>(writer, dimensions);
+    auto family_draws = make_mode_family_draws(prior, writer, dimensions);
+    return IndependentGeneticDraws<
+        decltype(coefficient_draws),
+        decltype(family_draws)>{
+        std::move(coefficient_draws), std::move(family_draws)};
 }
 
 template <typename ModeValuesType, typename JointPrior>
@@ -280,15 +281,19 @@ template <typename ModeValuesType, typename JointPrior>
 {
     const auto dimensions = GeneticDrawsDimensions{
         .marker_count = design.cols(), .draw_count = draw_count};
-    auto mode_draws = make_draws(prior.mode_values(), writer, dimensions);
+    auto coefficient_draws
+        = make_coefficient_draws<ModeValuesType::modes>(writer, dimensions);
+    auto family_draws
+        = make_mode_family_draws(prior.mode_values(), writer, dimensions);
     GeneticDrawsBuilder joint_builder{writer, "genetic/joint", dimensions};
     auto joint_draws = make_draws(prior.joint(), joint_builder);
-    using GeneticState
-        = genetic_state_t<JointModeValues<ModeValuesType, JointPrior>>;
-    return JointDraws<
-        GeneticState,
-        decltype(mode_draws),
-        decltype(joint_draws)>{std::move(mode_draws), std::move(joint_draws)};
+    return JointGeneticDraws<
+        decltype(coefficient_draws),
+        decltype(family_draws),
+        decltype(joint_draws)>{
+        std::move(coefficient_draws),
+        std::move(family_draws),
+        std::move(joint_draws)};
 }
 
 template <typename Prior>

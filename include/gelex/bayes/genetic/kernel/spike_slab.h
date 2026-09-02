@@ -18,11 +18,10 @@
 #define GELEX_BAYES_GENETIC_KERNEL_SPIKE_SLAB_H_
 
 #include <Eigen/Core>
-#include <cmath>
 #include <cstdint>
 #include <random>
 
-#include "gelex/bayes/genetic/kernel/mixture_weight_updater.h"
+#include "gelex/bayes/genetic/kernel/allocation_updater.h"
 #include "gelex/bayes/genetic/prior.h"
 #include "gelex/bayes/genetic/state.h"
 #include "gelex/bayes/genotype/design.h"
@@ -43,7 +42,7 @@ class SpikeSlabKernel
    public:
     explicit SpikeSlabKernel(const Prior& prior)
         : variance_sampler_{prior.variance.prior()},
-          probability_updater_{prior.probability}
+          allocation_updater_{prior.probability}
     {
     }
 
@@ -63,19 +62,12 @@ class SpikeSlabKernel
 
         previous_adjusted_response_ = residual.adjusted_response;
         normal_.reset();
-        uniform_.reset();
         variance_sampler_.reset();
-        if constexpr (WeightUpdate == MixtureWeightUpdate::Enabled)
-        {
-            probability_updater_.reset();
-        }
+        allocation_updater_.begin_sweep(family_state.probability);
         if constexpr (Kind == VarianceLayout::Pooled)
         {
             normal_.set_prior_var(variance);
         }
-        const double log_prior_odds = std::log(family_state.probability)
-                                      - std::log1p(-family_state.probability);
-
         Eigen::Index pooled_active_count = 0;
         double pooled_sum_squares = 0.0;
         for (const Eigen::Index marker : valid_indices)
@@ -89,21 +81,18 @@ class SpikeSlabKernel
             const double linear
                 = projection.dot(marker, residual.adjusted_response)
                   + (xtx_diag(marker) * old_value);
-            const auto posterior = normal_.posterior_with_logL(
+            const auto coefficient_posterior = normal_.posterior_with_logL(
                 NormalSampler<double>::Kernel{
                     .quadratic = xtx_diag(marker),
                     .linear = linear,
                     .scale = residual.variance});
-            const double log_active_odds
-                = posterior.log_likelihood_kernel + log_prior_odds;
+            const auto allocation_posterior = allocation_updater_.posterior(
+                {0.0, coefficient_posterior.log_likelihood_kernel});
             const bool is_active
-                = uniform_(rng) < active_probability(log_active_odds);
-            if constexpr (WeightUpdate == MixtureWeightUpdate::Enabled)
-            {
-                probability_updater_.observe(is_active);
-            }
+                = allocation_updater_.draw(allocation_posterior, rng);
             const double new_value
-                = is_active ? normal_.draw(posterior.params, rng) : 0.0;
+                = is_active ? normal_.draw(coefficient_posterior.params, rng)
+                            : 0.0;
             const double squared_effect = new_value * new_value;
 
             coefficients(marker) = new_value;
@@ -138,29 +127,13 @@ class SpikeSlabKernel
                 {.n = pooled_active_count, .sum_squares = pooled_sum_squares},
                 rng);
         }
-        if constexpr (WeightUpdate == MixtureWeightUpdate::Enabled)
-        {
-            probability_updater_.update(family_state.probability, rng);
-        }
+        allocation_updater_.update(family_state.probability, rng);
     }
 
    private:
-    [[nodiscard]] static auto active_probability(double log_odds) noexcept
-        -> double
-    {
-        if (log_odds >= 0.0)
-        {
-            return 1.0 / (1.0 + std::exp(-log_odds));
-        }
-        const double odds = std::exp(log_odds);
-        return odds / (1.0 + odds);
-    }
-
     ScaledInvChi2Sampler<double> variance_sampler_;
-    [[no_unique_address]]
-    ProbabilityUpdater<WeightUpdate> probability_updater_;
+    BinaryAllocationUpdater<WeightUpdate> allocation_updater_;
     NormalSampler<double> normal_{0.0};
-    std::uniform_real_distribution<double> uniform_{0.0, 1.0};
     Eigen::VectorXd previous_adjusted_response_;
 };
 

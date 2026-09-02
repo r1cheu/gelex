@@ -119,18 +119,10 @@ auto write_family_summary_rows(
 
 inline auto write_family_summary_rows(
     TextWriter& writer,
-    const HalfNormalPosteriorResult<HalfNormalAsymmetry::Count>& result) -> void
+    const HalfNormalPosteriorResult& result) -> void
 {
     write_summary_rows(writer, result.variance);
     write_summary_rows(writer, result.positive_probability);
-}
-
-inline auto write_family_summary_rows(
-    TextWriter& writer,
-    const HalfNormalPosteriorResult<HalfNormalAsymmetry::Magnitude>& result)
-    -> void
-{
-    write_summary_rows(writer, result.variances);
 }
 
 template <VarianceLayout Kind, MixtureWeightUpdate WeightUpdate>
@@ -168,9 +160,8 @@ auto write_genetic_summary_rows(
     TextWriter& writer,
     const ModeValues<Modes, Results...>& result) -> void
 {
-    result.for_each(
-        [&]<GeneticMode Mode>(const auto& mode_result)
-        { write_family_summary_rows(writer, mode_result.family_result); });
+    result.for_each([&]<GeneticMode Mode>(const auto& mode_result)
+                    { write_family_summary_rows(writer, mode_result); });
 }
 
 template <typename ModeValuesType, typename JointResult>

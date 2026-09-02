@@ -168,17 +168,15 @@ auto make_genetic_spec(
 template <gelex::GeneticModeSet Modes, gelex::MixtureWeightUpdate WeightUpdate>
     requires(Modes == additive_dominance_mode)
 auto make_genetic_spec(
-    gelex::JointSpikeSlabFamily<
-        WeightUpdate,
-        gelex::HalfNormalAsymmetry::Count> /*family*/,
+    gelex::JointSpikeSlabFamily<WeightUpdate> /*family*/,
     const McmcConfig& config)
 {
-    using DominanceSpec = gelex::HalfNormal<gelex::HalfNormalAsymmetry::Count>;
-    auto mode_specs = gelex::ModeValues<Modes, gelex::Gaussian, DominanceSpec>{
-        gelex::Gaussian{},
-        config.dominance_positive_probability
-            ? DominanceSpec{*config.dominance_positive_probability}
-            : DominanceSpec{}};
+    auto mode_specs
+        = gelex::ModeValues<Modes, gelex::Gaussian, gelex::HalfNormal>{
+            gelex::Gaussian{},
+            config.dominance_positive_probability
+                ? gelex::HalfNormal{*config.dominance_positive_probability}
+                : gelex::HalfNormal{}};
 
     const auto& probability_values = config.mixture_probabilities.joint();
     auto joint_spec = probability_values.empty()

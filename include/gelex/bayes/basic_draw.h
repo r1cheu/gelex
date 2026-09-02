@@ -120,6 +120,12 @@ class VectorDraw
         return stats_.result();
     }
 
+    [[nodiscard]] auto mean_square() const -> Eigen::VectorXd
+    {
+        detail::throw_if_empty(stats_, identifier());
+        return stats_.mean_square();
+    }
+
     [[nodiscard]] auto identifier() const noexcept -> std::string_view
     {
         return payload_.identifier();
@@ -156,6 +162,14 @@ class CategoryDraw
     {
         detail::throw_if_empty(stats_, identifier());
         return stats_.result();
+    }
+
+    template <typename IsIncluded>
+    [[nodiscard]] auto probability_of(IsIncluded is_included) const
+        -> Eigen::VectorXd
+    {
+        detail::throw_if_empty(stats_, identifier());
+        return stats_.probability_of(std::move(is_included));
     }
 
     [[nodiscard]] auto identifier() const noexcept -> std::string_view

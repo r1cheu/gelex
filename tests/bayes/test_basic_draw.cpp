@@ -20,6 +20,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 #include <cmath>
+#include <cstddef>
 #include <cstdint>
 #include <span>
 #include <utility>
@@ -89,6 +90,7 @@ TEST_CASE(
     test::FileFixture fixture;
     const auto path = fixture.get_test_dir() / "vector.draws";
     VectorRunningStatsResult result;
+    Eigen::VectorXd mean_square;
 
     {
         BinaryWriter writer(path.string());
@@ -98,11 +100,13 @@ TEST_CASE(
         draw.append(std::span{first});
         draw.append(Eigen::VectorXd{{3.0, 7.0}});
         result = draw.result();
+        mean_square = draw.mean_square();
     }
 
     REQUIRE(result.mean.isApprox(Eigen::VectorXd{{2.0, 5.0}}));
     REQUIRE(result.stddev.isApprox(
         Eigen::VectorXd{{std::sqrt(2.0), std::sqrt(8.0)}}));
+    REQUIRE(mean_square.isApprox(Eigen::VectorXd{{5.0, 29.0}}));
 
     const BinaryReader reader(path.string());
     REQUIRE(reader.to_map<float>("vector").isApprox(
@@ -116,6 +120,7 @@ TEST_CASE(
     test::FileFixture fixture;
     const auto path = fixture.get_test_dir() / "category.draws";
     CategoryRunningStatsResult result;
+    Eigen::VectorXd event_probability;
 
     {
         BinaryWriter writer(path.string());
@@ -126,10 +131,13 @@ TEST_CASE(
         draw.append(std::span{first});
         draw.append(Eigen::VectorX<std::uint8_t>{{2, 1}});
         result = draw.result();
+        event_probability = draw.probability_of([](std::size_t category)
+                                                { return category != 1; });
     }
 
     REQUIRE(result.probabilities.isApprox(
         Eigen::MatrixXd{{0.5, 0.0, 0.5}, {0.0, 1.0, 0.0}}));
+    REQUIRE(event_probability.isApprox(Eigen::VectorXd{{1.0, 0.0}}));
 
     const BinaryReader reader(path.string());
     REQUIRE(reader.to_map<std::uint8_t>("category")
@@ -160,7 +168,14 @@ TEST_CASE(
         vector.result(),
         ContainsSubstring("posterior 'vector/path' has no recorded draws"));
     REQUIRE_THROWS_WITH(
+        vector.mean_square(),
+        ContainsSubstring("posterior 'vector/path' has no recorded draws"));
+    REQUIRE_THROWS_WITH(
         category.result(),
+        ContainsSubstring("posterior 'category/path' has no recorded draws"));
+    REQUIRE_THROWS_WITH(
+        category.probability_of([](std::size_t category)
+                                { return category != 0; }),
         ContainsSubstring("posterior 'category/path' has no recorded draws"));
 }
 

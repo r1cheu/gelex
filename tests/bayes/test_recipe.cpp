@@ -59,10 +59,7 @@ using SpikeSlabA = ModeValues<mode_a, SpikeSlab>;
 using SpikeSlabAD = ModeValues<mode_ad, SpikeSlab, SpikeSlab>;
 using ScaledMixtureAD = ModeValues<mode_ad, ScaledMixture, ScaledMixture>;
 using JointSpikeSlabAD = gelex::JointModeValues<
-    ModeValues<
-        mode_ad,
-        Gaussian,
-        gelex::HalfNormal<gelex::HalfNormalAsymmetry::Count>>,
+    ModeValues<mode_ad, Gaussian, gelex::HalfNormal>,
     JointSpikeSlab>;
 using PooledGaussianFamily = GaussianFamily<VarianceLayout::Pooled>;
 using UnpooledGaussianFamily = GaussianFamily<VarianceLayout::Unpooled>;
@@ -72,9 +69,6 @@ using FixedPooledSpikeSlabFamily
     = SpikeSlabFamily<VarianceLayout::Pooled, MixtureWeightUpdate::Disabled>;
 using DefaultScaledMixtureFamily = ScaledMixtureFamily<>;
 using DefaultJointSpikeSlabFamily = JointSpikeSlabFamily<>;
-using MagnitudeJointSpikeSlabFamily = JointSpikeSlabFamily<
-    MixtureWeightUpdate::Enabled,
-    gelex::HalfNormalAsymmetry::Magnitude>;
 
 template <GeneticModeSet Modes, typename Family>
 concept RecipeExists = requires { typename BayesRecipe<Modes, Family>; };
@@ -286,10 +280,4 @@ TEST_CASE("BayesRecipe::defaults covers every joint default", "[bayes][recipe]")
             .get<GeneticMode::D>()
             .positive_probability()
         == 0.5);
-
-    const auto magnitude_recipe
-        = BayesRecipe<mode_ad, MagnitudeJointSpikeSlabFamily>::defaults();
-    REQUIRE(
-        magnitude_recipe.genetic_spec().joint().probabilities()
-        == defaults.probabilities());
 }

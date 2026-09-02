@@ -33,22 +33,11 @@ struct GaussianPrior
     VarianceParameter variance;
 };
 
-template <HalfNormalAsymmetry Asymmetry>
-struct HalfNormalPrior;
-
-template <>
 // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init,hicpp-member-init)
-struct HalfNormalPrior<HalfNormalAsymmetry::Count>
+struct HalfNormalPrior
 {
     VarianceParameter variance;
     ProbabilityParameter<MixtureWeightUpdate::Enabled> positive_probability;
-};
-
-template <>
-// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init,hicpp-member-init)
-struct HalfNormalPrior<HalfNormalAsymmetry::Magnitude>
-{
-    VarianceParameter variance;
 };
 
 template <
