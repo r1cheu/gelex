@@ -13,25 +13,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef GELEX_SIMULATE_PROGRESS_H_
-#define GELEX_SIMULATE_PROGRESS_H_
 
-#include <cstddef>
-#include <functional>
+#include <nanobind/eigen/dense.h>
+#include <nanobind/nanobind.h>
 
-namespace gelex
+#include "gelex/data/encode/matrix.h"
+
+#include "gelex_py/register.h"
+
+namespace nb = nanobind;
+
+namespace gelex_py
 {
 
-struct SimulateProgressEvent
+void register_data(nb::module_& m)
 {
-    std::size_t total;
-    std::size_t current;
-    bool done;
-};
+    m.def(
+        "encode_inplace",
+        &gelex::encode_inplace,
+        nb::arg("genotypes").noconvert(),
+        nb::arg("mode"),
+        nb::arg("method"));
+}
 
-using SimulateObserver
-    = std::function<void(const SimulateProgressEvent& event)>;
-
-}  // namespace gelex
-
-#endif  // GELEX_SIMULATE_PROGRESS_H_
+}  // namespace gelex_py

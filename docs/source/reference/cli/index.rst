@@ -40,18 +40,6 @@ Association & Variance Components
    * - :doc:`assoc`
      - Run mixed-model association testing with optional LOCO.
 
-Utilities
-~~~~~~~~~
-
-.. list-table::
-   :widths: 20 80
-   :header-rows: 1
-
-   * - Subcommand
-     - Description
-   * - :doc:`simulate`
-     - Simulate phenotypes from real genotypes and specified genetic architectures.
-
 .. toctree::
    :hidden:
 
@@ -61,7 +49,6 @@ Utilities
    grm
    reml
    assoc
-   simulate
 
 Global Options
 --------------

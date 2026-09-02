@@ -69,7 +69,7 @@ pixi r benchmark             # run benchmarks
 ## Modules
 
 ```
-layer 3   freq   bayes   simulate   (mutually independent)
+layer 3   freq   bayes   (mutually independent)
 layer 2   data
 layer 1   io  ->  infra
 layer 0   exception.h   genetic_mode.h
@@ -80,7 +80,6 @@ layer 0   exception.h   genetic_mode.h
 - `data` — genotype/phenotype reading, encoding, alignment, design matrices, GRM computation; knows nothing about model fitting
 - `freq` — frequentist family: design, REML estimation, LOCO GRM, GWAS association testing, result serialization; must not depend on bayes
 - `bayes` — Bayesian family: priors, kernels, MCMC runner, chain statistics, posterior output; must not depend on freq
-- `simulate` — phenotype simulation from real genotypes; consumes only data
 
 Placement rules:
 

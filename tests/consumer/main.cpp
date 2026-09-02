@@ -14,11 +14,22 @@
  * limitations under the License.
  */
 
+#include <Eigen/Core>
 #include <gelex/bayes/stats/diagnostics.h>
+#include <gelex/data/encode/matrix.h>
+#include <gelex/data/genotype_method.h>
 #include <gelex/genetic_mode.h>
 
 auto main() -> int
 {
     const auto modes = gelex::GeneticMode::A | gelex::GeneticMode::D;
-    return modes.size() == 2 && gelex::fft_next_fast_len(7) == 8 ? 0 : 1;
+    Eigen::MatrixXd genotypes{{0.0}, {1.0}, {2.0}};
+    gelex::encode_inplace(
+        genotypes, gelex::GeneticMode::A, gelex::GenotypeMethod::Center);
+    const Eigen::MatrixXd expected{{-1.0}, {0.0}, {1.0}};
+
+    return modes.size() == 2 && gelex::fft_next_fast_len(7) == 8
+                   && genotypes.isApprox(expected)
+               ? 0
+               : 1;
 }

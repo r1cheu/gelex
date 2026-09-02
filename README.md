@@ -13,8 +13,8 @@
 Gelex is a C++ toolkit for genomic prediction and genome-wide association
 studies. It provides Bayesian whole-genome regression (the BayesAlphabet
 family), variance component estimation, mixed-model association testing, and
-supporting utilities for genomic relationship matrices and phenotype
-simulation, all operating directly on PLINK binary genotypes.
+supporting utilities for genomic relationship matrices, all operating directly
+on PLINK binary genotypes.
 
 > [!IMPORTANT]
 > This project is under active development; interfaces and outputs may change
@@ -29,7 +29,6 @@ simulation, all operating directly on PLINK binary genotypes.
 | `assoc`    | Mixed-model association testing, with optional LOCO   |
 | `predict`  | Predict phenotypes from fitted SNP effects            |
 | `grm`      | Build genomic relationship matrices from PLINK data   |
-| `simulate` | Simulate phenotypes from PLINK genotypes              |
 | `post`     | Summarize posterior diagnostics from MCMC samples     |
 
 Available priors, effect modes, and options for each command are described in
