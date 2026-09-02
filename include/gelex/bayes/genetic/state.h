@@ -46,7 +46,6 @@ struct GaussianState
 struct HalfNormalState
 {
     double variance{};
-    Eigen::VectorX<std::uint8_t> assignment;
     double positive_probability{};
     Eigen::VectorXd fitted_values;  // total
 };

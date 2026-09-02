@@ -22,7 +22,7 @@
 
 #include "gelex/bayes/genetic/parameter.h"
 #include "gelex/bayes/genetic_family.h"
-#include "gelex/bayes/variance/parameter.h"
+#include "gelex/bayes/parameter.h"
 
 namespace gelex
 {

@@ -23,8 +23,8 @@
 
 #include "gelex/bayes/detail/prior_factory.h"
 #include "gelex/bayes/model.h"
+#include "gelex/bayes/parameter.h"
 #include "gelex/bayes/recipe.h"
-#include "gelex/bayes/variance/parameter.h"
 
 namespace gelex
 {

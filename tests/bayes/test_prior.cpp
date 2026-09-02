@@ -154,7 +154,7 @@ static_assert(CanMakePrior<BayesRecipe<mode_a, PooledGaussianFamily>>);
 static_assert(CanMakePrior<BayesRecipe<mode_ad, DefaultJointSpikeSlabFamily>>);
 
 template <typename T>
-concept HasHyperprior = requires(const T& parameter) { parameter.hyperprior; };
+concept HasPrior = requires(const T& parameter) { parameter.prior; };
 
 template <typename T>
 concept HasPositiveProbability
@@ -220,10 +220,10 @@ TEST_CASE(
     const auto prior = make_prior(recipe, model);
 
     REQUIRE(
-        prior.genetic().get<GeneticMode::A>().variance.initial_value()
+        prior.genetic().get<GeneticMode::A>().variance.initial
         == Approx(expected_variance(model, GeneticMode::A, 0.4, 1.0)));
     REQUIRE(
-        prior.genetic().get<GeneticMode::D>().variance.initial_value()
+        prior.genetic().get<GeneticMode::D>().variance.initial
         == Approx(expected_variance(model, GeneticMode::D, 0.1, 1.0)));
 }
 
@@ -235,8 +235,9 @@ TEST_CASE("make_prior calibrates the variance prior mean", "[bayes][prior]")
 
     const auto& variance = prior.genetic().get<GeneticMode::A>().variance;
 
-    REQUIRE(variance.prior().degrees_of_freedom() == 4.0);
-    REQUIRE(variance.prior().scale() == Approx(0.5 * variance.initial_value()));
+    const auto parameters = variance.prior.scaled_inv_chi2_parameters();
+    REQUIRE(parameters.degrees_of_freedom() == 4.0);
+    REQUIRE(parameters.scale() == Approx(0.5 * variance.initial));
 }
 
 TEST_CASE(
@@ -257,10 +258,10 @@ TEST_CASE(
     // A smaller inclusion probability concentrates the same share on fewer
     // markers, so each included marker carries more variance.
     REQUIRE(
-        prior.genetic().get<GeneticMode::A>().variance.initial_value()
+        prior.genetic().get<GeneticMode::A>().variance.initial
         == Approx(expected_variance(model, GeneticMode::A, 0.4, 0.05)));
     REQUIRE(
-        prior.genetic().get<GeneticMode::D>().variance.initial_value()
+        prior.genetic().get<GeneticMode::D>().variance.initial
         == Approx(expected_variance(model, GeneticMode::D, 0.1, 0.2)));
 
     REQUIRE(prior.genetic().get<GeneticMode::A>().probability.initial == 0.05);
@@ -295,11 +296,12 @@ TEST_CASE(
     const auto& sampled_probability
         = sampled_prior.genetic().get<GeneticMode::A>().probability;
 
-    static_assert(!HasHyperprior<decltype(fixed_probability)>);
-    static_assert(HasHyperprior<decltype(sampled_probability)>);
+    static_assert(!HasPrior<decltype(fixed_probability)>);
+    static_assert(HasPrior<decltype(sampled_probability)>);
     REQUIRE(fixed_probability.initial == 0.01);
-    REQUIRE(sampled_probability.hyperprior.alpha == 1.0);
-    REQUIRE(sampled_probability.hyperprior.beta == 1.0);
+    REQUIRE(
+        sampled_probability.prior.dirichlet_parameters().concentrations()
+        == std::array<double, 2>{1.0, 1.0});
 }
 
 TEST_CASE(
@@ -328,14 +330,14 @@ TEST_CASE(
     constexpr double activity = 0.001135;
 
     REQUIRE(
-        leaf.variance.initial_value()
+        leaf.variance.initial
         == Approx(expected_variance(model, GeneticMode::A, 0.5, activity)));
     REQUIRE(leaf.scales == defaults.scales());
     REQUIRE(leaf.probabilities.initial == defaults.probabilities());
     REQUIRE(
-        leaf.probabilities.hyperprior.concentration
+        leaf.probabilities.prior.dirichlet_parameters().concentrations()
         == std::array<double, 5>{1.0, 1.0, 1.0, 1.0, 1.0});
-    static_assert(!HasHyperprior<decltype(fixed_probabilities)>);
+    static_assert(!HasPrior<decltype(fixed_probabilities)>);
     REQUIRE(fixed_probabilities.initial == defaults.probabilities());
 }
 
@@ -352,23 +354,19 @@ TEST_CASE("make_prior derives joint marginal activity", "[bayes][prior]")
     const auto prior = make_prior(recipe, model);
 
     REQUIRE(
-        prior.genetic()
-            .mode_values()
-            .get<GeneticMode::A>()
-            .variance.initial_value()
+        prior.genetic().mode_values().get<GeneticMode::A>().variance.initial
         == Approx(expected_variance(model, GeneticMode::A, 0.4, 0.15)));
     REQUIRE(
-        prior.genetic()
-            .mode_values()
-            .get<GeneticMode::D>()
-            .variance.initial_value()
+        prior.genetic().mode_values().get<GeneticMode::D>().variance.initial
         == Approx(expected_variance(model, GeneticMode::D, 0.1, 0.1)));
-    static_assert(
-        !HasHyperprior<decltype(prior.genetic().joint().probabilities)>);
+    static_assert(!HasPrior<decltype(prior.genetic().joint().probabilities)>);
     const auto& dominance = prior.genetic().mode_values().get<GeneticMode::D>();
-    static_assert(HasHyperprior<decltype(dominance.positive_probability)>);
+    static_assert(HasPrior<decltype(dominance.positive_probability)>);
     REQUIRE(dominance.positive_probability.initial == 0.6);
-    REQUIRE(dominance.positive_probability.hyperprior.alpha == 1.0);
+    REQUIRE(
+        dominance.positive_probability.prior.dirichlet_parameters()
+            .concentrations()
+        == std::array<double, 2>{1.0, 1.0});
 }
 
 TEST_CASE(
@@ -383,12 +381,12 @@ TEST_CASE(
 
     REQUIRE(prior.random().empty());
     REQUIRE(
-        prior.residual().initial_value()
-        == Approx(model.phenotype_variance() * 0.6));
-    REQUIRE(prior.residual().prior().degrees_of_freedom() == 4.0);
+        prior.residual().initial == Approx(model.phenotype_variance() * 0.6));
+    const auto residual_parameters
+        = prior.residual().prior.scaled_inv_chi2_parameters();
+    REQUIRE(residual_parameters.degrees_of_freedom() == 4.0);
     REQUIRE(
-        prior.residual().prior().scale()
-        == Approx(0.5 * prior.residual().initial_value()));
+        residual_parameters.scale() == Approx(0.5 * prior.residual().initial));
 }
 
 TEST_CASE(
@@ -415,12 +413,11 @@ TEST_CASE(
          std::views::zip(prior.random(), model.random()))
     {
         REQUIRE(
-            parameter.initial_value() * projection_variance(design.X())
+            parameter.initial * projection_variance(design.X())
             == Approx(block_target));
-        REQUIRE(parameter.prior().degrees_of_freedom() == 4.0);
-        REQUIRE(
-            parameter.prior().scale()
-            == Approx(0.5 * parameter.initial_value()));
+        const auto parameters = parameter.prior.scaled_inv_chi2_parameters();
+        REQUIRE(parameters.degrees_of_freedom() == 4.0);
+        REQUIRE(parameters.scale() == Approx(0.5 * parameter.initial));
     }
 }
 

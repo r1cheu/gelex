@@ -24,12 +24,13 @@
 #include <vector>
 
 #include "gelex/bayes/detail/genetic_spec.h"
-#include "gelex/bayes/genetic/parameter.h"
 #include "gelex/bayes/genetic/prior.h"
 #include "gelex/bayes/genetic_family.h"
 #include "gelex/bayes/mode_values.h"
 #include "gelex/bayes/model.h"
+#include "gelex/bayes/parameter.h"
 #include "gelex/bayes/spec.h"
+#include "gelex/bayes/stats/dirichlet_log_kernel.h"
 #include "gelex/bayes/variance/budget.h"
 #include "gelex/bayes/variance/detail/calibration.h"
 #include "gelex/exception.h"
@@ -42,8 +43,8 @@ namespace gelex
 namespace detail
 {
 
-template <MixtureWeightUpdate Update, typename T, typename HyperPrior>
-auto make_parameter(T initial, HyperPrior hyperprior)
+template <MixtureWeightUpdate Update, typename T, typename Prior>
+auto make_parameter(T initial, Prior prior)
 {
     if constexpr (Update == MixtureWeightUpdate::Disabled)
     {
@@ -51,8 +52,8 @@ auto make_parameter(T initial, HyperPrior hyperprior)
     }
     else
     {
-        return SampledParameter<T, HyperPrior>{
-            .initial = std::move(initial), .hyperprior = std::move(hyperprior)};
+        return Parameter<T, Prior>{
+            .initial = std::move(initial), .prior = std::move(prior)};
     }
 }
 
@@ -111,7 +112,7 @@ auto make_prior(
             return {
                 .variance = calibrator.calibrate(Mode, spec.probability()),
                 .probability = make_parameter<WeightUpdate>(
-                    spec.probability(), BetaHyperPrior{})};
+                    spec.probability(), make_beta_prior(1.0, 1.0))};
         });
 }
 
@@ -131,7 +132,7 @@ auto make_prior(
                 .variance = calibrator.calibrate(Mode, initial_activity(spec)),
                 .probabilities = make_parameter<WeightUpdate>(
                     spec.probabilities(),
-                    DirichletHyperPrior<ScaledMixture::class_count>{}),
+                    make_uniform_dirichlet_prior<ScaledMixture::class_count>()),
                 .scales = spec.scales()};
         });
 }
@@ -162,7 +163,8 @@ auto make_prior(
                     .variance = std::move(variance),
                     .positive_probability
                     = make_parameter<MixtureWeightUpdate::Enabled>(
-                        mode_spec.positive_probability(), BetaHyperPrior{})};
+                        mode_spec.positive_probability(),
+                        make_beta_prior(1.0, 1.0))};
             }
         });
 
@@ -173,7 +175,7 @@ auto make_prior(
         JointPrior{
             .probabilities = make_parameter<WeightUpdate>(
                 joint_spec.probabilities(),
-                DirichletHyperPrior<JointPrior::class_count>{})}};
+                make_uniform_dirichlet_prior<JointPrior::class_count>())}};
 }
 
 inline auto random_projection_variance(const bayes::RandomDesign& design)
@@ -224,15 +226,6 @@ inline auto make_random_variance_parameters(
     {
         const double initial
             = block_target / random_projection_variance(design);
-        if (!std::isfinite(initial) || initial <= 0.0)
-        {
-            throw GelexException(
-                fmt::format(
-                    "random coefficient variance for design '{}' must be "
-                    "finite and positive, got {}",
-                    design.name(),
-                    initial));
-        }
         parameters.push_back(make_mean_calibrated_variance_parameter(initial));
     }
     return parameters;

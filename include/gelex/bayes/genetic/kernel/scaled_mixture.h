@@ -24,13 +24,15 @@
 #include <random>
 #include <span>
 
-#include "gelex/bayes/genetic/kernel/allocation_updater.h"
+#include "gelex/bayes/detail/normal_variance_conjugate_updater.h"
+#include "gelex/bayes/genetic/kernel/coefficient_likelihood.h"
+#include "gelex/bayes/genetic/kernel/dirichlet_conjugate_updater.h"
 #include "gelex/bayes/genetic/prior.h"
 #include "gelex/bayes/genetic/state.h"
 #include "gelex/bayes/genotype/design.h"
 #include "gelex/bayes/state.h"
-#include "gelex/bayes/stats/normal_sampler.h"
-#include "gelex/bayes/stats/scaled_inv_chi2_sampler.h"
+#include "gelex/bayes/stats/log_categorical_distribution.h"
+#include "gelex/bayes/stats/quadratic_log_kernel.h"
 #include "gelex/genetic_mode.h"
 
 namespace gelex::detail
@@ -41,19 +43,19 @@ class ScaledMixtureKernel
 {
     using Prior = ScaledMixturePrior<ClassCount, WeightUpdate>;
     using State = GeneticModeState<ScaledMixtureState<ClassCount>>;
-    using Posterior = NormalSampler<double>::Posterior;
-    using PosteriorParams = NormalSampler<double>::Params;
+    using CoefficientParameters = std::normal_distribution<double>::param_type;
 
     struct ComponentSample
     {
         std::size_t class_index{};
-        PosteriorParams coefficient_posterior{};
+        CoefficientParameters coefficient_parameters;
     };
 
    public:
     explicit ScaledMixtureKernel(const Prior& prior)
-        : variance_sampler_{prior.variance.prior()},
-          allocation_updater_{prior.probabilities},
+        : variance_updater_{prior.variance.prior},
+          probability_updater_{make_dirichlet_conjugate_updater<ClassCount>(
+              prior.probabilities)},
           scales_{prior.scales}
     {
     }
@@ -67,34 +69,34 @@ class ScaledMixtureKernel
     {
         const auto& projection = design.projection(Mode);
         const auto valid_indices = projection.valid_indices();
-        const auto& xtx_diag = projection.xtx_diag();
         auto& coefficients = state.coefficients;
         auto& family_state = state.family_state;
 
-        normal_.reset();
-        variance_sampler_.reset();
-        allocation_updater_.begin_sweep(family_state.probabilities);
+        std::normal_distribution<double> normal_distribution;
+        const auto log_probabilities
+            = make_log_weights(family_state.probabilities);
+        std::array<std::size_t, ClassCount> allocation_counts{};
 
-        Eigen::Index active_count = 0;
+        std::size_t active_count = 0;
         double scaled_sum_squares = 0.0;
         for (const Eigen::Index marker : valid_indices)
         {
             const double old_value = coefficients(marker);
             const auto old_class_index
                 = static_cast<std::size_t>(family_state.assignment(marker));
-            const double linear
-                = projection.dot(marker, residual.adjusted_response)
-                  + (xtx_diag(marker) * old_value);
+            const auto likelihood = make_coefficient_likelihood(
+                projection, marker, old_value, residual);
             const auto sample = draw_component(
-                {.quadratic = xtx_diag(marker),
-                 .linear = linear,
-                 .scale = residual.variance},
-                family_state.variance,
-                rng);
+                likelihood, family_state.variance, log_probabilities, rng);
+            if constexpr (WeightUpdate == MixtureWeightUpdate::Enabled)
+            {
+                // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
+                ++allocation_counts[sample.class_index];
+            }
             const double new_value
                 = sample.class_index == 0
                       ? 0.0
-                      : normal_.draw(sample.coefficient_posterior, rng);
+                      : normal_distribution(rng, sample.coefficient_parameters);
 
             coefficients(marker) = new_value;
             family_state.assignment(marker)
@@ -152,48 +154,51 @@ class ScaledMixtureKernel
             }
         }
 
-        family_state.variance = variance_sampler_(
-            {.n = active_count, .sum_squares = scaled_sum_squares}, rng);
-        allocation_updater_.update(family_state.probabilities, rng);
+        variance_updater_.update(
+            family_state.variance, active_count, scaled_sum_squares, rng);
+        probability_updater_.update(
+            family_state.probabilities, allocation_counts, rng);
     }
 
    private:
     auto draw_component(
-        const NormalSampler<double>::Kernel& likelihood,
+        const QuadraticLogKernel& likelihood,
         double variance,
+        const std::array<double, ClassCount>& log_probabilities,
         std::mt19937_64& rng) -> ComponentSample
     {
-        std::array<Posterior, ClassCount> posteriors{};
-        std::array<double, ClassCount> log_likelihood_kernels{};
+        std::array<CoefficientParameters, ClassCount> coefficient_parameters{};
+        std::array<double, ClassCount> component_log_integrals{};
         for (std::size_t class_index = 1; class_index < ClassCount;
              ++class_index)
         {
             // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
-            auto& coefficient_posterior = posteriors[class_index];
-            // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
             const double class_scale = scales_[class_index];
-            coefficient_posterior
-                = normal_.set_prior_var(variance * class_scale)
-                      .posterior_with_logL(likelihood);
+            const auto coefficient_posterior
+                = likelihood + make_normal_prior(variance * class_scale);
             // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
-            log_likelihood_kernels[class_index]
-                = coefficient_posterior.log_likelihood_kernel;
+            coefficient_parameters[class_index]
+                = coefficient_posterior.normal_parameters();
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
+            component_log_integrals[class_index]
+                = coefficient_posterior.log_integral();
         }
 
-        const auto allocation_posterior
-            = allocation_updater_.posterior(log_likelihood_kernels);
+        const auto allocation_parameters = make_mixture_posterior_weights(
+            log_probabilities, component_log_integrals);
         const std::size_t class_index
-            = allocation_updater_.draw(allocation_posterior, rng);
+            = allocation_distribution_(rng, allocation_parameters);
         // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         return {
             .class_index = class_index,
-            .coefficient_posterior = posteriors[class_index].params};
+            .coefficient_parameters = coefficient_parameters[class_index]};
     }
 
-    ScaledInvChi2Sampler<double> variance_sampler_;
-    CategoricalAllocationUpdater<WeightUpdate, ClassCount> allocation_updater_;
+    NormalVarianceConjugateUpdater variance_updater_;
+    [[no_unique_address]] DirichletConjugateUpdater<ClassCount, WeightUpdate>
+        probability_updater_;
+    LogCategoricalDistribution<ClassCount> allocation_distribution_;
     std::array<double, ClassCount> scales_;
-    NormalSampler<double> normal_{0.0};
 };
 
 }  // namespace gelex::detail

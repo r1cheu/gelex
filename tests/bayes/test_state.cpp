@@ -144,9 +144,6 @@ static_assert(
     std::same_as<
         decltype(JointSpikeSlabState<JointSpikeSlab::class_count>::assignment),
         Eigen::VectorX<std::uint8_t>>);
-static_assert(std::same_as<
-              decltype(HalfNormalState::assignment),
-              Eigen::VectorX<std::uint8_t>>);
 
 static_assert(std::same_as<
               gelex::detail::genetic_state_t<PooledGaussianPriorAD>,
@@ -255,12 +252,10 @@ TEST_CASE(
         });
     REQUIRE(
         state.get<GeneticMode::A>().family_state.variance
-        == Approx(
-            prior.genetic().get<GeneticMode::A>().variance.initial_value()));
+        == Approx(prior.genetic().get<GeneticMode::A>().variance.initial));
     REQUIRE(
         state.get<GeneticMode::D>().family_state.variance
-        == Approx(
-            prior.genetic().get<GeneticMode::D>().variance.initial_value()));
+        == Approx(prior.genetic().get<GeneticMode::D>().variance.initial));
 }
 
 TEST_CASE(
@@ -278,7 +273,7 @@ TEST_CASE(
     REQUIRE(variance.isApprox(
         Eigen::VectorXd::Constant(
             model.genetic().cols(),
-            prior.genetic().get<GeneticMode::A>().variance.initial_value())));
+            prior.genetic().get<GeneticMode::A>().variance.initial)));
 }
 
 TEST_CASE(
@@ -370,14 +365,12 @@ TEST_CASE(
     const auto& dominance
         = state.mode_values().get<GeneticMode::D>().family_state;
     REQUIRE(dominance.positive_probability == 0.6);
-    REQUIRE(dominance.assignment.size() == model.genetic().cols());
-    REQUIRE(dominance.assignment.isZero());
     REQUIRE(
         state.mode_values().get<GeneticMode::A>().family_state.variance
         == Approx(prior.genetic()
                       .mode_values()
                       .get<GeneticMode::A>()
-                      .variance.initial_value()));
+                      .variance.initial));
 }
 
 TEST_CASE(
@@ -414,10 +407,9 @@ TEST_CASE(
     REQUIRE(state.random().front().coefficients.isZero());
     REQUIRE(
         state.random().front().variance
-        == Approx(prior.random().front().initial_value()));
+        == Approx(prior.random().front().initial));
     REQUIRE(state.residual().adjusted_response.isApprox(model.phenotype()));
-    REQUIRE(
-        state.residual().variance == Approx(prior.residual().initial_value()));
+    REQUIRE(state.residual().variance == Approx(prior.residual().initial));
 
     const auto& genetic = state.genetic().get<GeneticMode::A>();
     REQUIRE(genetic.coefficients.isZero());

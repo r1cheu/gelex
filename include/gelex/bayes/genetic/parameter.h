@@ -20,58 +20,25 @@
 #include <array>
 #include <cstddef>
 #include <type_traits>
-#include <utility>
 
 #include "gelex/bayes/genetic_family.h"
+#include "gelex/bayes/parameter.h"
+#include "gelex/bayes/stats/dirichlet_log_kernel.h"
 
 namespace gelex
 {
-
-struct BetaHyperPrior
-{
-    double alpha{1.0};
-    double beta{1.0};
-};
-
-template <std::size_t K>
-struct DirichletHyperPrior
-{
-    constexpr DirichletHyperPrior() { concentration.fill(1.0); }
-
-    explicit constexpr DirichletHyperPrior(std::array<double, K> concentration)
-        : concentration{std::move(concentration)}
-    {
-    }
-
-    std::array<double, K> concentration;
-};
-
-template <typename T>
-struct FixedParameter
-{
-    T initial;
-};
-
-template <typename T, typename HyperPrior>
-struct SampledParameter
-{
-    T initial;
-    HyperPrior hyperprior;
-};
 
 template <MixtureWeightUpdate Update>
 using ProbabilityParameter = std::conditional_t<
     Update == MixtureWeightUpdate::Disabled,
     FixedParameter<double>,
-    SampledParameter<double, BetaHyperPrior>>;
+    Parameter<double, DirichletLogKernel<2>>>;
 
 template <std::size_t ClassCount, MixtureWeightUpdate Update>
 using SimplexParameter = std::conditional_t<
     Update == MixtureWeightUpdate::Disabled,
     FixedParameter<std::array<double, ClassCount>>,
-    SampledParameter<
-        std::array<double, ClassCount>,
-        DirichletHyperPrior<ClassCount>>>;
+    Parameter<std::array<double, ClassCount>, DirichletLogKernel<ClassCount>>>;
 
 }  // namespace gelex
 

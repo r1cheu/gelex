@@ -20,6 +20,7 @@
 #include <fmt/format.h>
 
 #include "gelex/bayes/model.h"
+#include "gelex/bayes/stats/scaled_inv_chi2_log_kernel.h"
 #include "gelex/bayes/variance/budget.h"
 #include "gelex/exception.h"
 #include "gelex/genetic_mode.h"
@@ -39,12 +40,19 @@ constexpr double prior_degrees_of_freedom = 4.0;
 
 auto make_mean_calibrated_variance_parameter(double target) -> VarianceParameter
 {
+    if (!std::isfinite(target) || target <= 0.0)
+    {
+        throw GelexException(
+            fmt::format(
+                "variance target must be finite and positive, got {}", target));
+    }
+
     return VarianceParameter{
-        target,
-        ScaledInvChiSqPrior{
+        .initial = target,
+        .prior = make_scaled_inv_chi2_prior(
             prior_degrees_of_freedom,
             (prior_degrees_of_freedom - 2.0) / prior_degrees_of_freedom
-                * target}};
+                * target)};
 }
 
 auto MarkerVarianceCalibrator::calibrate(
@@ -71,15 +79,6 @@ auto MarkerVarianceCalibrator::calibrate(
 
     const double target = model_->phenotype_variance() * budget_->share(mode)
                           / (initial_activity * projection_variance);
-    if (!std::isfinite(target) || target <= 0)
-    {
-        throw GelexException(
-            fmt::format(
-                "calibrated marker variance must be finite and positive, got "
-                "{}",
-                target));
-    }
-
     return make_mean_calibrated_variance_parameter(target);
 }
 

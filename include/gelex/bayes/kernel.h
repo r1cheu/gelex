@@ -47,7 +47,8 @@ class BayesKernel
         BayesState<GeneticPrior>& state,
         std::mt19937_64& rng) -> void
     {
-        fixed_.step(model.fixed(), state.fixed(), state.residual(), rng);
+        detail::update_fixed_effects(
+            model.fixed(), state.fixed(), state.residual(), rng);
         for (std::size_t block = 0; block < random_.size(); ++block)
         {
             random_[block].step(
@@ -75,7 +76,6 @@ class BayesKernel
     friend auto make_kernel(const BayesPrior<OtherGeneticPrior>& prior)
         -> BayesKernel<OtherGeneticPrior>;
 
-    detail::FixedEffectKernel fixed_;
     std::vector<detail::RandomEffectKernel> random_;
     detail::genetic_kernel_t<GeneticPrior> genetic_;
     detail::ResidualVarianceKernel residual_;

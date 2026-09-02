@@ -20,12 +20,13 @@
 #include <Eigen/Core>
 #include <random>
 
+#include "gelex/bayes/detail/normal_variance_conjugate_updater.h"
+#include "gelex/bayes/genetic/kernel/coefficient_likelihood.h"
+#include "gelex/bayes/genetic/kernel/normal_prior_provider.h"
 #include "gelex/bayes/genetic/prior.h"
 #include "gelex/bayes/genetic/state.h"
 #include "gelex/bayes/genotype/design.h"
 #include "gelex/bayes/state.h"
-#include "gelex/bayes/stats/normal_sampler.h"
-#include "gelex/bayes/stats/scaled_inv_chi2_sampler.h"
 #include "gelex/genetic_mode.h"
 
 namespace gelex::detail
@@ -39,7 +40,7 @@ class GaussianKernel
 
    public:
     explicit GaussianKernel(const Prior& prior)
-        : variance_sampler_{prior.variance.prior()}
+        : variance_updater_{prior.variance.prior}
     {
     }
 
@@ -52,48 +53,39 @@ class GaussianKernel
     {
         const auto& projection = design.projection(Mode);
         const auto valid_indices = projection.valid_indices();
-        const auto& xtx_diag = projection.xtx_diag();
         auto& coefficients = state.coefficients;
         auto& variance = state.family_state.variance;
 
         // TODO(rlchen): Skip deterministic fitted-cache maintenance during
         // burn-in and rebuild it once at the sampling boundary.
         previous_adjusted_response_ = residual.adjusted_response;
-        normal_.reset();
-        variance_sampler_.reset();
-        if constexpr (Kind == VarianceLayout::Pooled)
-        {
-            normal_.set_prior_var(variance);
-        }
+        std::normal_distribution<double> normal_dist;
+        const auto normal_prior_for_marker
+            = make_normal_prior_provider<Kind>(variance);
 
         double sum_squares = 0.0;
         for (const Eigen::Index marker : valid_indices)
         {
-            if constexpr (Kind == VarianceLayout::Unpooled)
-            {
-                normal_.set_prior_var(variance(marker));
-            }
             const double old_value = coefficients(marker);
-            const double linear
-                = projection.dot(marker, residual.adjusted_response)
-                  + (xtx_diag(marker) * old_value);
-            const double new_value = normal_(
-                NormalSampler<double>::Kernel{
-                    .quadratic = xtx_diag(marker),
-                    .linear = linear,
-                    .scale = residual.variance},
-                rng);
+            const auto likelihood = make_coefficient_likelihood(
+                projection, marker, old_value, residual);
+            const auto posterior
+                = (likelihood + normal_prior_for_marker(marker))
+                      .normal_parameters();
+
+            const double new_value = normal_dist(rng, posterior);
             coefficients(marker) = new_value;
             projection.axpy(
                 marker, old_value - new_value, residual.adjusted_response);
+
             if constexpr (Kind == VarianceLayout::Pooled)
             {
                 sum_squares += new_value * new_value;
             }
             else
             {
-                variance(marker) = variance_sampler_(
-                    {.n = 1, .sum_squares = new_value * new_value}, rng);
+                variance_updater_.update(
+                    variance(marker), 1, new_value * new_value, rng);
             }
         }
 
@@ -101,16 +93,13 @@ class GaussianKernel
             += previous_adjusted_response_ - residual.adjusted_response;
         if constexpr (Kind == VarianceLayout::Pooled)
         {
-            variance = variance_sampler_(
-                {.n = static_cast<Eigen::Index>(valid_indices.size()),
-                 .sum_squares = sum_squares},
-                rng);
+            variance_updater_.update(
+                variance, valid_indices.size(), sum_squares, rng);
         }
     }
 
    private:
-    ScaledInvChi2Sampler<double> variance_sampler_;
-    NormalSampler<double> normal_{0.0};
+    NormalVarianceConjugateUpdater variance_updater_;
     Eigen::VectorXd previous_adjusted_response_;
 };
 

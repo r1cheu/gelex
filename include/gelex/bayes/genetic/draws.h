@@ -75,13 +75,11 @@ struct GaussianDraws
 struct HalfNormalDraws
 {
     ScalarDraw variance;
-    CategoryDraw<3> assignment;
     ScalarDraw positive_probability;
 
     auto append(const HalfNormalState& state) -> void
     {
         variance.append(state.variance);
-        assignment.append(state.assignment);
         positive_probability.append(state.positive_probability);
     }
 };

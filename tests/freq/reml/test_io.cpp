@@ -159,23 +159,30 @@ TEST_CASE("REML writers write result files", "[freq][reml][io]")
     {
         auto fixed = gelex::FixedDesign::make(
             gelex::QuantitativeCovariate{
-                .names = {"age"}, .X = Eigen::MatrixXd{{2.0}, {4.0}}},
+                .names = {"age"},
+                .X = Eigen::MatrixXd{{2.0}, {4.0}, {1.0}, {3.0}}},
             gelex::DiscreteCovariate{
                 .terms
                 = {{.name = "batch",
                     .levels = {"base", "A", "B"},
                     .reference_level = "base"}},
-                .X = Eigen::MatrixXd{{1.0, 0.0}, {0.0, 1.0}}});
+                .X = Eigen::MatrixXd{
+                    {1.0, 0.0}, {0.0, 1.0}, {0.0, 0.0}, {1.0, 0.0}}});
         gelex::FreqModel fixed_model{
-            Eigen::VectorXd{{1.0, 2.0}}, std::move(fixed), {}};
+            Eigen::VectorXd{{1.0, 2.0, 3.0, 4.0}}, std::move(fixed), {}};
         gelex::FreqState fixed_state(fixed_model);
         fixed_state.fixed().coeffs = Eigen::VectorXd{{1.0, 0.25, 2.0, 0.75}};
         fixed_state.fixed().se = Eigen::VectorXd{{0.1, 0.2, 0.3, 0.4}};
+        const std::vector<std::string> fixed_sample_ids{
+            gelex::make_sample_id("F1", "I1"),
+            gelex::make_sample_id("F2", "I2"),
+            gelex::make_sample_id("F3", "I3"),
+            gelex::make_sample_id("F4", "I4")};
 
         gelex::test::FileFixture files;
         const auto prefix = files.get_test_dir() / "reml_fixed_columns";
         gelex::write_effects(
-            fixed_model, fixed_state, sample_ids, prefix.string());
+            fixed_model, fixed_state, fixed_sample_ids, prefix.string());
 
         auto effects_path = prefix;
         effects_path += ".effects";
