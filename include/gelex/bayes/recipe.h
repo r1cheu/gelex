@@ -22,6 +22,7 @@
 
 #include "gelex/bayes/detail/recipe_validation.h"
 #include "gelex/bayes/genetic/independent_topology.h"
+#include "gelex/bayes/genetic/joint_topology.h"
 #include "gelex/bayes/semantic_method.h"
 #include "gelex/bayes/spec.h"
 #include "gelex/bayes/variance_budget.h"
@@ -36,10 +37,14 @@ namespace detail
 template <typename Method, GeneticModeSet Modes>
 struct MethodParameters;
 
+template <GeneticModeSet Modes, typename T>
+using repeated_mode_parameters_t = decltype(generate_mode_values<Modes>(
+    []<GeneticMode /*Mode*/>() { return T{}; }));
+
 template <VarianceLayout Kind, GeneticModeSet Modes>
 struct MethodParameters<GaussianMethod<Kind>, Modes>
 {
-    using type = NoParameters;
+    using type = Gaussian;
 };
 
 template <
@@ -48,23 +53,26 @@ template <
     GeneticModeSet Modes>
 struct MethodParameters<SpikeSlabMethod<Kind, ProbabilityUpdate>, Modes>
 {
-    using type = IndependentTopology<Modes, SpikeSlab>;
+    using type = repeated_mode_parameters_t<Modes, SpikeSlab>;
 };
 
 template <UpdatePolicy ProbabilitiesUpdate, GeneticModeSet Modes>
 struct MethodParameters<ScaledMixtureMethod<ProbabilitiesUpdate>, Modes>
 {
-    using type = IndependentTopology<Modes, ScaledMixture>;
+    using type = repeated_mode_parameters_t<Modes, ScaledMixture>;
 };
 
-template <
-    UpdatePolicy ProbabilitiesUpdate,
-    UpdatePolicy PositiveProbabilityUpdate>
+template <UpdatePolicy ProbabilitiesUpdate, HalfNormalAsymmetry Axis>
 struct MethodParameters<
-    JointSpikeSlabMethod<ProbabilitiesUpdate, PositiveProbabilityUpdate>,
+    JointSpikeSlabMethod<ProbabilitiesUpdate, Axis>,
     GeneticMode::A | GeneticMode::D>
 {
-    using type = JointSpikeSlab;
+    using type = JointTopology<
+        IndependentTopology<
+            GeneticMode::A | GeneticMode::D,
+            Gaussian,
+            HalfNormal<Axis>>,
+        JointSpikeSlab>;
 };
 
 template <typename Method, GeneticModeSet Modes>
@@ -93,7 +101,7 @@ class BayesRecipe
     }
 
     explicit BayesRecipe(VarianceBudget variance)
-        requires std::same_as<MethodParameterT, NoParameters>
+        requires std::same_as<MethodParameterT, Gaussian>
         : variance_(variance)
     {
         validate();
@@ -118,7 +126,7 @@ class BayesRecipe
    private:
     auto validate() const -> void
     {
-        detail::validate_recipe_inputs(parameters_, variance_, Modes);
+        detail::validate_recipe_inputs(variance_, Modes);
     }
 
     [[no_unique_address]] MethodParameterT parameters_;

@@ -27,10 +27,8 @@
 namespace gelex
 {
 
-// Initialization shares of phenotypic variance. Construction does not validate:
-// domain checks run once in the BayesRecipe constructor together with the spec
-// checks, so that a caller sees every input error at once. Until then
-// residual() may be negative.
+// Initialization shares of phenotypic variance. Mode and model presence are
+// validated by the boundaries that own that structural information.
 class VarianceBudget
 {
    public:
@@ -41,10 +39,7 @@ class VarianceBudget
         double random{};
     };
 
-    explicit constexpr VarianceBudget(Shares shares) noexcept
-        : genetic_{shares.additive, shares.dominance}, random_{shares.random}
-    {
-    }
+    explicit VarianceBudget(Shares shares);
 
     [[nodiscard]] constexpr auto share(GeneticMode mode) const noexcept
         -> double

@@ -17,7 +17,8 @@
 #include "gelex/io/mcmc_checkpoint.h"
 
 #include <Eigen/Core>
-#include <array>
+#include <cstddef>
+#include <cstdint>
 #include <filesystem>
 #include <fmt/format.h>
 #include <random>
@@ -219,7 +220,15 @@ class CheckpointWriter final : private FieldVisitor
         {
             return;
         }
-        writer_.write(field_path(name), value);
+        writer_
+            .reserve<float>(
+                field_path(name),
+                BinaryShape{
+                    static_cast<std::uint64_t>(value.rows()),
+                    static_cast<std::uint64_t>(value.cols())})
+            .append(
+                std::span<const float>{
+                    value.data(), static_cast<std::size_t>(value.size())});
     }
 
     auto on(
@@ -231,7 +240,15 @@ class CheckpointWriter final : private FieldVisitor
         {
             return;
         }
-        writer_.write(field_path(name), value);
+        writer_
+            .reserve<double>(
+                field_path(name),
+                BinaryShape{
+                    static_cast<std::uint64_t>(value.rows()),
+                    static_cast<std::uint64_t>(value.cols())})
+            .append(
+                std::span<const double>{
+                    value.data(), static_cast<std::size_t>(value.size())});
     }
 
     auto on(std::string_view name, CategoricalVector& value, FieldFlag flags)
@@ -241,7 +258,15 @@ class CheckpointWriter final : private FieldVisitor
         {
             return;
         }
-        writer_.write(field_path(name), value);
+        writer_
+            .reserve<int>(
+                field_path(name),
+                BinaryShape{
+                    static_cast<std::uint64_t>(value.rows()),
+                    static_cast<std::uint64_t>(value.cols())})
+            .append(
+                std::span<const int>{
+                    value.data(), static_cast<std::size_t>(value.size())});
     }
 
     auto on(std::string_view name, double& value, FieldFlag flags)
@@ -251,7 +276,8 @@ class CheckpointWriter final : private FieldVisitor
         {
             return;
         }
-        writer_.write(field_path(name), value);
+        writer_.reserve<double>(field_path(name), BinaryShape{1, 1})
+            .append(value);
     }
 
     auto on(std::string_view name, int& value, FieldFlag flags) -> void override
@@ -260,7 +286,7 @@ class CheckpointWriter final : private FieldVisitor
         {
             return;
         }
-        writer_.write(field_path(name), value);
+        writer_.reserve<int>(field_path(name), BinaryShape{1, 1}).append(value);
     }
 
     auto on(
@@ -302,17 +328,20 @@ auto read_checkpoint(const std::filesystem::path& path, LegacyBayesState& state)
     CheckpointReader checkpoint_reader{reader};
     checkpoint_reader.read(state);
 
-    const auto rng_state = reader.to_strings("rng_state");
-    if (rng_state.size() != 1)
+    const auto rng_bytes = reader.to_map<std::uint8_t>("rng_state");
+    if (rng_bytes.cols() != 1)
     {
         throw GelexException(
             fmt::format(
-                "{}: checkpoint rng_state count mismatch: got {}, expected 1",
+                "{}: checkpoint rng_state must have one column, got {}",
                 path.string(),
-                rng_state.size()));
+                rng_bytes.cols()));
     }
 
-    std::istringstream iss{std::string{rng_state.front()}};
+    const std::string rng_state{
+        reinterpret_cast<const char*>(rng_bytes.data()),
+        static_cast<std::size_t>(rng_bytes.size())};
+    std::istringstream iss{rng_state};
     std::mt19937_64 rng{};
     iss >> rng;
     if (!iss)
@@ -337,9 +366,14 @@ auto write_checkpoint(
     std::ostringstream oss;
     oss << rng;
     const auto rng_state = oss.str();
-    writer.write_strings(
-        "rng_state",
-        std::array<std::string_view, 1>{std::string_view{rng_state}});
+    writer
+        .reserve<std::uint8_t>(
+            "rng_state",
+            BinaryShape{static_cast<std::uint64_t>(rng_state.size()), 1})
+        .append(
+            std::span<const std::uint8_t>{
+                reinterpret_cast<const std::uint8_t*>(rng_state.data()),
+                rng_state.size()});
     writer.close();
 }
 

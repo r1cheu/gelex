@@ -343,7 +343,7 @@ TEST_CASE("Records writes retained draws", "[mcmc][mcmc_records]")
 
     const auto entries = std::move(records).take_results();
     gelex::BinaryReader reader(draws_path.string());
-    REQUIRE(reader.n_sections() == entries.size());
+    REQUIRE(reader.size() == entries.size());
 
     const auto fixed = reader.to_map<double>("state/fixed/coeffs");
     REQUIRE(fixed.rows() == 1);

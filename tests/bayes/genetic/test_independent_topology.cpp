@@ -14,11 +14,14 @@
  * limitations under the License.
  */
 
-#include <array>
 #include <catch2/catch_test_macros.hpp>
 #include <concepts>
+#include <cstddef>
 #include <memory>
+#include <string>
+#include <string_view>
 #include <type_traits>
+#include <utility>
 #include <vector>
 
 #include "gelex/bayes/genetic/independent_topology.h"
@@ -39,20 +42,39 @@ struct TestValue
 
 constexpr auto mode_ad = GeneticMode::A | GeneticMode::D;
 
-using AdditiveDominanceTopology = IndependentTopology<mode_ad, TestValue>;
-using DominanceAdditiveTopology
-    = IndependentTopology<GeneticMode::D | GeneticMode::A, TestValue>;
+using AdditiveDominanceTopology
+    = IndependentTopology<mode_ad, TestValue, TestValue>;
+using DominanceAdditiveTopology = IndependentTopology<
+    GeneticMode::D | GeneticMode::A,
+    TestValue,
+    TestValue>;
+using HeterogeneousTopology = IndependentTopology<mode_ad, int, std::string>;
 
 static_assert(
     AdditiveDominanceTopology::modes == (GeneticMode::A | GeneticMode::D));
 static_assert(
     std::same_as<AdditiveDominanceTopology, DominanceAdditiveTopology>);
-static_assert(std::same_as<AdditiveDominanceTopology::value_type, TestValue>);
+static_assert(std::same_as<
+              AdditiveDominanceTopology::mode_value_type<GeneticMode::A>,
+              TestValue>);
+static_assert(std::same_as<
+              AdditiveDominanceTopology::mode_value_type<GeneticMode::D>,
+              TestValue>);
 static_assert(
     std::constructible_from<AdditiveDominanceTopology, TestValue, TestValue>);
-static_assert(std::constructible_from<
-              AdditiveDominanceTopology,
-              std::array<TestValue, 2>>);
+static_assert(
+    std::same_as<HeterogeneousTopology::mode_value_type<GeneticMode::A>, int>);
+static_assert(std::same_as<
+              HeterogeneousTopology::mode_value_type<GeneticMode::D>,
+              std::string>);
+static_assert(
+    std::same_as<
+        decltype(std::declval<HeterogeneousTopology&>().get<GeneticMode::A>()),
+        int&>);
+static_assert(std::same_as<
+              decltype(std::declval<const HeterogeneousTopology&>()
+                           .get<GeneticMode::D>()),
+              const std::string&>);
 
 static_assert(
     AdditiveDominanceTopology{TestValue{1}, TestValue{2}}
@@ -66,7 +88,8 @@ static_assert(
     == 2);
 
 constexpr auto generated_topology = generate_mode_values<mode_ad>(
-    [](GeneticMode mode) { return TestValue{mode == GeneticMode::A ? 1 : 2}; });
+    []<GeneticMode Mode>()
+    { return TestValue{Mode == GeneticMode::A ? 1 : 2}; });
 
 static_assert(std::same_as<
               std::remove_cvref_t<decltype(generated_topology)>,
@@ -76,14 +99,51 @@ static_assert(generated_topology.get<GeneticMode::D>().value == 2);
 
 constexpr auto transformed_topology = transform_mode_values(
     generated_topology,
-    [](GeneticMode mode, const TestValue& value)
-    { return value.value + (mode == GeneticMode::A ? 10 : 20); });
+    []<GeneticMode Mode>(const TestValue& value)
+    { return value.value + (Mode == GeneticMode::A ? 10 : 20); });
 
 static_assert(std::same_as<
               std::remove_cvref_t<decltype(transformed_topology)>,
-              IndependentTopology<mode_ad, int>>);
+              IndependentTopology<mode_ad, int, int>>);
 static_assert(transformed_topology.get<GeneticMode::A>() == 11);
 static_assert(transformed_topology.get<GeneticMode::D>() == 22);
+
+constexpr auto heterogeneous_generated = generate_mode_values<mode_ad>(
+    []<GeneticMode Mode>()
+    {
+        if constexpr (Mode == GeneticMode::A)
+        {
+            return 1;
+        }
+        else
+        {
+            return std::string_view{"dominance"};
+        }
+    });
+
+static_assert(std::same_as<
+              std::remove_cvref_t<decltype(heterogeneous_generated)>,
+              IndependentTopology<mode_ad, int, std::string_view>>);
+
+constexpr auto heterogeneous_transformed = transform_mode_values(
+    heterogeneous_generated,
+    []<GeneticMode Mode>(const auto& value)
+    {
+        if constexpr (Mode == GeneticMode::A)
+        {
+            return static_cast<double>(value);
+        }
+        else
+        {
+            return value.size();
+        }
+    });
+
+static_assert(std::same_as<
+              std::remove_cvref_t<decltype(heterogeneous_transformed)>,
+              IndependentTopology<mode_ad, double, std::size_t>>);
+static_assert(heterogeneous_transformed.get<GeneticMode::A>() == 1.0);
+static_assert(heterogeneous_transformed.get<GeneticMode::D>() == 9);
 
 }  // namespace
 
@@ -93,19 +153,27 @@ TEST_CASE(
 {
     auto topology = IndependentTopology<
         GeneticMode::D | GeneticMode::A,
-        std::unique_ptr<int>>{
-        std::make_unique<int>(1), std::make_unique<int>(2)};
+        std::unique_ptr<int>,
+        std::string>{std::make_unique<int>(1), "dominance"};
 
     std::vector<GeneticMode> visited_modes;
-    std::vector<int> visited_values;
-    for (const auto& [mode, value] : topology.each())
-    {
-        visited_modes.push_back(mode);
-        visited_values.push_back(*value);
-    }
+    std::vector<std::string> visited_values;
+    topology.for_each(
+        [&]<GeneticMode Mode>(const auto& value)
+        {
+            visited_modes.push_back(Mode);
+            if constexpr (Mode == GeneticMode::A)
+            {
+                visited_values.push_back(std::to_string(*value));
+            }
+            else
+            {
+                visited_values.push_back(value);
+            }
+        });
 
     REQUIRE(visited_modes == std::vector{GeneticMode::A, GeneticMode::D});
-    REQUIRE(visited_values == std::vector{1, 2});
+    REQUIRE(visited_values == std::vector<std::string>{"1", "dominance"});
 }
 
 TEST_CASE(
@@ -132,10 +200,8 @@ TEST_CASE(
     REQUIRE(topology.get<GeneticMode::D>().value == 2);
 
     std::vector<int> visited_values;
-    for (const auto& [mode, value] : topology.each())
-    {
-        visited_values.push_back(value.value);
-    }
+    topology.for_each([&]<GeneticMode /*Mode*/>(const TestValue& value)
+                      { visited_values.push_back(value.value); });
 
     REQUIRE(visited_values == std::vector{1, 2});
 }
@@ -147,10 +213,10 @@ TEST_CASE(
     std::vector<GeneticMode> visited_modes;
 
     const auto topology = generate_mode_values<mode_ad>(
-        [&](GeneticMode mode)
+        [&]<GeneticMode Mode>()
         {
-            visited_modes.push_back(mode);
-            return std::make_unique<int>(mode == GeneticMode::A ? 1 : 2);
+            visited_modes.push_back(Mode);
+            return std::make_unique<int>(Mode == GeneticMode::A ? 1 : 2);
         });
 
     REQUIRE(visited_modes == std::vector{GeneticMode::A, GeneticMode::D});
@@ -167,14 +233,19 @@ TEST_CASE(
 
     const auto transformed = transform_mode_values(
         topology,
-        [&](GeneticMode mode, const TestValue& value) -> const int&
+        [&]<GeneticMode Mode>(const TestValue& value) -> const int&
         {
-            visited_modes.push_back(mode);
+            visited_modes.push_back(Mode);
             return value.value;
         });
 
     static_assert(std::same_as<
-                  std::remove_cvref_t<decltype(transformed)>::value_type,
+                  std::remove_cvref_t<decltype(transformed)>::mode_value_type<
+                      GeneticMode::A>,
+                  int>);
+    static_assert(std::same_as<
+                  std::remove_cvref_t<decltype(transformed)>::mode_value_type<
+                      GeneticMode::D>,
                   int>);
     REQUIRE(visited_modes == std::vector{GeneticMode::A, GeneticMode::D});
     REQUIRE(transformed.get<GeneticMode::A>() == 1);
@@ -192,16 +263,16 @@ TEST_CASE(
     std::vector<GeneticMode> transformed_modes;
 
     const auto generated = generate_mode_values<mode_d>(
-        [&](GeneticMode mode)
+        [&]<GeneticMode Mode>()
         {
-            generated_modes.push_back(mode);
+            generated_modes.push_back(Mode);
             return TestValue{2};
         });
     const auto transformed = transform_mode_values(
         generated,
-        [&](GeneticMode mode, const TestValue& value)
+        [&]<GeneticMode Mode>(const TestValue& value)
         {
-            transformed_modes.push_back(mode);
+            transformed_modes.push_back(Mode);
             return value.value * 2;
         });
 

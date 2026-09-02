@@ -17,41 +17,46 @@
 #ifndef GELEX_IO_BINARY_WRITER_H_
 #define GELEX_IO_BINARY_WRITER_H_
 
-#include <concepts>
 #include <cstddef>
 #include <cstdint>
-#include <ios>
-#include <ranges>
+#include <span>
 #include <string_view>
-#include <type_traits>
 #include <utility>
 #include <vector>
 
+#include "gelex/exception.h"
+#include "gelex/io/binary_format.h"
 #include "gelex/io/detail/atomic_output_stream.h"
-#include "gelex/io/detail/binary_format.h"
+#include "gelex/io/detail/binary_wire.h"
 
 namespace gelex
 {
 
-template <typename C>
-using element_t = std::decay_t<decltype(*std::declval<const C&>().data())>;
+class BinaryWriter;
 
-template <typename C, typename T = element_t<C>>
-concept DataBuffer = std::is_arithmetic_v<T> && requires(const C& c) {
-    { c.data() } -> std::convertible_to<const T*>;
-    { c.size() } -> std::convertible_to<size_t>;
-};
-
-template <typename C, typename T = element_t<C>>
-concept MatrixBuffer = DataBuffer<C, T> && requires(const C& c) {
-    { c.rows() } -> std::convertible_to<size_t>;
-    { c.cols() } -> std::convertible_to<size_t>;
-};
-
-template <typename T>
-struct SectionHandle
+template <detail::SupportedDtype T>
+class PayloadWriter
 {
-    size_t index;
+   public:
+    PayloadWriter(const PayloadWriter&) = delete;
+    PayloadWriter(PayloadWriter&& other) noexcept;
+    auto operator=(const PayloadWriter&) -> PayloadWriter& = delete;
+    auto operator=(PayloadWriter&& other) noexcept -> PayloadWriter&;
+    ~PayloadWriter() noexcept = default;
+
+    auto append(std::span<const T> payload) -> void;
+    auto append(T value) -> void;
+
+   private:
+    friend class BinaryWriter;
+
+    PayloadWriter(BinaryWriter* writer, std::size_t index) noexcept
+        : writer_(writer), index_(index)
+    {
+    }
+
+    BinaryWriter* writer_;
+    std::size_t index_;
 };
 
 class BinaryWriter
@@ -67,110 +72,84 @@ class BinaryWriter
 
     auto close() -> void;
 
-    template <typename T, std::integral Rows, std::integral Cols>
-        requires std::is_arithmetic_v<T>
-    auto reserve(std::string_view path, Rows rows, Cols cols)
-        -> SectionHandle<T>
+    template <detail::SupportedDtype T>
+    [[nodiscard]] auto reserve(std::string_view identifier, BinaryShape shape)
+        -> PayloadWriter<T>
     {
-        return {reserve(
-            path,
-            detail::type_byte<T>,
-            static_cast<uint64_t>(rows),
-            static_cast<uint64_t>(cols))};
-    }
-
-    template <typename T, DataBuffer<T> Container>
-    auto write(SectionHandle<T> handle, const Container& data) -> void
-    {
-        write_raw(
-            handle.index,
-            reinterpret_cast<const char*>(data.data()),
-            static_cast<std::streamsize>(
-                static_cast<size_t>(data.size()) * sizeof(T)));
-    }
-
-    template <typename T>
-        requires std::is_arithmetic_v<T>
-    auto write(SectionHandle<T> handle, T value) -> void
-    {
-        write_raw(
-            handle.index,
-            reinterpret_cast<const char*>(&value),
-            static_cast<std::streamsize>(sizeof(T)));
-    }
-
-    template <typename T>
-        requires std::is_arithmetic_v<T>
-    auto write(std::string_view path, T value) -> void
-    {
-        auto h = reserve<T>(path, 1, 1);
-        write(h, value);
-    }
-
-    template <MatrixBuffer Matrix>
-    auto write(std::string_view path, const Matrix& data) -> void
-    {
-        using T = element_t<Matrix>;
-        auto h = reserve<T>(path, data.rows(), data.cols());
-        write(h, data);
-    }
-
-    template <std::ranges::forward_range R>
-        requires std::
-            convertible_to<std::ranges::range_value_t<R>, std::string_view>
-        auto write_strings(std::string_view path, const R& names) -> void
-    {
-        uint64_t total_bytes = 0;
-        for (const std::string_view s : names)
-        {
-            total_bytes += s.size() + 1;
-        }
-
-        const auto handle = reserve_strings(
-            path,
-            static_cast<uint64_t>(std::ranges::distance(names)),
-            total_bytes);
-
-        for (const std::string_view s : names)
-        {
-            write_raw(handle, s.data(), static_cast<std::streamsize>(s.size()));
-            write_raw(handle, "\0", 1);
-        }
+        return PayloadWriter<T>{
+            this,
+            reserve_payload(identifier, detail::binary_type_for<T>, shape)};
     }
 
    private:
-    struct ReservedSection
+    template <detail::SupportedDtype>
+    friend class PayloadWriter;
+
+    struct PayloadReservation
     {
-        detail::TocEntry entry;
-        uint64_t cursor{0};
+        detail::PayloadEntry entry;
+        std::uint64_t cursor{0};
     };
 
-    auto finalize() -> void;
-    auto
-    reserve(std::string_view path, uint8_t dtype, uint64_t rows, uint64_t cols)
-        -> size_t;
-    auto reserve_strings(std::string_view path, uint64_t rows, uint64_t bytes)
-        -> size_t;
-    auto reserve_section(
-        std::string_view path,
-        uint8_t dtype,
-        uint64_t rows,
-        uint64_t cols,
-        uint64_t bytes) -> size_t;
-    auto write_raw(size_t handle, const char* data, std::streamsize bytes)
-        -> void;
-    auto check_duplicate_path(std::string_view path) const -> void;
-    static auto align_up(uint64_t value, uint64_t alignment) noexcept
-        -> uint64_t;
-    auto write_footer(uint64_t toc_offset, uint64_t n_sections) -> void;
+    auto reserve_payload(
+        std::string_view identifier,
+        BinaryType type,
+        BinaryShape shape) -> std::size_t;
+    auto append_bytes(
+        std::size_t index,
+        BinaryType type,
+        std::span<const std::byte> bytes) -> void;
+    auto check_duplicate_identifier(std::string_view identifier) const -> void;
+    static auto align_up(std::uint64_t value, std::uint64_t alignment)
+        -> std::uint64_t;
 
-    std::vector<ReservedSection> reserved_;
+    auto write_payload_entry(const detail::PayloadEntry& entry) -> void;
+    auto write_footer(
+        std::uint64_t directory_offset,
+        std::uint64_t payload_count) -> void;
+
+    std::vector<PayloadReservation> reservations_;
 
     detail::AtomicOutputStream file_;
-    uint64_t next_offset_{0};
-    uint64_t file_cursor_{0};
-    bool finalized_{false};
+    std::uint64_t next_offset_{0};
+    std::uint64_t file_cursor_{0};
+    bool closed_{false};
 };
+
+template <detail::SupportedDtype T>
+PayloadWriter<T>::PayloadWriter(PayloadWriter&& other) noexcept
+    : writer_(std::exchange(other.writer_, nullptr)), index_(other.index_)
+{
+}
+
+template <detail::SupportedDtype T>
+auto PayloadWriter<T>::operator=(PayloadWriter&& other) noexcept
+    -> PayloadWriter&
+{
+    if (this != &other)
+    {
+        writer_ = std::exchange(other.writer_, nullptr);
+        index_ = other.index_;
+    }
+    return *this;
+}
+
+template <detail::SupportedDtype T>
+auto PayloadWriter<T>::append(std::span<const T> payload) -> void
+{
+    if (writer_ == nullptr)
+    {
+        throw GelexException("payload writer is invalid");
+    }
+    writer_->append_bytes(
+        index_, detail::binary_type_for<T>, std::as_bytes(payload));
+}
+
+template <detail::SupportedDtype T>
+auto PayloadWriter<T>::append(T value) -> void
+{
+    append(std::span<const T>{&value, 1});
+}
 
 }  // namespace gelex
 

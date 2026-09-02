@@ -18,6 +18,7 @@
 #define GELEX_INFRA_STATS_DETAIL_RUNNING_STATS_H_
 
 #include <Eigen/Core>
+#include <cassert>
 #include <cmath>
 #include <cstddef>
 #include <type_traits>
@@ -27,6 +28,53 @@
 
 namespace gelex::detail
 {
+
+class ScalarRunningStats
+{
+   public:
+    auto update(double value) noexcept -> void
+    {
+        assert(std::isfinite(value));
+        ++count_;
+        const double delta = value - mean_;
+        mean_ += delta / static_cast<double>(count_);
+        const double delta2 = value - mean_;
+        m2_ += delta * delta2;
+    }
+
+    auto result() const noexcept -> ScalarRunningStatsResult;
+
+   private:
+    std::size_t count_{0};
+    double mean_{0.0};
+    double m2_{0.0};
+};
+
+class VectorRunningStats
+{
+   public:
+    explicit VectorRunningStats(Eigen::Index size);
+
+    auto update(const Eigen::Ref<const Eigen::VectorXd>& value) noexcept -> void
+    {
+        assert(value.size() == mean_.size());
+        assert(value.allFinite());
+
+        ++count_;
+        const double inv_count = 1.0 / static_cast<double>(count_);
+        delta_ = value - mean_;
+        mean_ += delta_ * inv_count;
+        m2_.array() += delta_.array() * (value.array() - mean_.array());
+    }
+
+    auto result() const -> VectorRunningStatsResult;
+
+   private:
+    std::size_t count_{0};
+    Eigen::VectorXd mean_;
+    Eigen::VectorXd m2_;
+    Eigen::VectorXd delta_;
+};
 
 class RunningStats
 {

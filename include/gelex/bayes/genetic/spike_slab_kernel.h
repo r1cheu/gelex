@@ -38,9 +38,7 @@ template <VarianceLayout Kind, UpdatePolicy ProbabilityUpdate>
 class SpikeSlabKernel
 {
     using Prior = SpikeSlabPrior<Kind, ProbabilityUpdate>;
-    using State = GeneticModeState<
-        SpikeSlabState<Kind>,
-        typename Prior::component_layout>;
+    using State = GeneticModeState<SpikeSlabState<Kind>>;
 
    public:
     explicit SpikeSlabKernel(const Prior& prior)
@@ -132,7 +130,7 @@ class SpikeSlabKernel
             }
         }
 
-        state.component_fitted_values.col(0).noalias()
+        state.family_state.fitted_values.col(0).noalias()
             += previous_adjusted_response_ - residual.adjusted_response;
         if constexpr (Kind == VarianceLayout::Pooled)
         {

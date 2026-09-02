@@ -15,16 +15,17 @@
  */
 
 #include <Eigen/Core>
+#include <array>
 #include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <concepts>
+#include <cstddef>
 #include <cstdint>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "gelex/bayes/detail/genetic_state_compilation.h"
-#include "gelex/bayes/genetic/component_layout.h"
 #include "gelex/bayes/genetic/independent_topology.h"
 #include "gelex/bayes/genetic/joint_topology.h"
 #include "gelex/bayes/genetic/prior.h"
@@ -47,23 +48,27 @@ using gelex::BayesModel;
 using gelex::BayesPrior;
 using gelex::BayesRecipe;
 using gelex::BayesState;
+using gelex::Gaussian;
 using gelex::GaussianMethod;
 using gelex::GaussianPrior;
 using gelex::GaussianState;
 using gelex::GeneticMode;
 using gelex::GeneticModeSet;
 using gelex::GeneticModeState;
+using gelex::HalfNormal;
+using gelex::HalfNormalAsymmetry;
+using gelex::HalfNormalPrior;
+using gelex::HalfNormalState;
 using gelex::IndependentTopology;
+using gelex::JointSpikeSlab;
 using gelex::JointSpikeSlabMethod;
 using gelex::JointSpikeSlabPrior;
 using gelex::JointSpikeSlabState;
 using gelex::JointTopology;
-using gelex::JointZeroInflatedComponentLayout;
 using gelex::ScaledMixture;
 using gelex::ScaledMixtureMethod;
 using gelex::ScaledMixturePrior;
 using gelex::ScaledMixtureState;
-using gelex::SingleComponentLayout;
 using gelex::SpikeSlab;
 using gelex::SpikeSlabMethod;
 using gelex::SpikeSlabPrior;
@@ -71,7 +76,6 @@ using gelex::SpikeSlabState;
 using gelex::UpdatePolicy;
 using gelex::VarianceBudget;
 using gelex::VarianceLayout;
-using gelex::ZeroInflatedComponentLayout;
 
 namespace
 {
@@ -79,83 +83,141 @@ namespace
 constexpr auto mode_a = GeneticModeSet{GeneticMode::A};
 constexpr auto mode_ad = GeneticMode::A | GeneticMode::D;
 
-using PooledGaussianPriorAD
-    = IndependentTopology<mode_ad, GaussianPrior<VarianceLayout::Pooled>>;
+using PooledGaussianPriorAD = IndependentTopology<
+    mode_ad,
+    GaussianPrior<VarianceLayout::Pooled>,
+    GaussianPrior<VarianceLayout::Pooled>>;
 using PooledGaussianPriorA
     = IndependentTopology<mode_a, GaussianPrior<VarianceLayout::Pooled>>;
 using UnpooledGaussianPriorA
     = IndependentTopology<mode_a, GaussianPrior<VarianceLayout::Unpooled>>;
-using PooledSpikeSlabPriorAD
-    = IndependentTopology<mode_ad, SpikeSlabPrior<VarianceLayout::Pooled>>;
-using UnpooledSpikeSlabPriorAD
-    = IndependentTopology<mode_ad, SpikeSlabPrior<VarianceLayout::Unpooled>>;
+using PooledSpikeSlabPriorAD = IndependentTopology<
+    mode_ad,
+    SpikeSlabPrior<VarianceLayout::Pooled>,
+    SpikeSlabPrior<VarianceLayout::Pooled>>;
+using UnpooledSpikeSlabPriorAD = IndependentTopology<
+    mode_ad,
+    SpikeSlabPrior<VarianceLayout::Unpooled>,
+    SpikeSlabPrior<VarianceLayout::Unpooled>>;
 using FixedUnpooledSpikeSlabPriorAD = IndependentTopology<
     mode_ad,
+    SpikeSlabPrior<VarianceLayout::Unpooled, UpdatePolicy::Fixed>,
     SpikeSlabPrior<VarianceLayout::Unpooled, UpdatePolicy::Fixed>>;
-using ScaledMixturePriorAD = IndependentTopology<mode_ad, ScaledMixturePrior<>>;
-using JointPrior = JointTopology<
+using HeterogeneousPriorAD = IndependentTopology<
+    mode_ad,
     GaussianPrior<VarianceLayout::Pooled>,
-    JointSpikeSlabPrior<>>;
+    SpikeSlabPrior<VarianceLayout::Unpooled, UpdatePolicy::Fixed>>;
+using ScaledMixturePriorAD = IndependentTopology<
+    mode_ad,
+    ScaledMixturePrior<ScaledMixture::class_count>,
+    ScaledMixturePrior<ScaledMixture::class_count>>;
+using JointPrior = JointTopology<
+    IndependentTopology<
+        mode_ad,
+        GaussianPrior<VarianceLayout::Pooled>,
+        HalfNormalPrior<HalfNormalAsymmetry::Count>>,
+    JointSpikeSlabPrior<JointSpikeSlab::class_count>>;
+using MagnitudeJointPrior = JointTopology<
+    IndependentTopology<
+        mode_ad,
+        GaussianPrior<VarianceLayout::Pooled>,
+        HalfNormalPrior<HalfNormalAsymmetry::Magnitude>>,
+    JointSpikeSlabPrior<JointSpikeSlab::class_count>>;
+using JointModeParameters = IndependentTopology<
+    mode_ad,
+    Gaussian,
+    HalfNormal<HalfNormalAsymmetry::Count>>;
+using JointSpikeSlabAD = JointTopology<JointModeParameters, JointSpikeSlab>;
+
+template <std::size_t ClassCount>
+concept ValidScaledMixtureState
+    = requires { typename ScaledMixtureState<ClassCount>; };
+
+template <std::size_t ClassCount>
+concept ValidJointSpikeSlabState
+    = requires { typename JointSpikeSlabState<ClassCount>; };
+
+static_assert(
+    ScaledMixtureState<ScaledMixture::class_count>::component_count == 4);
+static_assert(
+    JointSpikeSlabState<JointSpikeSlab::class_count>::component_count == 3);
+static_assert(ValidScaledMixtureState<256>);
+static_assert(!ValidScaledMixtureState<257>);
+static_assert(ValidJointSpikeSlabState<256>);
+static_assert(!ValidJointSpikeSlabState<257>);
 
 static_assert(std::same_as<
               decltype(SpikeSlabState<VarianceLayout::Pooled>::assignment),
               Eigen::VectorX<std::uint8_t>>);
+static_assert(
+    std::same_as<
+        decltype(ScaledMixtureState<ScaledMixture::class_count>::assignment),
+        Eigen::VectorX<std::uint8_t>>);
+static_assert(
+    std::same_as<
+        decltype(JointSpikeSlabState<JointSpikeSlab::class_count>::assignment),
+        Eigen::VectorX<std::uint8_t>>);
 static_assert(std::same_as<
-              decltype(ScaledMixtureState::assignment),
-              Eigen::VectorX<std::uint8_t>>);
-static_assert(std::same_as<
-              decltype(JointSpikeSlabState::assignment),
-              Eigen::VectorX<std::uint8_t>>);
-static_assert(std::same_as<
-              decltype(JointSpikeSlabState::dominance_sign),
+              decltype(HalfNormalState<HalfNormalAsymmetry::Count>::assignment),
               Eigen::VectorX<std::uint8_t>>);
 
 static_assert(std::same_as<
               gelex::detail::genetic_state_t<PooledGaussianPriorAD>,
               IndependentTopology<
                   mode_ad,
-                  GeneticModeState<
-                      GaussianState<VarianceLayout::Pooled>,
-                      SingleComponentLayout>>>);
+                  GeneticModeState<GaussianState<VarianceLayout::Pooled>>,
+                  GeneticModeState<GaussianState<VarianceLayout::Pooled>>>>);
 static_assert(std::same_as<
               gelex::detail::genetic_state_t<UnpooledGaussianPriorA>,
               IndependentTopology<
                   mode_a,
-                  GeneticModeState<
-                      GaussianState<VarianceLayout::Unpooled>,
-                      SingleComponentLayout>>>);
+                  GeneticModeState<GaussianState<VarianceLayout::Unpooled>>>>);
 static_assert(std::same_as<
               gelex::detail::genetic_state_t<PooledSpikeSlabPriorAD>,
               IndependentTopology<
                   mode_ad,
-                  GeneticModeState<
-                      SpikeSlabState<VarianceLayout::Pooled>,
-                      ZeroInflatedComponentLayout<2>>>>);
+                  GeneticModeState<SpikeSlabState<VarianceLayout::Pooled>>,
+                  GeneticModeState<SpikeSlabState<VarianceLayout::Pooled>>>>);
 static_assert(std::same_as<
               gelex::detail::genetic_state_t<UnpooledSpikeSlabPriorAD>,
               IndependentTopology<
                   mode_ad,
-                  GeneticModeState<
-                      SpikeSlabState<VarianceLayout::Unpooled>,
-                      ZeroInflatedComponentLayout<2>>>>);
+                  GeneticModeState<SpikeSlabState<VarianceLayout::Unpooled>>,
+                  GeneticModeState<SpikeSlabState<VarianceLayout::Unpooled>>>>);
 static_assert(std::same_as<
               gelex::detail::genetic_state_t<UnpooledSpikeSlabPriorAD>,
               gelex::detail::genetic_state_t<FixedUnpooledSpikeSlabPriorAD>>);
 static_assert(std::same_as<
-              gelex::detail::genetic_state_t<ScaledMixturePriorAD>,
+              gelex::detail::genetic_state_t<HeterogeneousPriorAD>,
               IndependentTopology<
                   mode_ad,
-                  GeneticModeState<
-                      ScaledMixtureState,
-                      ZeroInflatedComponentLayout<
-                          ScaledMixturePrior<>::class_count>>>>);
+                  GeneticModeState<GaussianState<VarianceLayout::Pooled>>,
+                  GeneticModeState<SpikeSlabState<VarianceLayout::Unpooled>>>>);
+static_assert(
+    std::same_as<
+        gelex::detail::genetic_state_t<ScaledMixturePriorAD>,
+        IndependentTopology<
+            mode_ad,
+            GeneticModeState<ScaledMixtureState<ScaledMixture::class_count>>,
+            GeneticModeState<ScaledMixtureState<ScaledMixture::class_count>>>>);
+static_assert(
+    std::same_as<
+        gelex::detail::genetic_state_t<JointPrior>,
+        JointTopology<
+            IndependentTopology<
+                mode_ad,
+                GeneticModeState<GaussianState<VarianceLayout::Pooled>>,
+                GeneticModeState<HalfNormalState<HalfNormalAsymmetry::Count>>>,
+            JointSpikeSlabState<JointSpikeSlab::class_count>>>);
 static_assert(std::same_as<
-              gelex::detail::genetic_state_t<JointPrior>,
+              gelex::detail::genetic_state_t<MagnitudeJointPrior>,
               JointTopology<
-                  GeneticModeState<
-                      GaussianState<VarianceLayout::Pooled>,
-                      JointZeroInflatedComponentLayout>,
-                  JointSpikeSlabState>>);
+                  IndependentTopology<
+                      mode_ad,
+                      GeneticModeState<GaussianState<VarianceLayout::Pooled>>,
+                      GeneticModeState<
+                          HalfNormalState<HalfNormalAsymmetry::Magnitude>>>,
+                  JointSpikeSlabState<JointSpikeSlab::class_count>>>);
 static_assert(std::same_as<
               gelex::bayes_state_t<BayesPrior<PooledGaussianPriorA>>,
               BayesState<PooledGaussianPriorA>>);
@@ -165,9 +227,11 @@ using UnpooledGaussianMethod = GaussianMethod<VarianceLayout::Unpooled>;
 using FixedUnpooledSpikeSlabMethod
     = SpikeSlabMethod<VarianceLayout::Unpooled, UpdatePolicy::Fixed>;
 using DefaultScaledMixtureMethod = ScaledMixtureMethod<>;
-using MixedJointSpikeSlabMethod
-    = JointSpikeSlabMethod<UpdatePolicy::Fixed, UpdatePolicy::Sampled>;
-using SpikeSlabAD = IndependentTopology<mode_ad, SpikeSlab>;
+using FixedJointSpikeSlabMethod = JointSpikeSlabMethod<UpdatePolicy::Fixed>;
+using MagnitudeJointSpikeSlabMethod = JointSpikeSlabMethod<
+    UpdatePolicy::Sampled,
+    HalfNormalAsymmetry::Magnitude>;
+using SpikeSlabAD = IndependentTopology<mode_ad, SpikeSlab, SpikeSlab>;
 
 auto make_model(GeneticModeSet modes) -> BayesModel
 {
@@ -206,17 +270,17 @@ TEST_CASE(
     const auto state
         = gelex::detail::make_genetic_state(prior.genetic(), model.genetic());
 
-    for (const auto& [mode, mode_state] : state.each())
-    {
-        REQUIRE(mode_ad.contains(mode));
-        REQUIRE(mode_state.coefficients.size() == model.genetic().cols());
-        REQUIRE(mode_state.coefficients.isZero());
-        REQUIRE(
-            mode_state.component_fitted_values.rows()
-            == model.genetic().rows());
-        REQUIRE(mode_state.component_fitted_values.cols() == 1);
-        REQUIRE(mode_state.component_fitted_values.isZero());
-    }
+    state.for_each(
+        [&]<GeneticMode Mode>(const auto& mode_state)
+        {
+            STATIC_REQUIRE(mode_ad.contains(Mode));
+            REQUIRE(mode_state.coefficients.size() == model.genetic().cols());
+            REQUIRE(mode_state.coefficients.isZero());
+            REQUIRE(
+                mode_state.family_state.fitted_values.size()
+                == model.genetic().rows());
+            REQUIRE(mode_state.family_state.fitted_values.isZero());
+        });
     REQUIRE(
         state.get<GeneticMode::A>().family_state.variance
         == Approx(
@@ -252,8 +316,8 @@ TEST_CASE(
     const auto model = make_model(mode_ad);
     const auto recipe = BayesRecipe<FixedUnpooledSpikeSlabMethod, mode_ad>{
         SpikeSlabAD{
-            SpikeSlab{.probability = 0.05},
-            SpikeSlab{.probability = 0.2},
+            SpikeSlab{0.05},
+            SpikeSlab{0.2},
         },
         VarianceBudget{{.additive = 0.4, .dominance = 0.1}}};
     const auto prior = gelex::compile(recipe, model);
@@ -288,13 +352,12 @@ TEST_CASE(
     REQUIRE(
         family_state.probabilities
         == prior.genetic().get<GeneticMode::A>().probabilities.initial);
+    REQUIRE(family_state.fitted_values.rows() == model.genetic().rows());
     REQUIRE(
-        mode_state.component_fitted_values.rows() == model.genetic().rows());
-    REQUIRE(
-        mode_state.component_fitted_values.cols()
+        family_state.fitted_values.cols()
         == static_cast<Eigen::Index>(
-            ScaledMixturePrior<>::component_layout::component_count));
-    REQUIRE(mode_state.component_fitted_values.isZero());
+            ScaledMixtureState<ScaledMixture::class_count>::component_count));
+    REQUIRE(family_state.fitted_values.isZero());
 }
 
 TEST_CASE(
@@ -302,10 +365,11 @@ TEST_CASE(
     "[bayes][state_compilation]")
 {
     const auto model = make_model(mode_ad);
-    const auto recipe = BayesRecipe<MixedJointSpikeSlabMethod, mode_ad>{
-        gelex::JointSpikeSlab{
-            .probabilities = {0.8, 0.1, 0.05, 0.05},
-            .positive_probability = 0.6},
+    const auto recipe = BayesRecipe<FixedJointSpikeSlabMethod, mode_ad>{
+        JointSpikeSlabAD{
+            JointModeParameters{
+                Gaussian{}, HalfNormal<HalfNormalAsymmetry::Count>{0.6}},
+            JointSpikeSlab{{0.8, 0.1, 0.05, 0.05}}},
         VarianceBudget{{.additive = 0.4, .dominance = 0.1}}};
     const auto prior = gelex::compile(recipe, model);
 
@@ -313,30 +377,60 @@ TEST_CASE(
         = gelex::detail::make_genetic_state(prior.genetic(), model.genetic());
     const auto& joint = state.joint();
 
-    REQUIRE(joint.probabilities == recipe.parameters().probabilities);
-    REQUIRE(joint.positive_probability == 0.6);
+    REQUIRE(joint.probabilities == recipe.parameters().joint().probabilities());
     REQUIRE(joint.assignment.size() == model.genetic().cols());
     REQUIRE(joint.assignment.isZero());
-    REQUIRE(joint.dominance_sign.size() == model.genetic().cols());
-    REQUIRE(joint.dominance_sign.isZero());
-    for (const auto& [mode, mode_state] : state.mode_values().each())
-    {
-        REQUIRE(mode_ad.contains(mode));
-        REQUIRE(
-            mode_state.component_fitted_values.rows()
-            == model.genetic().rows());
-        REQUIRE(
-            mode_state.component_fitted_values.cols()
-            == static_cast<Eigen::Index>(
-                JointZeroInflatedComponentLayout::component_count));
-        REQUIRE(mode_state.component_fitted_values.isZero());
-    }
+    REQUIRE(joint.fitted_values.rows() == model.genetic().rows());
+    REQUIRE(
+        joint.fitted_values.cols()
+        == static_cast<Eigen::Index>(
+            JointSpikeSlabState<JointSpikeSlab::class_count>::component_count));
+    REQUIRE(joint.fitted_values.isZero());
+    state.mode_values().for_each(
+        [&]<GeneticMode Mode>(const auto& mode_state)
+        {
+            STATIC_REQUIRE(mode_ad.contains(Mode));
+            REQUIRE(
+                mode_state.family_state.fitted_values.size()
+                == model.genetic().rows());
+            REQUIRE(mode_state.family_state.fitted_values.isZero());
+        });
+    const auto& dominance
+        = state.mode_values().get<GeneticMode::D>().family_state;
+    REQUIRE(dominance.positive_probability == 0.6);
+    REQUIRE(dominance.assignment.size() == model.genetic().cols());
+    REQUIRE(dominance.assignment.isZero());
     REQUIRE(
         state.mode_values().get<GeneticMode::A>().family_state.variance
         == Approx(prior.genetic()
                       .mode_values()
                       .get<GeneticMode::A>()
                       .variance.initial_value()));
+}
+
+TEST_CASE(
+    "magnitude half-normal state initializes both variance axes",
+    "[bayes][state_compilation]")
+{
+    const auto model = make_model(mode_ad);
+    const auto prior = gelex::compile(
+        BayesRecipe<MagnitudeJointSpikeSlabMethod, mode_ad>::defaults(), model);
+
+    const auto state
+        = gelex::detail::make_genetic_state(prior.genetic(), model.genetic());
+    const auto& dominance_prior
+        = prior.genetic().mode_values().get<GeneticMode::D>();
+    const auto& dominance_state
+        = state.mode_values().get<GeneticMode::D>().family_state;
+    const double initial_variance = dominance_prior.variance.initial_value();
+
+    REQUIRE(
+        dominance_state.variances
+        == std::array{initial_variance, initial_variance});
+    REQUIRE(dominance_state.assignment.size() == model.genetic().cols());
+    REQUIRE(dominance_state.assignment.isZero());
+    REQUIRE(dominance_state.fitted_values.size() == model.genetic().rows());
+    REQUIRE(dominance_state.fitted_values.isZero());
 }
 
 TEST_CASE(
@@ -381,7 +475,7 @@ TEST_CASE(
 
     const auto& genetic = state.genetic().get<GeneticMode::A>();
     REQUIRE(genetic.coefficients.isZero());
-    REQUIRE(genetic.component_fitted_values.isZero());
+    REQUIRE(genetic.family_state.fitted_values.isZero());
 }
 
 TEST_CASE(

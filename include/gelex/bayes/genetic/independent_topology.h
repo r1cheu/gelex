@@ -17,11 +17,8 @@
 #ifndef GELEX_BAYES_GENETIC_INDEPENDENT_TOPOLOGY_H_
 #define GELEX_BAYES_GENETIC_INDEPENDENT_TOPOLOGY_H_
 
-#include <array>
-#include <concepts>
 #include <cstddef>
-#include <functional>
-#include <ranges>
+#include <tuple>
 #include <type_traits>
 #include <utility>
 
@@ -30,95 +27,128 @@
 namespace gelex
 {
 
-template <GeneticModeSet Modes, typename T>
+template <GeneticModeSet Modes, typename... Ts>
+    requires(sizeof...(Ts) == Modes.size() && (std::is_object_v<Ts> && ...))
 class IndependentTopology
 {
-   public:
-    using value_type = T;
+    using values_type = std::tuple<Ts...>;
 
+   public:
     static constexpr GeneticModeSet modes = Modes;
 
-    // Value-initializes every mode, so the defaults stay in T and are never
-    // restated here. Implicitly deleted when T is not default constructible.
+    template <GeneticMode Mode>
+        requires(Modes.contains(Mode))
+    using mode_value_type
+        = std::tuple_element_t<Modes.index_of(Mode), values_type>;
+
     constexpr IndependentTopology() = default;
 
-    explicit constexpr IndependentTopology(T value)
-        requires(Modes.size() == 1)
-        : values_{std::move(value)}
-    {
-    }
-
-    constexpr IndependentTopology(T additive, T dominance)
-        requires(Modes == (GeneticMode::A | GeneticMode::D))
-        : values_{std::move(additive), std::move(dominance)}
-    {
-    }
-
-    // The one constructor that stays correct as modes are added; the named
-    // overloads above exist only for readability at hand-written call sites.
-    explicit constexpr IndependentTopology(std::array<T, Modes.size()> values)
-        : values_(std::move(values))
+    explicit constexpr IndependentTopology(Ts... values)
+        : values_{std::move(values)...}
     {
     }
 
     template <GeneticMode Mode>
-    [[nodiscard]] constexpr auto get() noexcept -> T&
+        requires(Modes.contains(Mode))
+    [[nodiscard]] constexpr auto get() noexcept -> mode_value_type<Mode>&
     {
-        static constexpr std::size_t index = Modes.index_of(Mode);
-        static_assert(index < Modes.size(), "mode not in topology");
-        return values_[index];
+        return std::get<Modes.index_of(Mode)>(values_);
     }
 
     template <GeneticMode Mode>
-    [[nodiscard]] constexpr auto get() const noexcept -> const T&
+        requires(Modes.contains(Mode))
+    [[nodiscard]] constexpr auto get() const noexcept
+        -> const mode_value_type<Mode>&
     {
-        static constexpr std::size_t index = Modes.index_of(Mode);
-        static_assert(index < Modes.size(), "mode not in topology");
-        return values_[index];
+        return std::get<Modes.index_of(Mode)>(values_);
     }
 
-    [[nodiscard]] constexpr auto each()
+    template <typename Function>
+    // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
+    constexpr auto for_each(Function&& function) -> void
     {
-        return std::views::zip(Modes.each(), values_);
+        [&]<std::size_t... Index>(std::index_sequence<Index...>)
+        {
+            (function.template operator()<Modes.at(Index)>(
+                 this->template get<Modes.at(Index)>()),
+             ...);
+        }(std::make_index_sequence<Modes.size()>{});
     }
 
-    [[nodiscard]] constexpr auto each() const
+    template <typename Function>
+    // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
+    constexpr auto for_each(Function&& function) const -> void
     {
-        return std::views::zip(Modes.each(), values_);
+        [&]<std::size_t... Index>(std::index_sequence<Index...>)
+        {
+            (function.template operator()<Modes.at(Index)>(
+                 this->template get<Modes.at(Index)>()),
+             ...);
+        }(std::make_index_sequence<Modes.size()>{});
     }
 
    private:
-    std::array<T, Modes.size()> values_{};
+    std::tuple<Ts...> values_;
 };
 
-template <GeneticModeSet Modes, typename Make>
-    requires std::invocable<Make&, GeneticMode>
-[[nodiscard]] constexpr auto generate_mode_values(Make make)
+namespace detail
 {
-    using Value = std::remove_cvref_t<std::invoke_result_t<Make&, GeneticMode>>;
+
+template <GeneticMode Mode, typename Make>
+constexpr auto generate_mode_value(Make& make) -> decltype(auto)
+{
+    return make.template operator()<Mode>();
+}
+
+template <GeneticMode Mode, typename Make>
+using generated_mode_value_t
+    = std::remove_cvref_t<decltype(generate_mode_value<Mode>(
+        std::declval<Make&>()))>;
+
+template <GeneticMode Mode, typename Topology, typename Convert>
+constexpr auto transform_mode_value(const Topology& topology, Convert& convert)
+    -> decltype(auto)
+{
+    return convert.template operator()<Mode>(topology.template get<Mode>());
+}
+
+template <GeneticMode Mode, typename Topology, typename Convert>
+using transformed_mode_value_t
+    = std::remove_cvref_t<decltype(transform_mode_value<Mode>(
+        std::declval<const Topology&>(),
+        std::declval<Convert&>()))>;
+
+}  // namespace detail
+
+template <GeneticModeSet Modes, typename Make>
+// NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
+[[nodiscard]] constexpr auto generate_mode_values(Make&& make)
+{
     return [&]<std::size_t... Index>(std::index_sequence<Index...>)
     {
-        return IndependentTopology<Modes, Value>{
-            std::array<Value, Modes.size()>{
-                std::invoke(make, Modes.at(Index))...}};
+        return IndependentTopology<
+            Modes,
+            detail::generated_mode_value_t<Modes.at(Index), Make>...>{
+            detail::generate_mode_value<Modes.at(Index)>(make)...};
     }(std::make_index_sequence<Modes.size()>{});
 }
 
-template <GeneticModeSet Modes, typename T, typename Convert>
-    requires std::invocable<Convert&, GeneticMode, const T&>
+template <GeneticModeSet Modes, typename... Ts, typename Convert>
 [[nodiscard]] constexpr auto transform_mode_values(
-    const IndependentTopology<Modes, T>& topology,
-    Convert convert)
+    const IndependentTopology<Modes, Ts...>& topology,
+    Convert&& convert)  // NOLINT(cppcoreguidelines-missing-std-forward)
 {
-    using Result = std::remove_cvref_t<
-        std::invoke_result_t<Convert&, GeneticMode, const T&>>;
+    using topology_type = IndependentTopology<Modes, Ts...>;
     return [&]<std::size_t... Index>(std::index_sequence<Index...>)
     {
-        return IndependentTopology<Modes, Result>{
-            std::array<Result, Modes.size()>{std::invoke(
-                convert,
+        return IndependentTopology<
+            Modes,
+            detail::transformed_mode_value_t<
                 Modes.at(Index),
-                topology.template get<Modes.at(Index)>())...}};
+                topology_type,
+                Convert>...>{
+            detail::transform_mode_value<Modes.at(Index)>(
+                topology, convert)...};
     }(std::make_index_sequence<Modes.size()>{});
 }
 

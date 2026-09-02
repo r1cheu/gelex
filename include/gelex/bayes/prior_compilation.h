@@ -19,7 +19,6 @@
 
 #include <Eigen/Core>
 #include <cmath>
-#include <cstddef>
 #include <fmt/format.h>
 #include <ranges>
 #include <utility>
@@ -61,23 +60,37 @@ constexpr auto initial_activity(const ScaledMixture& spec) -> double
 {
     auto activity = 0.0;
     for (const auto [probability, scale] :
-         std::views::zip(spec.probabilities, spec.scales))
+         std::views::zip(spec.probabilities(), spec.scales()))
     {
         activity += probability * scale;
     }
     return activity;
 }
 
+template <GeneticMode Mode>
+    requires(Mode == GeneticMode::A || Mode == GeneticMode::D)
+constexpr auto initial_activity(const JointSpikeSlab& spec) -> double
+{
+    const auto& probabilities = spec.probabilities();
+    if constexpr (Mode == GeneticMode::A)
+    {
+        return probabilities.at(1) + probabilities.at(3);
+    }
+    else
+    {
+        return probabilities.at(2) + probabilities.at(3);
+    }
+}
+
 template <GeneticModeSet Modes, VarianceLayout Kind>
 auto compile_genetic_prior(
     GaussianMethod<Kind> /*method*/,
-    const NoParameters& /*parameters*/,
+    const Gaussian& /*parameters*/,
     const MarkerVarianceCalibrator& calibrator)
-    -> IndependentTopology<Modes, GaussianPrior<Kind>>
 {
     return generate_mode_values<Modes>(
-        [&](GeneticMode mode) -> GaussianPrior<Kind>
-        { return {.variance = calibrator.calibrate(mode, 1.0)}; });
+        [&]<GeneticMode Mode>() -> GaussianPrior<Kind>
+        { return {.variance = calibrator.calibrate(Mode, 1.0)}; });
 }
 
 template <
@@ -86,89 +99,92 @@ template <
     UpdatePolicy ProbabilityUpdate>
 auto compile_genetic_prior(
     SpikeSlabMethod<Kind, ProbabilityUpdate> /*method*/,
-    const IndependentTopology<Modes, SpikeSlab>& parameters,
+    const method_parameters_t<SpikeSlabMethod<Kind, ProbabilityUpdate>, Modes>&
+        parameters,
     const MarkerVarianceCalibrator& calibrator)
-    -> IndependentTopology<Modes, SpikeSlabPrior<Kind, ProbabilityUpdate>>
 {
     return transform_mode_values(
         parameters,
-        [&](GeneticMode mode,
+        [&]<GeneticMode Mode>(
             const SpikeSlab& spec) -> SpikeSlabPrior<Kind, ProbabilityUpdate>
         {
             return {
-                .variance = calibrator.calibrate(mode, spec.probability),
+                .variance = calibrator.calibrate(Mode, spec.probability()),
                 .probability = compile_parameter<ProbabilityUpdate>(
-                    spec.probability, BetaHyperPrior{})};
+                    spec.probability(), BetaHyperPrior{})};
         });
 }
 
 template <GeneticModeSet Modes, UpdatePolicy ProbabilitiesUpdate>
 auto compile_genetic_prior(
     ScaledMixtureMethod<ProbabilitiesUpdate> /*method*/,
-    const IndependentTopology<Modes, ScaledMixture>& parameters,
+    const method_parameters_t<ScaledMixtureMethod<ProbabilitiesUpdate>, Modes>&
+        parameters,
     const MarkerVarianceCalibrator& calibrator)
-    -> IndependentTopology<Modes, ScaledMixturePrior<ProbabilitiesUpdate>>
 {
     return transform_mode_values(
         parameters,
-        [&](GeneticMode mode, const ScaledMixture& spec)
-            -> ScaledMixturePrior<ProbabilitiesUpdate>
+        [&]<GeneticMode Mode>(const ScaledMixture& spec)
+            -> ScaledMixturePrior<
+                ScaledMixture::class_count,
+                ProbabilitiesUpdate>
         {
             return {
-                .variance = calibrator.calibrate(mode, initial_activity(spec)),
+                .variance = calibrator.calibrate(Mode, initial_activity(spec)),
                 .probabilities = compile_parameter<ProbabilitiesUpdate>(
-                    spec.probabilities,
-                    DirichletHyperPrior<ScaledMixturePrior<
-                        ProbabilitiesUpdate>::class_count>{}),
-                .scales = spec.scales};
+                    spec.probabilities(),
+                    DirichletHyperPrior<ScaledMixture::class_count>{}),
+                .scales = spec.scales()};
         });
 }
 
 template <
     GeneticModeSet Modes,
     UpdatePolicy ProbabilitiesUpdate,
-    UpdatePolicy PositiveProbabilityUpdate>
+    HalfNormalAsymmetry Axis>
     requires(Modes == (GeneticMode::A | GeneticMode::D))
 auto compile_genetic_prior(
-    JointSpikeSlabMethod<
-        ProbabilitiesUpdate,
-        PositiveProbabilityUpdate> /*method*/,
-    const JointSpikeSlab& parameters,
+    JointSpikeSlabMethod<ProbabilitiesUpdate, Axis> /*method*/,
+    const method_parameters_t<
+        JointSpikeSlabMethod<ProbabilitiesUpdate, Axis>,
+        Modes>& parameters,
     const MarkerVarianceCalibrator& calibrator)
-    -> JointTopology<
-        GaussianPrior<VarianceLayout::Pooled>,
-        JointSpikeSlabPrior<ProbabilitiesUpdate, PositiveProbabilityUpdate>>
 {
-    using Prior
-        = JointSpikeSlabPrior<ProbabilitiesUpdate, PositiveProbabilityUpdate>;
-    using Layout = Prior::component_layout;
-    const auto& probabilities = parameters.probabilities;
-    auto mode_values = generate_mode_values<Modes>(
-        [&](GeneticMode mode) -> GaussianPrior<VarianceLayout::Pooled>
+    const auto& joint_parameters = parameters.joint();
+    auto mode_priors = transform_mode_values(
+        parameters.mode_values(),
+        [&]<GeneticMode Mode>(const auto& mode_parameters)
         {
-            double activity = 0.0;
-            for (const auto [class_index, probability] :
-                 probabilities | std::views::enumerate)
+            auto variance = calibrator.calibrate(
+                Mode, initial_activity<Mode>(joint_parameters));
+            if constexpr (Mode == GeneticMode::A)
             {
-                if (Layout::component_index(
-                        mode, static_cast<std::size_t>(class_index))
-                    != Layout::no_component)
-                {
-                    activity += probability;
-                }
+                return GaussianPrior<VarianceLayout::Pooled>{
+                    .variance = std::move(variance)};
             }
-            return {.variance = calibrator.calibrate(mode, activity)};
+            else if constexpr (Axis == HalfNormalAsymmetry::Count)
+            {
+                return HalfNormalPrior<Axis>{
+                    .variance = std::move(variance),
+                    .positive_probability
+                    = compile_parameter<UpdatePolicy::Sampled>(
+                        mode_parameters.positive_probability(),
+                        BetaHyperPrior{})};
+            }
+            else
+            {
+                return HalfNormalPrior<Axis>{.variance = std::move(variance)};
+            }
         });
 
+    using JointPrior
+        = JointSpikeSlabPrior<JointSpikeSlab::class_count, ProbabilitiesUpdate>;
     return JointTopology{
-        std::move(mode_values),
-        Prior{
+        std::move(mode_priors),
+        JointPrior{
             .probabilities = compile_parameter<ProbabilitiesUpdate>(
-                parameters.probabilities,
-                DirichletHyperPrior<Prior::class_count>{}),
-            .positive_probability
-            = compile_parameter<PositiveProbabilityUpdate>(
-                parameters.positive_probability, BetaHyperPrior{})}};
+                joint_parameters.probabilities(),
+                DirichletHyperPrior<JointPrior::class_count>{})}};
 }
 
 inline auto validate_phenotype_variance(const BayesModel& model) -> double

@@ -5,4 +5,4 @@ CompileFlags:
   # Relative paths resolve against each entry's `directory` (build/<preset>).
   Add:
     - -isystem
-    - ../../.pixi/envs/dev/include
+    - ../../.pixi/envs/default/include

@@ -16,22 +16,36 @@
 
 #include "gelex/io/binary_writer.h"
 
-#include <algorithm>
-#include <array>
+#include <concepts>
 #include <cstddef>
 #include <cstdint>
-#include <exception>
 #include <fmt/format.h>
 #include <ios>
+#include <limits>
+#include <span>
 #include <string>
 #include <string_view>
+#include <utility>
 
 #include "gelex/exception.h"
 #include "gelex/infra/log.h"
-#include "gelex/io/detail/binary_format.h"
+#include "gelex/io/detail/binary_wire.h"
 
 namespace gelex
 {
+
+namespace
+{
+
+template <std::unsigned_integral T>
+auto write_integer(detail::AtomicOutputStream& file, T value) -> void
+{
+    file.write(
+        reinterpret_cast<const char*>(&value),
+        static_cast<std::streamsize>(sizeof(value)));
+}
+
+}  // namespace
 
 BinaryWriter::BinaryWriter(std::string_view output_path)
     : file_(std::string(output_path), std::ios::binary | std::ios::trunc)
@@ -40,197 +54,205 @@ BinaryWriter::BinaryWriter(std::string_view output_path)
 
 BinaryWriter::~BinaryWriter() noexcept
 {
-    if (finalized_)
+    if (closed_ || reservations_.empty())
     {
         return;
     }
-    if (std::uncaught_exceptions() > 0)
-    {
-        return;
-    }
-
-    try
-    {
-        close();
-    }
-    catch (const std::exception& e)
-    {
-        gelex::error(
-            fmt::format(
-                "{}: failed to finalize, discarding output: {}",
-                file_.path().string(),
-                e.what()));
-    }
+    warn(
+        fmt::format(
+            "{}: destroyed without close(), discarding {} reserved payload(s)",
+            file_.path().string(),
+            reservations_.size()));
 }
 
 auto BinaryWriter::close() -> void
 {
-    if (finalized_)
+    if (closed_)
     {
-        return;
+        throw GelexException(
+            fmt::format("{}: writer is closed", file_.path().string()));
     }
-    finalize();
-    file_.commit();
-    finalized_ = true;
-}
 
-auto BinaryWriter::check_duplicate_path(std::string_view path) const -> void
-{
-    for (const auto& rs : reserved_)
+    for (const auto& reservation : reservations_)
     {
-        if (detail::path_as_view(rs.entry.path) == path)
+        const auto expected = detail::checked_add(
+            reservation.entry.offset, reservation.entry.size);
+        if (reservation.cursor != expected)
         {
             throw GelexException(
                 fmt::format(
-                    "{}: duplicate section path \"{}\"",
+                    "{}: payload not fully written: cursor={}, "
+                    "expected={}",
                     file_.path().string(),
-                    path));
+                    reservation.cursor,
+                    expected));
+        }
+    }
+
+    const auto directory_offset
+        = align_up(next_offset_, detail::payload_alignment);
+    file_.seek(static_cast<std::streamoff>(directory_offset));
+    for (const auto& reservation : reservations_)
+    {
+        write_payload_entry(reservation.entry);
+    }
+    write_footer(
+        directory_offset, static_cast<std::uint64_t>(reservations_.size()));
+    file_.commit();
+    closed_ = true;
+}
+
+auto BinaryWriter::check_duplicate_identifier(std::string_view identifier) const
+    -> void
+{
+    for (const auto& reservation : reservations_)
+    {
+        if (reservation.entry.info.identifier == identifier)
+        {
+            throw GelexException(
+                fmt::format(
+                    "{}: duplicate payload identifier \"{}\"",
+                    file_.path().string(),
+                    identifier));
         }
     }
 }
 
-auto BinaryWriter::reserve(
-    std::string_view path,
-    uint8_t dtype,
-    uint64_t rows,
-    uint64_t cols) -> size_t
+auto BinaryWriter::reserve_payload(
+    std::string_view identifier,
+    BinaryType type,
+    BinaryShape shape) -> std::size_t
 {
-    const auto element_size
-        = static_cast<uint64_t>(static_cast<unsigned>(dtype) >> 2U);
-    return reserve_section(path, dtype, rows, cols, rows * cols * element_size);
-}
-
-auto BinaryWriter::reserve_strings(
-    std::string_view path,
-    uint64_t rows,
-    uint64_t bytes) -> size_t
-{
-    return reserve_section(path, detail::type_string, rows, 0, bytes);
-}
-
-auto BinaryWriter::reserve_section(
-    std::string_view path,
-    uint8_t dtype,
-    uint64_t rows,
-    uint64_t cols,
-    uint64_t bytes) -> size_t
-{
-    if (path.size() > detail::max_path_length)
+    if (closed_)
+    {
+        throw GelexException(
+            fmt::format("{}: writer is closed", file_.path().string()));
+    }
+    if (identifier.empty())
     {
         throw GelexException(
             fmt::format(
-                "{}: path too long ({} > {}): \"{}\"",
-                file_.path().string(),
-                path.size(),
-                detail::max_path_length,
-                path));
+                "{}: payload identifier is empty", file_.path().string()));
     }
-
-    check_duplicate_path(path);
-
-    detail::TocEntry entry;
-    std::copy(path.begin(), path.end(), entry.path.begin());
-    entry.dtype = dtype;
-    entry.rows = rows;
-    entry.cols = cols;
-    entry.size = bytes;
-
-    const auto aligned_offset = align_up(next_offset_, detail::page_alignment);
-    entry.offset = aligned_offset;
-    next_offset_ = aligned_offset + bytes;
-
-    reserved_.push_back(
-        ReservedSection{.entry = entry, .cursor = aligned_offset});
-
-    return reserved_.size() - 1;
-}
-
-auto BinaryWriter::write_raw(
-    size_t handle,
-    const char* data,
-    std::streamsize bytes) -> void
-{
-    if (handle >= reserved_.size())
+    if (identifier.size() > std::numeric_limits<std::uint32_t>::max())
     {
         throw GelexException(
             fmt::format(
-                "{}: invalid section handle {}",
-                file_.path().string(),
-                handle));
+                "{}: payload identifier is too long", file_.path().string()));
     }
 
-    auto& rs = reserved_[handle];
-    const auto end_bound = rs.entry.offset + rs.entry.size;
-    if (rs.cursor + static_cast<uint64_t>(bytes) > end_bound)
+    check_duplicate_identifier(identifier);
+
+    const auto elements = detail::checked_product(shape[0], shape[1]);
+    const auto bytes
+        = detail::checked_product(elements, detail::binary_type_size(type));
+
+    const auto aligned_offset
+        = align_up(next_offset_, detail::payload_alignment);
+    detail::PayloadEntry entry{
+        .info
+        = PayloadInfo{.identifier = std::string{identifier}, .descriptor = PayloadDescriptor{.type = type, .shape = shape}},
+        .offset = aligned_offset,
+        .size = bytes};
+    next_offset_ = detail::checked_add(aligned_offset, bytes);
+
+    reservations_.push_back(
+        PayloadReservation{
+            .entry = std::move(entry), .cursor = aligned_offset});
+
+    return reservations_.size() - 1;
+}
+
+auto BinaryWriter::append_bytes(
+    std::size_t index,
+    BinaryType type,
+    std::span<const std::byte> bytes) -> void
+{
+    if (closed_)
+    {
+        throw GelexException(
+            fmt::format("{}: writer is closed", file_.path().string()));
+    }
+    if (index >= reservations_.size())
+    {
+        throw GelexException(
+            fmt::format(
+                "{}: invalid payload index {}", file_.path().string(), index));
+    }
+
+    if (!std::in_range<std::streamsize>(bytes.size()))
+    {
+        throw GelexException(
+            fmt::format(
+                "{}: write size is out of range", file_.path().string()));
+    }
+
+    auto& reservation = reservations_[index];
+    if (reservation.entry.info.descriptor.type != type)
+    {
+        throw GelexException(
+            fmt::format("{}: payload type mismatch", file_.path().string()));
+    }
+    const auto byte_count = static_cast<std::uint64_t>(bytes.size());
+    const auto written = reservation.cursor - reservation.entry.offset;
+    if (byte_count > reservation.entry.size - written)
     {
         throw GelexException(
             fmt::format(
                 "{}: write overflow: cursor={}, bytes={}, limit={}",
                 file_.path().string(),
-                rs.cursor,
-                bytes,
-                end_bound));
+                reservation.cursor,
+                byte_count,
+                reservation.entry.offset + reservation.entry.size));
     }
 
-    if (rs.cursor != file_cursor_)
+    if (reservation.cursor != file_cursor_)
     {
-        file_.seek(static_cast<std::streamoff>(rs.cursor));
+        file_.seek(static_cast<std::streamoff>(reservation.cursor));
     }
-    file_.write(data, bytes);
-    rs.cursor += static_cast<uint64_t>(bytes);
-    file_cursor_ = rs.cursor;
+    file_.write(
+        reinterpret_cast<const char*>(bytes.data()),
+        static_cast<std::streamsize>(bytes.size()));
+    reservation.cursor += byte_count;
+    file_cursor_ = reservation.cursor;
 }
 
-auto BinaryWriter::align_up(uint64_t value, uint64_t alignment) noexcept
-    -> uint64_t
+auto BinaryWriter::align_up(std::uint64_t value, std::uint64_t alignment)
+    -> std::uint64_t
 {
-    return (value + alignment - 1) / alignment * alignment;
+    const auto remainder = value % alignment;
+    return remainder == 0 ? value
+                          : detail::checked_add(value, alignment - remainder);
 }
 
-auto BinaryWriter::write_footer(uint64_t toc_offset, uint64_t n_sections)
+auto BinaryWriter::write_payload_entry(const detail::PayloadEntry& entry)
     -> void
 {
-    std::array<std::byte, detail::footer_size> buf{};
-    std::copy(
-        detail::binary_format_magic.begin(),
-        detail::binary_format_magic.end(),
-        buf.begin());
-    detail::encode(toc_offset, &buf[8]);
-    detail::encode(n_sections, &buf[16]);
-
+    const auto& info = entry.info;
+    write_integer(file_, static_cast<std::uint32_t>(info.identifier.size()));
     file_.write(
-        reinterpret_cast<const char*>(buf.data()),
-        static_cast<std::streamsize>(buf.size()));
+        info.identifier.data(),
+        static_cast<std::streamsize>(info.identifier.size()));
+
+    const auto encoded_type
+        = static_cast<std::byte>(std::to_underlying(info.descriptor.type));
+    file_.write(reinterpret_cast<const char*>(&encoded_type), 1);
+
+    write_integer(file_, info.descriptor.shape[0]);
+    write_integer(file_, info.descriptor.shape[1]);
+    write_integer(file_, entry.offset);
+    write_integer(file_, entry.size);
 }
 
-auto BinaryWriter::finalize() -> void
+auto BinaryWriter::write_footer(
+    std::uint64_t directory_offset,
+    std::uint64_t payload_count) -> void
 {
-    for (const auto& rs : reserved_)
-    {
-        const auto expected = rs.entry.offset + rs.entry.size;
-        if (rs.cursor != expected)
-        {
-            throw GelexException(
-                fmt::format(
-                    "{}: section not fully written: cursor={}, "
-                    "expected={}",
-                    file_.path().string(),
-                    rs.cursor,
-                    expected));
-        }
-    }
-
-    const auto toc_offset = align_up(next_offset_, detail::page_alignment);
-    file_.seek(static_cast<std::streamoff>(toc_offset));
-    for (const auto& rs : reserved_)
-    {
-        auto buf = rs.entry.to_bytes();
-        file_.write(
-            reinterpret_cast<const char*>(buf.data()),
-            static_cast<std::streamsize>(buf.size()));
-    }
-
-    write_footer(toc_offset, static_cast<uint64_t>(reserved_.size()));
+    file_.write(
+        reinterpret_cast<const char*>(detail::binary_format_magic.data()),
+        static_cast<std::streamsize>(detail::binary_format_magic.size()));
+    write_integer(file_, directory_offset);
+    write_integer(file_, payload_count);
 }
 
 }  // namespace gelex

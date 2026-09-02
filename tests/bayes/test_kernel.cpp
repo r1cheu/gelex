@@ -28,9 +28,7 @@
 #include "gelex/algo/mcmc/chain.h"
 #include "gelex/bayes/genetic/gaussian_prior.h"
 #include "gelex/bayes/genetic/gaussian_prior_state.h"
-#include "gelex/bayes/genetic/half_normal_prior.h"
 #include "gelex/bayes/genetic/independent_topology.h"
-#include "gelex/bayes/genetic/joint_topology.h"
 #include "gelex/bayes/genetic/legacy_genetic_prior.h"
 #include "gelex/bayes/genetic/parameters.h"
 #include "gelex/bayes/kernel.h"
@@ -44,7 +42,6 @@
 #include "gelex/bayes/spec.h"
 #include "gelex/bayes/state.h"
 #include "gelex/bayes/variance_budget.h"
-#include "gelex/data/genotype_method.h"
 #include "gelex/exception.h"
 #include "gelex/types/fixed_designs.h"
 #include "gelex/types/genetic_mode.h"
@@ -70,15 +67,12 @@ using FixedUnpooledSpikeSlabMethod = gelex::SpikeSlabMethod<
 using SampledScaledMixtureMethod = gelex::ScaledMixtureMethod<>;
 using FixedScaledMixtureMethod
     = gelex::ScaledMixtureMethod<gelex::UpdatePolicy::Fixed>;
-using SampledJointSpikeSlabMethod = gelex::JointSpikeSlabMethod<>;
-using FixedJointSpikeSlabMethod = gelex::JointSpikeSlabMethod<
-    gelex::UpdatePolicy::Fixed,
-    gelex::UpdatePolicy::Fixed>;
 using AdditiveGeneticPrior = gelex::IndependentTopology<
     mode_a,
     gelex::GaussianPrior<gelex::VarianceLayout::Pooled>>;
 using AdditiveDominanceGeneticPrior = gelex::IndependentTopology<
     mode_ad,
+    gelex::GaussianPrior<gelex::VarianceLayout::Pooled>,
     gelex::GaussianPrior<gelex::VarianceLayout::Pooled>>;
 using UnpooledAdditiveGeneticPrior = gelex::IndependentTopology<
     mode_a,
@@ -88,32 +82,24 @@ using PooledSpikeSlabGeneticPrior = gelex::IndependentTopology<
     gelex::SpikeSlabPrior<gelex::VarianceLayout::Pooled>>;
 using PooledSpikeSlabADGeneticPrior = gelex::IndependentTopology<
     mode_ad,
+    gelex::SpikeSlabPrior<gelex::VarianceLayout::Pooled>,
     gelex::SpikeSlabPrior<gelex::VarianceLayout::Pooled>>;
 using UnpooledSpikeSlabGeneticPrior = gelex::IndependentTopology<
     mode_a,
     gelex::SpikeSlabPrior<gelex::VarianceLayout::Unpooled>>;
-using SampledScaledMixtureGeneticPrior
-    = gelex::IndependentTopology<mode_a, gelex::ScaledMixturePrior<>>;
+using SampledScaledMixtureGeneticPrior = gelex::IndependentTopology<
+    mode_a,
+    gelex::ScaledMixturePrior<gelex::ScaledMixture::class_count>>;
 using FixedScaledMixtureGeneticPrior = gelex::IndependentTopology<
     mode_a,
-    gelex::ScaledMixturePrior<gelex::UpdatePolicy::Fixed>>;
-using SampledJointSpikeSlabGeneticPrior = gelex::JointTopology<
-    gelex::GaussianPrior<gelex::VarianceLayout::Pooled>,
-    gelex::JointSpikeSlabPrior<>>;
-using FixedJointSpikeSlabGeneticPrior = gelex::JointTopology<
-    gelex::GaussianPrior<gelex::VarianceLayout::Pooled>,
-    gelex::JointSpikeSlabPrior<
-        gelex::UpdatePolicy::Fixed,
+    gelex::ScaledMixturePrior<
+        gelex::ScaledMixture::class_count,
         gelex::UpdatePolicy::Fixed>>;
-using FixedAllocationJointSpikeSlabGeneticPrior = gelex::JointTopology<
+using HeterogeneousGeneticPrior = gelex::IndependentTopology<
+    mode_ad,
     gelex::GaussianPrior<gelex::VarianceLayout::Pooled>,
-    gelex::JointSpikeSlabPrior<
-        gelex::UpdatePolicy::Fixed,
-        gelex::UpdatePolicy::Sampled>>;
-using FixedSignJointSpikeSlabGeneticPrior = gelex::JointTopology<
-    gelex::GaussianPrior<gelex::VarianceLayout::Pooled>,
-    gelex::JointSpikeSlabPrior<
-        gelex::UpdatePolicy::Sampled,
+    gelex::SpikeSlabPrior<
+        gelex::VarianceLayout::Unpooled,
         gelex::UpdatePolicy::Fixed>>;
 
 static_assert(std::is_empty_v<
@@ -122,10 +108,10 @@ static_assert(!std::is_empty_v<
               gelex::detail::ProbabilityUpdater<gelex::UpdatePolicy::Sampled>>);
 static_assert(std::is_empty_v<gelex::detail::SimplexUpdater<
                   gelex::UpdatePolicy::Fixed,
-                  gelex::ScaledMixturePrior<>::class_count>>);
+                  gelex::ScaledMixture::class_count>>);
 static_assert(!std::is_empty_v<gelex::detail::SimplexUpdater<
                   gelex::UpdatePolicy::Sampled,
-                  gelex::ScaledMixturePrior<>::class_count>>);
+                  gelex::ScaledMixture::class_count>>);
 
 static_assert(
     std::same_as<
@@ -184,28 +170,11 @@ static_assert(
 
 static_assert(std::same_as<
               decltype(gelex::make_kernel(
-                  std::declval<const gelex::BayesPrior<
-                      SampledJointSpikeSlabGeneticPrior>&>())),
-              gelex::BayesKernel<SampledJointSpikeSlabGeneticPrior>>);
-
+                  std::declval<
+                      const gelex::BayesPrior<HeterogeneousGeneticPrior>&>())),
+              gelex::BayesKernel<HeterogeneousGeneticPrior>>);
 static_assert(
-    std::same_as<
-        decltype(gelex::make_kernel(
-            std::declval<
-                const gelex::BayesPrior<FixedJointSpikeSlabGeneticPrior>&>())),
-        gelex::BayesKernel<FixedJointSpikeSlabGeneticPrior>>);
-
-static_assert(std::same_as<
-              decltype(gelex::make_kernel(
-                  std::declval<const gelex::BayesPrior<
-                      FixedAllocationJointSpikeSlabGeneticPrior>&>())),
-              gelex::BayesKernel<FixedAllocationJointSpikeSlabGeneticPrior>>);
-
-static_assert(std::same_as<
-              decltype(gelex::make_kernel(
-                  std::declval<const gelex::BayesPrior<
-                      FixedSignJointSpikeSlabGeneticPrior>&>())),
-              gelex::BayesKernel<FixedSignJointSpikeSlabGeneticPrior>>);
+    std::is_destructible_v<gelex::BayesKernel<HeterogeneousGeneticPrior>>);
 
 auto make_model() -> gelex::BayesModel
 {
@@ -221,15 +190,6 @@ auto make_ad_model() -> gelex::BayesModel
         Eigen::MatrixXd{{0.0, 1.0}, {1.0, 1.0}, {2.0, 1.0}, {0.0, 1.0}},
         Eigen::VectorXd{{1.0, -0.5, 0.25, 2.0}},
         mode_ad);
-}
-
-auto make_joint_model() -> gelex::BayesModel
-{
-    return gelex::test::make_compact_model(
-        Eigen::MatrixXd{{0.0, 1.0}, {1.0, 1.0}, {2.0, 1.0}, {0.0, 1.0}},
-        Eigen::VectorXd{{1.0, -0.5, 0.25, 2.0}},
-        mode_ad,
-        gelex::GenotypeMethod::NOIACenter);
 }
 
 auto make_model_with_random() -> gelex::BayesModel
@@ -263,24 +223,25 @@ auto reconstruct_genetic_fitted(
     return fitted;
 }
 
-template <gelex::ComponentLayout Layout>
-auto reconstruct_component_fitted(
+auto reconstruct_scaled_mixture_fitted(
     const gelex::bayes::GeneticDesign& design,
     gelex::GeneticMode mode,
     const Eigen::VectorXd& coefficients,
     const Eigen::VectorX<std::uint8_t>& assignment) -> Eigen::MatrixXd
 {
-    Eigen::MatrixXd fitted
-        = Eigen::MatrixXd::Zero(design.rows(), Layout::component_count);
+    Eigen::MatrixXd fitted = Eigen::MatrixXd::Zero(
+        design.rows(),
+        static_cast<Eigen::Index>(gelex::ScaledMixture::class_count - 1));
     const auto& projection = design.projection(mode);
     for (Eigen::Index marker = 0; marker < coefficients.size(); ++marker)
     {
-        const int component = Layout::component_index(
-            mode, static_cast<std::size_t>(assignment(marker)));
-        if (component != Layout::no_component)
+        const auto class_index = static_cast<std::size_t>(assignment(marker));
+        if (class_index != 0)
         {
             projection.axpy(
-                marker, coefficients(marker), fitted.col(component));
+                marker,
+                coefficients(marker),
+                fitted.col(static_cast<Eigen::Index>(class_index - 1)));
         }
     }
     return fitted;
@@ -313,39 +274,6 @@ auto make_legacy_unpooled_gaussian_prior(
                 gelex::bayes::ScaledInvChiSqPrior{
                     variance.prior().degrees_of_freedom(),
                     variance.prior().scale()}}}}};
-    return gelex::bayes::GeneticPrior{std::move(genetic)};
-}
-
-auto make_legacy_joint_prior(const SampledJointSpikeSlabGeneticPrior& prior)
-    -> gelex::bayes::GeneticPrior
-{
-    const auto make_variance = [](const gelex::VarianceParameter& parameter)
-    {
-        return gelex::bayes::SharedMarkerVariance{
-            gelex::bayes::VarianceParameter{
-                parameter.initial_value(),
-                gelex::bayes::ScaledInvChiSqPrior{
-                    parameter.prior().degrees_of_freedom(),
-                    parameter.prior().scale()}}};
-    };
-    const auto& joint = prior.joint();
-    const Eigen::VectorXd probabilities
-        = Eigen::Map<const Eigen::Vector<double, 4>>{
-            joint.probabilities.initial.data()};
-    gelex::bayes::JointGeneticPrior genetic{
-        gelex::bayes::JointHalfNormalMixturePrior{
-            gelex::bayes::JointSharedMarkerVariance{std::array{
-                make_variance(
-                    prior.mode_values().get<gelex::GeneticMode::A>().variance),
-                make_variance(prior.mode_values()
-                                  .get<gelex::GeneticMode::D>()
-                                  .variance)}},
-            gelex::bayes::MixtureProportion{gelex::bayes::SimplexParameter{
-                probabilities,
-                gelex::bayes::DirichletPrior{Eigen::VectorXd::Ones(4)}}},
-            gelex::bayes::ProbabilityParameter{
-                joint.positive_probability.initial,
-                gelex::bayes::BetaPrior{1.0, 1.0}}}};
     return gelex::bayes::GeneticPrior{std::move(genetic)};
 }
 
@@ -388,7 +316,7 @@ TEST_CASE(
     const Eigen::VectorXd fixed_fitted
         = model.fixed().X * state.fixed().coefficients;
 
-    REQUIRE(genetic.component_fitted_values.col(0).isApprox(reconstructed));
+    REQUIRE(genetic.family_state.fitted_values.isApprox(reconstructed));
     REQUIRE((state.residual().adjusted_response + fixed_fitted + reconstructed)
                 .isApprox(model.phenotype()));
     REQUIRE(genetic.coefficients(1) == 0.0);
@@ -419,9 +347,8 @@ TEST_CASE(
     const Eigen::VectorXd fixed_fitted
         = model.fixed().X * state.fixed().coefficients;
 
-    REQUIRE(additive.component_fitted_values.col(0).isApprox(additive_fitted));
-    REQUIRE(
-        dominance.component_fitted_values.col(0).isApprox(dominance_fitted));
+    REQUIRE(additive.family_state.fitted_values.isApprox(additive_fitted));
+    REQUIRE(dominance.family_state.fitted_values.isApprox(dominance_fitted));
     REQUIRE((state.residual().adjusted_response + fixed_fitted + additive_fitted
              + dominance_fitted)
                 .isApprox(model.phenotype()));
@@ -453,7 +380,7 @@ TEST_CASE(
     const Eigen::VectorXd fixed_fitted
         = model.fixed().X * state.fixed().coefficients;
 
-    REQUIRE(genetic.component_fitted_values.col(0).isApprox(reconstructed));
+    REQUIRE(genetic.family_state.fitted_values.isApprox(reconstructed));
     REQUIRE((state.residual().adjusted_response + fixed_fitted + reconstructed)
                 .isApprox(model.phenotype()));
     REQUIRE(genetic.coefficients(1) == 0.0);
@@ -550,9 +477,9 @@ TEST_CASE(
     REQUIRE(state.fixed().coefficients.isApprox(legacy_state.fixed().coeffs));
     REQUIRE(additive.coefficients.isApprox(legacy_additive.state().coeffs));
     REQUIRE(dominance.coefficients.isApprox(legacy_dominance.state().coeffs));
-    REQUIRE(additive.component_fitted_values.col(0).isApprox(
+    REQUIRE(additive.family_state.fitted_values.isApprox(
         legacy_additive.state().u));
-    REQUIRE(dominance.component_fitted_values.col(0).isApprox(
+    REQUIRE(dominance.family_state.fitted_values.isApprox(
         legacy_dominance.state().u));
     REQUIRE(state.residual().adjusted_response.isApprox(
         legacy_state.residual().y_adj));
@@ -601,8 +528,8 @@ TEST_CASE(
 
     REQUIRE(state.fixed().coefficients.isApprox(legacy_state.fixed().coeffs));
     REQUIRE(genetic.coefficients.isApprox(legacy_block.state().coeffs));
-    REQUIRE(genetic.component_fitted_values.col(0).isApprox(
-        legacy_block.state().u));
+    REQUIRE(
+        genetic.family_state.fitted_values.isApprox(legacy_block.state().u));
     REQUIRE(state.residual().adjusted_response.isApprox(
         legacy_state.residual().y_adj));
     REQUIRE(genetic.family_state.variance.isApprox(legacy_family.variance()));
@@ -720,7 +647,7 @@ TEST_CASE(
     const auto prior = gelex::compile(
         gelex::BayesRecipe<PooledSpikeSlabMethod, mode_a>{
             gelex::IndependentTopology<mode_a, gelex::SpikeSlab>{
-                gelex::SpikeSlab{.probability = 0.5}},
+                gelex::SpikeSlab{0.5}},
             gelex::VarianceBudget{{.additive = 0.4}}},
         model);
     auto state = gelex::make_state(prior, model);
@@ -736,7 +663,7 @@ TEST_CASE(
     const Eigen::VectorXd fixed_fitted
         = model.fixed().X * state.fixed().coefficients;
 
-    REQUIRE(genetic.component_fitted_values.col(0).isApprox(reconstructed));
+    REQUIRE(genetic.family_state.fitted_values.isApprox(reconstructed));
     REQUIRE((state.residual().adjusted_response + fixed_fitted + reconstructed)
                 .isApprox(model.phenotype()));
     REQUIRE(family.assignment.size() == model.genetic().cols());
@@ -763,9 +690,10 @@ TEST_CASE(
     const auto model = make_ad_model();
     const auto prior = gelex::compile(
         gelex::BayesRecipe<PooledSpikeSlabMethod, mode_ad>{
-            gelex::IndependentTopology<mode_ad, gelex::SpikeSlab>{
-                gelex::SpikeSlab{.probability = 0.5},
-                gelex::SpikeSlab{.probability = 0.5}},
+            gelex::IndependentTopology<
+                mode_ad,
+                gelex::SpikeSlab,
+                gelex::SpikeSlab>{gelex::SpikeSlab{0.5}, gelex::SpikeSlab{0.5}},
             gelex::VarianceBudget{{.additive = 0.4, .dominance = 0.1}}},
         model);
     auto state = gelex::make_state(prior, model);
@@ -783,9 +711,8 @@ TEST_CASE(
     const Eigen::VectorXd fixed_fitted
         = model.fixed().X * state.fixed().coefficients;
 
-    REQUIRE(additive.component_fitted_values.col(0).isApprox(additive_fitted));
-    REQUIRE(
-        dominance.component_fitted_values.col(0).isApprox(dominance_fitted));
+    REQUIRE(additive.family_state.fitted_values.isApprox(additive_fitted));
+    REQUIRE(dominance.family_state.fitted_values.isApprox(dominance_fitted));
     REQUIRE((state.residual().adjusted_response + fixed_fitted + additive_fitted
              + dominance_fitted)
                 .isApprox(model.phenotype()));
@@ -812,7 +739,7 @@ TEST_CASE(
     const auto prior = gelex::compile(
         gelex::BayesRecipe<FixedUnpooledSpikeSlabMethod, mode_a>{
             gelex::IndependentTopology<mode_a, gelex::SpikeSlab>{
-                gelex::SpikeSlab{.probability = fixed_probability}},
+                gelex::SpikeSlab{fixed_probability}},
             gelex::VarianceBudget{{.additive = 0.4}}},
         model);
     auto state = gelex::make_state(prior, model);
@@ -831,7 +758,7 @@ TEST_CASE(
 
     REQUIRE(genetic.coefficients.isZero());
     REQUIRE(family.assignment.isZero());
-    REQUIRE(genetic.component_fitted_values.col(0).isZero());
+    REQUIRE(genetic.family_state.fitted_values.isZero());
     REQUIRE((state.residual().adjusted_response + fixed_fitted)
                 .isApprox(model.phenotype()));
     REQUIRE((family.variance.array() > 0.0).all());
@@ -849,7 +776,7 @@ TEST_CASE(
     const auto prior = gelex::compile(
         gelex::BayesRecipe<SampledScaledMixtureMethod, mode_a>{
             gelex::IndependentTopology<mode_a, gelex::ScaledMixture>{
-                gelex::ScaledMixture{.probabilities = probabilities}},
+                gelex::ScaledMixture{probabilities}},
             gelex::VarianceBudget{{.additive = 0.4}}},
         model);
     auto state = gelex::make_state(prior, model);
@@ -862,8 +789,7 @@ TEST_CASE(
     const auto& family = genetic.family_state;
     const auto fitted = reconstruct_genetic_fitted(
         model.genetic(), gelex::GeneticMode::A, genetic.coefficients);
-    const auto component_fitted = reconstruct_component_fitted<
-        gelex::ScaledMixturePrior<>::component_layout>(
+    const auto component_fitted = reconstruct_scaled_mixture_fitted(
         model.genetic(),
         gelex::GeneticMode::A,
         genetic.coefficients,
@@ -872,14 +798,12 @@ TEST_CASE(
         = model.fixed().X * state.fixed().coefficients;
     REQUIRE((state.residual().adjusted_response + fixed_fitted + fitted)
                 .isApprox(model.phenotype()));
-    REQUIRE(genetic.component_fitted_values.isApprox(component_fitted));
+    REQUIRE(family.fitted_values.isApprox(component_fitted));
     REQUIRE(family.assignment(1) == 0);
     REQUIRE(genetic.coefficients(1) == 0.0);
     for (Eigen::Index marker = 0; marker < family.assignment.size(); ++marker)
     {
-        REQUIRE(
-            family.assignment(marker)
-            < gelex::ScaledMixturePrior<>::class_count);
+        REQUIRE(family.assignment(marker) < gelex::ScaledMixture::class_count);
         if (family.assignment(marker) == 0)
         {
             REQUIRE(genetic.coefficients(marker) == 0.0);
@@ -906,7 +830,7 @@ TEST_CASE(
     const auto prior = gelex::compile(
         gelex::BayesRecipe<FixedScaledMixtureMethod, mode_a>{
             gelex::IndependentTopology<mode_a, gelex::ScaledMixture>{
-                gelex::ScaledMixture{.probabilities = probabilities}},
+                gelex::ScaledMixture{probabilities}},
             gelex::VarianceBudget{{.additive = 0.4}}},
         model);
     auto state = gelex::make_state(prior, model);
@@ -919,8 +843,7 @@ TEST_CASE(
     const auto& family = genetic.family_state;
     const auto reconstructed = reconstruct_genetic_fitted(
         model.genetic(), gelex::GeneticMode::A, genetic.coefficients);
-    const auto component_fitted = reconstruct_component_fitted<
-        gelex::ScaledMixturePrior<>::component_layout>(
+    const auto component_fitted = reconstruct_scaled_mixture_fitted(
         model.genetic(),
         gelex::GeneticMode::A,
         genetic.coefficients,
@@ -929,221 +852,8 @@ TEST_CASE(
         = model.fixed().X * state.fixed().coefficients;
 
     REQUIRE(family.probabilities == probabilities);
-    REQUIRE(genetic.component_fitted_values.isApprox(component_fitted));
+    REQUIRE(family.fitted_values.isApprox(component_fitted));
     REQUIRE((state.residual().adjusted_response + fixed_fitted + reconstructed)
                 .isApprox(model.phenotype()));
     REQUIRE(family.variance > 0.0);
-}
-
-TEST_CASE(
-    "joint spike-slab kernel preserves blocked-state invariants",
-    "[bayes][kernel]")
-{
-    const auto model = make_joint_model();
-    constexpr std::array probabilities{0.25, 0.25, 0.25, 0.25};
-    constexpr double positive_probability = 0.6;
-    const auto prior = gelex::compile(
-        gelex::BayesRecipe<SampledJointSpikeSlabMethod, mode_ad>{
-            gelex::JointSpikeSlab{
-                .probabilities = probabilities,
-                .positive_probability = positive_probability},
-            gelex::VarianceBudget{{.additive = 0.4, .dominance = 0.1}}},
-        model);
-    auto state = gelex::make_state(prior, model);
-    auto kernel = gelex::make_kernel(prior);
-    std::mt19937_64 rng{123};
-
-    REQUIRE(
-        model.genetic()
-            .projection(gelex::GeneticMode::A)
-            .col_covariance(model.genetic().projection(gelex::GeneticMode::D))
-            .isZero(1.0e-12));
-
-    kernel.step(model, state, rng);
-
-    const auto& mode_states = state.genetic().mode_values();
-    const auto& additive = mode_states.get<gelex::GeneticMode::A>();
-    const auto& dominance = mode_states.get<gelex::GeneticMode::D>();
-    const auto& joint = state.genetic().joint();
-    const auto additive_fitted = reconstruct_genetic_fitted(
-        model.genetic(), gelex::GeneticMode::A, additive.coefficients);
-    const auto dominance_fitted = reconstruct_genetic_fitted(
-        model.genetic(), gelex::GeneticMode::D, dominance.coefficients);
-    const auto additive_component_fitted = reconstruct_component_fitted<
-        gelex::JointSpikeSlabPrior<>::component_layout>(
-        model.genetic(),
-        gelex::GeneticMode::A,
-        additive.coefficients,
-        joint.assignment);
-    const auto dominance_component_fitted = reconstruct_component_fitted<
-        gelex::JointSpikeSlabPrior<>::component_layout>(
-        model.genetic(),
-        gelex::GeneticMode::D,
-        dominance.coefficients,
-        joint.assignment);
-    const Eigen::VectorXd fixed_fitted
-        = model.fixed().X * state.fixed().coefficients;
-
-    REQUIRE((state.residual().adjusted_response + fixed_fitted + additive_fitted
-             + dominance_fitted)
-                .isApprox(model.phenotype()));
-    REQUIRE(
-        additive.component_fitted_values.isApprox(additive_component_fitted));
-    REQUIRE(
-        dominance.component_fitted_values.isApprox(dominance_component_fitted));
-    for (Eigen::Index marker = 0; marker < joint.assignment.size(); ++marker)
-    {
-        const auto class_index = joint.assignment(marker);
-        REQUIRE(class_index < gelex::JointSpikeSlabPrior<>::class_count);
-        const bool additive_active = class_index == 1 || class_index == 3;
-        const bool dominance_active = class_index == 2 || class_index == 3;
-        if (!additive_active)
-        {
-            REQUIRE(additive.coefficients(marker) == 0.0);
-        }
-        if (dominance_active)
-        {
-            REQUIRE(
-                (dominance.coefficients(marker) > 0.0)
-                == (joint.dominance_sign(marker) == 1));
-        }
-        else
-        {
-            REQUIRE(dominance.coefficients(marker) == 0.0);
-            REQUIRE(joint.dominance_sign(marker) == 0);
-        }
-    }
-    REQUIRE(joint.assignment(1) == 0);
-    REQUIRE(additive.coefficients(1) == 0.0);
-    REQUIRE(dominance.coefficients(1) == 0.0);
-    REQUIRE(additive.family_state.variance > 0.0);
-    REQUIRE(dominance.family_state.variance > 0.0);
-
-    double probability_sum = 0.0;
-    for (const double probability : joint.probabilities)
-    {
-        REQUIRE(probability > 0.0);
-        probability_sum += probability;
-    }
-    REQUIRE(probability_sum == Approx(1.0));
-    REQUIRE(joint.probabilities != probabilities);
-    REQUIRE(joint.positive_probability > 0.0);
-    REQUIRE(joint.positive_probability < 1.0);
-    REQUIRE(joint.positive_probability != positive_probability);
-}
-
-TEST_CASE(
-    "fixed joint spike-slab kernel omits probability updates",
-    "[bayes][kernel]")
-{
-    const auto model = make_joint_model();
-    constexpr std::array probabilities{0.1, 0.2, 0.3, 0.4};
-    constexpr double positive_probability = 0.75;
-    const auto prior = gelex::compile(
-        gelex::BayesRecipe<FixedJointSpikeSlabMethod, mode_ad>{
-            gelex::JointSpikeSlab{
-                .probabilities = probabilities,
-                .positive_probability = positive_probability},
-            gelex::VarianceBudget{{.additive = 0.4, .dominance = 0.1}}},
-        model);
-    auto state = gelex::make_state(prior, model);
-    auto kernel = gelex::make_kernel(prior);
-    std::mt19937_64 rng{123};
-
-    kernel.step(model, state, rng);
-
-    const auto& mode_states = state.genetic().mode_values();
-    const auto& additive = mode_states.get<gelex::GeneticMode::A>();
-    const auto& dominance = mode_states.get<gelex::GeneticMode::D>();
-    const auto& joint = state.genetic().joint();
-    const auto additive_fitted = reconstruct_genetic_fitted(
-        model.genetic(), gelex::GeneticMode::A, additive.coefficients);
-    const auto dominance_fitted = reconstruct_genetic_fitted(
-        model.genetic(), gelex::GeneticMode::D, dominance.coefficients);
-    const Eigen::VectorXd fixed_fitted
-        = model.fixed().X * state.fixed().coefficients;
-
-    REQUIRE(joint.probabilities == probabilities);
-    REQUIRE(joint.positive_probability == positive_probability);
-    REQUIRE((state.residual().adjusted_response + fixed_fitted + additive_fitted
-             + dominance_fitted)
-                .isApprox(model.phenotype()));
-    REQUIRE(additive.family_state.variance > 0.0);
-    REQUIRE(dominance.family_state.variance > 0.0);
-}
-
-TEST_CASE(
-    "joint spike-slab kernel matches the NOIA legacy transition under a fixed "
-    "seed",
-    "[bayes][kernel]")
-{
-    constexpr std::array probabilities{0.25, 0.25, 0.25, 0.25};
-    constexpr double positive_probability = 0.6;
-    const auto model = make_joint_model();
-    const auto prior = gelex::compile(
-        gelex::BayesRecipe<SampledJointSpikeSlabMethod, mode_ad>{
-            gelex::JointSpikeSlab{
-                .probabilities = probabilities,
-                .positive_probability = positive_probability},
-            gelex::VarianceBudget{{.additive = 0.4, .dominance = 0.1}}},
-        model);
-    auto state = gelex::make_state(prior, model);
-    auto kernel = gelex::make_kernel(prior);
-
-    const auto legacy_model = make_joint_model();
-    const auto legacy_prior
-        = make_legacy_prior(prior, {make_legacy_joint_prior(prior.genetic())});
-    auto legacy_state = gelex::LegacyBayesState{legacy_model, legacy_prior};
-    std::mt19937_64 rng{123};
-    std::mt19937_64 legacy_rng{123};
-
-    kernel.step(model, state, rng);
-    auto legacy_kernel = gelex::Chain::make(
-        legacy_model, legacy_prior, legacy_state, legacy_rng);
-    legacy_kernel.step();
-
-    const auto& mode_states = state.genetic().mode_values();
-    const auto& additive = mode_states.get<gelex::GeneticMode::A>();
-    const auto& dominance = mode_states.get<gelex::GeneticMode::D>();
-    const auto& joint = state.genetic().joint();
-    const auto& legacy_block = std::get<gelex::bayes::JointGeneticBlockState>(
-        legacy_state.genetics().front());
-    const auto& legacy_joint
-        = std::get<gelex::bayes::JointHalfNormalMixtureState>(
-            legacy_block.prior_state());
-
-    REQUIRE(state.fixed().coefficients.isApprox(legacy_state.fixed().coeffs));
-    REQUIRE(additive.coefficients.isApprox(
-        legacy_block.state(gelex::GeneticMode::A).coeffs));
-    REQUIRE(dominance.coefficients.isApprox(
-        legacy_block.state(gelex::GeneticMode::D).coeffs));
-    REQUIRE(state.residual().adjusted_response.isApprox(
-        legacy_state.residual().y_adj));
-    REQUIRE(
-        additive.family_state.variance
-        == Approx(legacy_joint.variance(gelex::GeneticMode::A)));
-    REQUIRE(
-        dominance.family_state.variance
-        == Approx(legacy_joint.variance(gelex::GeneticMode::D)));
-    REQUIRE(
-        state.residual().variance == Approx(legacy_state.residual().variance));
-    REQUIRE(
-        joint.positive_probability
-        == Approx(legacy_joint.dominance_sign().positive_probability));
-    for (Eigen::Index marker = 0; marker < joint.assignment.size(); ++marker)
-    {
-        REQUIRE(joint.assignment(marker) == legacy_joint.assignment()(marker));
-        REQUIRE(
-            joint.dominance_sign(marker)
-            == legacy_joint.dominance_sign().sign(marker));
-    }
-    for (std::size_t class_index = 0; class_index < probabilities.size();
-         ++class_index)
-    {
-        REQUIRE(
-            joint.probabilities.at(class_index)
-            == Approx(legacy_joint.proportion()(
-                static_cast<Eigen::Index>(class_index))));
-    }
-    REQUIRE(rng == legacy_rng);
 }

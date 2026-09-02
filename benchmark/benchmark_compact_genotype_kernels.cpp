@@ -1249,3 +1249,95 @@ TEST_CASE(
     }
 #endif
 }
+
+TEST_CASE(
+    "multi-target compact genotype axpy",
+    "[!benchmark][mcmc][compact_genotype][multi_target]")
+{
+    if (!gelex::bayes::detail::supports_avx2())
+    {
+        SKIP("AVX2 and FMA are required");
+    }
+
+    constexpr std::array<Shape, 5> shapes{{
+        {.samples = 2048, .markers = 4096},
+        {.samples = 5000, .markers = 1600},
+        {.samples = 10000, .markers = 800},
+        {.samples = 20000, .markers = 400},
+        {.samples = 50000, .markers = 160},
+    }};
+    constexpr std::array scales{0.125, -0.75, 1.5};
+
+    for (const auto [samples, markers] : shapes)
+    {
+        const CompactGenotypeFixture fixture{samples, markers};
+        std::array<Eigen::VectorXd, scales.size()> repeated_targets{
+            Eigen::VectorXd::Zero(samples),
+            Eigen::VectorXd::Zero(samples),
+            Eigen::VectorXd::Zero(samples)};
+        std::array<Eigen::VectorXd, scales.size()> fused_targets{
+            Eigen::VectorXd::Zero(samples),
+            Eigen::VectorXd::Zero(samples),
+            Eigen::VectorXd::Zero(samples)};
+        std::array<gelex::bayes::AxpyTarget, scales.size()> axpy_targets;
+        for (std::size_t index = 0; index < scales.size(); ++index)
+        {
+            axpy_targets.at(index) = gelex::bayes::AxpyTarget{
+                scales.at(index), fused_targets.at(index)};
+        }
+
+        const double updated_values = static_cast<double>(samples)
+                                      * static_cast<double>(markers)
+                                      * static_cast<double>(scales.size());
+        ankerl::nanobench::Bench bench;
+        bench
+            .title(
+                "three-target axpy: n=" + std::to_string(samples)
+                + ", p=" + std::to_string(markers))
+            .unit("value")
+            .batch(updated_values)
+            .relative(true)
+            .epochs(9)
+            .warmup(1)
+            .minEpochIterations(1)
+            .minEpochTime(std::chrono::milliseconds{50});
+
+        bench.run(
+            "three single-target AVX2 passes",
+            [&]
+            {
+                for (Eigen::Index marker = 0; marker < markers; ++marker)
+                {
+                    for (std::size_t target = 0; target < scales.size();
+                         ++target)
+                    {
+                        gelex::bayes::detail::axpy_avx2(
+                            fixture.uint8_column(marker),
+                            fixture.luts.at(static_cast<std::size_t>(marker))
+                                .data(),
+                            scales.at(target),
+                            repeated_targets.at(target).data(),
+                            static_cast<std::size_t>(samples));
+                    }
+                }
+                ankerl::nanobench::doNotOptimizeAway(
+                    repeated_targets.front().data());
+            });
+        bench.run(
+            "one multi-target AVX2 pass",
+            [&]
+            {
+                for (Eigen::Index marker = 0; marker < markers; ++marker)
+                {
+                    gelex::bayes::detail::axpy_multi_target_avx2(
+                        fixture.uint8_column(marker),
+                        fixture.luts.at(static_cast<std::size_t>(marker))
+                            .data(),
+                        axpy_targets,
+                        static_cast<std::size_t>(samples));
+                }
+                ankerl::nanobench::doNotOptimizeAway(
+                    fused_targets.front().data());
+            });
+    }
+}

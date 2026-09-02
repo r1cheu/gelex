@@ -22,6 +22,7 @@
 
 #include "gelex/bayes/builtin_recipe.h"
 #include "gelex/bayes/genetic/independent_topology.h"
+#include "gelex/bayes/genetic/joint_topology.h"
 #include "gelex/bayes/recipe.h"
 #include "gelex/bayes/semantic_method.h"
 #include "gelex/bayes/spec.h"
@@ -33,6 +34,7 @@ using Catch::Matchers::ContainsSubstring;
 using gelex::BayesMethod;
 using gelex::BayesRecipe;
 using gelex::BuiltinBayesRecipe;
+using gelex::Gaussian;
 using gelex::GaussianMethod;
 using gelex::GelexException;
 using gelex::GeneticMode;
@@ -40,7 +42,6 @@ using gelex::GeneticModeSet;
 using gelex::IndependentTopology;
 using gelex::JointSpikeSlab;
 using gelex::JointSpikeSlabMethod;
-using gelex::NoParameters;
 using gelex::ScaledMixture;
 using gelex::ScaledMixtureMethod;
 using gelex::SpikeSlab;
@@ -56,8 +57,15 @@ constexpr auto mode_a = GeneticModeSet{GeneticMode::A};
 constexpr auto mode_ad = GeneticMode::A | GeneticMode::D;
 
 using SpikeSlabA = IndependentTopology<mode_a, SpikeSlab>;
-using SpikeSlabAD = IndependentTopology<mode_ad, SpikeSlab>;
-using ScaledMixtureAD = IndependentTopology<mode_ad, ScaledMixture>;
+using SpikeSlabAD = IndependentTopology<mode_ad, SpikeSlab, SpikeSlab>;
+using ScaledMixtureAD
+    = IndependentTopology<mode_ad, ScaledMixture, ScaledMixture>;
+using JointSpikeSlabAD = gelex::JointTopology<
+    IndependentTopology<
+        mode_ad,
+        Gaussian,
+        gelex::HalfNormal<gelex::HalfNormalAsymmetry::Count>>,
+    JointSpikeSlab>;
 using PooledGaussianMethod = GaussianMethod<VarianceLayout::Pooled>;
 using UnpooledGaussianMethod = GaussianMethod<VarianceLayout::Unpooled>;
 using PooledSpikeSlabMethod = SpikeSlabMethod<VarianceLayout::Pooled>;
@@ -66,8 +74,9 @@ using FixedPooledSpikeSlabMethod
     = SpikeSlabMethod<VarianceLayout::Pooled, UpdatePolicy::Fixed>;
 using DefaultScaledMixtureMethod = ScaledMixtureMethod<>;
 using DefaultJointSpikeSlabMethod = JointSpikeSlabMethod<>;
-
-const auto BUDGET_AD = VarianceBudget{{.additive = 0.5, .dominance = 0.2}};
+using MagnitudeJointSpikeSlabMethod = JointSpikeSlabMethod<
+    UpdatePolicy::Sampled,
+    gelex::HalfNormalAsymmetry::Magnitude>;
 
 template <typename Method, GeneticModeSet Modes>
 concept RecipeExists = requires { typename BayesRecipe<Method, Modes>; };
@@ -106,19 +115,19 @@ static_assert(!std::same_as<
               BayesRecipe<PooledSpikeSlabMethod, mode_ad>>);
 
 // RR and A have no structural parameters: their prior shape is fixed by the
-// data alone. NoParameters says so at the type level and costs no storage.
+// data alone. Gaussian says so at the type level and costs no storage.
 static_assert(
     std::same_as<
         std::remove_cvref_t<
             decltype(BayesRecipe<PooledGaussianMethod, mode_ad>::defaults()
                          .parameters())>,
-        NoParameters>);
+        Gaussian>);
 static_assert(
     std::same_as<
         std::remove_cvref_t<
             decltype(BayesRecipe<UnpooledGaussianMethod, mode_ad>::defaults()
                          .parameters())>,
-        NoParameters>);
+        Gaussian>);
 static_assert(
     sizeof(BayesRecipe<PooledGaussianMethod, mode_ad>)
     == sizeof(VarianceBudget));
@@ -148,7 +157,7 @@ static_assert(std::constructible_from<
               VarianceBudget>);
 static_assert(std::constructible_from<
               BayesRecipe<DefaultJointSpikeSlabMethod, mode_ad>,
-              JointSpikeSlab,
+              JointSpikeSlabAD,
               VarianceBudget>);
 
 // CD is a joint allocation across A and D, so it has no single-mode form.
@@ -184,6 +193,7 @@ auto message_of(auto&& construct) -> std::string
 
 TEST_CASE("BayesRecipe accepts a well-formed input", "[bayes][recipe]")
 {
+    const auto defaults = ScaledMixture{};
     const auto recipe = BayesRecipe<DefaultScaledMixtureMethod, mode_ad>{
         ScaledMixtureAD{ScaledMixture{}, ScaledMixture{}},
         VarianceBudget{{.additive = 0.4, .dominance = 0.05, .random = 0.05}},
@@ -192,42 +202,20 @@ TEST_CASE("BayesRecipe accepts a well-formed input", "[bayes][recipe]")
     REQUIRE(recipe.variance().share(GeneticMode::A) == 0.4);
     REQUIRE(recipe.variance().random() == 0.05);
     REQUIRE(
-        recipe.parameters().get<GeneticMode::D>().scales
-        == ScaledMixture{}.scales);
+        recipe.parameters().get<GeneticMode::D>().scales()
+        == defaults.scales());
 }
 
-TEST_CASE("BayesRecipe validates its inputs on construction", "[bayes][recipe]")
+TEST_CASE("BayesRecipe validates its variance budget", "[bayes][recipe]")
 {
-    SECTION("the method parameters are checked")
-    {
-        const auto message = message_of(
-            []
-            {
-                return BayesRecipe<UnpooledSpikeSlabMethod, mode_ad>{
-                    SpikeSlabAD{
-                        SpikeSlab{.probability = 1.5},
-                        SpikeSlab{},
-                    },
-                    BUDGET_AD,
-                };
-            });
+    const auto message = message_of(
+        []
+        {
+            return BayesRecipe<PooledGaussianMethod, mode_a>{
+                VarianceBudget{{.additive = 0.5, .dominance = 0.2}}};
+        });
 
-        REQUIRE_THAT(
-            message, ContainsSubstring("A inclusion probability must lie"));
-    }
-
-    SECTION("the variance budget is checked against the recipe's own modes")
-    {
-        const auto message = message_of(
-            []
-            {
-                return BayesRecipe<PooledGaussianMethod, mode_a>{
-                    VarianceBudget{{.additive = 0.5, .dominance = 0.2}}};
-            });
-
-        REQUIRE_THAT(
-            message, ContainsSubstring("D variance share must be zero"));
-    }
+    REQUIRE_THAT(message, ContainsSubstring("D variance share must be zero"));
 }
 
 TEST_CASE("BayesRecipe::defaults fills in the mode defaults", "[bayes][recipe]")
@@ -241,19 +229,33 @@ TEST_CASE("BayesRecipe::defaults fills in the mode defaults", "[bayes][recipe]")
 
     const auto both
         = BayesRecipe<DefaultScaledMixtureMethod, mode_ad>::defaults();
+    const auto defaults = ScaledMixture{};
 
     REQUIRE(both.variance().share(GeneticMode::D) == 0.2);
     REQUIRE(
-        both.parameters().get<GeneticMode::A>().probabilities
-        == ScaledMixture{}.probabilities);
+        both.parameters().get<GeneticMode::A>().probabilities()
+        == defaults.probabilities());
 }
 
 TEST_CASE("BayesRecipe::defaults covers every joint default", "[bayes][recipe]")
 {
     const auto recipe
         = BayesRecipe<DefaultJointSpikeSlabMethod, mode_ad>::defaults();
+    const auto defaults = JointSpikeSlab{};
 
     REQUIRE(
-        recipe.parameters().positive_probability
-        == JointSpikeSlab{}.positive_probability);
+        recipe.parameters().joint().probabilities()
+        == defaults.probabilities());
+    REQUIRE(
+        recipe.parameters()
+            .mode_values()
+            .get<GeneticMode::D>()
+            .positive_probability()
+        == 0.5);
+
+    const auto magnitude_recipe
+        = BayesRecipe<MagnitudeJointSpikeSlabMethod, mode_ad>::defaults();
+    REQUIRE(
+        magnitude_recipe.parameters().joint().probabilities()
+        == defaults.probabilities());
 }

@@ -23,8 +23,6 @@
 #include <cstdint>
 #include <limits>
 
-#include "gelex/bayes/genetic/component_layout.h"
-#include "gelex/bayes/genetic/prior.h"
 #include "gelex/bayes/semantic_method.h"
 
 namespace gelex
@@ -57,6 +55,27 @@ template <VarianceLayout Kind>
 struct GaussianState
 {
     detail::marker_variance_state_t<Kind> variance{};
+    Eigen::VectorXd fitted_values;  // total
+};
+
+template <HalfNormalAsymmetry Axis>
+struct HalfNormalState;
+
+template <>
+struct HalfNormalState<HalfNormalAsymmetry::Count>
+{
+    double variance{};
+    Eigen::VectorX<std::uint8_t> assignment;
+    double positive_probability{};
+    Eigen::VectorXd fitted_values;  // total
+};
+
+template <>
+struct HalfNormalState<HalfNormalAsymmetry::Magnitude>
+{
+    std::array<double, 2> variances{};  // neg, pos
+    Eigen::VectorX<std::uint8_t> assignment;
+    Eigen::VectorXd fitted_values;  // total
 };
 
 template <VarianceLayout Kind>
@@ -65,40 +84,48 @@ struct SpikeSlabState
     detail::marker_variance_state_t<Kind> variance{};
     Eigen::VectorX<std::uint8_t> assignment;
     double probability{};
+    Eigen::VectorXd fitted_values;  // total
 };
 
+template <std::size_t ClassCount>
+    requires(
+        ClassCount > 1
+        && ClassCount <= static_cast<std::size_t>(
+                             std::numeric_limits<std::uint8_t>::max())
+                             + 1)
 struct ScaledMixtureState
 {
+    static constexpr std::size_t class_count = ClassCount;
+    static constexpr std::size_t component_count = class_count - 1;
+
     double variance{};
     Eigen::VectorX<std::uint8_t> assignment;
-    std::array<double, ScaledMixturePrior<>::class_count> probabilities{};
+    std::array<double, class_count> probabilities{};
+    Eigen::Matrix<double, Eigen::Dynamic, static_cast<int>(component_count)>
+        fitted_values;
 };
 
+template <std::size_t ClassCount>
+    requires(
+        ClassCount > 1
+        && ClassCount <= static_cast<std::size_t>(
+                             std::numeric_limits<std::uint8_t>::max())
+                             + 1)
 struct JointSpikeSlabState
 {
-    Eigen::VectorX<std::uint8_t> assignment;
-    std::array<double, JointSpikeSlabPrior<>::class_count> probabilities{};
+    static constexpr std::size_t class_count = ClassCount;
+    static constexpr std::size_t component_count = class_count - 1;
 
-    Eigen::VectorX<std::uint8_t> dominance_sign;
-    double positive_probability{};
+    Eigen::VectorX<std::uint8_t> assignment;
+    std::array<double, class_count> probabilities{};
+    Eigen::Matrix<double, Eigen::Dynamic, static_cast<int>(component_count)>
+        fitted_values;
 };
 
-template <typename FamilyState, ComponentLayout Layout>
+template <typename FamilyState>
 struct GeneticModeState
 {
-    static_assert(
-        Layout::class_count
-        <= static_cast<std::size_t>(std::numeric_limits<std::uint8_t>::max())
-               + 1);
-
-    using component_layout = Layout;
-    using ComponentFittedMatrix = Eigen::Matrix<
-        double,
-        Eigen::Dynamic,
-        static_cast<int>(Layout::component_count)>;
-
     Eigen::VectorXd coefficients;
-    ComponentFittedMatrix component_fitted_values;
     FamilyState family_state;
 };
 

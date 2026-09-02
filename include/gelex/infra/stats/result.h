@@ -22,6 +22,18 @@
 namespace gelex
 {
 
+struct ScalarRunningStatsResult
+{
+    double mean{0.0};
+    double stddev{0.0};
+};
+
+struct VectorRunningStatsResult
+{
+    Eigen::VectorXd mean;
+    Eigen::VectorXd stddev;
+};
+
 struct RunningStatsResult
 {
     Eigen::VectorXd mean;

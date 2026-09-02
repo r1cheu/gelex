@@ -33,20 +33,26 @@
 namespace gelex::detail
 {
 
-template <GeneticModeSet Modes, typename ModePrior>
+template <GeneticModeSet Modes, typename... ModePriors>
 class IndependentKernel
 {
-    using GeneticPrior = IndependentTopology<Modes, ModePrior>;
+    using GeneticPrior = IndependentTopology<Modes, ModePriors...>;
     using GeneticState = genetic_state_t<GeneticPrior>;
-    using ModeKernel
-        = decltype(make_mode_kernel(std::declval<const ModePrior&>()));
+
+    static auto make_mode_kernels(const GeneticPrior& prior)
+    {
+        return transform_mode_values(
+            prior,
+            []<GeneticMode /*Mode*/>(const auto& mode_prior)
+            { return make_mode_kernel(mode_prior); });
+    }
+
+    using ModeKernels
+        = decltype(make_mode_kernels(std::declval<const GeneticPrior&>()));
 
    public:
     explicit IndependentKernel(const GeneticPrior& prior)
-        : mode_kernels_{transform_mode_values(
-              prior,
-              [](GeneticMode /*mode*/, const ModePrior& mode_prior)
-              { return make_mode_kernel(mode_prior); })}
+        : mode_kernels_{make_mode_kernels(prior)}
     {
     }
 
@@ -74,15 +80,15 @@ class IndependentKernel
             design, state.template get<Mode>(), residual, rng);
     }
 
-    IndependentTopology<Modes, ModeKernel> mode_kernels_;
+    ModeKernels mode_kernels_;
 };
 
-template <GeneticModeSet Modes, typename ModePrior>
+template <GeneticModeSet Modes, typename... ModePriors>
 [[nodiscard]] auto make_genetic_kernel(
-    const IndependentTopology<Modes, ModePrior>& prior)
-    -> IndependentKernel<Modes, ModePrior>
+    const IndependentTopology<Modes, ModePriors...>& prior)
+    -> IndependentKernel<Modes, ModePriors...>
 {
-    return IndependentKernel<Modes, ModePrior>{prior};
+    return IndependentKernel<Modes, ModePriors...>{prior};
 }
 
 template <typename GeneticPrior>

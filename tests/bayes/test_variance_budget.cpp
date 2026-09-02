@@ -16,14 +16,21 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
+#include <cmath>
 #include <concepts>
+#include <limits>
+#include <string>
 
 #include "gelex/bayes/variance_budget.h"
+#include "gelex/exception.h"
 #include "gelex/types/genetic_mode.h"
 
+using Catch::Matchers::ContainsSubstring;
 using Catch::Matchers::WithinAbs;
 using gelex::default_additive_share;
 using gelex::default_shares;
+using gelex::GelexException;
 using gelex::GeneticMode;
 using gelex::GeneticModeSet;
 using gelex::VarianceBudget;
@@ -41,48 +48,39 @@ static_assert(!std::constructible_from<VarianceBudget, double, double, double>);
 // was stored and is compared exactly.
 constexpr double residual_tolerance = 1e-12;
 
-constexpr auto budget
+const auto budget
     = VarianceBudget{{.additive = 0.4, .dominance = 0.05, .random = 0.05}};
 
-static_assert(budget.share(GeneticMode::A) == 0.4);
-static_assert(budget.share(GeneticMode::D) == 0.05);
-static_assert(budget.random() == 0.05);
-
-constexpr auto additive_only
+const auto additive_only
     = VarianceBudget{default_shares(GeneticModeSet{GeneticMode::A})};
-constexpr auto dominance_only
+const auto dominance_only
     = VarianceBudget{default_shares(GeneticModeSet{GeneticMode::D})};
-constexpr auto both
+const auto both
     = VarianceBudget{default_shares(GeneticMode::A | GeneticMode::D)};
-
-static_assert(additive_only.share(GeneticMode::A) == 0.5);
-static_assert(additive_only.share(GeneticMode::D) == 0.0);
-
-static_assert(dominance_only.share(GeneticMode::A) == 0.0);
-static_assert(dominance_only.share(GeneticMode::D) == 0.2);
-
-static_assert(both.share(GeneticMode::A) == 0.5);
-static_assert(both.share(GeneticMode::D) == 0.2);
-
-// Defaults never request a random design.
-static_assert(additive_only.random() == 0.0);
-static_assert(dominance_only.random() == 0.0);
-static_assert(both.random() == 0.0);
 
 // An input adapter overrides the fields the user gave and keeps the rest, so
 // the untouched share holds its default without the caller naming it. Asserted
 // against the constant rather than a literal: this pins the override mechanism,
 // not the value of the table.
-constexpr auto partially_overridden = []
+const auto partially_overridden = []
 {
     auto shares = default_shares(GeneticMode::A | GeneticMode::D);
     shares.dominance = 0.3;
     return VarianceBudget{shares};
 }();
 
-static_assert(
-    partially_overridden.share(GeneticMode::A) == default_additive_share);
-static_assert(partially_overridden.share(GeneticMode::D) == 0.3);
+auto message_of(auto&& construct) -> std::string
+{
+    try
+    {
+        construct();
+    }
+    catch (const GelexException& error)
+    {
+        return error.what();
+    }
+    return {};
+}
 
 }  // namespace
 
@@ -90,27 +88,97 @@ TEST_CASE(
     "VarianceBudget derives the residual from every share",
     "[bayes][variance_budget]")
 {
+    REQUIRE(budget.share(GeneticMode::A) == 0.4);
+    REQUIRE(budget.share(GeneticMode::D) == 0.05);
+    REQUIRE(budget.random() == 0.05);
     REQUIRE_THAT(budget.residual(), WithinAbs(0.5, residual_tolerance));
     REQUIRE_THAT(additive_only.residual(), WithinAbs(0.5, residual_tolerance));
     REQUIRE_THAT(dominance_only.residual(), WithinAbs(0.8, residual_tolerance));
     REQUIRE_THAT(both.residual(), WithinAbs(0.3, residual_tolerance));
 }
 
+TEST_CASE("VarianceBudget rejects invalid shares", "[bayes][variance_budget]")
+{
+    SECTION("a share is negative")
+    {
+        REQUIRE_THAT(
+            message_of([] { return VarianceBudget{{.dominance = -0.1}}; }),
+            ContainsSubstring(
+                "dominance variance share must be finite and non-negative"));
+    }
+
+    SECTION("a share is not finite")
+    {
+        REQUIRE_THAT(
+            message_of(
+                []
+                {
+                    return VarianceBudget{
+                        {.random = std::numeric_limits<double>::quiet_NaN()}};
+                }),
+            ContainsSubstring(
+                "random variance share must be finite and non-negative"));
+    }
+
+    SECTION("positive infinity is not finite")
+    {
+        REQUIRE_THAT(
+            message_of(
+                []
+                {
+                    return VarianceBudget{
+                        {.additive = std::numeric_limits<double>::infinity()}};
+                }),
+            ContainsSubstring(
+                "additive variance share must be finite and non-negative"));
+    }
+
+    SECTION("negative infinity is not finite")
+    {
+        REQUIRE_THAT(
+            message_of(
+                []
+                {
+                    return VarianceBudget{
+                        {.random = -std::numeric_limits<double>::infinity()}};
+                }),
+            ContainsSubstring(
+                "random variance share must be finite and non-negative"));
+    }
+
+    SECTION("shares consume the residual")
+    {
+        REQUIRE_THAT(
+            message_of(
+                []
+                {
+                    return VarianceBudget{{.additive = 0.6, .dominance = 0.4}};
+                }),
+            ContainsSubstring("variance shares must sum to less than 1"));
+    }
+}
+
 TEST_CASE(
-    "VarianceBudget represents an over-allocated budget",
+    "VarianceBudget accepts every strictly positive residual share",
     "[bayes][variance_budget]")
 {
-    // Construction does not validate, so this is representable and reports a
-    // negative residual. SpecDiagnostics rejects it later.
-    REQUIRE_THAT(
-        VarianceBudget{{.additive = 1.5}}.residual(),
-        WithinAbs(-0.5, residual_tolerance));
+    REQUIRE_NOTHROW(
+        VarianceBudget{
+            {.additive = std::numeric_limits<double>::denorm_min()}});
+
+    const auto budget_at_upper_boundary
+        = VarianceBudget{{.additive = std::nextafter(1.0, 0.0)}};
+    REQUIRE(budget_at_upper_boundary.residual() > 0.0);
 }
 
 TEST_CASE(
     "default_shares gives absent modes a zero share",
     "[bayes][variance_budget]")
 {
+    REQUIRE(
+        partially_overridden.share(GeneticMode::A) == default_additive_share);
+    REQUIRE(partially_overridden.share(GeneticMode::D) == 0.3);
+
     for (const auto modes : {
              GeneticModeSet{GeneticMode::A},
              GeneticModeSet{GeneticMode::D},

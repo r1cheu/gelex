@@ -16,8 +16,11 @@
 
 #include <Eigen/Core>
 #include <catch2/catch_test_macros.hpp>
+#include <cstddef>
+#include <cstdint>
 #include <filesystem>
 #include <random>
+#include <span>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -134,7 +137,16 @@ TEST_CASE("MCMC checkpoint reader rejects field shape mismatch", "[checkpoint]")
     const auto checkpoint_path = files.generate_random_file_path(".ckpt");
     gelex::BinaryWriter writer(checkpoint_path.string());
     const Eigen::MatrixXd fixed_coeffs{{1.0}, {2.0}};
-    writer.write("state/fixed/coeffs", fixed_coeffs);
+    writer
+        .reserve<double>(
+            "state/fixed/coeffs",
+            gelex::BinaryShape{
+                static_cast<std::uint64_t>(fixed_coeffs.rows()),
+                static_cast<std::uint64_t>(fixed_coeffs.cols())})
+        .append(
+            std::span<const double>{
+                fixed_coeffs.data(),
+                static_cast<std::size_t>(fixed_coeffs.size())});
     writer.close();
 
     auto state = make_state();

@@ -18,13 +18,13 @@
 #define GELEX_ALGO_MCMC_DETAIL_RECORDS_H_
 
 #include <Eigen/Core>
-#include <cstddef>
 #include <optional>
 #include <string_view>
 #include <utility>
 
 #include "gelex/infra/stats/detail/running_stats.h"
 #include "gelex/infra/stats/result.h"
+#include "gelex/io/binary_writer.h"
 #include "gelex/types/categorical_vector.h"
 
 namespace gelex
@@ -83,12 +83,12 @@ class ScalarRecord
    public:
     ScalarRecord(Records& owner, std::string_view path);
 
-    auto store(Records& owner, double value) -> void;
+    auto store(double value) -> void;
     auto result() const -> RunningStatsResult;
 
    private:
     ScalarDrawStats draws_;
-    std::optional<std::size_t> draw_handle_;
+    std::optional<PayloadWriter<double>> draw_payload_;
 };
 
 class VectorRecord
@@ -99,13 +99,12 @@ class VectorRecord
         std::string_view path,
         const Eigen::Ref<const Eigen::VectorXd>& value);
 
-    auto store(Records& owner, const Eigen::Ref<const Eigen::VectorXd>& value)
-        -> void;
+    auto store(const Eigen::Ref<const Eigen::VectorXd>& value) -> void;
     auto result() const -> RunningStatsResult;
 
    private:
     VectorDrawStats draws_;
-    std::optional<std::size_t> draw_handle_;
+    std::optional<PayloadWriter<double>> draw_payload_;
 };
 
 class CategoricalRecord
@@ -116,12 +115,12 @@ class CategoricalRecord
         std::string_view path,
         const CategoricalVector& value);
 
-    auto store(Records& owner, const CategoricalVector& value) -> void;
+    auto store(const CategoricalVector& value) -> void;
     auto result() && -> CategoryProbResult;
 
    private:
     CategoricalDrawStats draws_;
-    std::optional<std::size_t> draw_handle_;
+    std::optional<PayloadWriter<int>> draw_payload_;
 };
 
 }  // namespace gelex::detail

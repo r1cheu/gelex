@@ -17,77 +17,15 @@
 #ifndef GELEX_BAYES_DETAIL_RECIPE_VALIDATION_H_
 #define GELEX_BAYES_DETAIL_RECIPE_VALIDATION_H_
 
-#include <optional>
-#include <string>
-#include <vector>
-
-#include "gelex/bayes/genetic/independent_topology.h"
-#include "gelex/bayes/spec.h"
 #include "gelex/bayes/variance_budget.h"
 #include "gelex/types/genetic_mode.h"
 
 namespace gelex::detail
 {
 
-class RecipeIssues
-{
-   public:
-    auto add(std::optional<GeneticModeSet> scope, std::string issue) -> void;
-    auto throw_if_any() const -> void;
-
-   private:
-    std::vector<std::string> issues_;
-};
-
-auto check(RecipeIssues& issues, const SpikeSlab& spec, GeneticModeSet scope)
-    -> void;
-auto check(
-    RecipeIssues& issues,
-    const ScaledMixture& spec,
-    GeneticModeSet scope) -> void;
-auto check(
-    RecipeIssues& issues,
-    const JointSpikeSlab& spec,
-    GeneticModeSet scope) -> void;
-auto check(
-    RecipeIssues& issues,
-    const VarianceBudget& budget,
-    GeneticModeSet modes) -> void;
-
-constexpr auto check(
-    RecipeIssues& /*issues*/,
-    const NoParameters& /*spec*/,
-    GeneticModeSet /*scope*/) noexcept -> void
-{
-}
-
-// The topology already knows which mode each leaf stands for, so it narrows the
-// scope instead of passing the recipe's own one down.
-template <GeneticModeSet Modes, typename T>
-auto check(
-    RecipeIssues& issues,
-    const IndependentTopology<Modes, T>& topology,
-    GeneticModeSet /*scope*/) -> void
-{
-    for (const auto [mode, spec] : topology.each())
-    {
-        check(issues, spec, GeneticModeSet{mode});
-    }
-}
-
-template <typename Parameters>
 auto validate_recipe_inputs(
-    const Parameters& parameters,
     const VarianceBudget& variance,
-    GeneticModeSet modes) -> void
-{
-    auto issues = RecipeIssues{};
-
-    check(issues, parameters, modes);
-    check(issues, variance, modes);
-
-    issues.throw_if_any();
-}
+    GeneticModeSet modes) -> void;
 
 }  // namespace gelex::detail
 

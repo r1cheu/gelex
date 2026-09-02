@@ -23,8 +23,7 @@
 #include <span>
 
 #include "gelex/bayes/design.h"
-#include "gelex/bayes/genetic/component_layout.h"
-#include "gelex/types/genetic_mode.h"
+#include "gelex/bayes/genetic/state.h"
 
 namespace gelex::detail
 {
@@ -37,58 +36,55 @@ struct FittedValueTransition
     double new_coefficient{};
 };
 
-template <GeneticMode Mode, ComponentLayout Layout, typename FittedMatrix>
+template <std::size_t ClassCount>
 auto apply_fitted_value_transition(
     const bayes::GeneticProjection& projection,
     Eigen::Index marker,
     FittedValueTransition transition,
-    FittedMatrix& component_fitted_values,
+    ScaledMixtureState<ClassCount>& state,
     Eigen::VectorXd& adjusted_response) -> void
 {
     std::array<bayes::AxpyTarget, 3> targets{};
     std::size_t target_count = 0;
-    const double coefficient_difference
-        = transition.old_coefficient - transition.new_coefficient;
-    if (coefficient_difference != 0.0)
+    const double coefficient_delta
+        = transition.new_coefficient - transition.old_coefficient;
+    if (coefficient_delta != 0.0)
     {
         targets.at(target_count++)
-            = bayes::AxpyTarget{coefficient_difference, adjusted_response};
+            = bayes::AxpyTarget{-coefficient_delta, adjusted_response};
     }
 
-    const int old_component
-        = Layout::component_index(Mode, transition.old_class_index);
-    const int new_component
-        = Layout::component_index(Mode, transition.new_class_index);
-    if (old_component == new_component)
+    const auto append_component_target
+        = [&](std::size_t class_index, double delta)
     {
-        if (old_component != Layout::no_component
-            && coefficient_difference != 0.0)
+        if (class_index == 0 || delta == 0.0)
         {
-            targets.at(target_count++) = bayes::AxpyTarget{
-                -coefficient_difference,
-                component_fitted_values.col(old_component)};
+            return;
         }
+
+        const auto component_index = static_cast<Eigen::Index>(class_index - 1);
+        targets.at(target_count++) = bayes::AxpyTarget{
+            delta, state.fitted_values.col(component_index)};
+    };
+
+    if (transition.old_class_index == transition.new_class_index)
+    {
+        append_component_target(transition.old_class_index, coefficient_delta);
     }
     else
     {
-        if (old_component != Layout::no_component
-            && transition.old_coefficient != 0.0)
-        {
-            targets.at(target_count++) = bayes::AxpyTarget{
-                -transition.old_coefficient,
-                component_fitted_values.col(old_component)};
-        }
-        if (new_component != Layout::no_component
-            && transition.new_coefficient != 0.0)
-        {
-            targets.at(target_count++) = bayes::AxpyTarget{
-                transition.new_coefficient,
-                component_fitted_values.col(new_component)};
-        }
+        append_component_target(
+            transition.old_class_index, -transition.old_coefficient);
+        append_component_target(
+            transition.new_class_index, transition.new_coefficient);
     }
-    projection.axpy(
-        marker,
-        std::span<const bayes::AxpyTarget>{targets.data(), target_count});
+
+    if (target_count != 0)
+    {
+        projection.axpy(
+            marker,
+            std::span<const bayes::AxpyTarget>{targets.data(), target_count});
+    }
 }
 
 }  // namespace gelex::detail
