@@ -30,6 +30,7 @@
 #include "gelex/bayes/detail/state_factory.h"
 #include "gelex/bayes/genetic/kernel/coefficient_likelihood.h"
 #include "gelex/bayes/genetic/kernel/dirichlet_conjugate_updater.h"
+#include "gelex/bayes/genetic/kernel/probit_updater.h"
 #include "gelex/bayes/genetic/prior.h"
 #include "gelex/bayes/genetic/state.h"
 #include "gelex/bayes/genotype/design.h"
@@ -37,9 +38,11 @@
 #include "gelex/bayes/state.h"
 #include "gelex/bayes/stats/half_quadratic_log_kernel.h"
 #include "gelex/bayes/stats/log_categorical_distribution.h"
+#include "gelex/bayes/stats/multi_quadratic_log_kernel.h"
 #include "gelex/bayes/stats/quadratic_log_kernel.h"
 #include "gelex/bayes/stats/truncated_normal_distribution.h"
 #include "gelex/genetic_mode.h"
+#include "gelex/infra/normal.h"
 
 namespace gelex::detail
 {
@@ -88,10 +91,7 @@ class JointSpikeSlabKernel
           dominance_variance_updater_{prior.mode_values()
                                           .template get<GeneticMode::D>()
                                           .variance.prior},
-          dominance_sign_updater_{make_dirichlet_conjugate_updater<2>(
-              prior.mode_values()
-                  .template get<GeneticMode::D>()
-                  .positive_probability)},
+          probit_updater_{make_multi_normal_prior(Eigen::Matrix2d::Identity())},
           probability_updater_{make_dirichlet_conjugate_updater<class_count>(
               prior.joint().probabilities)}
     {
@@ -106,6 +106,9 @@ class JointSpikeSlabKernel
         const auto& additive_projection = design.projection(GeneticMode::A);
         const auto& dominance_projection = design.projection(GeneticMode::D);
         const auto valid_indices = design.common_valid_indices();
+        assert(design.marker_covariate().has_value());
+        const auto& marker_covariates = *design.marker_covariate();
+        assert(marker_covariates.X().rows() == 2);
         auto& additive = state.mode_values().template get<GeneticMode::A>();
         auto& dominance = state.mode_values().template get<GeneticMode::D>();
         auto& joint = state.joint();
@@ -113,14 +116,11 @@ class JointSpikeSlabKernel
         auto& dominance_family = dominance.family_state;
         std::normal_distribution<double> normal_distribution;
         TruncatedNormalDistribution<> dominance_distribution;
+        TruncatedNormalDistribution<> probit_latent_distribution;
 
         const auto log_probabilities = make_log_weights(joint.probabilities);
-        const auto dominance_log_probabilities = make_log_weights(
-            std::array{
-                1.0 - dominance_family.positive_probability,
-                dominance_family.positive_probability});
         std::array<std::size_t, class_count> allocation_counts{};
-        std::array<std::size_t, 2> dominance_sign_counts{};
+        auto& probit_coefficients = dominance_family.probit_coefficients;
 
         const auto additive_prior = make_normal_prior(additive_family.variance);
         const auto dominance_prior
@@ -130,10 +130,19 @@ class JointSpikeSlabKernel
         double additive_sum_squares = 0.0;
         std::size_t dominance_count = 0;
         double dominance_sum_squares = 0.0;
+        Eigen::Matrix2d probit_likelihood_quadratic = Eigen::Matrix2d::Zero();
+        Eigen::Vector2d probit_likelihood_linear = Eigen::Vector2d::Zero();
         for (const Eigen::Index marker : valid_indices)
         {
             const double old_additive = additive.coefficients(marker);
             const double old_dominance = dominance.coefficients(marker);
+            const Eigen::Vector2d marker_covariate
+                = marker_covariates.X().col(marker);
+            const double linear_predictor
+                = marker_covariate.dot(probit_coefficients);
+            const std::array<double, 2> dominance_log_probabilities{
+                log_norm_cdf(-linear_predictor),
+                log_norm_cdf(linear_predictor)};
             const auto old_class_index
                 = static_cast<std::size_t>(joint.assignment(marker));
             const auto additive_likelihood = make_coefficient_likelihood(
@@ -182,8 +191,6 @@ class JointSpikeSlabKernel
             {
                 const std::size_t sign_index
                     = sign_distribution_(rng, dominance_posterior.sign);
-                // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
-                ++dominance_sign_counts[sign_index];
                 const HalfLine support = sign_index == positive_index
                                              ? HalfLine::Positive
                                              : HalfLine::Negative;
@@ -191,6 +198,14 @@ class JointSpikeSlabKernel
                     rng,
                     dominance_posterior.coefficient.truncated_normal_parameters(
                         support));
+                const double latent_value = probit_latent_distribution(
+                    rng,
+                    TruncatedNormalDistribution<>::param_type{
+                        linear_predictor, 1.0, support});
+                probit_likelihood_quadratic.noalias()
+                    += marker_covariate * marker_covariate.transpose();
+                probit_likelihood_linear.noalias()
+                    += marker_covariate * latent_value;
                 ++dominance_count;
                 dominance_sum_squares += new_dominance * new_dominance;
             }
@@ -220,6 +235,14 @@ class JointSpikeSlabKernel
                 residual.adjusted_response);
         }
 
+        if (dominance_count != 0)
+        {
+            probit_updater_.update(
+                probit_coefficients,
+                MultiQuadraticLogKernel{
+                    probit_likelihood_quadratic, probit_likelihood_linear, 0.0},
+                rng);
+        }
         additive_variance_updater_.update(
             additive_family.variance,
             additive_count,
@@ -230,14 +253,6 @@ class JointSpikeSlabKernel
             dominance_count,
             dominance_sum_squares,
             rng);
-
-        std::array dominance_sign_probabilities{
-            1.0 - dominance_family.positive_probability,
-            dominance_family.positive_probability};
-        dominance_sign_updater_.update(
-            dominance_sign_probabilities, dominance_sign_counts, rng);
-        dominance_family.positive_probability
-            = dominance_sign_probabilities[positive_index];
 
         probability_updater_.update(
             joint.probabilities, allocation_counts, rng);
@@ -372,8 +387,7 @@ class JointSpikeSlabKernel
 
     NormalVarianceConjugateUpdater additive_variance_updater_;
     NormalVarianceConjugateUpdater dominance_variance_updater_;
-    DirichletConjugateUpdater<2, MixtureWeightUpdate::Enabled>
-        dominance_sign_updater_;
+    ProbitUpdater probit_updater_;
     [[no_unique_address]] DirichletConjugateUpdater<class_count, WeightUpdate>
         probability_updater_;
     LogCategoricalDistribution<class_count> allocation_distribution_;

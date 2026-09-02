@@ -119,8 +119,8 @@ auto write_snpeff(
 
     const auto& marker_metadata = genetic_design.marker_metadata();
     const auto marker_ids = marker_metadata.index().keys();
-    const auto chromosomes = marker_metadata["chrom"].as<std::string>();
-    const auto positions = marker_metadata["pos"].as<std::int32_t>();
+    const auto chromosomes = marker_metadata["CHR"].as<std::string>();
+    const auto positions = marker_metadata["BP"].as<std::int32_t>();
     const auto a1 = marker_metadata["A1"].as<std::string>();
     const auto a2 = marker_metadata["A2"].as<std::string>();
     const auto& a1_frequency = genetic_design.a1_frequency();

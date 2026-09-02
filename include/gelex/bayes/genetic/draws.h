@@ -75,12 +75,12 @@ struct GaussianDraws
 struct HalfNormalDraws
 {
     ScalarDraw variance;
-    ScalarDraw positive_probability;
+    VectorDraw probit_coefficients;
 
     auto append(const HalfNormalState& state) -> void
     {
         variance.append(state.variance);
-        positive_probability.append(state.positive_probability);
+        probit_coefficients.append(state.probit_coefficients);
     }
 };
 

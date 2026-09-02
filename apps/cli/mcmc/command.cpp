@@ -16,6 +16,7 @@
 
 #include "command.h"
 
+#include <optional>
 #include <string>
 #include <utility>
 
@@ -65,7 +66,11 @@ auto load_mcmc_model(const cli::McmcConfig& config, cli::GenoReporter& reporter)
         = [&reporter](const gelex::GenotypeProgressEvent& event)
     { reporter.on_event(event); };
     auto genetic = gelex::bayes::GeneticDesign{
-        std::move(design_data.bed), config.mode, config.geno_method, observer};
+        std::move(design_data.bed),
+        config.mode,
+        config.geno_method,
+        std::nullopt,
+        observer};
     auto model = gelex::BayesModel{
         std::move(base_data.phenotype),
         std::move(base_data.fixed_design),

@@ -88,7 +88,7 @@ inline auto make_result(const HalfNormalDraws& draws)
 {
     return {
         .variance = make_result(draws.variance),
-        .positive_probability = make_result(draws.positive_probability)};
+        .probit_coefficients = make_result(draws.probit_coefficients)};
 }
 
 template <VarianceLayout Kind, MixtureWeightUpdate WeightUpdate>

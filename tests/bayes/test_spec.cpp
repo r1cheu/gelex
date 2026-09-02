@@ -60,9 +60,6 @@ TEST_CASE("Bayes structural specs provide defaults", "[bayes][spec]")
     const auto spike_slab = SpikeSlab{};
     REQUIRE(spike_slab.probability() == 0.01);
 
-    const auto half_normal = HalfNormal{};
-    REQUIRE(half_normal.positive_probability() == 0.5);
-
     const auto scaled_mixture = ScaledMixture{};
     REQUIRE(
         scaled_mixture.probabilities()
@@ -79,9 +76,6 @@ TEST_CASE("Bayes structural specs accept resolved values", "[bayes][spec]")
 {
     const auto spike_slab = SpikeSlab{0.2};
     REQUIRE(spike_slab.probability() == 0.2);
-
-    const auto half_normal = HalfNormal{0.7};
-    REQUIRE(half_normal.positive_probability() == 0.7);
 
     const auto scaled_mixture = ScaledMixture{
         {0.8, 0.05, 0.05, 0.05, 0.05}, {0.0, 0.01, 0.1, 1.0, 10.0}};
@@ -113,28 +107,6 @@ TEST_CASE("SpikeSlab rejects invalid probabilities", "[bayes][spec]")
 
     REQUIRE_THAT(
         message_of([probability] { return SpikeSlab{probability}; }),
-        ContainsSubstring("must lie in the open interval (0, 1)"));
-}
-
-TEST_CASE("HalfNormal rejects invalid probabilities", "[bayes][spec]")
-{
-    auto probability = 0.0;
-
-    SECTION("zero")
-    {
-        probability = 0.0;
-    }
-    SECTION("one")
-    {
-        probability = 1.0;
-    }
-    SECTION("non-finite")
-    {
-        probability = not_a_number;
-    }
-
-    REQUIRE_THAT(
-        message_of([probability] { return HalfNormal{probability}; }),
         ContainsSubstring("must lie in the open interval (0, 1)"));
 }
 

@@ -334,7 +334,7 @@ TEST_CASE(
     const auto model = make_model(mode_ad);
     const auto recipe = BayesRecipe<mode_ad, FixedJointSpikeSlabFamily>{
         JointSpikeSlabAD{
-            JointModeSpecs{Gaussian{}, HalfNormal{0.6}},
+            JointModeSpecs{Gaussian{}, HalfNormal{}},
             JointSpikeSlab{{0.8, 0.1, 0.05, 0.05}}},
         VarianceBudget{{.additive = 0.4, .dominance = 0.1}}};
     const auto prior = gelex::make_prior(recipe, model);
@@ -364,7 +364,7 @@ TEST_CASE(
         });
     const auto& dominance
         = state.mode_values().get<GeneticMode::D>().family_state;
-    REQUIRE(dominance.positive_probability == 0.6);
+    REQUIRE(dominance.probit_coefficients.isZero());
     REQUIRE(
         state.mode_values().get<GeneticMode::A>().family_state.variance
         == Approx(prior.genetic()

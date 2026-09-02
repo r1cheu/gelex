@@ -41,8 +41,8 @@ GwasWriter::GwasWriter(
     AssocType test_type)
     : test_type_(test_type),
       keys_(bim.index().keys()),
-      chrom_(bim["chrom"].as<std::string>()),
-      pos_(bim["pos"].as<std::int32_t>()),
+      chrom_(bim["CHR"].as<std::string>()),
+      pos_(bim["BP"].as<std::int32_t>()),
       a1_(bim["A1"].as<std::string>()),
       a2_(bim["A2"].as<std::string>()),
       ofs_(

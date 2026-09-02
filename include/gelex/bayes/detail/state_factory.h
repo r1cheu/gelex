@@ -69,7 +69,7 @@ inline auto make_state(
 {
     return {
         .variance = prior.variance.initial,
-        .positive_probability = prior.positive_probability.initial,
+        .probit_coefficients = Eigen::Vector2d::Zero(),
         .fitted_values = Eigen::VectorXd::Zero(dimensions.individual_count)};
 }
 

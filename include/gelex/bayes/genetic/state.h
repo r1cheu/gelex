@@ -46,7 +46,7 @@ struct GaussianState
 struct HalfNormalState
 {
     double variance{};
-    double positive_probability{};
+    Eigen::Vector2d probit_coefficients = Eigen::Vector2d::Zero();
     Eigen::VectorXd fitted_values;  // total
 };
 

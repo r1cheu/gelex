@@ -274,10 +274,4 @@ TEST_CASE("BayesRecipe::defaults covers every joint default", "[bayes][recipe]")
     REQUIRE(
         recipe.genetic_spec().joint().probabilities()
         == defaults.probabilities());
-    REQUIRE(
-        recipe.genetic_spec()
-            .mode_values()
-            .get<GeneticMode::D>()
-            .positive_probability()
-        == 0.5);
 }

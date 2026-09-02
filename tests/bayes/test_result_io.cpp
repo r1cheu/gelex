@@ -346,7 +346,7 @@ TEST_CASE(
                                       .template get<gelex::GeneticMode::D>()
                                       .family_state;
                 dominance.variance = 0.25;
-                dominance.positive_probability = 0.7;
+                dominance.probit_coefficients = Eigen::Vector2d{{0.7, -0.2}};
                 auto& joint = state.genetic().joint();
                 joint.probabilities = {0.7, 0.1, 0.1, 0.1};
                 joint.fitted_values = Eigen::MatrixXd{
@@ -364,7 +364,8 @@ TEST_CASE(
             == std::vector<std::string>{
                 "genetic/A/variance\t0",
                 "genetic/D/variance\t0",
-                "genetic/D/positive_probability\t0",
+                "genetic/D/probit_coefficients\t0",
+                "genetic/D/probit_coefficients\t1",
                 "genetic/joint/probabilities\t0",
                 "genetic/joint/probabilities\t1",
                 "genetic/joint/probabilities\t2",

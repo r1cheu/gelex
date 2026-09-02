@@ -30,7 +30,7 @@ auto chromosome_ranges(const DataFrame<std::string>& bim)
     -> std::vector<MarkerRange>
 {
     const auto num_snps = static_cast<Eigen::Index>(bim.rows());
-    auto chrom = bim["chrom"].as<std::string>();
+    auto chrom = bim["CHR"].as<std::string>();
 
     std::vector<MarkerRange> ranges;
     std::string current;
