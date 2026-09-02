@@ -20,6 +20,7 @@
 #include <Eigen/Core>
 #include <cstddef>
 #include <cstdint>
+#include <fmt/format.h>
 #include <limits>
 #include <span>
 #include <string_view>
@@ -45,6 +46,16 @@ inline auto to_eigen_draw_size(std::uint64_t rows) -> Eigen::Index
     return static_cast<Eigen::Index>(rows);
 }
 
+inline auto throw_if_empty(const auto& stats, std::string_view identifier)
+    -> void
+{
+    if (stats.empty())
+    {
+        throw GelexException(
+            fmt::format("posterior '{}' has no recorded draws", identifier));
+    }
+}
+
 }  // namespace detail
 
 struct EmptyDraw
@@ -66,8 +77,9 @@ class ScalarDraw
         stats_.update(value);
     }
 
-    [[nodiscard]] auto result() const noexcept -> ScalarRunningStatsResult
+    [[nodiscard]] auto result() const -> ScalarRunningStatsResult
     {
+        detail::throw_if_empty(stats_, identifier());
         return stats_.result();
     }
 
@@ -104,6 +116,7 @@ class VectorDraw
 
     [[nodiscard]] auto result() const -> VectorRunningStatsResult
     {
+        detail::throw_if_empty(stats_, identifier());
         return stats_.result();
     }
 
@@ -141,6 +154,7 @@ class CategoryDraw
 
     [[nodiscard]] auto result() const -> CategoryRunningStatsResult
     {
+        detail::throw_if_empty(stats_, identifier());
         return stats_.result();
     }
 

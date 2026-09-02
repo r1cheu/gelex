@@ -52,21 +52,21 @@
 class AssocDataHandler
 {
    public:
-    AssocDataHandler(const cli::AssocConfig& config, gelex::Bed& bed) noexcept
-        : bed_(bed), loader_(config.random)
+    AssocDataHandler(const cli::AssocConfig& config, gelex::Bed& bed)
+        : bed_(&bed), loader_(config.random)
     {
     }
 
     auto load_indices(
         std::vector<const gelex::DataFrameIndex<std::string>*>& indices) -> void
     {
-        indices.push_back(&bed_.sample_index());
+        indices.push_back(&bed_->sample_index());
         loader_.load_indices(indices);
     }
 
     auto gather(const gelex::DataFrameIndex<std::string>& common_index) -> void
     {
-        bed_.gather(common_index);
+        bed_->gather(common_index);
         loader_.gather(common_index);
     }
 
@@ -76,7 +76,7 @@ class AssocDataHandler
     }
 
    private:
-    gelex::Bed& bed_;
+    gelex::Bed* bed_;
     cli::RemlDataLoader loader_;
 };
 

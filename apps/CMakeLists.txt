@@ -50,12 +50,26 @@ if(GELEX_CLI_BUILD_TESTS OR GELEX_BUILD_TESTS)
     tests/test_predict_engine.cpp
     tests/test_table.cpp
     tests/test_completion_generator.cpp
+    tests/test_mcmc_command.cpp
+    tests/test_mcmc_data.cpp
+    tests/test_mcmc_recipe.cpp
+    tests/test_random_design_data.cpp
     cli/color_formatter.cpp
     cli/theme.cpp
     cli/completion/completion_generator.cpp
     cli/completion/choice_descriptions.cpp
     cli/formatter.cpp
+    cli/logging.cpp
+    cli/mcmc/command.cpp
+    cli/mcmc/config.cpp
+    cli/mcmc/data.cpp
+    cli/mcmc/reporter.cpp
+    cli/progress_bar.cpp
+    cli/random_design_data.cpp
+    cli/reml_data.cpp
+    cli/report_printer.cpp
     cli/table.cpp
+    cli/timer.cpp
     cli/predict/compute.cpp
     cli/predict/io.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../tests/bed_fixture.cpp
@@ -67,7 +81,7 @@ if(GELEX_CLI_BUILD_TESTS OR GELEX_BUILD_TESTS)
                              PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/ext/barkeep)
   target_compile_definitions(gelex_cli_tests PRIVATE BARKEEP_ENABLE_FMT_FORMAT)
   target_link_libraries(
-    gelex_cli_tests PRIVATE gelex::gelex fmt::fmt CLI11::CLI11
+    gelex_cli_tests PRIVATE gelex::gelex fmt::fmt CLI11::CLI11 spdlog::spdlog
                             Catch2::Catch2WithMain)
 
   include(Catch)

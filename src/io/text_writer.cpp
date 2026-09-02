@@ -18,9 +18,12 @@
 
 #include <exception>
 #include <filesystem>
+#include <fmt/format.h>
 #include <initializer_list>
 #include <ios>
 #include <string_view>
+
+#include "gelex/infra/log.h"
 
 namespace gelex::detail
 {
@@ -39,6 +42,20 @@ TextWriter::~TextWriter() noexcept
     try
     {
         ofs_.commit();
+    }
+    catch (const std::exception& exception)
+    {
+        try
+        {
+            error(
+                fmt::format(
+                    "{}: failed to commit, discarding output: {}",
+                    ofs_.path().string(),
+                    exception.what()));
+        }
+        catch (...)  // NOLINT(bugprone-empty-catch): dtor must be noexcept
+        {
+        }
     }
     catch (...)  // NOLINT(bugprone-empty-catch): dtor must be noexcept
     {

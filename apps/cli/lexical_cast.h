@@ -20,6 +20,7 @@
 #include <CLI/Error.hpp>
 #include <string>
 
+#include "gelex/bayes/builtin_method.h"
 #include "gelex/data/genotype_method.h"
 #include "gelex/data/rank_inverse_norm_transform.h"
 #include "gelex/genetic_mode.h"
@@ -27,6 +28,8 @@
 // Found by CLI11 via ADL, so add_option can bind enum targets directly.
 namespace gelex
 {
+auto lexical_cast(const std::string& input, BayesMethod& output) -> bool;
+
 auto lexical_cast(const std::string& input, GenotypeMethod& output) -> bool;
 
 auto lexical_cast(const std::string& input, GeneticMode& output) -> bool;

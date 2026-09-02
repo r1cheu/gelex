@@ -18,8 +18,10 @@
 #define GELEX_BAYES_MCMC_RUNNER_H_
 
 #include <cstddef>
+#include <cstdint>
 #include <random>
 
+#include "gelex/bayes/draws.h"
 #include "gelex/bayes/kernel.h"
 #include "gelex/bayes/mcmc_progress.h"
 #include "gelex/bayes/model.h"
@@ -33,12 +35,18 @@ namespace gelex
 class MCMCRunner
 {
    public:
-    explicit MCMCRunner(int iterations);
+    MCMCRunner(int iterations, int burn_in, int thin);
+
+    [[nodiscard]] auto draw_count() const noexcept -> std::uint64_t
+    {
+        return static_cast<std::uint64_t>((iterations_ - burn_in_) / thin_);
+    }
 
     template <typename GeneticPrior>
     auto run(
         const BayesModel& model,
         const BayesPrior<GeneticPrior>& prior,
+        BayesDraws<GeneticPrior>& draws,
         int seed = 42,
         const MCMCObserver& observer = {}) -> void
     {
@@ -50,6 +58,11 @@ class MCMCRunner
         for (int iteration = 0; iteration < iterations_; ++iteration)
         {
             kernel.step(model, state, rng);
+            if (iteration >= burn_in_
+                && (iteration + 1 - burn_in_) % thin_ == 0)
+            {
+                draws.append(state);
+            }
             notify(
                 observer,
                 MCMCProgressEvent{
@@ -67,6 +80,8 @@ class MCMCRunner
 
    private:
     int iterations_;
+    int burn_in_;
+    int thin_;
 };
 
 }  // namespace gelex

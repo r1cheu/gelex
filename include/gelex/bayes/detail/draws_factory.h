@@ -115,13 +115,13 @@ template <UpdatePolicy Policy>
     GeneticDrawsBuilder& builder,
     std::string_view name) -> policy_draw_t<Policy, ScalarDraw>
 {
-    if constexpr (Policy == UpdatePolicy::Fixed)
+    if constexpr (Policy == UpdatePolicy::Sampled)
     {
-        return EmptyDraw{};
+        return builder.scalar(name);
     }
     else
     {
-        return builder.scalar(name);
+        return EmptyDraw{};
     }
 }
 
@@ -129,14 +129,14 @@ template <UpdatePolicy Policy, std::size_t ClassCount>
 [[nodiscard]] auto make_probabilities_draw(GeneticDrawsBuilder& builder)
     -> policy_draw_t<Policy, VectorDraw>
 {
-    if constexpr (Policy == UpdatePolicy::Fixed)
-    {
-        return EmptyDraw{};
-    }
-    else
+    if constexpr (Policy == UpdatePolicy::Sampled)
     {
         return builder.vector(
             "probabilities", static_cast<Eigen::Index>(ClassCount));
+    }
+    else
+    {
+        return EmptyDraw{};
     }
 }
 // rows non-additive: they are shares, not a decomposition of genetic variance.

@@ -20,12 +20,26 @@
 #include <cctype>
 #include <string>
 
+#include "gelex/bayes/builtin_method.h"
 #include "gelex/data/genotype_method.h"
 #include "gelex/data/rank_inverse_norm_transform.h"
 #include "gelex/genetic_mode.h"
 
 namespace gelex
 {
+
+auto lexical_cast(const std::string& input, BayesMethod& output) -> bool
+{
+    for (const auto& [method, name] : bayes_method_names)
+    {
+        if (input == name)
+        {
+            output = method;
+            return true;
+        }
+    }
+    return false;
+}
 
 auto lexical_cast(const std::string& input, GenotypeMethod& output) -> bool
 {

@@ -19,27 +19,26 @@
 
 #include <Eigen/Core>
 #include <map>
-#include <optional>
 #include <string>
 #include <vector>
 
-#include "gelex/data/dataframe/dataframe.h"
 #include "gelex/data/dataframe/index.h"
 #include "gelex/freq/design.h"
+
+#include "cli/random_design_data.h"
 
 namespace cli
 {
 
 struct RemlDataConfig
 {
+    RandomDesignDataConfig designs;
     std::vector<std::string> grm;
-    std::optional<std::string> drand_path;
-    std::vector<std::string> qrand_paths;
     std::vector<std::string> interactions;  // "<name_a>:<name_b>" pairs
 
     auto has_random_effect() const noexcept -> bool
     {
-        return !grm.empty() || drand_path.has_value() || !qrand_paths.empty()
+        return designs.has_random_design() || !grm.empty()
                || !interactions.empty();
     }
 };
@@ -50,7 +49,7 @@ struct RemlDataConfig
 class RemlDataLoader
 {
    public:
-    explicit RemlDataLoader(const RemlDataConfig& config) noexcept;
+    explicit RemlDataLoader(const RemlDataConfig& config);
 
     auto load_indices(
         std::vector<const gelex::DataFrameIndex<std::string>*>& indices)
@@ -80,11 +79,10 @@ class RemlDataLoader
     auto resolve_operand(const std::string& name) const
         -> const Eigen::MatrixXd&;
 
-    const RemlDataConfig& config_;
+    RemlDataConfig config_;
+    RandomDesignDataLoader design_loader_;
     std::vector<gelex::DataFrameIndex<std::string>> grm_indices_;
     std::vector<gelex::freq::RandomDesign> random_designs_;
-    std::optional<gelex::DataFrame<std::string>> drand_;
-    std::vector<gelex::DataFrame<std::string>> qrand_;
     std::map<std::string, InteractionGrm> interaction_grms_;
 };
 

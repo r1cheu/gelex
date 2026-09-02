@@ -17,7 +17,6 @@
 #include "reml_data.h"
 
 #include <algorithm>
-#include <cstddef>
 #include <filesystem>
 #include <fmt/format.h>
 #include <fmt/ranges.h>
@@ -29,9 +28,10 @@
 #include <vector>
 
 #include "gelex/data/grm/io.h"
-#include "gelex/data/reader.h"
 #include "gelex/exception.h"
 #include "gelex/freq/design_factory.h"
+
+#include "cli/random_design_data.h"
 
 namespace cli
 {
@@ -54,8 +54,8 @@ auto split_interaction(const std::string& spec)
 
 }  // namespace
 
-RemlDataLoader::RemlDataLoader(const RemlDataConfig& config) noexcept
-    : config_(config)
+RemlDataLoader::RemlDataLoader(const RemlDataConfig& config)
+    : config_(config), design_loader_(config_.designs)
 {
 }
 
@@ -66,22 +66,10 @@ auto RemlDataLoader::load_indices(
     // matching one reuses it instead of reading its GRM from a path.
     std::set<std::string> known_names;
 
-    if (config_.drand_path)
+    design_loader_.load_indices(indices);
+    for (const auto& name : design_loader_.effect_names())
     {
-        drand_ = gelex::read_dcovar(*config_.drand_path);
-        indices.push_back(&drand_->index());
-        for (auto& name : drand_->names())
-        {
-            known_names.insert(std::move(name));
-        }
-    }
-
-    qrand_.reserve(config_.qrand_paths.size());
-    for (const auto& path : config_.qrand_paths)
-    {
-        qrand_.emplace_back(gelex::read_qcovar(path));
-        indices.push_back(&qrand_.back().index());
-        known_names.insert(std::filesystem::path(path).stem().string());
+        known_names.insert(name);
     }
 
     grm_indices_.reserve(config_.grm.size());
@@ -121,21 +109,18 @@ auto RemlDataLoader::load_indices(
 auto RemlDataLoader::gather(
     const gelex::DataFrameIndex<std::string>& common_index) -> void
 {
-    if (drand_)
+    design_loader_.gather(common_index);
+    auto design_data = std::move(design_loader_).results();
+    if (design_data.discrete)
     {
-        drand_->gather(common_index);
-        random_designs_ = gelex::freq::make_random_designs(*drand_);
+        random_designs_
+            = gelex::freq::make_random_designs(*design_data.discrete);
     }
-    for (auto&& [i, frame] : std::views::enumerate(qrand_))
+    for (auto& quantitative : design_data.quantitative)
     {
-        frame.gather(common_index);
         random_designs_.push_back(
             gelex::freq::make_quantitative_random_design(
-                frame,
-                std::filesystem::path(
-                    config_.qrand_paths[static_cast<std::size_t>(i)])
-                    .stem()
-                    .string()));
+                quantitative.frame, std::move(quantitative.name)));
     }
     auto grm_designs = gelex::freq::make_grm_designs(config_.grm, common_index);
     random_designs_.insert(
