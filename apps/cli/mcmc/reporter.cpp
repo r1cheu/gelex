@@ -31,11 +31,11 @@
 
 #include "gelex/algo/mcmc/result.h"
 #include "gelex/bayes/design.h"
-#include "gelex/bayes/genetic/prior.h"
+#include "gelex/bayes/genetic/legacy_genetic_prior.h"
 #include "gelex/bayes/labels.h"
+#include "gelex/bayes/legacy_prior.h"
 #include "gelex/bayes/model.h"
 #include "gelex/bayes/parameter/values.h"
-#include "gelex/bayes/prior.h"
 #include "gelex/bayes/state.h"
 #include "gelex/infra/logging/fit_event.h"
 #include "gelex/infra/stats/result.h"

@@ -25,8 +25,8 @@
 
 #include "gelex/algo/mcmc/params.h"
 #include "gelex/algo/mcmc/result.h"
+#include "gelex/bayes/legacy_prior.h"
 #include "gelex/bayes/model.h"
-#include "gelex/bayes/prior.h"
 #include "gelex/infra/logging/fit_event.h"
 
 namespace gelex

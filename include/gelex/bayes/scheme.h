@@ -20,7 +20,7 @@
 #include <variant>
 #include <vector>
 
-#include "gelex/bayes/prior.h"
+#include "gelex/bayes/legacy_prior.h"
 #include "gelex/bayes/recipe_options.h"
 
 namespace gelex

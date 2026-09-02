@@ -31,7 +31,7 @@
 #include "gelex/bayes/genetic/gaussian_prior_state.h"
 #include "gelex/bayes/genetic/half_normal_prior.h"
 #include "gelex/bayes/genetic/half_normal_prior_state.h"
-#include "gelex/bayes/genetic/prior.h"
+#include "gelex/bayes/genetic/legacy_genetic_prior.h"
 #include "gelex/bayes/state.h"
 #include "gelex/infra/stats/beta_sampler.h"
 #include "gelex/infra/stats/detail/var.h"

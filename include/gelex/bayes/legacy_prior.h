@@ -14,15 +14,15 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_BAYES_PRIOR_H_
-#define GELEX_BAYES_PRIOR_H_
+#ifndef GELEX_BAYES_LEGACY_PRIOR_H_
+#define GELEX_BAYES_LEGACY_PRIOR_H_
 
 #include <span>
 #include <string_view>
 #include <variant>
 #include <vector>
 
-#include "gelex/bayes/genetic/prior.h"
+#include "gelex/bayes/genetic/legacy_genetic_prior.h"
 #include "gelex/bayes/parameter/values.h"
 
 namespace gelex::bayes
@@ -119,4 +119,4 @@ class BayesPrior
 
 }  // namespace gelex::bayes
 
-#endif  // GELEX_BAYES_PRIOR_H_
+#endif  // GELEX_BAYES_LEGACY_PRIOR_H_

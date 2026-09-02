@@ -24,9 +24,9 @@
 #include "gelex/bayes/genetic/gaussian_prior_state.h"
 #include "gelex/bayes/genetic/half_normal_prior.h"
 #include "gelex/bayes/genetic/half_normal_prior_state.h"
+#include "gelex/bayes/genetic/legacy_genetic_prior.h"
 #include "gelex/bayes/genetic/parameters.h"
-#include "gelex/bayes/genetic/prior.h"
-#include "gelex/bayes/prior.h"
+#include "gelex/bayes/legacy_prior.h"
 #include "gelex/exception.h"
 #include "gelex/types/genetic_mode.h"
 

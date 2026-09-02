@@ -20,7 +20,7 @@
 #include <optional>
 #include <string_view>
 
-#include "gelex/bayes/recipe.h"
+#include "gelex/bayes/legacy_recipe.h"
 #include "gelex/exception.h"
 #include "gelex/types/constrained_value.h"
 #include "gelex/types/constrained_vector.h"

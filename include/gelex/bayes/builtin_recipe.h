@@ -14,35 +14,19 @@
  * limitations under the License.
  */
 
-#include "gelex/algo/mcmc/steps/residual.h"
+#ifndef GELEX_BAYES_BUILTIN_RECIPE_H_
+#define GELEX_BAYES_BUILTIN_RECIPE_H_
 
-#include <Eigen/Core>
-#include <random>
-
-#include "gelex/bayes/legacy_prior.h"
-#include "gelex/bayes/state.h"
+#include "gelex/bayes/builtin_method.h"
+#include "gelex/bayes/recipe.h"
+#include "gelex/types/genetic_mode.h"
 
 namespace gelex
 {
 
-ResidualStep::ResidualStep(
-    Eigen::Index num_individuals,
-    const bayes::ResidualPrior& prior,
-    bayes::ResidualState& state,
-    std::mt19937_64& rng)
-    : num_individuals_(num_individuals),
-      state_(state),
-      rng_(rng),
-      sampler_(prior.prior())
-{
-}
-
-auto ResidualStep::step() -> void
-{
-    sampler_.reset();
-    state_.variance = sampler_(
-        {.n = num_individuals_, .sum_squares = state_.y_adj.squaredNorm()},
-        rng_);
-}
+template <BayesMethod Method, GeneticModeSet Modes>
+using BuiltinBayesRecipe = BayesRecipe<semantic_method_t<Method>, Modes>;
 
 }  // namespace gelex
+
+#endif  // GELEX_BAYES_BUILTIN_RECIPE_H_
