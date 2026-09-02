@@ -102,6 +102,8 @@ class SingleGeneticBlockState
         const GeneticDesign& design,
         const SingleGeneticPrior& prior);
 
+    [[nodiscard]] auto mode() const noexcept -> GeneticMode { return mode_; }
+
     auto state() -> GeneticState& { return state_; }
     auto state() const -> const GeneticState& { return state_; }
 
@@ -125,8 +127,7 @@ class JointGeneticBlockState
     static constexpr std::string_view name = "joint";
 
     JointGeneticBlockState(
-        const GeneticDesign& additive,
-        const GeneticDesign& dominance,
+        const GeneticDesign& design,
         const JointGeneticPrior& prior);
 
     auto state(GeneticMode mode) -> GeneticState&;

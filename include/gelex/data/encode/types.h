@@ -22,6 +22,7 @@
 
 #include "gelex/data/encode/stats.h"
 #include "gelex/data/genotype_method.h"
+#include "gelex/data/snp_lut.h"
 #include "gelex/types/genetic_mode.h"
 
 namespace gelex
@@ -64,13 +65,11 @@ struct LocusEncoding
 
     LocusStats stats;
 
-    Eigen::Array3d code{0.0, 0.0, 0.0};
+    SnpLut lut{0.0, 0.0, 0.0, 0.0};
 
     double mean{0};
     double var{0};
     double sd{1};
-
-    double missing_encoded_value{0};
 
     bool valid{false};
 };

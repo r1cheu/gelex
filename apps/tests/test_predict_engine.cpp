@@ -40,7 +40,8 @@
 #include "gelex/data/reader.h"
 #include "gelex/data/snp_alignment.h"
 #include "gelex/exception.h"
-#include "gelex/io/snpstats.h"
+#include "gelex/io/binary_writer.h"
+#include "gelex/io/snp_lut.h"
 #include "gelex/types/genetic_mode.h"
 
 #include "bed_fixture.h"
@@ -102,53 +103,45 @@ auto read_fam(const std::filesystem::path& fam_path)
     return {std::move(fids), std::move(iids)};
 }
 
-// snpstats 写入训练侧编码查找表；write_add/write_dom 选择写入的模式
-auto create_snpstats(
-    const std::filesystem::path& snpstats_path,
+auto create_snp_luts(
+    const std::filesystem::path& snp_lut_path,
     const Eigen::MatrixXd& genotypes,
     bool write_add = true,
     bool write_dom = true) -> void
 {
-    using gelex::BinaryWriter;
     using gelex::GeneticMode;
     using gelex::GenotypeMethod;
-    using gelex::SnpStats;
-    using gelex::write_snp_stats;
+    using gelex::SnpLutMatrix;
 
     const auto n_snps = genotypes.cols();
 
-    const auto fill = [&genotypes, n_snps](GeneticMode mode) -> SnpStats
+    const auto fill = [&genotypes, n_snps](GeneticMode mode) -> SnpLutMatrix
     {
         const gelex::EncodingSpec spec{gelex::encoding_spec_from_method(
             mode, GenotypeMethod::StandardizeHWE)};
 
-        SnpStats stats;
-        stats.code = Eigen::MatrixXd(3, n_snps);
-        stats.A1freq = Eigen::VectorXd(n_snps);
+        SnpLutMatrix luts(4, n_snps);
         for (Eigen::Index j = 0; j < n_snps; ++j)
         {
             const gelex::LocusStats locus_stats{
                 gelex::test::compute_locus_stats<double>(genotypes.col(j))};
             const gelex::LocusEncoding locus{
                 gelex::detail::make_locus_encoding(j, locus_stats, spec)};
-            stats.code(0, j) = locus.code[0];
-            stats.code(1, j) = locus.code[1];
-            stats.code(2, j) = locus.code[2];
-            stats.A1freq(j)
-                = locus_stats.has_nonmissing() ? locus_stats.A1freq() : 0.0;
+            luts.col(j) = locus.lut;
         }
-        return stats;
+        return luts;
     };
 
-    BinaryWriter writer(snpstats_path.string());
+    gelex::BinaryWriter writer(snp_lut_path.string());
     if (write_add)
     {
-        write_snp_stats(writer, GeneticMode::A, fill(GeneticMode::A));
+        writer.write("A/lut", fill(GeneticMode::A));
     }
     if (write_dom)
     {
-        write_snp_stats(writer, GeneticMode::D, fill(GeneticMode::D));
+        writer.write("D/lut", fill(GeneticMode::D));
     }
+    writer.close();
 }
 
 auto create_snp_effects_file(
@@ -305,26 +298,30 @@ auto run_predict_dataflow(
     const std::filesystem::path& output_path) -> void
 {
     auto snp_effects = gelex::read_snp_effects(gfile_prefix + ".snpeff");
-    auto snpstats = gelex::load_snp_stats(gfile_prefix + ".snpstats");
+    auto snp_luts = gelex::load_snp_luts(gfile_prefix + ".snplut");
 
-    if (snpstats.empty())
+    if (snp_luts.empty())
     {
         throw gelex::GelexException(
-            ".snpstats file contains neither additive nor dominance stats.");
+            ".snplut file contains neither additive nor dominance LUTs.");
     }
 
     gelex::ModeMap<Eigen::VectorXd> effects;
-    for (const auto mode : std::views::keys(snpstats))
+    for (const auto& [mode, luts] : snp_luts)
     {
         const auto column = fmt::format("BETA_{}", mode);
         if (!snp_effects.contains(column))
         {
             throw gelex::GelexException(
                 fmt::format(
-                    ".snpstats file contains {} stats, but SNP effects file "
+                    ".snplut file contains a {} LUT, but SNP effects file "
                     "does not have '{}' column.",
                     mode,
                     column));
+        }
+        if (luts.cols() != snp_effects.rows())
+        {
+            throw gelex::GelexException("SNP LUT and effects size mismatch");
         }
         effects.emplace(mode, snp_effects[column].to_mat<double>());
     }
@@ -377,10 +374,10 @@ auto run_predict_dataflow(
     }
 
     gelex::ModeMap<Eigen::MatrixXd> geno;
-    for (const auto& [mode, stats] : snpstats)
+    for (const auto& [mode, luts] : snp_luts)
     {
         geno.emplace(
-            mode, gelex::expand_aligned_genotypes(bed, alignment, stats));
+            mode, gelex::expand_aligned_genotypes(bed, alignment, luts));
     }
 
     auto covariates = cli::build_covariate_design(
@@ -439,7 +436,7 @@ TEST_CASE(
     create_snp_effects_file(ff, gfile_prefix, snp_rows);
     create_param_file(
         ff, gfile_prefix, 1.0, {{"Age", 0.2}}, {{"Sex\x1FM", -0.3}});
-    create_snpstats(gfile_prefix + ".snpstats", genotypes);
+    create_snp_luts(gfile_prefix + ".snplut", genotypes);
 
     auto qcovar_path = create_qcovar_file(
         ff, fids, loaded_iids, {{"Age", {25.0, 30.0, 35.0}}});
@@ -492,7 +489,7 @@ TEST_CASE(
     auto gfile_prefix = (ff.get_test_dir() / "add_only").string();
     create_snp_effects_file(ff, gfile_prefix, snp_rows);
     create_param_file(ff, gfile_prefix, 1.0, {}, {});
-    create_snpstats(gfile_prefix + ".snpstats", genotypes, true, false);
+    create_snp_luts(gfile_prefix + ".snplut", genotypes, true, false);
 
     auto output_path = ff.get_test_dir() / "add_only.predictions";
 
@@ -538,7 +535,7 @@ TEST_CASE(
     auto gfile_prefix = (ff.get_test_dir() / "dom_only").string();
     create_snp_effects_file(ff, gfile_prefix, snp_rows);
     create_param_file(ff, gfile_prefix, 1.0, {}, {});
-    create_snpstats(gfile_prefix + ".snpstats", genotypes, false, true);
+    create_snp_luts(gfile_prefix + ".snplut", genotypes, false, true);
 
     auto output_path = ff.get_test_dir() / "dom_only.predictions";
 
@@ -584,7 +581,7 @@ TEST_CASE(
     auto gfile_prefix = (ff.get_test_dir() / "missing_snp").string();
     create_snp_effects_file(ff, gfile_prefix, snp_rows);
     create_param_file(ff, gfile_prefix, 1.0, {}, {});
-    create_snpstats(gfile_prefix + ".snpstats", genotypes);
+    create_snp_luts(gfile_prefix + ".snplut", genotypes);
 
     auto output_path = ff.get_test_dir() / "missing.predictions";
 

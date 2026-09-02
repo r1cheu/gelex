@@ -14,33 +14,29 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_IO_SNPSTATS_H_
-#define GELEX_IO_SNPSTATS_H_
+#ifndef GELEX_IO_SNP_LUT_H_
+#define GELEX_IO_SNP_LUT_H_
 
 #include <filesystem>
 
-#include "gelex/data/snp_stats.h"
-#include "gelex/io/binary_reader.h"
-#include "gelex/io/binary_writer.h"
+#include "gelex/data/snp_lut.h"
 #include "gelex/types/genetic_mode.h"
 
 namespace gelex
 {
 
-[[nodiscard]] auto has_snp_stats(const BinaryReader& reader, GeneticMode mode)
-    -> bool;
+namespace bayes
+{
+class GeneticDesign;
+}
 
-[[nodiscard]] auto read_snp_stats(const BinaryReader& reader, GeneticMode mode)
-    -> SnpStats;
+[[nodiscard]] auto load_snp_luts(const std::filesystem::path& path)
+    -> ModeMap<SnpLutMatrix>;
 
-[[nodiscard]] auto load_snp_stats(const std::filesystem::path& path)
-    -> ModeMap<SnpStats>;
-
-auto write_snp_stats(
-    BinaryWriter& writer,
-    GeneticMode mode,
-    const SnpStats& stats) -> void;
+auto write_snp_luts(
+    const std::filesystem::path& path,
+    const bayes::GeneticDesign& design) -> void;
 
 }  // namespace gelex
 
-#endif  // GELEX_IO_SNPSTATS_H_
+#endif  // GELEX_IO_SNP_LUT_H_

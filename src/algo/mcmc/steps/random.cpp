@@ -22,12 +22,13 @@
 #include <random>
 #include <span>
 
-#include "gelex/algo/mcmc/invariant.h"
 #include "gelex/bayes/design.h"
 #include "gelex/bayes/prior.h"
 #include "gelex/bayes/state.h"
 #include "gelex/exception.h"
 #include "gelex/infra/stats/normal_sampler.h"
+
+#include "algo/mcmc/invariant.h"
 
 namespace gelex
 {
@@ -72,7 +73,7 @@ auto RandomStep::step() -> void
         {
             const auto col = X.col(i);
             const double old_i = coeffs(i);
-            ResidualAdjustmentGuard guard{col, coeffs(i), residual_};
+            DenseResidualAdjustmentGuard guard{col, coeffs(i), residual_};
             const double rhs = col.dot(residual_.y_adj) + (XtX_diag(i) * old_i);
             coeffs(i) = normal_(
                 NormalSampler<double>::Kernel{

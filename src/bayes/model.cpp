@@ -17,7 +17,6 @@
 #include "gelex/bayes/model.h"
 
 #include <Eigen/Core>
-#include <algorithm>
 #include <fmt/format.h>
 #include <ranges>
 #include <utility>
@@ -28,7 +27,6 @@
 #include "gelex/infra/field_visitor.h"
 #include "gelex/infra/stats/detail/var.h"
 #include "gelex/types/fixed_designs.h"
-#include "gelex/types/genetic_mode.h"
 
 namespace gelex
 {
@@ -36,11 +34,11 @@ BayesModel::BayesModel(
     Eigen::VectorXd phenotype,
     FixedDesign fixed_design,
     std::vector<bayes::RandomDesign> random,
-    std::vector<bayes::GeneticDesign> genetics)
+    bayes::GeneticDesign genetic)
     : phenotype_(std::move(phenotype)),
       fixed_(std::move(fixed_design)),
       random_(std::move(random)),
-      genetics_(std::move(genetics))
+      genetic_(std::move(genetic))
 {
     num_individuals_ = phenotype_.rows();
     phenotype_var_
@@ -69,27 +67,13 @@ BayesModel::BayesModel(
         }
     }
 
-    std::vector<GeneticMode> seen_modes;
-    seen_modes.reserve(genetics_.size());
-    for (const auto& genetic : genetics_)
+    if (genetic_.rows() != num_individuals_)
     {
-        if (genetic.X.rows() != num_individuals_)
-        {
-            throw GelexException(
-                fmt::format(
-                    "BayesModel: genetic design {} rows {} != phenotype rows "
-                    "{}",
-                    genetic.type,
-                    genetic.X.rows(),
-                    num_individuals_));
-        }
-        if (std::ranges::contains(seen_modes, genetic.type))
-        {
-            throw GelexException(
-                fmt::format(
-                    "BayesModel: duplicate genetic mode {}", genetic.type));
-        }
-        seen_modes.push_back(genetic.type);
+        throw GelexException(
+            fmt::format(
+                "BayesModel: genetic design rows {} != phenotype rows {}",
+                genetic_.rows(),
+                num_individuals_));
     }
 }
 

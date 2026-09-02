@@ -16,7 +16,9 @@
 
 #include "gelex/data/encode/detail/encoding.h"
 
+#include <array>
 #include <cmath>
+#include <optional>
 
 #include "gelex/data/encode/stats.h"
 #include "gelex/data/encode/types.h"
@@ -24,6 +26,14 @@
 
 namespace gelex::detail
 {
+
+namespace
+{
+
+constexpr Eigen::Index MISSING_CODE{1};
+constexpr std::array<Eigen::Index, 3> NON_MISSING_CODES{0, 2, 3};
+
+}  // namespace
 
 auto make_moment_weights(const LocusStats& stats, MomentBasis basis)
     -> MomentWeights
@@ -42,42 +52,38 @@ auto make_moment_weights(const LocusStats& stats, MomentBasis basis)
     return {.A2A2 = q * q, .A1A2 = 2.0 * p * q, .A1A1 = p * p};
 }
 
-auto weighted_mean(const Eigen::Array3d& values, const MomentWeights& weights)
+auto weighted_mean(const SnpLut& lut, const MomentWeights& weights) -> double
+{
+    return (weights.A1A1 * lut[0]) + (weights.A1A2 * lut[2])
+           + (weights.A2A2 * lut[3]);
+}
+
+auto weighted_var(const SnpLut& lut, const MomentWeights& weights, double mean)
     -> double
 {
-    return (weights.A2A2 * values[0]) + (weights.A1A2 * values[1])
-           + (weights.A1A1 * values[2]);
+    const double x0{lut[0] - mean};
+    const double x2{lut[2] - mean};
+    const double x3{lut[3] - mean};
+
+    return (weights.A1A1 * x0 * x0) + (weights.A1A2 * x2 * x2)
+           + (weights.A2A2 * x3 * x3);
 }
 
-auto weighted_var(
-    const Eigen::Array3d& values,
-    const MomentWeights& weights,
-    double mean) -> double
+auto make_dominance_het() -> SnpLut
 {
-    const double x0{values[0] - mean};
-    const double x1{values[1] - mean};
-    const double x2{values[2] - mean};
-
-    return (weights.A2A2 * x0 * x0) + (weights.A1A2 * x1 * x1)
-           + (weights.A1A1 * x2 * x2);
+    return {0.0, 0.0, 1.0, 0.0};
 }
 
-auto make_dominance_het() -> CodeMap
-{
-    return CodeMap{.value = {0.0, 1.0, 0.0}, .valid = true};
-}
-
-auto make_dominance_hwe(const LocusStats& stats) -> CodeMap
+auto make_dominance_hwe(const LocusStats& stats) -> SnpLut
 {
     const double p{stats.A1freq()};
 
-    return CodeMap{.value = {0.0, 2.0 * p, (4.0 * p) - 2.0}, .valid = true};
+    return {(4.0 * p) - 2.0, 0.0, 2.0 * p, 0.0};
 }
 
-auto make_dominance_noia(const LocusStats& stats, double tol) -> CodeMap
+auto make_dominance_noia(const LocusStats& stats, double tol)
+    -> std::optional<SnpLut>
 {
-    CodeMap out;
-
     const double pA2A2{stats.pA2A2()};
     const double pA1A2{stats.pA1A2()};
     const double pA1A1{stats.pA1A1()};
@@ -87,17 +93,14 @@ auto make_dominance_noia(const LocusStats& stats, double tol) -> CodeMap
 
     if (denom < tol)
     {
-        out.valid = false;
-        out.value = {0.0, 0.0, 0.0};
-        return out;
+        return std::nullopt;
     }
 
     const double cA1A1{-2.0 * pA2A2 * pA1A2 / denom};
     const double cA1A2{4.0 * pA1A1 * pA2A2 / denom};
     const double cA2A2{-2.0 * pA1A1 * pA1A2 / denom};
 
-    out.value = {cA2A2, cA1A2, cA1A1};
-    return out;
+    return SnpLut{cA1A1, 0.0, cA1A2, cA2A2};
 }
 
 auto make_locus_encoding(
@@ -118,28 +121,28 @@ auto make_locus_encoding(
         return out;
     }
 
-    CodeMap code;
+    std::optional<SnpLut> lut;
     if (spec.effect == gelex::GeneticMode::A)
     {
-        code.value = {0.0, 1.0, 2.0};
+        lut = SnpLut{2.0, 0.0, 1.0, 0.0};
     }
     else
     {
         switch (spec.dominance_code)
         {
             case DominanceCode::Het:
-                code = make_dominance_het();
+                lut = make_dominance_het();
                 break;
             case DominanceCode::HWE:
-                code = make_dominance_hwe(stats);
+                lut = make_dominance_hwe(stats);
                 break;
             case DominanceCode::NOIA:
-                code = make_dominance_noia(stats, tol);
+                lut = make_dominance_noia(stats, tol);
                 break;
         }
     }
 
-    if (!code.valid)
+    if (!lut)
     {
         out.valid = false;
         out.sd = 0.0;
@@ -148,36 +151,40 @@ auto make_locus_encoding(
 
     const MomentWeights weights{make_moment_weights(stats, spec.moment_basis)};
 
-    out.mean = weighted_mean(code.value, weights);
-    out.var = weighted_var(code.value, weights, out.mean);
+    out.mean = weighted_mean(*lut, weights);
+    out.var = weighted_var(*lut, weights, out.mean);
 
     if (out.var < tol)
     {
         out.valid = false;
-        out.code = {0.0, 0.0, 0.0};
         out.sd = 0.0;
         return out;
     }
 
     out.sd = std::sqrt(out.var);
-    out.code = code.value;
+    out.lut = *lut;
 
     switch (spec.normalization)
     {
         case Normalization::Center:
-            out.code -= out.mean;
-            out.missing_encoded_value = 0.0;
+            for (const Eigen::Index raw_code : NON_MISSING_CODES)
+            {
+                out.lut[raw_code] -= out.mean;
+            }
+            out.lut[MISSING_CODE] = 0.0;
             break;
         case Normalization::CenterScale:
-            out.code -= out.mean;
-            out.code /= out.sd;
-            out.missing_encoded_value = 0.0;
+            for (const Eigen::Index raw_code : NON_MISSING_CODES)
+            {
+                out.lut[raw_code] = (out.lut[raw_code] - out.mean) / out.sd;
+            }
+            out.lut[MISSING_CODE] = 0.0;
             break;
         case Normalization::None:
-            out.missing_encoded_value = out.mean;
+            out.lut[MISSING_CODE] = out.mean;
             break;
         default:
-            out.missing_encoded_value = 0.0;
+            out.lut[MISSING_CODE] = 0.0;
             break;
     }
     out.valid = true;

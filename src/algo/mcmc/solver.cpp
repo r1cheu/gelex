@@ -32,7 +32,7 @@ namespace gelex
 {
 
 Solver::Solver(
-    Params params,
+    MCMCParams params,
     std::string draws_path,
     std::optional<std::string> checkpoint_prefix)
     : params_(params),

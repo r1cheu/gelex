@@ -78,7 +78,7 @@ TEST_CASE("Bed gather projects samples into target order", "[data][bed]")
     REQUIRE(std::ranges::equal(bed.sample_index().keys(), target_keys));
 
     // The projection is exercised through its only consumer: expanding an
-    // unnormalized additive encoding (code = dosage) straight from the packed
+    // unnormalized additive encoding (value = dosage) straight from the packed
     // source must reproduce each SNP's genotypes in the projected target order.
     const gelex::LocusEncoder encoder{bed};
     const gelex::EncodingSpec spec{

@@ -24,7 +24,10 @@
 namespace gelex
 {
 
-class BayesModel;
+namespace bayes
+{
+class GeneticDesign;
+}
 
 namespace detail
 {
@@ -32,7 +35,7 @@ namespace detail
 class PveComputer
 {
    public:
-    PveComputer(const BayesModel& model, double phenotype_var);
+    PveComputer(const bayes::GeneticDesign& design, double phenotype_var);
 
     auto single(GeneticMode mode, const Eigen::Ref<const Eigen::VectorXd>& beta)
         const -> Eigen::VectorXd;
@@ -42,7 +45,7 @@ class PveComputer
         -> Eigen::VectorXd;
 
    private:
-    const BayesModel& model_;
+    const bayes::GeneticDesign& design_;
     double phenotype_var_{};
     Eigen::RowVectorXd cov_ad_;
 };

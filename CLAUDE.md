@@ -2,16 +2,7 @@
 
 C++23 · Catch2 v3 · Beta (breaking changes OK)
 
-High-performance genomic analysis toolkit for genomic prediction and association studies; core is Bayesian (BayesAlphabet). Modules under `include/gelex/`:
-
-- `bayes` — Bayesian models/samplers (BayesAlphabet)
-- `freq` — frequentist methods (REML, GWAS design)
-- `algo` — solvers (`mcmc`, `reml`)
-- `data` — genotype/GRM readers, covariates
-- `io` — file readers/writers
-- `simulate` — phenotype/genetic-value simulation
-- `post` — post-estimation
-- `types`, `infra` — shared types, cross-cutting infra
+High-performance genomic analysis toolkit for genomic prediction and association studies; core is Bayesian (BayesAlphabet).
 
 ## Build
 

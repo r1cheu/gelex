@@ -30,6 +30,7 @@
 #include <variant>
 
 #include "gelex/algo/mcmc/result.h"
+#include "gelex/bayes/design.h"
 #include "gelex/bayes/genetic/prior.h"
 #include "gelex/bayes/labels.h"
 #include "gelex/bayes/model.h"
@@ -56,7 +57,20 @@ auto GenoReporter::show_total(int64_t num_variants) const -> void
         "{}", cli::field("Variants", "{}", cli::AbbrNumber(num_variants)));
 }
 
-auto GenoReporter::show_loaded(
+auto GenoReporter::show_loaded(const gelex::bayes::GeneticDesign& design) const
+    -> void
+{
+    for (const gelex::GeneticMode mode : design.modes().each())
+    {
+        show_loaded_mode(
+            mode,
+            design.cols(),
+            design.cols()
+                - static_cast<Eigen::Index>(design.valid_indices(mode).size()));
+    }
+}
+
+auto GenoReporter::show_loaded_mode(
     gelex::GeneticMode mode,
     int64_t num_snps,
     int64_t invalid_snps) const -> void

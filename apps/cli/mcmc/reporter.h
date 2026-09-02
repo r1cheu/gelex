@@ -34,6 +34,7 @@ namespace gelex
 {
 namespace bayes
 {
+class GeneticDesign;
 class RandomPrior;
 class ResidualPrior;
 class ScaledInvChiSqPrior;
@@ -52,10 +53,7 @@ class GenoReporter
     GenoReporter();
 
     auto show_total(int64_t num_variants) const -> void;
-    auto show_loaded(
-        gelex::GeneticMode mode,
-        int64_t num_snps,
-        int64_t invalid_snps) const -> void;
+    auto show_loaded(const gelex::bayes::GeneticDesign& design) const -> void;
     auto on_event(const gelex::GenotypeProgressEvent& event) -> void;
 
     auto as_observer() -> gelex::GenoObserver
@@ -65,6 +63,11 @@ class GenoReporter
     }
 
    private:
+    auto show_loaded_mode(
+        gelex::GeneticMode mode,
+        int64_t num_snps,
+        int64_t invalid_snps) const -> void;
+
     size_t progress_{0};
     size_t total_{0};
     cli::ProgressBar bar_;

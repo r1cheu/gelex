@@ -170,19 +170,11 @@ auto setup_mcmc_command(CLI::App& program, int& exit_code) -> void
         ->group("Runtime")
         ->type_name("<CKPT>")
         ->check(CLI::ExistingFile);
-    cmd.add_option("-c,--chunk-size", config->chunk_size, "SNPs per chunk")
-        ->group("Runtime")
-        ->type_name("<N>")
-        ->check(CLI::PositiveNumber)
-        ->capture_default_str();
     cmd.add_option("-t,--threads", config->threads, "CPU threads")
         ->group("Runtime")
         ->type_name("<N>")
         ->check(cli::non_negative_number())
         ->capture_default_str();
-    cmd.add_flag("--mmap", config->mmap, "Store genotype chunks as mmap files")
-        ->group("Runtime");
-
     cmd.footer(
         "Docs:\n"
         "  https://gelex.readthedocs.io/en/latest/cli/mcmc.html");

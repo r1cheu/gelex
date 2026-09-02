@@ -20,6 +20,7 @@
 #include <Eigen/Core>
 #include <cassert>
 #include <cstddef>
+#include <cstdint>
 #include <span>
 
 #include "gelex/data/bed.h"
@@ -61,6 +62,23 @@ class LocusEncoder
             source_[static_cast<std::size_t>(variant)], mask_);
     }
 
+    auto decode_raw_codes(Eigen::Index variant, std::span<std::uint8_t> output)
+        const -> void
+    {
+        assert(output.size() == target_to_source_.size());
+        const auto variant_bytes = source_[static_cast<std::size_t>(variant)];
+        for (Eigen::Index row = 0; row < target_size(); ++row)
+        {
+            const Eigen::Index source
+                = target_to_source_[static_cast<std::size_t>(row)];
+            const auto byte = static_cast<unsigned>(
+                variant_bytes[static_cast<std::size_t>(source / 4)]);
+            const auto shift = static_cast<unsigned>(2 * (source % 4));
+            output[static_cast<std::size_t>(row)]
+                = static_cast<std::uint8_t>((byte >> shift) & 0x03U);
+        }
+    }
+
     // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
     [[nodiscard]] auto encoding(
         Eigen::Index variant,
@@ -70,19 +88,26 @@ class LocusEncoder
         return detail::make_locus_encoding(variant, stats, spec);
     }
 
-    // encoding may come from encoding() on this variant, or externally (e.g.
-    // training codes for prediction, with any allele flip baked into
-    // encoding.code); stats are not recomputed from the current samples.
+    // encoding may come from encoding() on this variant or externally; stats
+    // are not recomputed from the current samples.
     auto expand(
         Eigen::Index variant,
         const LocusEncoding& encoding,
+        Eigen::Ref<Eigen::VectorXd> out) const -> void
+    {
+        expand(variant, encoding.lut, out);
+    }
+
+    auto expand(
+        Eigen::Index variant,
+        const Eigen::Ref<const Eigen::Array4d>& lut,
         Eigen::Ref<Eigen::VectorXd> out) const -> void
     {
         assert(out.size() == target_size());
         detail::expand_encoded_column(
             source_[static_cast<std::size_t>(variant)],
             target_to_source_,
-            encoding,
+            lut,
             out);
     }
 

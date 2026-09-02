@@ -29,15 +29,14 @@
 #include "gelex/bayes/model.h"
 #include "gelex/bayes/prior.h"
 #include "gelex/bayes/state.h"
-#include "gelex/data/genotype.h"
 #include "gelex/exception.h"
 #include "gelex/io/binary_writer.h"
 #include "gelex/io/mcmc_checkpoint.h"
 #include "gelex/types/fixed_designs.h"
 #include "gelex/types/genetic_mode.h"
 
+#include "compact_genotype_fixture.h"
 #include "file_fixture.h"
-#include "genotype_fixture.h"
 
 namespace
 {
@@ -48,22 +47,11 @@ auto make_variance(double value) -> gelex::bayes::VarianceParameter
         value, gelex::bayes::ScaledInvChiSqPrior{4.0, 1.0}};
 }
 
-auto make_genotype() -> gelex::Genotype
-{
-    Eigen::MatrixXd data{{0.0, 1.0}, {1.0, 0.0}, {2.0, 1.0}};
-    return gelex::test::GenotypeBuilder::build(std::move(data));
-}
-
 auto make_model() -> gelex::BayesModel
 {
-    std::vector<gelex::bayes::GeneticDesign> genetics;
-    genetics.emplace_back(gelex::GeneticMode::A, make_genotype());
-
-    return gelex::BayesModel{
-        Eigen::VectorXd{{1.0, 2.0, 3.0}},
-        gelex::FixedDesign::make(3),
-        {},
-        std::move(genetics)};
+    return gelex::test::make_compact_model(
+        Eigen::MatrixXd{{0.0, 1.0}, {1.0, 0.0}, {2.0, 1.0}},
+        Eigen::VectorXd{{1.0, 2.0, 3.0}});
 }
 
 auto make_prior() -> gelex::bayes::BayesPrior

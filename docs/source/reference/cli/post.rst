@@ -36,10 +36,6 @@ Options
    One or more MCMC output prefixes; reads ``<prefix>.draws``. Provide
    several prefixes (separate chains) to obtain ``R-hat`` diagnostics.
 
-``-g, --gfile``
-   Genotype binary prefix for per-SNP diagnostics (for example, GEBV variance
-   and heritability). Required only when SNP-level diagnostics are wanted.
-
 ``-o, --out`` ``gelex_post``
    Output prefix for the run log.
 
@@ -80,15 +76,6 @@ Examples
    gelex post \
       --in chain1 chain2 chain3 \
       -o post_multi
-
-.. code-block:: bash
-   :caption: With SNP-Level Diagnostics
-
-   gelex post \
-      --in mcmc_run \
-      --gfile genotypes \
-      --hdpi 0.9 \
-      -o post_snp
 
 See Also
 --------

@@ -15,6 +15,7 @@
  */
 
 #include <Eigen/Core>
+#include <array>
 #include <catch2/catch_test_macros.hpp>
 #include <cmath>
 #include <cstddef>
@@ -38,6 +39,8 @@
 
 namespace
 {
+constexpr std::array<Eigen::Index, 3> RAW_CODE_BY_DOSAGE{3, 2, 0};
+
 // Mirrors GrmBuilder's fused path: tabulate once per variant, then expand each
 // packed column straight into an encoded column.
 auto fused_encode(
@@ -63,14 +66,12 @@ auto fused_encode(
         const auto encoding
             = gelex::detail::make_locus_encoding(snp, stats, spec);
         gelex::detail::expand_encoded_column(
-            packed, target_to_source, encoding, z.col(snp));
+            packed, target_to_source, encoding.lut, z.col(snp));
     }
     return z;
 }
 
-// Independent oracle: derive each column's code from the dosage matrix and
-// apply it by value, cross-checking the packed bit-LUT expand against a dense
-// apply.
+// Independent dosage oracle for the packed bit-LUT expansion.
 auto dosage_encode(
     const Eigen::MatrixXd& dosage,
     gelex::GeneticMode mode,
@@ -87,10 +88,11 @@ auto dosage_encode(
         for (Eigen::Index i = 0; i < dosage.rows(); ++i)
         {
             const double d = dosage(i, snp);
-            out(i, snp) = !encoding.valid ? 0.0
-                          : std::isnan(d)
-                              ? encoding.missing_encoded_value
-                              : encoding.code(static_cast<Eigen::Index>(d));
+            const Eigen::Index raw_code
+                = std::isnan(d)
+                      ? 1
+                      : RAW_CODE_BY_DOSAGE[static_cast<std::size_t>(d)];
+            out(i, snp) = encoding.lut[raw_code];
         }
     }
     return out;

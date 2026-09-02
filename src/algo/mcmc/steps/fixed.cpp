@@ -19,10 +19,11 @@
 #include <Eigen/Core>
 #include <random>
 
-#include "gelex/algo/mcmc/invariant.h"
 #include "gelex/bayes/state.h"
 #include "gelex/infra/stats/normal_sampler.h"
 #include "gelex/types/fixed_designs.h"
+
+#include "algo/mcmc/invariant.h"
 
 namespace gelex
 {
@@ -46,7 +47,7 @@ auto FixedStep::step() -> void
     {
         const auto column = design_.X.col(i);
         const double old_value = coeffs(i);
-        ResidualAdjustmentGuard guard{column, coeffs(i), residual_};
+        DenseResidualAdjustmentGuard guard{column, coeffs(i), residual_};
         const double xtx_diag_i = design_.XtX_diag(i);
         const double rhs
             = column.dot(residual_.y_adj) + (xtx_diag_i * old_value);

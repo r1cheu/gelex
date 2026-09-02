@@ -16,48 +16,26 @@
 
 #include "command.h"
 
-#include <Eigen/Core>
 #include <algorithm>
 #include <fmt/format.h>
-#include <optional>
 #include <ranges>
 #include <span>
 #include <string>
-#include <string_view>
 #include <utility>
 #include <vector>
 
-#include "gelex/data/genotype.h"
-#include "gelex/data/genotype_reader.h"
 #include "gelex/exception.h"
 #include "gelex/io/binary_reader.h"
 #include "gelex/post/diagnostic.h"
 #include "gelex/post/fixed.h"
 #include "gelex/post/genetic.h"
-#include "gelex/post/genetic_variance.h"
-#include "gelex/post/genetic_variance_kernel.h"
-#include "gelex/post/heritability.h"
 #include "gelex/post/random.h"
 #include "gelex/post/residual.h"
-#include "gelex/types/genetic_mode.h"
 
 #include "reporter.h"
 
 namespace
 {
-
-auto parse_genetic_mode(std::string_view value) -> gelex::GeneticMode
-{
-    for (const auto& [mode, name] : gelex::GENETIC_MODE_NAMES)
-    {
-        if (value == name)
-        {
-            return mode;
-        }
-    }
-    throw gelex::GelexException(
-        fmt::format("unknown genetic mode in samples: {}", value));
-}
 
 auto check_consistency(const std::vector<gelex::BinaryReader>& readers) -> bool
 {
@@ -71,66 +49,6 @@ auto check_consistency(const std::vector<gelex::BinaryReader>& readers) -> bool
         readers | std::views::drop(1),
         [&](const gelex::BinaryReader& reader)
         { return reader.section_paths() == reference; });
-}
-
-auto process_gebv_variance(
-    std::vector<gelex::BinaryReader>& readers,
-    const std::optional<std::string>& gfile,
-    double hdpi_threshold) -> std::vector<gelex::ParameterDiag>
-{
-    if (!gfile)
-    {
-        return {};
-    }
-
-    std::vector<gelex::ParameterDiag> diags;
-
-    std::vector<gelex::Genotype> genotype_storages;
-    std::vector<gelex::GeneticInput> genetic_inputs;
-    const auto& ref = readers.front();
-    if (!ref.contains("genetic/modes"))
-    {
-        return {};
-    }
-
-    const auto sample_modes = ref.to_strings("genetic/modes");
-    genotype_storages.reserve(sample_modes.size());
-    for (const auto [index, mode_name] : std::views::enumerate(sample_modes))
-    {
-        const auto kind = parse_genetic_mode(mode_name);
-        auto coeff_path = fmt::format("genetic/{}/coeffs", index);
-        if (!readers.front().contains(coeff_path))
-        {
-            continue;
-        }
-        auto geno_path = fmt::format("{}.{}.geno", *gfile, kind);
-
-        genotype_storages.emplace_back(
-            gelex::GenotypeReader::read(geno_path, kind));
-        genetic_inputs.push_back({&genotype_storages.back(), kind});
-    }
-
-    if (!genetic_inputs.empty())
-    {
-        auto [gebv_diags, genetic_variances]
-            = gelex::
-                  GeneticVariancePosteriorProcessor{readers, genetic_inputs, hdpi_threshold}
-                      .process();
-        diags.append_range(std::move(gebv_diags));
-
-        std::vector<gelex::GeneticMode> active_kinds;
-        active_kinds.reserve(genetic_inputs.size());
-        for (const auto& input : genetic_inputs)
-        {
-            active_kinds.push_back(input.kind);
-        }
-        diags.append_range(
-            gelex::HeritabilityPosteriorProcessor{
-                readers, hdpi_threshold, genetic_variances, active_kinds}
-                .process());
-    }
-
-    return diags;
 }
 
 }  // namespace
@@ -168,13 +86,9 @@ auto post_execute(const cli::PostConfig& config) -> int
         = gelex::ResidualPosteriorProcessor{reader_span, hdpi_threshold}
               .process();
 
-    auto gebv_diags
-        = process_gebv_variance(readers, config.gfile, hdpi_threshold);
-
     std::vector<gelex::ParameterDiag> diags;
     diags.append_range(std::move(fixed_diags));
     diags.append_range(std::move(random_diags));
-    diags.append_range(std::move(gebv_diags));
     diags.append_range(std::move(genetic_diags));
     diags.append_range(std::move(residual_diags));
 

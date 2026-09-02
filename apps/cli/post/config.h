@@ -17,7 +17,6 @@
 #ifndef APPS_CLI_POST_CONFIG_H_
 #define APPS_CLI_POST_CONFIG_H_
 
-#include <optional>
 #include <string>
 #include <vector>
 
@@ -27,7 +26,6 @@ namespace cli
 struct PostConfig
 {
     std::vector<std::string> in;
-    std::optional<std::string> gfile;
     std::string out{"gelex_post"};
     double hdpi{0.94};
 };

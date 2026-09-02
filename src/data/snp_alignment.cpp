@@ -25,8 +25,7 @@
 #include "gelex/data/bed.h"
 #include "gelex/data/dataframe/dataframe.h"
 #include "gelex/data/encode/encoder.h"
-#include "gelex/data/encode/types.h"
-#include "gelex/data/snp_stats.h"
+#include "gelex/data/snp_lut.h"
 
 namespace gelex
 {
@@ -86,7 +85,7 @@ auto build_snp_alignment(
 auto expand_aligned_genotypes(
     const Bed& bed,
     const AlignmentPlan& plan,
-    const SnpStats& stats) -> Eigen::MatrixXd
+    const SnpLutMatrix& luts) -> Eigen::MatrixXd
 {
     const LocusEncoder encoder{bed};
 
@@ -98,16 +97,14 @@ auto expand_aligned_genotypes(
 
     for (const auto [k, train_col] : std::views::enumerate(plan.train_pos))
     {
-        LocusEncoding encoding;
-        encoding.valid = true;
-        encoding.code = stats.code.col(train_col).array();
+        Eigen::Array4d lut = luts.col(train_col);
         if (plan.flip[static_cast<std::size_t>(k)] != 0)
         {
-            std::swap(encoding.code(0), encoding.code(2));
+            std::swap(lut(0), lut(3));
         }
         encoder.expand(
             plan.source_col[static_cast<std::size_t>(k)],
-            encoding,
+            lut,
             out.col(train_col));
     }
 

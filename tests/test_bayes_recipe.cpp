@@ -27,14 +27,13 @@
 #include "gelex/bayes/model.h"
 #include "gelex/bayes/recipe.h"
 #include "gelex/bayes/recipe_options.h"
-#include "gelex/data/genotype.h"
 #include "gelex/exception.h"
 #include "gelex/types/constrained_value.h"
 #include "gelex/types/constrained_vector.h"
 #include "gelex/types/fixed_designs.h"
 #include "gelex/types/genetic_mode.h"
 
-#include "genotype_fixture.h"
+#include "compact_genotype_fixture.h"
 
 using gelex::GelexException;
 using gelex::GeneticMode;
@@ -50,26 +49,12 @@ using gelex::bayes::to_bayes_recipe_scheme;
 namespace
 {
 
-auto make_genotype(Eigen::MatrixXd data) -> gelex::Genotype
-{
-    return gelex::test::GenotypeBuilder::build(std::move(data));
-}
-
 auto make_model() -> gelex::BayesModel
 {
-    std::vector<gelex::bayes::GeneticDesign> genetics;
-    genetics.emplace_back(
-        GeneticMode::A,
-        make_genotype(Eigen::MatrixXd{{0.0, 1.0}, {1.0, 0.0}, {2.0, 1.0}}));
-    genetics.emplace_back(
-        GeneticMode::D,
-        make_genotype(Eigen::MatrixXd{{1.0, 0.0}, {0.0, 1.0}, {1.0, 2.0}}));
-
-    return gelex::BayesModel{
+    return gelex::test::make_compact_model(
+        Eigen::MatrixXd{{0.0, 1.0}, {1.0, 0.0}, {2.0, 1.0}},
         Eigen::VectorXd{{1.0, 2.0, 3.0}},
-        gelex::FixedDesign::make(3),
-        {},
-        std::move(genetics)};
+        GeneticMode::A | GeneticMode::D);
 }
 
 }  // namespace

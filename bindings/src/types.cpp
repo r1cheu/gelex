@@ -70,11 +70,10 @@ void register_types(nb::module_& m)
         .def_ro("column_index", &LocusEncoding::column_index)
         .def_ro("marker_index", &LocusEncoding::marker_index)
         .def_ro("stats", &LocusEncoding::stats)
-        .def_ro("code", &LocusEncoding::code)
+        .def_ro("lut", &LocusEncoding::lut)
         .def_ro("mean", &LocusEncoding::mean)
         .def_ro("var", &LocusEncoding::var)
         .def_ro("sd", &LocusEncoding::sd)
-        .def_ro("missing_encoded_value", &LocusEncoding::missing_encoded_value)
         .def_ro("valid", &LocusEncoding::valid);
 }
 

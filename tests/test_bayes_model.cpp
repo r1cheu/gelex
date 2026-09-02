@@ -20,49 +20,29 @@
 #include <utility>
 #include <vector>
 
-#include "gelex/bayes/design.h"
 #include "gelex/bayes/model.h"
-#include "gelex/data/genotype.h"
+#include "gelex/data/genotype_method.h"
 #include "gelex/exception.h"
-#include "gelex/infra/stats/detail/var.h"
 #include "gelex/types/fixed_designs.h"
 #include "gelex/types/genetic_mode.h"
 
-#include "genotype_fixture.h"
+#include "compact_genotype_fixture.h"
 
 using gelex::BayesModel;
 using gelex::FixedDesign;
 using gelex::GelexException;
 using gelex::GeneticMode;
+using gelex::GeneticModeSet;
+using gelex::GenotypeMethod;
 
 namespace
 {
 
-auto make_genotype(Eigen::MatrixXd data) -> gelex::Genotype
-{
-    return gelex::test::GenotypeBuilder::build(std::move(data));
-}
-
-auto make_genetic_design(GeneticMode mode, Eigen::MatrixXd data)
-    -> gelex::bayes::GeneticDesign
-{
-    return gelex::bayes::GeneticDesign{mode, make_genotype(std::move(data))};
-}
+const Eigen::MatrixXd GENOTYPES{{0.0, 0.0}, {1.0, 1.0}, {2.0, 1.0}};
 
 auto make_phenotype() -> Eigen::VectorXd
 {
     return Eigen::VectorXd{{1.0, 2.0, 4.0}};
-}
-
-auto make_genetic_data(Eigen::Index rows = 3) -> Eigen::MatrixXd
-{
-    Eigen::MatrixXd data(rows, 2);
-    for (Eigen::Index i = 0; i < rows; ++i)
-    {
-        data(i, 0) = static_cast<double>(i);
-        data(i, 1) = static_cast<double>(i + 1);
-    }
-    return data;
 }
 
 }  // namespace
@@ -71,16 +51,12 @@ TEST_CASE("BayesModel rejects design row mismatches", "[bayes_model]")
 {
     SECTION("fixed")
     {
-        std::vector<gelex::bayes::GeneticDesign> genetics;
-        genetics.push_back(
-            make_genetic_design(GeneticMode::A, make_genetic_data()));
-
         REQUIRE_THROWS_AS(
             BayesModel(
                 make_phenotype(),
                 FixedDesign::make(2),
                 {},
-                std::move(genetics)),
+                gelex::test::make_genetic_design(GENOTYPES)),
             GelexException);
     }
 
@@ -92,58 +68,76 @@ TEST_CASE("BayesModel rejects design row mismatches", "[bayes_model]")
             std::vector<std::string>{"a", "b"},
             Eigen::MatrixXd{{1.0, 0.0}, {0.0, 1.0}});
 
-        std::vector<gelex::bayes::GeneticDesign> genetics;
-        genetics.push_back(
-            make_genetic_design(GeneticMode::A, make_genetic_data()));
-
         REQUIRE_THROWS_AS(
             BayesModel(
                 make_phenotype(),
                 FixedDesign::make(3),
                 std::move(random),
-                std::move(genetics)),
+                gelex::test::make_genetic_design(GENOTYPES)),
             GelexException);
     }
 
     SECTION("genetic")
     {
-        std::vector<gelex::bayes::GeneticDesign> genetics;
-        genetics.push_back(
-            make_genetic_design(GeneticMode::A, make_genetic_data(2)));
-
         REQUIRE_THROWS_AS(
             BayesModel(
                 make_phenotype(),
                 FixedDesign::make(3),
                 {},
-                std::move(genetics)),
+                gelex::test::make_genetic_design(
+                    Eigen::MatrixXd{{0.0}, {1.0}})),
             GelexException);
     }
 }
 
-TEST_CASE("BayesModel rejects duplicate genetic modes", "[bayes_model]")
+TEST_CASE("BayesModel accepts a design without projections", "[bayes_model]")
 {
-    std::vector<gelex::bayes::GeneticDesign> genetics;
-    genetics.push_back(
-        make_genetic_design(GeneticMode::A, make_genetic_data()));
-    genetics.push_back(
-        make_genetic_design(GeneticMode::A, make_genetic_data()));
+    auto model = BayesModel{
+        make_phenotype(),
+        FixedDesign::make(3),
+        {},
+        gelex::test::make_genetic_design(GENOTYPES, GeneticModeSet{})};
 
-    REQUIRE_THROWS_AS(
-        BayesModel(
-            make_phenotype(), FixedDesign::make(3), {}, std::move(genetics)),
-        GelexException);
+    REQUIRE(model.genetic().modes().size() == 0);
 }
 
-TEST_CASE(
-    "GeneticDesign caches column variance from design matrix",
-    "[bayes_model]")
+TEST_CASE("GeneticDesign exposes compact column metadata", "[bayes_model]")
 {
-    const Eigen::MatrixXd data{{0.0, 1.0}, {1.0, 1.5}, {2.0, 3.0}};
-    const Eigen::RowVectorXd expected_var{
-        gelex::detail::matvar<0>(data, gelex::detail::VarNormType::Population)};
+    auto model = gelex::test::make_compact_model(
+        GENOTYPES,
+        make_phenotype(),
+        GeneticModeSet{GeneticMode::A},
+        GenotypeMethod::Center);
+    const auto& design = model.genetic();
+    const Eigen::MatrixXd expected{
+        {-1.0, -2.0 / 3.0}, {0.0, 1.0 / 3.0}, {1.0, 1.0 / 3.0}};
 
-    const auto design = make_genetic_design(GeneticMode::A, data);
+    REQUIRE(design.xtx_diag().isApprox(
+        expected.colwise().squaredNorm().transpose()));
+    REQUIRE(
+        design.col_var().isApprox(Eigen::RowVectorXd{{2.0 / 3.0, 2.0 / 9.0}}));
+    REQUIRE(design.valid_indices().size() == 2);
+}
 
-    REQUIRE(design.col_var.isApprox(expected_var));
+TEST_CASE("Moved BayesModel keeps compact design valid", "[bayes_model]")
+{
+    auto source = gelex::test::make_compact_model(
+        GENOTYPES,
+        make_phenotype(),
+        GeneticMode::A | GeneticMode::D,
+        GenotypeMethod::OrthCenter);
+    auto model = std::move(source);
+    const auto& design = model.genetic();
+    const Eigen::VectorXd values{{1.0, -0.5, 0.25}};
+    Eigen::VectorXd additive_output = Eigen::VectorXd::Zero(3);
+    Eigen::VectorXd dominance_output = Eigen::VectorXd::Zero(3);
+
+    design.axpy(GeneticMode::A, 0, 1.0, additive_output);
+    design.axpy(GeneticMode::D, 0, 1.0, dominance_output);
+
+    REQUIRE(
+        design.dot(GeneticMode::A, 0, values) == additive_output.dot(values));
+    REQUIRE(
+        design.dot(GeneticMode::D, 0, values) == dominance_output.dot(values));
+    REQUIRE(design.modes().size() == 2);
 }

@@ -16,12 +16,12 @@
 
 #include <Eigen/Core>
 #include <catch2/catch_test_macros.hpp>
+#include <limits>
 #include <vector>
 
 #include "gelex/data/bed.h"
 #include "gelex/data/reader.h"
 #include "gelex/data/snp_alignment.h"
-#include "gelex/data/snp_stats.h"
 
 #include "bed_fixture.h"
 #include "file_fixture.h"
@@ -139,7 +139,8 @@ TEST_CASE(
     BedFixture bed_files;
 
     // predict bfile: 2 samples x 3 SNPs, dosage counts bim A1
-    Eigen::MatrixXd dosage{{2, 0, 1}, {1, 2, 0}};
+    Eigen::MatrixXd dosage{
+        {2, 0, std::numeric_limits<double>::quiet_NaN()}, {1, 2, 0}};
     auto [prefix, _] = bed_files.create_deterministic_bed_files(
         dosage,
         {},
@@ -163,13 +164,12 @@ TEST_CASE(
     auto bed = gelex::open_bed(prefix.string());
     CHECK(plan.train_count == 4);
 
-    // Identity codes ({0,1,2} per genotype class) make the encoded output read
-    // back as dosage, so flip shows as a 2 - x swap and missing_pos as zero.
-    gelex::SnpStats stats;
-    stats.code = Eigen::Vector3d{0, 1, 2}.replicate(1, plan.train_count);
-    auto genotype = gelex::expand_aligned_genotypes(bed, plan, stats);
+    // Raw BED lookup: dosage 2, missing, dosage 1, dosage 0.
+    gelex::SnpLutMatrix luts(4, plan.train_count);
+    luts = Eigen::Array4d{2, 9, 1, 0}.replicate(1, plan.train_count);
+    auto genotype = gelex::expand_aligned_genotypes(bed, plan, luts);
 
-    Eigen::MatrixXd expected{{0, 0, 0, 1}, {2, 0, 1, 0}};
+    Eigen::MatrixXd expected{{0, 0, 0, 9}, {2, 0, 1, 0}};
 
     CHECK(gelex::test::are_matrices_equal(genotype, expected));
 }

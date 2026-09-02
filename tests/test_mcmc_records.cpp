@@ -33,13 +33,13 @@
 #include "gelex/bayes/model.h"
 #include "gelex/bayes/prior.h"
 #include "gelex/bayes/state.h"
-#include "gelex/data/genotype.h"
+#include "gelex/data/genotype_method.h"
 #include "gelex/io/binary_reader.h"
 #include "gelex/types/fixed_designs.h"
 #include "gelex/types/genetic_mode.h"
 
+#include "compact_genotype_fixture.h"
 #include "file_fixture.h"
-#include "genotype_fixture.h"
 
 namespace
 {
@@ -50,11 +50,6 @@ auto make_variance(double value) -> gelex::bayes::VarianceParameter
         value, gelex::bayes::ScaledInvChiSqPrior{4.0, 1.0}};
 }
 
-auto make_genotype(Eigen::MatrixXd data) -> gelex::Genotype
-{
-    return gelex::test::GenotypeBuilder::build(std::move(data));
-}
-
 auto make_model() -> gelex::BayesModel
 {
     std::vector<gelex::bayes::RandomDesign> random;
@@ -63,16 +58,16 @@ auto make_model() -> gelex::BayesModel
         std::vector<std::string>{"a", "b"},
         Eigen::MatrixXd{{1.0, 0.0}, {0.0, 1.0}, {1.0, 0.0}});
 
-    std::vector<gelex::bayes::GeneticDesign> genetics;
-    genetics.emplace_back(
-        gelex::GeneticMode::A,
-        make_genotype(Eigen::MatrixXd{{0.0, 1.0}, {1.0, 0.0}, {2.0, 1.0}}));
-
+    auto genetic = gelex::bayes::GeneticDesign{
+        gelex::test::make_bed(
+            Eigen::MatrixXd{{0.0, 1.0}, {1.0, 0.0}, {2.0, 1.0}}),
+        gelex::GeneticModeSet{gelex::GeneticMode::A},
+        gelex::GenotypeMethod::Center};
     return gelex::BayesModel{
         Eigen::VectorXd{{1.0, 2.0, 3.0}},
         gelex::FixedDesign::make(3),
         std::move(random),
-        std::move(genetics)};
+        std::move(genetic)};
 }
 
 auto make_prior() -> gelex::bayes::BayesPrior
@@ -258,18 +253,10 @@ TEST_CASE(
     "Records stores traced dominance sign categories",
     "[mcmc][mcmc_records]")
 {
-    std::vector<gelex::bayes::GeneticDesign> genetics;
-    genetics.emplace_back(
-        gelex::GeneticMode::A,
-        make_genotype(Eigen::MatrixXd{{0.0, 1.0}, {1.0, 0.0}, {2.0, 1.0}}));
-    genetics.emplace_back(
-        gelex::GeneticMode::D,
-        make_genotype(Eigen::MatrixXd{{1.0, 0.0}, {0.0, 1.0}, {1.0, 2.0}}));
-    gelex::BayesModel model{
+    auto model = gelex::test::make_compact_model(
+        Eigen::MatrixXd{{0.0, 1.0}, {1.0, 0.0}, {2.0, 1.0}},
         Eigen::VectorXd{{1.0, 2.0, 3.0}},
-        gelex::FixedDesign::make(3),
-        {},
-        std::move(genetics)};
+        gelex::GeneticMode::A | gelex::GeneticMode::D);
 
     std::vector<gelex::bayes::GeneticPrior> genetic_priors;
     genetic_priors.emplace_back(

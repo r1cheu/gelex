@@ -33,7 +33,7 @@ Options
 
 ``-g, --gfile`` ``required``
    Fitted-model prefix from ``gelex mcmc`` or ``gelex vi``. Reads
-   ``<prefix>.snpeff``, ``<prefix>.snpstats``, and ``<prefix>.param``
+   ``<prefix>.snpeff``, ``<prefix>.snplut``, and ``<prefix>.param``
    (covariate coefficients are taken from ``.param``).
 
 ``-o, --out`` ``required``

@@ -18,13 +18,11 @@
 #define GELEX_BAYES_MODEL_H_
 
 #include <Eigen/Core>
-#include <algorithm>
 #include <span>
 #include <vector>
 
 #include "gelex/bayes/design.h"
 #include "gelex/types/fixed_designs.h"
-#include "gelex/types/genetic_mode.h"
 
 namespace gelex
 {
@@ -38,23 +36,19 @@ class BayesModel
         Eigen::VectorXd phenotype,
         FixedDesign fixed_design,
         std::vector<bayes::RandomDesign> random,
-        std::vector<bayes::GeneticDesign> genetics);
+        bayes::GeneticDesign genetic);
+
+    BayesModel(const BayesModel&) = delete;
+    auto operator=(const BayesModel&) -> BayesModel& = delete;
+    BayesModel(BayesModel&&) noexcept = default;
+    auto operator=(BayesModel&&) noexcept -> BayesModel& = default;
+    ~BayesModel() = default;
 
     const FixedDesign& fixed() const { return fixed_; }
 
     std::span<const bayes::RandomDesign> random() const { return random_; }
 
-    const std::vector<bayes::GeneticDesign>& genetics() const
-    {
-        return genetics_;
-    }
-
-    const bayes::GeneticDesign* genetic(GeneticMode type) const
-    {
-        auto it
-            = std::ranges::find(genetics_, type, &bayes::GeneticDesign::type);
-        return it != genetics_.end() ? &*it : nullptr;
-    }
+    const bayes::GeneticDesign& genetic() const { return genetic_; }
 
     const Eigen::VectorXd& phenotype() const { return phenotype_; }
 
@@ -71,7 +65,7 @@ class BayesModel
 
     FixedDesign fixed_;
     std::vector<bayes::RandomDesign> random_;
-    std::vector<bayes::GeneticDesign> genetics_;
+    bayes::GeneticDesign genetic_;
 };
 
 }  // namespace gelex

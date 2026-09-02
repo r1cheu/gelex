@@ -38,7 +38,7 @@ class Solver
 {
    public:
     explicit Solver(
-        Params params,
+        MCMCParams params,
         std::string draws_path = {},
         std::optional<std::string> checkpoint_prefix = std::nullopt);
 
@@ -62,7 +62,7 @@ class Solver
         std::mt19937_64& rng,
         const MCMCObserver& observer) -> Result;
 
-    Params params_;
+    MCMCParams params_;
     std::string draws_path_;
     std::optional<std::string> checkpoint_prefix_;
 };
