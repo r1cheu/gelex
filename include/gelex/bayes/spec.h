@@ -20,8 +20,6 @@
 #include <array>
 #include <cstddef>
 
-#include "gelex/bayes/genetic_family.h"
-
 namespace gelex
 {
 
@@ -46,11 +44,7 @@ class SpikeSlab
     double probability_;
 };
 
-template <HalfNormalAsymmetry Axis>
-class HalfNormal;
-
-template <>
-class HalfNormal<HalfNormalAsymmetry::Count>
+class HalfNormal
 {
     static constexpr double default_positive_probability = 0.5;
 
@@ -65,11 +59,6 @@ class HalfNormal<HalfNormalAsymmetry::Count>
 
    private:
     double positive_probability_;
-};
-
-template <>
-class HalfNormal<HalfNormalAsymmetry::Magnitude>
-{
 };
 
 class ScaledMixture

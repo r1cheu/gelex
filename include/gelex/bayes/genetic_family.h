@@ -34,12 +34,6 @@ enum class MixtureWeightUpdate : std::uint8_t
     Enabled,
 };
 
-enum class HalfNormalAsymmetry : std::uint8_t
-{
-    Count,
-    Magnitude,
-};
-
 template <VarianceLayout Kind>
 struct GaussianFamily
 {
@@ -57,9 +51,7 @@ struct ScaledMixtureFamily
 {
 };
 
-template <
-    MixtureWeightUpdate WeightUpdate = MixtureWeightUpdate::Enabled,
-    HalfNormalAsymmetry Axis = HalfNormalAsymmetry::Count>
+template <MixtureWeightUpdate WeightUpdate = MixtureWeightUpdate::Enabled>
 struct JointSpikeSlabFamily
 {
 };

@@ -75,6 +75,8 @@ class VectorRunningStats
 
     [[nodiscard]] auto empty() const noexcept -> bool { return count_ == 0; }
 
+    auto mean_square() const -> Eigen::VectorXd;
+
     auto result() const -> VectorRunningStatsResult;
 
    private:
@@ -135,6 +137,25 @@ class CategoryRunningStats
         probabilities /= static_cast<double>(count_);
         return CategoryRunningStatsResult{
             .probabilities = std::move(probabilities)};
+    }
+
+    template <typename IsIncluded>
+    auto probability_of(IsIncluded is_included) const -> Eigen::VectorXd
+    {
+        assert(count_ > 0);
+
+        Eigen::VectorXd probabilities = Eigen::VectorXd::Zero(counts_.rows());
+        for (std::size_t category = 0; category < CategoryCount; ++category)
+        {
+            if (is_included(category))
+            {
+                probabilities
+                    += counts_.col(static_cast<Eigen::Index>(category))
+                           .template cast<double>();
+            }
+        }
+        probabilities /= static_cast<double>(count_);
+        return probabilities;
     }
 
    private:

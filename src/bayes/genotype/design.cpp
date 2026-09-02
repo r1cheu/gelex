@@ -71,10 +71,9 @@ GeneticDesign::GeneticDesign(
     gelex::Bed bed,
     GeneticModeSet modes,
     GenotypeMethod geno_method,
-    gelex::GenoObserver observer)
-    : genotype_{std::make_unique<CompactGenotype>(
-          std::move(bed),
-          std::move(observer))}
+    const gelex::GenoObserver& observer)
+    : genotype_{std::make_unique<CompactGenotype>(bed, observer)},
+      marker_metadata_{std::move(bed).bim()}
 {
     const auto projection_specs
         = encoding_specs_from_method(modes, geno_method);
@@ -94,10 +93,11 @@ GeneticDesign::GeneticDesign(
     }
 }
 
-GeneticDesign::GeneticDesign(gelex::Bed bed, gelex::GenoObserver observer)
-    : genotype_{std::make_unique<CompactGenotype>(
-          std::move(bed),
-          std::move(observer))}
+GeneticDesign::GeneticDesign(
+    gelex::Bed bed,
+    const gelex::GenoObserver& observer)
+    : genotype_{std::make_unique<CompactGenotype>(bed, observer)},
+      marker_metadata_{std::move(bed).bim()}
 {
 }
 

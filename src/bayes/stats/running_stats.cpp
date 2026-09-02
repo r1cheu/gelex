@@ -63,4 +63,10 @@ auto VectorRunningStats::result() const -> VectorRunningStatsResult
     return output;
 }
 
+auto VectorRunningStats::mean_square() const -> Eigen::VectorXd
+{
+    assert(count_ > 0);
+    return mean_.array().square() + (m2_.array() / static_cast<double>(count_));
+}
+
 }  // namespace gelex::detail

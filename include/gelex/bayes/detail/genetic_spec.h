@@ -49,13 +49,13 @@ struct GeneticSpecFor<Modes, ScaledMixtureFamily<WeightUpdate>>
     using type = HomogeneousModeValues<Modes, ScaledMixture>;
 };
 
-template <MixtureWeightUpdate WeightUpdate, HalfNormalAsymmetry Axis>
+template <MixtureWeightUpdate WeightUpdate>
 struct GeneticSpecFor<
     GeneticMode::A | GeneticMode::D,
-    JointSpikeSlabFamily<WeightUpdate, Axis>>
+    JointSpikeSlabFamily<WeightUpdate>>
 {
     using type = JointModeValues<
-        ModeValues<GeneticMode::A | GeneticMode::D, Gaussian, HalfNormal<Axis>>,
+        ModeValues<GeneticMode::A | GeneticMode::D, Gaussian, HalfNormal>,
         JointSpikeSlab>;
 };
 

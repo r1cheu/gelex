@@ -36,7 +36,9 @@ class GeneticProjection;
 class CompactGenotype
 {
    public:
-    explicit CompactGenotype(gelex::Bed bed, gelex::GenoObserver observer = {});
+    explicit CompactGenotype(
+        const gelex::Bed& bed,
+        const gelex::GenoObserver& observer = {});
 
     CompactGenotype(const CompactGenotype&) = delete;
     auto operator=(const CompactGenotype&) -> CompactGenotype& = delete;

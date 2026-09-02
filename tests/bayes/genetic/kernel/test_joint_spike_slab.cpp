@@ -46,34 +46,24 @@ namespace
 
 constexpr auto mode_ad = gelex::GeneticMode::A | gelex::GeneticMode::D;
 
-template <gelex::HalfNormalAsymmetry Axis>
 using JointModeSpecs
-    = gelex::ModeValues<mode_ad, gelex::Gaussian, gelex::HalfNormal<Axis>>;
+    = gelex::ModeValues<mode_ad, gelex::Gaussian, gelex::HalfNormal>;
 
-template <gelex::HalfNormalAsymmetry Axis>
 using JointGeneticSpec
-    = gelex::JointModeValues<JointModeSpecs<Axis>, gelex::JointSpikeSlab>;
+    = gelex::JointModeValues<JointModeSpecs, gelex::JointSpikeSlab>;
 
-template <gelex::HalfNormalAsymmetry Axis>
 using JointModePriors = gelex::ModeValues<
     mode_ad,
     gelex::GaussianPrior<gelex::VarianceLayout::Pooled>,
-    gelex::HalfNormalPrior<Axis>>;
+    gelex::HalfNormalPrior>;
 
-template <gelex::MixtureWeightUpdate Update, gelex::HalfNormalAsymmetry Axis>
+template <gelex::MixtureWeightUpdate Update>
 using JointGeneticPrior = gelex::JointModeValues<
-    JointModePriors<Axis>,
+    JointModePriors,
     gelex::JointSpikeSlabPrior<gelex::JointSpikeSlab::class_count, Update>>;
 
-using SampledCountPrior = JointGeneticPrior<
-    gelex::MixtureWeightUpdate::Enabled,
-    gelex::HalfNormalAsymmetry::Count>;
-using FixedCountPrior = JointGeneticPrior<
-    gelex::MixtureWeightUpdate::Disabled,
-    gelex::HalfNormalAsymmetry::Count>;
-using SampledMagnitudePrior = JointGeneticPrior<
-    gelex::MixtureWeightUpdate::Enabled,
-    gelex::HalfNormalAsymmetry::Magnitude>;
+using SampledPrior = JointGeneticPrior<gelex::MixtureWeightUpdate::Enabled>;
+using FixedPrior = JointGeneticPrior<gelex::MixtureWeightUpdate::Disabled>;
 
 struct JointCoefficients
 {
@@ -90,17 +80,12 @@ struct AssignmentObservation
 
 static_assert(std::same_as<
               decltype(gelex::make_kernel(
-                  std::declval<const gelex::BayesPrior<SampledCountPrior>&>())),
-              gelex::BayesKernel<SampledCountPrior>>);
+                  std::declval<const gelex::BayesPrior<SampledPrior>&>())),
+              gelex::BayesKernel<SampledPrior>>);
 static_assert(std::same_as<
               decltype(gelex::make_kernel(
-                  std::declval<const gelex::BayesPrior<FixedCountPrior>&>())),
-              gelex::BayesKernel<FixedCountPrior>>);
-static_assert(
-    std::same_as<
-        decltype(gelex::make_kernel(
-            std::declval<const gelex::BayesPrior<SampledMagnitudePrior>&>())),
-        gelex::BayesKernel<SampledMagnitudePrior>>);
+                  std::declval<const gelex::BayesPrior<FixedPrior>&>())),
+              gelex::BayesKernel<FixedPrior>>);
 
 auto make_model() -> gelex::BayesModel
 {
@@ -301,20 +286,16 @@ auto require_probability_simplex(const Probabilities& probabilities) -> void
 }
 
 TEST_CASE(
-    "joint count kernel maintains totals and fixed component groups",
+    "joint half-normal kernel maintains totals and fixed component groups",
     "[bayes][kernel][joint_spike_slab]")
 {
-    using Family = gelex::JointSpikeSlabFamily<
-        gelex::MixtureWeightUpdate::Enabled,
-        gelex::HalfNormalAsymmetry::Count>;
+    using Family = gelex::JointSpikeSlabFamily<>;
     constexpr std::array probabilities{0.25, 0.25, 0.25, 0.25};
     const auto model = make_model();
     const auto prior = gelex::make_prior(
         gelex::BayesRecipe<mode_ad, Family>{
-            JointGeneticSpec<gelex::HalfNormalAsymmetry::Count>{
-                JointModeSpecs<gelex::HalfNormalAsymmetry::Count>{
-                    gelex::Gaussian{},
-                    gelex::HalfNormal<gelex::HalfNormalAsymmetry::Count>{0.6}},
+            JointGeneticSpec{
+                JointModeSpecs{gelex::Gaussian{}, gelex::HalfNormal{0.6}},
                 gelex::JointSpikeSlab{probabilities}},
             gelex::VarianceBudget{{.additive = 0.4, .dominance = 0.1}}},
         model);
@@ -342,17 +323,14 @@ TEST_CASE(
     "joint fixed allocation kernel preserves class probabilities",
     "[bayes][kernel][joint_spike_slab]")
 {
-    using Family = gelex::JointSpikeSlabFamily<
-        gelex::MixtureWeightUpdate::Disabled,
-        gelex::HalfNormalAsymmetry::Count>;
+    using Family
+        = gelex::JointSpikeSlabFamily<gelex::MixtureWeightUpdate::Disabled>;
     constexpr std::array probabilities{0.1, 0.2, 0.3, 0.4};
     const auto model = make_model();
     const auto prior = gelex::make_prior(
         gelex::BayesRecipe<mode_ad, Family>{
-            JointGeneticSpec<gelex::HalfNormalAsymmetry::Count>{
-                JointModeSpecs<gelex::HalfNormalAsymmetry::Count>{
-                    gelex::Gaussian{},
-                    gelex::HalfNormal<gelex::HalfNormalAsymmetry::Count>{0.75}},
+            JointGeneticSpec{
+                JointModeSpecs{gelex::Gaussian{}, gelex::HalfNormal{0.75}},
                 gelex::JointSpikeSlab{probabilities}},
             gelex::VarianceBudget{{.additive = 0.4, .dominance = 0.1}}},
         model);
@@ -365,41 +343,6 @@ TEST_CASE(
 
     require_state_invariants(model, state);
     REQUIRE(state.genetic().joint().probabilities == probabilities);
-}
-
-TEST_CASE(
-    "joint magnitude kernel updates negative and positive variances",
-    "[bayes][kernel][joint_spike_slab]")
-{
-    using Family = gelex::JointSpikeSlabFamily<
-        gelex::MixtureWeightUpdate::Enabled,
-        gelex::HalfNormalAsymmetry::Magnitude>;
-    constexpr std::array probabilities{0.25, 0.25, 0.25, 0.25};
-    const auto model = make_model();
-    const auto prior = gelex::make_prior(
-        gelex::BayesRecipe<mode_ad, Family>{
-            JointGeneticSpec<gelex::HalfNormalAsymmetry::Magnitude>{
-                JointModeSpecs<gelex::HalfNormalAsymmetry::Magnitude>{
-                    gelex::Gaussian{},
-                    gelex::HalfNormal<gelex::HalfNormalAsymmetry::Magnitude>{}},
-                gelex::JointSpikeSlab{probabilities}},
-            gelex::VarianceBudget{{.additive = 0.4, .dominance = 0.1}}},
-        model);
-    auto state = gelex::make_state(prior, model);
-    auto kernel = gelex::make_kernel(prior);
-    std::mt19937_64 rng{456};
-    initialize_non_null_state(model, state);
-
-    kernel.step(model, state, rng);
-
-    require_state_invariants(model, state);
-    const auto& dominance = state.genetic()
-                                .mode_values()
-                                .get<gelex::GeneticMode::D>()
-                                .family_state;
-    REQUIRE(dominance.variances[0] > 0.0);
-    REQUIRE(dominance.variances[1] > 0.0);
-    require_probability_simplex(state.genetic().joint().probabilities);
 }
 
 }  // namespace

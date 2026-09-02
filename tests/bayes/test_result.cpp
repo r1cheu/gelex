@@ -20,7 +20,9 @@
 #include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <concepts>
+#include <cstdint>
 #include <filesystem>
+#include <limits>
 #include <string>
 #include <type_traits>
 #include <utility>
@@ -120,6 +122,24 @@ TEST_CASE(
         (gelex::CoefficientPosteriorResult{
             std::move(posterior), {std::string{gelex::intercept_name}}}),
         gelex::GelexException);
+    REQUIRE_THROWS_AS(
+        (gelex::MarkerPipResult{Eigen::VectorXd{}}), gelex::GelexException);
+    REQUIRE_THROWS_AS(
+        (gelex::MarkerPipResult{Eigen::VectorXd{{-0.1, 0.5}}}),
+        gelex::GelexException);
+    REQUIRE_THROWS_AS(
+        (gelex::MarkerPipResult{Eigen::VectorXd{{0.5, 1.1}}}),
+        gelex::GelexException);
+    REQUIRE_THROWS_AS(
+        (gelex::MarkerPveResult{Eigen::VectorXd{}}), gelex::GelexException);
+    REQUIRE_THROWS_AS(
+        (gelex::MarkerPveResult{Eigen::VectorXd{{-0.1, 0.5}}}),
+        gelex::GelexException);
+    REQUIRE_THROWS_AS(
+        (gelex::MarkerPveResult{
+            Eigen::VectorXd{{0.5, std::numeric_limits<double>::quiet_NaN()}}}),
+        gelex::GelexException);
+    REQUIRE_NOTHROW(gelex::MarkerPveResult(Eigen::VectorXd{{0.5, 1.1}}));
 }
 
 TEST_CASE(
@@ -178,14 +198,23 @@ TEST_CASE(
         random.explained_variance().identifier()
         == "random/batch/explained_variance");
 
-    const auto& mode_result = result.genetic().get<gelex::GeneticMode::A>();
-    REQUIRE(mode_result.coefficients.identifier() == "genetic/A/coefficients");
-    REQUIRE(mode_result.coefficients.statistics().mean.isApprox(
+    const auto& marker_effect
+        = result.marker_effects().get<gelex::GeneticMode::A>();
+    REQUIRE(
+        marker_effect.coefficients().identifier() == "genetic/A/coefficients");
+    REQUIRE(marker_effect.coefficients().statistics().mean.isApprox(
         Eigen::VectorXd{{6.0, 7.0}}));
 
-    const auto& genetic = mode_result.family_result;
+    const auto& genetic
+        = result.genetic_parameters().get<gelex::GeneticMode::A>();
     REQUIRE(genetic.variance.identifier() == "genetic/A/variance");
     REQUIRE(genetic.variance.statistics().mean == Catch::Approx(0.5));
+    STATIC_REQUIRE(
+        std::same_as<
+            std::remove_cvref_t<decltype(marker_effect.pip())>,
+            gelex::EmptyPosteriorResult>);
+    REQUIRE(marker_effect.pve().values().isApprox(
+        Eigen::VectorXd{{36.0, 49.0 / 3.0}}));
     REQUIRE(result.residual().identifier() == "residual/variance");
     REQUIRE(result.residual().statistics().mean == Catch::Approx(4.0));
 
@@ -240,15 +269,20 @@ TEST_CASE(
                                    .template get<gelex::GeneticMode::A>()
                                    .family_state;
                 family.variance = Eigen::VectorXd{{0.1, 0.2}};
+                family.assignment = Eigen::VectorX<std::uint8_t>{{0, 1}};
                 family.probability = 0.35;
             });
-        const auto& family = result.genetic()
-                                 .template get<gelex::GeneticMode::A>()
-                                 .family_result;
+        const auto& family
+            = result.genetic_parameters().template get<gelex::GeneticMode::A>();
 
         STATIC_REQUIRE(EmptyVariance<std::remove_cvref_t<decltype(family)>>);
         REQUIRE(family.probability.identifier() == "genetic/A/probability");
         REQUIRE(family.probability.statistics().mean == Catch::Approx(0.35));
+        REQUIRE(result.marker_effects()
+                    .template get<gelex::GeneticMode::A>()
+                    .pip()
+                    .probabilities()
+                    .isApprox(Eigen::VectorXd{{0.0, 1.0}}));
     }
 
     SECTION("fixed pooled")
@@ -263,14 +297,22 @@ TEST_CASE(
                 state.genetic()
                     .template get<gelex::GeneticMode::A>()
                     .family_state.variance = 0.75;
+                state.genetic()
+                    .template get<gelex::GeneticMode::A>()
+                    .family_state.assignment
+                    = Eigen::VectorX<std::uint8_t>{{1, 0}};
             });
-        const auto& family = result.genetic()
-                                 .template get<gelex::GeneticMode::A>()
-                                 .family_result;
+        const auto& family
+            = result.genetic_parameters().template get<gelex::GeneticMode::A>();
 
         STATIC_REQUIRE(EmptyProbability<std::remove_cvref_t<decltype(family)>>);
         REQUIRE(family.variance.identifier() == "genetic/A/variance");
         REQUIRE(family.variance.statistics().mean == Catch::Approx(0.75));
+        REQUIRE(result.marker_effects()
+                    .template get<gelex::GeneticMode::A>()
+                    .pip()
+                    .probabilities()
+                    .isApprox(Eigen::VectorXd{{1.0, 0.0}}));
     }
 }
 
@@ -291,15 +333,15 @@ TEST_CASE(
                                    .template get<gelex::GeneticMode::A>()
                                    .family_state;
                 family.variance = 0.8;
+                family.assignment = Eigen::VectorX<std::uint8_t>{{0, 4}};
                 family.probabilities = {0.5, 0.2, 0.15, 0.1, 0.05};
                 family.fitted_values = Eigen::MatrixXd{
                     {0.0, 1.0, 2.0, 0.0},
                     {3.0, 1.0, 0.0, 0.0},
                     {0.0, 1.0, 4.0, 0.0}};
             });
-        const auto& family = result.genetic()
-                                 .template get<gelex::GeneticMode::A>()
-                                 .family_result;
+        const auto& family
+            = result.genetic_parameters().template get<gelex::GeneticMode::A>();
 
         REQUIRE(family.variance.identifier() == "genetic/A/variance");
         REQUIRE(family.probabilities.identifier() == "genetic/A/probabilities");
@@ -310,6 +352,11 @@ TEST_CASE(
             == "genetic/A/component_explained_variance");
         REQUIRE(
             family.component_explained_variance.statistics().mean.size() == 4);
+        REQUIRE(result.marker_effects()
+                    .template get<gelex::GeneticMode::A>()
+                    .pip()
+                    .probabilities()
+                    .isApprox(Eigen::VectorXd{{0.0, 1.0}}));
     }
 
     SECTION("fixed")
@@ -324,9 +371,8 @@ TEST_CASE(
                     .template get<gelex::GeneticMode::A>()
                     .family_state.fitted_values.setZero();
             });
-        const auto& family = result.genetic()
-                                 .template get<gelex::GeneticMode::A>()
-                                 .family_result;
+        const auto& family
+            = result.genetic_parameters().template get<gelex::GeneticMode::A>();
 
         STATIC_REQUIRE(
             EmptyProbabilities<std::remove_cvref_t<decltype(family)>>);
@@ -336,9 +382,7 @@ TEST_CASE(
     }
 }
 
-TEST_CASE(
-    "BayesResult projects count and magnitude half-normal joint fields",
-    "[bayes][result]")
+TEST_CASE("BayesResult projects half-normal joint fields", "[bayes][result]")
 {
     gelex::test::FileFixture fixture;
 
@@ -355,15 +399,15 @@ TEST_CASE(
                 dominance.variance = 0.25;
                 dominance.positive_probability = 0.7;
                 auto& joint = state.genetic().joint();
+                joint.assignment = Eigen::VectorX<std::uint8_t>{{1, 3}};
                 joint.probabilities = {0.7, 0.1, 0.1, 0.1};
                 joint.fitted_values = Eigen::MatrixXd{
                     {1.0, 0.0, 2.0, 0.0},
                     {2.0, 0.0, 2.0, 4.0},
                     {3.0, 3.0, 2.0, 2.0}};
             });
-        const auto& dominance = result.genetic()
-                                    .template get<gelex::GeneticMode::D>()
-                                    .family_result;
+        const auto& dominance
+            = result.genetic_parameters().template get<gelex::GeneticMode::D>();
 
         REQUIRE(dominance.variance.identifier() == "genetic/D/variance");
         REQUIRE(
@@ -373,36 +417,28 @@ TEST_CASE(
             dominance.positive_probability.statistics().mean
             == Catch::Approx(0.7));
         REQUIRE(
-            result.genetic().joint().probabilities.identifier()
+            result.genetic_parameters().joint().probabilities.identifier()
             == "genetic/joint/probabilities");
         REQUIRE(
-            result.genetic()
+            result.genetic_parameters()
                 .joint()
                 .component_explained_variance.statistics()
                 .mean.size()
             == 4);
-    }
-
-    SECTION("magnitude")
-    {
-        using Family = gelex::JointSpikeSlabFamily<
-            gelex::MixtureWeightUpdate::Enabled,
-            gelex::HalfNormalAsymmetry::Magnitude>;
-        const auto result = collect_result<mode_ad, Family>(
-            fixture.get_test_dir() / "magnitude_joint.draws",
-            [](auto& state)
-            {
-                state.genetic()
+        REQUIRE(result.marker_effects()
+                    .template get<gelex::GeneticMode::A>()
+                    .pip()
+                    .probabilities()
+                    .isApprox(Eigen::VectorXd{{1.0, 1.0}}));
+        REQUIRE(result.marker_effects()
                     .template get<gelex::GeneticMode::D>()
-                    .family_state.variances = {0.2, 0.8};
-            });
-        const auto& dominance = result.genetic()
-                                    .template get<gelex::GeneticMode::D>()
-                                    .family_result;
-
-        REQUIRE(dominance.variances.identifier() == "genetic/D/variance");
-        REQUIRE(dominance.variances.statistics().mean.isApprox(
-            Eigen::VectorXd{{0.2, 0.8}}));
+                    .pip()
+                    .probabilities()
+                    .isApprox(Eigen::VectorXd{{0.0, 1.0}}));
+        REQUIRE(result.marker_effects().joint().pip().probabilities().isApprox(
+            Eigen::VectorXd{{1.0, 1.0}}));
+        REQUIRE(result.marker_effects().joint().pve().values().isApprox(
+            Eigen::VectorXd::Zero(2)));
     }
 
     SECTION("fixed joint probabilities")
@@ -413,7 +449,7 @@ TEST_CASE(
             fixture.get_test_dir() / "fixed_joint.draws",
             [](auto& state)
             { state.genetic().joint().fitted_values.setZero(); });
-        const auto& joint = result.genetic().joint();
+        const auto& joint = result.genetic_parameters().joint();
 
         STATIC_REQUIRE(
             EmptyProbabilities<std::remove_cvref_t<decltype(joint)>>);

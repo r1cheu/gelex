@@ -73,12 +73,9 @@ auto validate_probability_simplex(
 
 }  // namespace
 
-HalfNormal<HalfNormalAsymmetry::Count>::HalfNormal()
-    : HalfNormal{default_positive_probability}
-{
-}
+HalfNormal::HalfNormal() : HalfNormal{default_positive_probability} {}
 
-HalfNormal<HalfNormalAsymmetry::Count>::HalfNormal(double positive_probability)
+HalfNormal::HalfNormal(double positive_probability)
     : positive_probability_{positive_probability}
 {
     validate_open_probability(

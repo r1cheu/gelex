@@ -136,14 +136,11 @@ auto make_prior(
         });
 }
 
-template <
-    GeneticModeSet Modes,
-    MixtureWeightUpdate WeightUpdate,
-    HalfNormalAsymmetry Axis>
+template <GeneticModeSet Modes, MixtureWeightUpdate WeightUpdate>
     requires(Modes == (GeneticMode::A | GeneticMode::D))
 auto make_prior(
-    JointSpikeSlabFamily<WeightUpdate, Axis> /*family*/,
-    const genetic_spec_t<Modes, JointSpikeSlabFamily<WeightUpdate, Axis>>&
+    JointSpikeSlabFamily<WeightUpdate> /*family*/,
+    const genetic_spec_t<Modes, JointSpikeSlabFamily<WeightUpdate>>&
         genetic_spec,
     const MarkerVarianceCalibrator& calibrator)
 {
@@ -159,17 +156,13 @@ auto make_prior(
                 return GaussianPrior<VarianceLayout::Pooled>{
                     .variance = std::move(variance)};
             }
-            else if constexpr (Axis == HalfNormalAsymmetry::Count)
+            else
             {
-                return HalfNormalPrior<Axis>{
+                return HalfNormalPrior{
                     .variance = std::move(variance),
                     .positive_probability
                     = make_parameter<MixtureWeightUpdate::Enabled>(
                         mode_spec.positive_probability(), BetaHyperPrior{})};
-            }
-            else
-            {
-                return HalfNormalPrior<Axis>{.variance = std::move(variance)};
             }
         });
 

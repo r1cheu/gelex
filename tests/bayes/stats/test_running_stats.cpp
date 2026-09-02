@@ -95,6 +95,7 @@ TEST_CASE(
         REQUIRE(result.mean.isApprox(Eigen::VectorXd{{2.0, 5.0}}));
         REQUIRE(result.stddev.isApprox(
             Eigen::VectorXd{{std::sqrt(2.0), std::sqrt(8.0)}}));
+        REQUIRE(stats.mean_square().isApprox(Eigen::VectorXd{{5.0, 29.0}}));
     }
 }
 

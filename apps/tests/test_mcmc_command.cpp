@@ -21,6 +21,7 @@
 #include <iterator>
 #include <string>
 
+#include "gelex/data/reader.h"
 #include "gelex/data/snp_lut_io.h"
 #include "gelex/genetic_mode.h"
 #include "gelex/io/binary_reader.h"
@@ -126,6 +127,13 @@ TEST_CASE(
     const auto summary = read_text(config.out + ".summary");
     REQUIRE(summary.contains("random/Group/variance\t0"));
     REQUIRE(summary.contains("random/random_slopes/variance\t0"));
+
+    const auto snp_effects = gelex::read_snp_effects(config.out + ".snpeff");
+    REQUIRE(snp_effects.rows() == 3);
+    REQUIRE(snp_effects.contains("BETA_A"));
+    REQUIRE(snp_effects.contains("SE_A"));
+    REQUIRE(snp_effects.contains("PVE_A"));
+    REQUIRE_FALSE(snp_effects.contains("PIP_A"));
 
     const auto luts = gelex::load_snp_luts(config.out + ".snplut");
     REQUIRE(luts.size() == 1);

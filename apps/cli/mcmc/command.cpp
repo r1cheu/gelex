@@ -104,6 +104,7 @@ auto run_mcmc(
 
     gelex::write_params(result, config.out);
     gelex::write_summary(result, config.out);
+    gelex::write_snpeff(result, model.genetic(), config.out);
 
     gelex::ModeMap<gelex::SnpLutMatrix> snp_luts;
     for (const auto mode : model.genetic().each_mode())
@@ -112,10 +113,9 @@ auto run_mcmc(
     }
     gelex::write_snp_luts(config.out + ".snplut", snp_luts);
 
-    // TODO: Restore .snpeff after typed SNP-effect serialization is defined.
     cli::printer().block(
         cli::results_saved(
-            config.out, ".draws, .params, .summary, .snplut, .log"));
+            config.out, ".draws, .params, .summary, .snpeff, .snplut, .log"));
     return 0;
 }
 

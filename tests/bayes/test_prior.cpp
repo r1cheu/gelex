@@ -48,7 +48,6 @@ using gelex::GaussianPrior;
 using gelex::GeneticMode;
 using gelex::GeneticModeSet;
 using gelex::HalfNormal;
-using gelex::HalfNormalAsymmetry;
 using gelex::HalfNormalPrior;
 using gelex::JointModeValues;
 using gelex::JointSpikeSlab;
@@ -80,8 +79,7 @@ constexpr auto mode_ad = GeneticMode::A | GeneticMode::D;
 using SpikeSlabAD = gelex::ModeValues<mode_ad, SpikeSlab, SpikeSlab>;
 using ScaledMixtureAD
     = gelex::ModeValues<mode_ad, ScaledMixture, ScaledMixture>;
-using JointModeSpecs
-    = ModeValues<mode_ad, Gaussian, HalfNormal<HalfNormalAsymmetry::Count>>;
+using JointModeSpecs = ModeValues<mode_ad, Gaussian, HalfNormal>;
 using JointSpikeSlabAD = JointModeValues<JointModeSpecs, JointSpikeSlab>;
 using PooledGaussianFamily = GaussianFamily<VarianceLayout::Pooled>;
 using UnpooledGaussianFamily = GaussianFamily<VarianceLayout::Unpooled>;
@@ -95,9 +93,6 @@ using FixedScaledMixtureFamily
 using DefaultJointSpikeSlabFamily = JointSpikeSlabFamily<>;
 using FixedJointSpikeSlabFamily
     = JointSpikeSlabFamily<MixtureWeightUpdate::Disabled>;
-using MagnitudeJointSpikeSlabFamily = JointSpikeSlabFamily<
-    MixtureWeightUpdate::Enabled,
-    HalfNormalAsymmetry::Magnitude>;
 
 // Each recipe type admits exactly one prior type, and the five independent
 // families differ only in their leaf.
@@ -136,17 +131,8 @@ static_assert(std::same_as<
                   ModeValues<
                       mode_ad,
                       GaussianPrior<VarianceLayout::Pooled>,
-                      HalfNormalPrior<HalfNormalAsymmetry::Count>>,
+                      HalfNormalPrior>,
                   JointSpikeSlabPrior<JointSpikeSlab::class_count>>>>);
-static_assert(
-    std::same_as<
-        prior_result_t<BayesRecipe<mode_ad, MagnitudeJointSpikeSlabFamily>>,
-        BayesPrior<JointModeValues<
-            ModeValues<
-                mode_ad,
-                GaussianPrior<VarianceLayout::Pooled>,
-                HalfNormalPrior<HalfNormalAsymmetry::Magnitude>>,
-            JointSpikeSlabPrior<JointSpikeSlab::class_count>>>>);
 static_assert(
     std::same_as<
         prior_result_t<BayesRecipe<mode_ad, FixedUnpooledSpikeSlabFamily>>,
@@ -174,10 +160,7 @@ template <typename T>
 concept HasPositiveProbability
     = requires(const T& prior) { prior.positive_probability; };
 
-static_assert(
-    HasPositiveProbability<HalfNormalPrior<HalfNormalAsymmetry::Count>>);
-static_assert(
-    !HasPositiveProbability<HalfNormalPrior<HalfNormalAsymmetry::Magnitude>>);
+static_assert(HasPositiveProbability<HalfNormalPrior>);
 static_assert(
     !HasPositiveProbability<JointSpikeSlabPrior<JointSpikeSlab::class_count>>);
 
@@ -361,8 +344,7 @@ TEST_CASE("make_prior derives joint marginal activity", "[bayes][prior]")
     const auto model = make_model(mode_ad);
     const auto recipe = BayesRecipe<mode_ad, FixedJointSpikeSlabFamily>{
         JointSpikeSlabAD{
-            JointModeSpecs{
-                Gaussian{}, HalfNormal<HalfNormalAsymmetry::Count>{0.6}},
+            JointModeSpecs{Gaussian{}, HalfNormal{0.6}},
             JointSpikeSlab{{0.8, 0.1, 0.05, 0.05}}},
         VarianceBudget{{.additive = 0.4, .dominance = 0.1}},
     };

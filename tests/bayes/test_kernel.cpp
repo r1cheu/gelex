@@ -25,7 +25,6 @@
 #include <utility>
 #include <vector>
 
-#include "gelex/bayes/genetic/kernel/mixture_weight_updater.h"
 #include "gelex/bayes/genetic_family.h"
 #include "gelex/bayes/kernel.h"
 #include "gelex/bayes/mode_values.h"
@@ -89,17 +88,6 @@ using HeterogeneousGeneticPrior = gelex::ModeValues<
     gelex::SpikeSlabPrior<
         gelex::VarianceLayout::Unpooled,
         gelex::MixtureWeightUpdate::Disabled>>;
-
-static_assert(std::is_empty_v<gelex::detail::ProbabilityUpdater<
-                  gelex::MixtureWeightUpdate::Disabled>>);
-static_assert(!std::is_empty_v<gelex::detail::ProbabilityUpdater<
-                  gelex::MixtureWeightUpdate::Enabled>>);
-static_assert(std::is_empty_v<gelex::detail::SimplexUpdater<
-                  gelex::MixtureWeightUpdate::Disabled,
-                  gelex::ScaledMixture::class_count>>);
-static_assert(!std::is_empty_v<gelex::detail::SimplexUpdater<
-                  gelex::MixtureWeightUpdate::Enabled,
-                  gelex::ScaledMixture::class_count>>);
 
 static_assert(
     std::same_as<
