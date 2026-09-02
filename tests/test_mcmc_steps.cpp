@@ -38,8 +38,8 @@
 #include "gelex/bayes/genetic/half_normal_prior_state.h"
 #include "gelex/bayes/genetic/parameters.h"
 #include "gelex/bayes/legacy_prior.h"
+#include "gelex/bayes/legacy_state.h"
 #include "gelex/bayes/model.h"
-#include "gelex/bayes/state.h"
 #include "gelex/exception.h"
 #include "gelex/infra/logging/notify.h"
 #include "gelex/infra/stats/result.h"
@@ -497,11 +497,11 @@ TEST_CASE(
                 gelex::bayes::SingleSharedGaussianPrior{
                     gelex::GeneticMode::A,
                     gelex::bayes::SharedMarkerVariance{make_variance(0.1)}}});
-        gelex::bayes::BayesPrior prior{
+        gelex::bayes::LegacyBayesPrior prior{
             gelex::bayes::RandomPrior{make_variance(0.3)},
             std::move(priors),
             gelex::bayes::ResidualPrior{make_variance(0.4)}};
-        gelex::BayesState state(model, prior);
+        gelex::LegacyBayesState state(model, prior);
 
         std::mt19937_64 rng{123};
         auto chain = gelex::Chain::make(model, prior, state, rng);
@@ -522,11 +522,11 @@ TEST_CASE(
                 gelex::bayes::SinglePerMarkerGaussianPrior{
                     gelex::GeneticMode::A,
                     gelex::bayes::PerMarkerVariance{make_variance(0.1)}}});
-        gelex::bayes::BayesPrior prior{
+        gelex::bayes::LegacyBayesPrior prior{
             gelex::bayes::RandomPrior{make_variance(0.3)},
             std::move(priors),
             gelex::bayes::ResidualPrior{make_variance(0.4)}};
-        gelex::BayesState state(model, prior);
+        gelex::LegacyBayesState state(model, prior);
 
         std::mt19937_64 rng{123};
         auto chain = gelex::Chain::make(model, prior, state, rng);
@@ -548,11 +548,11 @@ TEST_CASE(
                     gelex::GeneticMode::A,
                     gelex::bayes::SharedMarkerVariance{make_variance(0.1)},
                     make_proportion()}});
-        gelex::bayes::BayesPrior prior{
+        gelex::bayes::LegacyBayesPrior prior{
             gelex::bayes::RandomPrior{make_variance(0.3)},
             std::move(priors),
             gelex::bayes::ResidualPrior{make_variance(0.4)}};
-        gelex::BayesState state(model, prior);
+        gelex::LegacyBayesState state(model, prior);
 
         std::mt19937_64 rng{123};
         auto chain = gelex::Chain::make(model, prior, state, rng);
@@ -574,11 +574,11 @@ TEST_CASE(
                     gelex::GeneticMode::A,
                     gelex::bayes::PerMarkerVariance{make_variance(0.1)},
                     make_proportion()}});
-        gelex::bayes::BayesPrior prior{
+        gelex::bayes::LegacyBayesPrior prior{
             gelex::bayes::RandomPrior{make_variance(0.3)},
             std::move(priors),
             gelex::bayes::ResidualPrior{make_variance(0.4)}};
-        gelex::BayesState state(model, prior);
+        gelex::LegacyBayesState state(model, prior);
 
         std::mt19937_64 rng{123};
         auto chain = gelex::Chain::make(model, prior, state, rng);
@@ -601,11 +601,11 @@ TEST_CASE(
                     gelex::bayes::SharedMarkerVariance{make_variance(0.1)},
                     Eigen::VectorXd{{0.0, 2.0}},
                     make_proportion()}});
-        gelex::bayes::BayesPrior prior{
+        gelex::bayes::LegacyBayesPrior prior{
             gelex::bayes::RandomPrior{make_variance(0.3)},
             std::move(priors),
             gelex::bayes::ResidualPrior{make_variance(0.4)}};
-        gelex::BayesState state(model, prior);
+        gelex::LegacyBayesState state(model, prior);
 
         std::mt19937_64 rng{123};
         auto chain = gelex::Chain::make(model, prior, state, rng);
@@ -630,11 +630,11 @@ TEST_CASE(
                 gelex::bayes::SharedMarkerVariance{make_variance(0.1)},
                 gelex::bayes::SharedMarkerVariance{make_variance(0.2)}}},
             make_proportion(4)}});
-    gelex::bayes::BayesPrior prior{
+    gelex::bayes::LegacyBayesPrior prior{
         gelex::bayes::RandomPrior{make_variance(0.3)},
         std::move(priors),
         gelex::bayes::ResidualPrior{make_variance(0.4)}};
-    gelex::BayesState state(model, prior);
+    gelex::LegacyBayesState state(model, prior);
 
     std::mt19937_64 rng{123};
     auto chain = gelex::Chain::make(model, prior, state, rng);
@@ -661,11 +661,11 @@ TEST_CASE("Chain::make maps half normal mixture step", "[mcmc][chain]")
                 make_proportion(4),
                 gelex::bayes::ProbabilityParameter{
                     0.5, gelex::bayes::BetaPrior{1.0, 1.0}}}});
-    gelex::bayes::BayesPrior prior{
+    gelex::bayes::LegacyBayesPrior prior{
         gelex::bayes::RandomPrior{make_variance(0.3)},
         std::move(priors),
         gelex::bayes::ResidualPrior{make_variance(0.4)}};
-    gelex::BayesState state(model, prior);
+    gelex::LegacyBayesState state(model, prior);
 
     std::mt19937_64 rng{123};
     auto chain = gelex::Chain::make(model, prior, state, rng);
@@ -688,7 +688,7 @@ TEST_CASE("Solver::run collects single genetic samples", "[mcmc][solver]")
             gelex::bayes::SingleSharedGaussianPrior{
                 gelex::GeneticMode::A,
                 gelex::bayes::SharedMarkerVariance{make_variance(0.1)}}});
-    gelex::bayes::BayesPrior prior{
+    gelex::bayes::LegacyBayesPrior prior{
         gelex::bayes::RandomPrior{make_variance(0.3)},
         std::move(priors),
         gelex::bayes::ResidualPrior{make_variance(0.4)}};
@@ -764,7 +764,7 @@ TEST_CASE("Solver::run collects joint genetic samples", "[mcmc][solver]")
                 gelex::bayes::SharedMarkerVariance{make_variance(0.1)},
                 gelex::bayes::SharedMarkerVariance{make_variance(0.2)}}},
             make_proportion(4)}});
-    gelex::bayes::BayesPrior prior{
+    gelex::bayes::LegacyBayesPrior prior{
         gelex::bayes::RandomPrior{make_variance(0.3)},
         std::move(priors),
         gelex::bayes::ResidualPrior{make_variance(0.4)}};
@@ -827,7 +827,7 @@ TEST_CASE("MCMC command dataflow writes solver outputs", "[mcmc][solver]")
             gelex::bayes::SingleSharedGaussianPrior{
                 gelex::GeneticMode::A,
                 gelex::bayes::SharedMarkerVariance{make_variance(0.1)}}});
-    gelex::bayes::BayesPrior prior{
+    gelex::bayes::LegacyBayesPrior prior{
         gelex::bayes::RandomPrior{make_variance(0.3)},
         std::move(priors),
         gelex::bayes::ResidualPrior{make_variance(0.4)}};
@@ -978,7 +978,7 @@ TEST_CASE(
             gelex::bayes::SingleSharedGaussianPrior{
                 gelex::GeneticMode::A,
                 gelex::bayes::SharedMarkerVariance{make_variance(0.1)}}});
-    gelex::bayes::BayesPrior continuous_prior{
+    gelex::bayes::LegacyBayesPrior continuous_prior{
         gelex::bayes::RandomPrior{make_variance(0.3)},
         std::move(continuous_priors),
         gelex::bayes::ResidualPrior{make_variance(0.4)}};
@@ -993,7 +993,7 @@ TEST_CASE(
             gelex::bayes::SingleSharedGaussianPrior{
                 gelex::GeneticMode::A,
                 gelex::bayes::SharedMarkerVariance{make_variance(0.1)}}});
-    gelex::bayes::BayesPrior first_prior{
+    gelex::bayes::LegacyBayesPrior first_prior{
         gelex::bayes::RandomPrior{make_variance(0.3)},
         std::move(first_priors),
         gelex::bayes::ResidualPrior{make_variance(0.4)}};
@@ -1008,7 +1008,7 @@ TEST_CASE(
             gelex::bayes::SingleSharedGaussianPrior{
                 gelex::GeneticMode::A,
                 gelex::bayes::SharedMarkerVariance{make_variance(0.1)}}});
-    gelex::bayes::BayesPrior from_prior{
+    gelex::bayes::LegacyBayesPrior from_prior{
         gelex::bayes::RandomPrior{make_variance(0.3)},
         std::move(from_priors),
         gelex::bayes::ResidualPrior{make_variance(0.4)}};

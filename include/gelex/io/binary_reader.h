@@ -67,7 +67,7 @@ class BinaryReader
         requires std::is_arithmetic_v<eT>
     [[nodiscard]] auto is_type(std::string_view path) const -> bool
     {
-        return find_entry(path).dtype == detail::TYPE_BYTE<eT>;
+        return find_entry(path).dtype == detail::type_byte<eT>;
     }
 
     [[nodiscard]] auto to_strings(std::string_view path) const
@@ -123,7 +123,7 @@ inline BinaryReader::BinaryReader(std::string_view file_path)
                 "{}: failed to mmap: {}", path_.string(), ec.message()));
     }
 
-    if (mmap_.size() < detail::FOOTER_SIZE)
+    if (mmap_.size() < detail::footer_size)
     {
         throw GelexException(
             fmt::format(
@@ -139,11 +139,11 @@ inline auto BinaryReader::parse_footer_and_toc() -> void
     const auto* data = mmap_.data();
     const auto path_str = path_.string();
 
-    const auto* footer = data + file_size - detail::FOOTER_SIZE;
+    const auto* footer = data + file_size - detail::footer_size;
 
     if (!std::equal(
-            detail::BINARY_FORMAT_MAGIC.begin(),
-            detail::BINARY_FORMAT_MAGIC.end(),
+            detail::binary_format_magic.begin(),
+            detail::binary_format_magic.end(),
             footer))
     {
         throw GelexException(
@@ -154,8 +154,8 @@ inline auto BinaryReader::parse_footer_and_toc() -> void
     const auto n_entries = detail::decode<uint64_t>(footer + 16);
 
     const auto toc_region_size
-        = static_cast<uint64_t>(n_entries) * detail::TOC_ENTRY_SIZE;
-    if (toc_offset + toc_region_size + detail::FOOTER_SIZE != file_size)
+        = static_cast<uint64_t>(n_entries) * detail::toc_entry_size;
+    if (toc_offset + toc_region_size + detail::footer_size != file_size)
     {
         throw GelexException(
             fmt::format("{}: TOC region does not match file size", path_str));
@@ -166,7 +166,7 @@ inline auto BinaryReader::parse_footer_and_toc() -> void
     for (uint64_t i = 0; i < n_entries; ++i)
     {
         const auto* entry_buf
-            = toc_data + static_cast<size_t>(i) * detail::TOC_ENTRY_SIZE;
+            = toc_data + static_cast<size_t>(i) * detail::toc_entry_size;
         auto entry = detail::TocEntry::from_bytes(entry_buf);
 
         if (entry.offset + entry.size > toc_offset)
@@ -203,7 +203,7 @@ inline auto BinaryReader::to_strings(std::string_view path) const
 {
     const auto& entry = find_entry(path);
 
-    if (entry.dtype != detail::TYPE_STRING)
+    if (entry.dtype != detail::type_string)
     {
         throw GelexException(
             fmt::format(
@@ -261,14 +261,14 @@ auto BinaryReader::to_map(std::string_view path) const -> Eigen::Map<
     const auto& entry = find_entry(path);
     const auto path_str = path_.string();
 
-    if (entry.dtype != detail::TYPE_BYTE<eT>)
+    if (entry.dtype != detail::type_byte<eT>)
     {
         throw GelexException(
             fmt::format(
                 "{}: dtype mismatch, section={}, requested={}",
                 path_str,
                 entry.dtype,
-                detail::TYPE_BYTE<eT>));
+                detail::type_byte<eT>));
     }
 
     const auto n_elements
@@ -303,7 +303,7 @@ auto BinaryReader::to_mat(std::string_view path) const
     -> Eigen::Matrix<eT, Eigen::Dynamic, Eigen::Dynamic>
 {
     const auto& entry = find_entry(path);
-    if (entry.dtype == detail::TYPE_BYTE<eT>)
+    if (entry.dtype == detail::type_byte<eT>)
     {
         return Eigen::Matrix<eT, Eigen::Dynamic, Eigen::Dynamic>(
             to_map<eT>(path));
@@ -315,13 +315,13 @@ auto BinaryReader::to_mat(std::string_view path) const
 
     switch (entry.dtype)
     {
-        case detail::TYPE_BYTE<double>:
+        case detail::type_byte<double>:
             return cast_from.template operator()<double>();
-        case detail::TYPE_BYTE<int8_t>:
+        case detail::type_byte<int8_t>:
             return cast_from.template operator()<int8_t>();
-        case detail::TYPE_BYTE<uint8_t>:
+        case detail::type_byte<uint8_t>:
             return cast_from.template operator()<uint8_t>();
-        case detail::TYPE_BYTE<int64_t>:
+        case detail::type_byte<int64_t>:
             return cast_from.template operator()<int64_t>();
         default:
             throw GelexException(

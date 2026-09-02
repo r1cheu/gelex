@@ -17,9 +17,11 @@
 #include "gelex/bayes/design.h"
 
 #include <Eigen/Core>
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <fmt/format.h>
+#include <iterator>
 #include <memory>
 #include <optional>
 #include <ranges>
@@ -77,65 +79,6 @@ namespace
 
 }  // namespace
 
-class GeneticProjection
-{
-   public:
-    GeneticProjection(
-        const CompactGenotype& genotype,
-        std::span<const gelex::LocusStats> locus_stats,
-        const gelex::EncodingSpec& encoding_spec);
-
-    GeneticProjection(const GeneticProjection&) = delete;
-    auto operator=(const GeneticProjection&) -> GeneticProjection& = delete;
-    GeneticProjection(GeneticProjection&&) noexcept = default;
-    auto operator=(GeneticProjection&&) noexcept
-        -> GeneticProjection& = default;
-    ~GeneticProjection() = default;
-
-    [[nodiscard]] auto rows() const noexcept -> Eigen::Index;
-    [[nodiscard]] auto cols() const noexcept -> Eigen::Index;
-
-    [[nodiscard]] auto xtx_diag() const noexcept -> const Eigen::VectorXd&
-    {
-        return xtx_diag_;
-    }
-
-    [[nodiscard]] auto col_var() const noexcept -> const Eigen::RowVectorXd&
-    {
-        return col_var_;
-    }
-
-    [[nodiscard]] auto valid_indices() const noexcept
-        -> std::span<const Eigen::Index>
-    {
-        return valid_indices_;
-    }
-
-    [[nodiscard]] auto dot(
-        Eigen::Index marker,
-        const Eigen::Ref<const Eigen::VectorXd>& values) const noexcept
-        -> double;
-
-    auto axpy(
-        Eigen::Index marker,
-        double scale,
-        Eigen::Ref<Eigen::VectorXd> values) const noexcept -> void;
-
-    [[nodiscard]] auto snp_luts() const noexcept -> const gelex::SnpLutMatrix&
-    {
-        return luts_;
-    }
-    [[nodiscard]] auto col_covariance(const GeneticProjection& rhs) const
-        -> Eigen::RowVectorXd;
-
-   private:
-    const CompactGenotype* genotype_;
-    gelex::SnpLutMatrix luts_;
-    Eigen::VectorXd xtx_diag_;
-    Eigen::RowVectorXd col_var_;
-    std::vector<Eigen::Index> valid_indices_;
-};
-
 auto RandomDesign::visit(FieldVisitor& visitor) const -> void
 {
     std::vector<std::string> coefficient_names;
@@ -168,8 +111,8 @@ GeneticProjection::GeneticProjection(
 
     for (const auto [marker, stats] : std::views::enumerate(locus_stats))
     {
-        const Eigen::Index index = static_cast<Eigen::Index>(marker);
-        const gelex::LocusEncoding encoding{
+        const auto index = static_cast<Eigen::Index>(marker);
+        const auto encoding = gelex::LocusEncoding{
             gelex::detail::make_locus_encoding(index, stats, encoding_spec)};
         if (!encoding.valid)
         {
@@ -227,6 +170,13 @@ auto GeneticProjection::axpy(
             values.data(), static_cast<std::size_t>(values.size())});
 }
 
+auto GeneticProjection::axpy(
+    Eigen::Index marker,
+    std::span<const AxpyTarget> targets) const noexcept -> void
+{
+    gelex::bayes::axpy(genotype_->col(marker), luts_.col(marker), targets);
+}
+
 auto GeneticProjection::col_covariance(const GeneticProjection& rhs) const
     -> Eigen::RowVectorXd
 {
@@ -250,73 +200,38 @@ auto GeneticProjection::col_covariance(const GeneticProjection& rhs) const
     return covariance;
 }
 
-class GeneticDesign::Impl
-{
-   public:
-    Impl(gelex::Bed bed, gelex::GenoObserver observer)
-        : genotype_(std::move(bed), std::move(observer))
-    {
-    }
-
-    [[nodiscard]] auto projection() const -> const GeneticProjection&
-    {
-        if (modes_.size() == 0)
-        {
-            throw GelexException(
-                "GeneticDesign: no genetic projection is available");
-        }
-        if (modes_.size() > 1)
-        {
-            throw GelexException(
-                "GeneticDesign: multiple genetic projections are available; "
-                "specify a mode");
-        }
-        for (const auto& projection : projections_)
-        {
-            if (projection)
-            {
-                return *projection;
-            }
-        }
-        throw GelexException("GeneticDesign: invalid projection state");
-    }
-
-    [[nodiscard]] auto projection(GeneticMode mode) const
-        -> const GeneticProjection&
-    {
-        const auto& projection = projections_[mode_index(mode)];
-        if (!projection)
-        {
-            throw GelexException(
-                fmt::format(
-                    "GeneticDesign: projection for mode {} is not available",
-                    mode));
-        }
-        return *projection;
-    }
-
-    CompactGenotype genotype_;
-    std::array<std::optional<GeneticProjection>, ALL_GENETIC_MODES.size()>
-        projections_;
-    GeneticModeSet modes_;
-};
-
 GeneticDesign::GeneticDesign(
     gelex::Bed bed,
     GeneticModeSet modes,
     GenotypeMethod geno_method,
     gelex::GenoObserver observer)
-    : impl_(std::make_unique<Impl>(std::move(bed), std::move(observer)))
+    : genotype_{std::make_unique<CompactGenotype>(
+          std::move(bed),
+          std::move(observer))}
 {
     const auto projection_specs
         = encoding_specs_from_method(modes, geno_method);
     for (const auto& spec : projection_specs)
     {
-        auto& projection = impl_->projections_[mode_index(spec.effect)];
-        projection.emplace(
-            impl_->genotype_, impl_->genotype_.locus_stats_, spec);
-        impl_->modes_ |= GeneticModeSet{spec.effect};
+        projections_.at(mode_index(spec.effect))
+            = GeneticProjection{*genotype_, genotype_->locus_stats_, spec};
     }
+    if (contains(GeneticMode::A) && contains(GeneticMode::D))
+    {
+        const auto additive = projection(GeneticMode::A).valid_indices();
+        const auto dominance = projection(GeneticMode::D).valid_indices();
+        common_valid_indices_.reserve(
+            std::min(additive.size(), dominance.size()));
+        std::ranges::set_intersection(
+            additive, dominance, std::back_inserter(common_valid_indices_));
+    }
+}
+
+GeneticDesign::GeneticDesign(gelex::Bed bed, gelex::GenoObserver observer)
+    : genotype_{std::make_unique<CompactGenotype>(
+          std::move(bed),
+          std::move(observer))}
+{
 }
 
 GeneticDesign::GeneticDesign(GeneticDesign&&) noexcept = default;
@@ -328,103 +243,44 @@ GeneticDesign::~GeneticDesign() = default;
 
 auto GeneticDesign::rows() const noexcept -> Eigen::Index
 {
-    return impl_->genotype_.rows();
+    return genotype_->rows();
 }
 
 auto GeneticDesign::cols() const noexcept -> Eigen::Index
 {
-    return impl_->genotype_.cols();
+    return genotype_->cols();
 }
 
-auto GeneticDesign::modes() const noexcept -> GeneticModeSet
+auto GeneticDesign::contains(GeneticMode mode) const -> bool
 {
-    return impl_->modes_;
+    return projections_.at(mode_index(mode)).has_value();
 }
 
 auto GeneticDesign::a1_frequency() const noexcept -> const Eigen::VectorXd&
 {
-    return impl_->genotype_.a1_frequency();
+    return genotype_->a1_frequency();
 }
 
-auto GeneticDesign::xtx_diag() const -> const Eigen::VectorXd&
+auto GeneticDesign::projection(GeneticMode mode) const
+    -> const GeneticProjection&
 {
-    return impl_->projection().xtx_diag();
+    const auto& value = projections_.at(mode_index(mode));
+    if (!value)
+    {
+        throw GelexException(
+            fmt::format(
+                "GeneticDesign: projection for mode {} is not available",
+                mode));
+    }
+    return *value;
 }
 
-auto GeneticDesign::xtx_diag(GeneticMode mode) const -> const Eigen::VectorXd&
-{
-    return impl_->projection(mode).xtx_diag();
-}
-
-auto GeneticDesign::col_var() const -> const Eigen::RowVectorXd&
-{
-    return impl_->projection().col_var();
-}
-
-auto GeneticDesign::col_var(GeneticMode mode) const -> const Eigen::RowVectorXd&
-{
-    return impl_->projection(mode).col_var();
-}
-
-auto GeneticDesign::valid_indices() const -> std::span<const Eigen::Index>
-{
-    return impl_->projection().valid_indices();
-}
-
-auto GeneticDesign::valid_indices(GeneticMode mode) const
+auto GeneticDesign::common_valid_indices() const
     -> std::span<const Eigen::Index>
 {
-    return impl_->projection(mode).valid_indices();
-}
-
-auto GeneticDesign::dot(
-    Eigen::Index marker,
-    const Eigen::Ref<const Eigen::VectorXd>& values) const -> double
-{
-    return impl_->projection().dot(marker, values);
-}
-
-auto GeneticDesign::dot(
-    GeneticMode mode,
-    Eigen::Index marker,
-    const Eigen::Ref<const Eigen::VectorXd>& values) const -> double
-{
-    return impl_->projection(mode).dot(marker, values);
-}
-
-auto GeneticDesign::axpy(
-    Eigen::Index marker,
-    double scale,
-    Eigen::Ref<Eigen::VectorXd> values) const -> void
-{
-    impl_->projection().axpy(marker, scale, values);
-}
-
-auto GeneticDesign::axpy(
-    GeneticMode mode,
-    Eigen::Index marker,
-    double scale,
-    Eigen::Ref<Eigen::VectorXd> values) const -> void
-{
-    impl_->projection(mode).axpy(marker, scale, values);
-}
-
-auto GeneticDesign::snp_luts() const -> const gelex::SnpLutMatrix&
-{
-    return impl_->projection().snp_luts();
-}
-
-auto GeneticDesign::snp_luts(GeneticMode mode) const
-    -> const gelex::SnpLutMatrix&
-{
-    return impl_->projection(mode).snp_luts();
-}
-
-auto GeneticDesign::col_covariance(GeneticMode lhs_mode, GeneticMode rhs_mode)
-    const -> Eigen::RowVectorXd
-{
-    return impl_->projection(lhs_mode).col_covariance(
-        impl_->projection(rhs_mode));
+    static_cast<void>(projection(GeneticMode::A));
+    static_cast<void>(projection(GeneticMode::D));
+    return common_valid_indices_;
 }
 
 }  // namespace gelex::bayes

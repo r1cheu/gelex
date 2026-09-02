@@ -36,26 +36,33 @@ namespace detail
 template <typename Method, GeneticModeSet Modes>
 struct MethodParameters;
 
-template <Variance Kind, GeneticModeSet Modes>
+template <VarianceLayout Kind, GeneticModeSet Modes>
 struct MethodParameters<GaussianMethod<Kind>, Modes>
 {
     using type = NoParameters;
 };
 
-template <Variance Kind, GeneticModeSet Modes>
-struct MethodParameters<SpikeSlabMethod<Kind>, Modes>
+template <
+    VarianceLayout Kind,
+    UpdatePolicy ProbabilityUpdate,
+    GeneticModeSet Modes>
+struct MethodParameters<SpikeSlabMethod<Kind, ProbabilityUpdate>, Modes>
 {
     using type = IndependentTopology<Modes, SpikeSlab>;
 };
 
-template <GeneticModeSet Modes>
-struct MethodParameters<ScaledMixtureMethod, Modes>
+template <UpdatePolicy ProbabilitiesUpdate, GeneticModeSet Modes>
+struct MethodParameters<ScaledMixtureMethod<ProbabilitiesUpdate>, Modes>
 {
     using type = IndependentTopology<Modes, ScaledMixture>;
 };
 
-template <>
-struct MethodParameters<JointSpikeSlabMethod, GeneticMode::A | GeneticMode::D>
+template <
+    UpdatePolicy ProbabilitiesUpdate,
+    UpdatePolicy PositiveProbabilityUpdate>
+struct MethodParameters<
+    JointSpikeSlabMethod<ProbabilitiesUpdate, PositiveProbabilityUpdate>,
+    GeneticMode::A | GeneticMode::D>
 {
     using type = JointSpikeSlab;
 };
@@ -64,9 +71,8 @@ template <typename Method, GeneticModeSet Modes>
 using method_parameters_t = typename MethodParameters<Method, Modes>::type;
 
 template <typename SemanticMethod, GeneticModeSet Modes>
-concept SupportedSemanticMethod = Modes.size() > 0 && requires {
-    typename method_parameters_t<SemanticMethod, Modes>;
-};
+concept SupportedSemanticMethod
+    = requires { typename method_parameters_t<SemanticMethod, Modes>; };
 
 }  // namespace detail
 

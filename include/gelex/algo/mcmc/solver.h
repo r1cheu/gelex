@@ -32,7 +32,7 @@
 namespace gelex
 {
 
-class BayesState;
+class LegacyBayesState;
 
 class Solver
 {
@@ -44,21 +44,21 @@ class Solver
 
     auto run(
         const BayesModel& model,
-        const bayes::BayesPrior& prior,
+        const bayes::LegacyBayesPrior& prior,
         Eigen::Index seed = 42,
         const MCMCObserver& observer = {}) -> Result;
 
     auto run_from(
         const BayesModel& model,
-        const bayes::BayesPrior& prior,
+        const bayes::LegacyBayesPrior& prior,
         const std::filesystem::path& checkpoint_path,
         const MCMCObserver& observer = {}) -> Result;
 
    private:
     auto run_iterations(
         const BayesModel& model,
-        const bayes::BayesPrior& prior,
-        BayesState& state,
+        const bayes::LegacyBayesPrior& prior,
+        LegacyBayesState& state,
         std::mt19937_64& rng,
         const MCMCObserver& observer) -> Result;
 

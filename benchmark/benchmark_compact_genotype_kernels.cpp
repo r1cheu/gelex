@@ -64,7 +64,7 @@ consteval auto make_bed_unpack_table() -> std::array<std::uint32_t, 256>
     return table;
 }
 
-inline constexpr auto BED_UNPACK_TABLE = make_bed_unpack_table();
+inline constexpr auto bed_unpack_table = make_bed_unpack_table();
 
 struct Shape
 {
@@ -289,14 +289,14 @@ GELEX_AVX2_TARGET inline auto load_bed_values(
     std::uint8_t packed,
     const double* lut) noexcept -> __m256d
 {
-    return lookup4(BED_UNPACK_TABLE[packed], lut);
+    return lookup4(bed_unpack_table[packed], lut);
 }
 
 GELEX_AVX2_TARGET inline auto unpack_bed8(const std::uint8_t* packed) noexcept
     -> std::uint64_t
 {
-    return static_cast<std::uint64_t>(BED_UNPACK_TABLE[packed[0]])
-           | (static_cast<std::uint64_t>(BED_UNPACK_TABLE[packed[1]]) << 32U);
+    return static_cast<std::uint64_t>(bed_unpack_table[packed[0]])
+           | (static_cast<std::uint64_t>(bed_unpack_table[packed[1]]) << 32U);
 }
 
 GELEX_AVX2_TARGET inline auto horizontal_sum(__m256d values) noexcept -> double
@@ -971,7 +971,7 @@ TEST_CASE(
     "compact genotype dot sweep",
     "[!benchmark][mcmc][compact_genotype][dot]")
 {
-    constexpr std::array<Shape, 7> SHAPES{{
+    constexpr std::array<Shape, 7> shapes{{
         {.samples = 512, .markers = 1024},
         {.samples = 512, .markers = 2048},
         {.samples = 512, .markers = 4096},
@@ -981,7 +981,7 @@ TEST_CASE(
         {.samples = 8192, .markers = 1024},
     }};
 
-    for (const auto [samples, markers] : SHAPES)
+    for (const auto [samples, markers] : shapes)
     {
         const CompactGenotypeFixture fixture{samples, markers};
         const double entries
@@ -1026,7 +1026,7 @@ TEST_CASE(
     "compact genotype dot and axpy sweep",
     "[!benchmark][mcmc][compact_genotype][update]")
 {
-    constexpr std::array<Shape, 10> SHAPES{{
+    constexpr std::array<Shape, 10> shapes{{
         {.samples = 512, .markers = 1024},
         {.samples = 512, .markers = 2048},
         {.samples = 512, .markers = 4096},
@@ -1039,7 +1039,7 @@ TEST_CASE(
         {.samples = 131072, .markers = 64},
     }};
 
-    for (const auto [samples, markers] : SHAPES)
+    for (const auto [samples, markers] : shapes)
     {
         const CompactGenotypeFixture fixture{samples, markers};
         Eigen::VectorXd residual(samples);
@@ -1167,7 +1167,7 @@ TEST_CASE(
     "register-direct compact kernels with 100k markers",
     "[!benchmark][mcmc][compact_genotype][direct][p100k]")
 {
-    constexpr std::array<Shape, 3> SHAPES{{
+    constexpr std::array<Shape, 3> shapes{{
         {.samples = 512, .markers = 100000},
         {.samples = 2048, .markers = 100000},
         {.samples = 4096, .markers = 100000},
@@ -1178,7 +1178,7 @@ TEST_CASE(
         SKIP("AVX2 and FMA are required");
     }
 #if GELEX_BENCHMARK_X86_64 && (defined(__GNUC__) || defined(__clang__))
-    for (const auto [samples, markers] : SHAPES)
+    for (const auto [samples, markers] : shapes)
     {
         const CompactGenotypeFixture fixture{samples, markers};
         const double entries

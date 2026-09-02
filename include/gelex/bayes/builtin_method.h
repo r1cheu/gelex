@@ -37,7 +37,7 @@ enum class BayesMethod : std::uint8_t
     CD,
 };
 
-inline constexpr std::array BAYES_METHOD_NAMES{
+inline constexpr std::array bayes_method_names{
     std::pair{BayesMethod::RR, std::string_view{"RR"}},
     std::pair{BayesMethod::A, std::string_view{"A"}},
     std::pair{BayesMethod::B, std::string_view{"B"}},
@@ -55,37 +55,37 @@ struct SemanticMethodFor;
 template <>
 struct SemanticMethodFor<BayesMethod::RR>
 {
-    using type = GaussianMethod<Variance::Pooled>;
+    using type = GaussianMethod<VarianceLayout::Pooled>;
 };
 
 template <>
 struct SemanticMethodFor<BayesMethod::A>
 {
-    using type = GaussianMethod<Variance::Unpooled>;
+    using type = GaussianMethod<VarianceLayout::Unpooled>;
 };
 
 template <>
 struct SemanticMethodFor<BayesMethod::B>
 {
-    using type = SpikeSlabMethod<Variance::Unpooled>;
+    using type = SpikeSlabMethod<VarianceLayout::Unpooled>;
 };
 
 template <>
 struct SemanticMethodFor<BayesMethod::C>
 {
-    using type = SpikeSlabMethod<Variance::Pooled>;
+    using type = SpikeSlabMethod<VarianceLayout::Pooled>;
 };
 
 template <>
 struct SemanticMethodFor<BayesMethod::R>
 {
-    using type = ScaledMixtureMethod;
+    using type = ScaledMixtureMethod<>;
 };
 
 template <>
 struct SemanticMethodFor<BayesMethod::CD>
 {
-    using type = JointSpikeSlabMethod;
+    using type = JointSpikeSlabMethod<>;
 };
 
 }  // namespace detail

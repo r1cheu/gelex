@@ -36,7 +36,7 @@
 namespace gelex
 {
 
-class BayesState;
+class LegacyBayesState;
 class BayesModel;
 
 class BinaryWriter;
@@ -60,7 +60,7 @@ class Records : private FieldVisitor
     auto operator=(Records&& other) noexcept -> Records&;
     ~Records() override;
 
-    auto store(const BayesModel& model, BayesState& state) -> void;
+    auto store(const BayesModel& model, LegacyBayesState& state) -> void;
 
     auto take_results() && -> std::vector<RecordEntry>;
 

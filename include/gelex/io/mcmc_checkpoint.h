@@ -24,14 +24,14 @@
 namespace gelex
 {
 
-class BayesState;
+class LegacyBayesState;
 
 [[nodiscard]] auto read_checkpoint(
     const std::filesystem::path& path,
-    BayesState& state) -> std::mt19937_64;
+    LegacyBayesState& state) -> std::mt19937_64;
 
 auto write_checkpoint(
-    BayesState& state,
+    LegacyBayesState& state,
     const std::mt19937_64& rng,
     std::string_view prefix) -> void;
 

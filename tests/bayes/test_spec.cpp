@@ -22,59 +22,31 @@
 using gelex::JointSpikeSlab;
 using gelex::ScaledMixture;
 using gelex::SpikeSlab;
-using gelex::UpdatePolicy;
-
-TEST_CASE("Bayes structural specs provide sampled defaults", "[bayes][spec]")
+TEST_CASE("Bayes structural specs provide defaults", "[bayes][spec]")
 {
     const auto spike_slab = SpikeSlab{};
-    REQUIRE(spike_slab.probability.initial == 0.01);
-    REQUIRE(spike_slab.probability.update == UpdatePolicy::Sampled);
+    REQUIRE(spike_slab.probability == 0.01);
 
     const auto scaled_mixture = ScaledMixture{};
     REQUIRE(
-        scaled_mixture.probabilities.initial
+        scaled_mixture.probabilities
         == std::array{0.99, 0.005, 0.003, 0.001, 0.001});
-    REQUIRE(scaled_mixture.probabilities.update == UpdatePolicy::Sampled);
     REQUIRE(scaled_mixture.scales == std::array{0.0, 0.001, 0.01, 0.1, 1.0});
 
     const auto joint_spike_slab = JointSpikeSlab{};
     REQUIRE(
-        joint_spike_slab.probabilities.initial
+        joint_spike_slab.probabilities
         == std::array{0.99, 1.0 / 300, 1.0 / 300, 1.0 / 300});
-    REQUIRE(joint_spike_slab.probabilities.update == UpdatePolicy::Sampled);
-    REQUIRE(joint_spike_slab.positive_probability.initial == 0.5);
-    REQUIRE(
-        joint_spike_slab.positive_probability.update == UpdatePolicy::Sampled);
+    REQUIRE(joint_spike_slab.positive_probability == 0.5);
 }
 
-TEST_CASE(
-    "Bayes structural specs support fixed resolved values",
-    "[bayes][spec]")
+TEST_CASE("Bayes structural specs accept resolved values", "[bayes][spec]")
 {
-    const auto spike_slab = SpikeSlab{
-        .probability{
-            .initial = 0.2,
-            .update = UpdatePolicy::Fixed,
-        },
-    };
-    REQUIRE(spike_slab.probability.initial == 0.2);
-    REQUIRE(spike_slab.probability.update == UpdatePolicy::Fixed);
+    const auto spike_slab = SpikeSlab{.probability = 0.2};
+    REQUIRE(spike_slab.probability == 0.2);
 
     const auto joint_spike_slab = JointSpikeSlab{
-        .probabilities{
-            .initial = {0.7, 0.1, 0.1, 0.1},
-            .update = UpdatePolicy::Fixed,
-        },
-        .positive_probability{
-            .initial = 0.6,
-            .update = UpdatePolicy::Fixed,
-        },
-    };
-    REQUIRE(
-        joint_spike_slab.probabilities.initial
-        == std::array{0.7, 0.1, 0.1, 0.1});
-    REQUIRE(joint_spike_slab.probabilities.update == UpdatePolicy::Fixed);
-    REQUIRE(joint_spike_slab.positive_probability.initial == 0.6);
-    REQUIRE(
-        joint_spike_slab.positive_probability.update == UpdatePolicy::Fixed);
+        .probabilities = {0.7, 0.1, 0.1, 0.1}, .positive_probability = 0.6};
+    REQUIRE(joint_spike_slab.probabilities == std::array{0.7, 0.1, 0.1, 0.1});
+    REQUIRE(joint_spike_slab.positive_probability == 0.6);
 }

@@ -16,6 +16,7 @@
 
 #include <Eigen/Core>
 #include <catch2/catch_test_macros.hpp>
+#include <ranges>
 #include <string>
 #include <utility>
 #include <vector>
@@ -38,7 +39,7 @@ using gelex::GenotypeMethod;
 namespace
 {
 
-const Eigen::MatrixXd GENOTYPES{{0.0, 0.0}, {1.0, 1.0}, {2.0, 1.0}};
+const Eigen::MatrixXd genotypes{{0.0, 0.0}, {1.0, 1.0}, {2.0, 1.0}};
 
 auto make_phenotype() -> Eigen::VectorXd
 {
@@ -56,7 +57,7 @@ TEST_CASE("BayesModel rejects design row mismatches", "[bayes_model]")
                 make_phenotype(),
                 FixedDesign::make(2),
                 {},
-                gelex::test::make_genetic_design(GENOTYPES)),
+                gelex::test::make_genetic_design(genotypes)),
             GelexException);
     }
 
@@ -73,7 +74,7 @@ TEST_CASE("BayesModel rejects design row mismatches", "[bayes_model]")
                 make_phenotype(),
                 FixedDesign::make(3),
                 std::move(random),
-                gelex::test::make_genetic_design(GENOTYPES)),
+                gelex::test::make_genetic_design(genotypes)),
             GelexException);
     }
 
@@ -96,33 +97,34 @@ TEST_CASE("BayesModel accepts a design without projections", "[bayes_model]")
         make_phenotype(),
         FixedDesign::make(3),
         {},
-        gelex::test::make_genetic_design(GENOTYPES, GeneticModeSet{})};
+        gelex::test::make_genetic_design_without_modes(genotypes)};
 
-    REQUIRE(model.genetic().modes().size() == 0);
+    REQUIRE(std::ranges::empty(model.genetic().each_mode()));
 }
 
 TEST_CASE("GeneticDesign exposes compact column metadata", "[bayes_model]")
 {
     auto model = gelex::test::make_compact_model(
-        GENOTYPES,
+        genotypes,
         make_phenotype(),
         GeneticModeSet{GeneticMode::A},
         GenotypeMethod::Center);
     const auto& design = model.genetic();
+    const auto& projection = design.projection(GeneticMode::A);
     const Eigen::MatrixXd expected{
         {-1.0, -2.0 / 3.0}, {0.0, 1.0 / 3.0}, {1.0, 1.0 / 3.0}};
 
-    REQUIRE(design.xtx_diag().isApprox(
+    REQUIRE(projection.xtx_diag().isApprox(
         expected.colwise().squaredNorm().transpose()));
-    REQUIRE(
-        design.col_var().isApprox(Eigen::RowVectorXd{{2.0 / 3.0, 2.0 / 9.0}}));
-    REQUIRE(design.valid_indices().size() == 2);
+    REQUIRE(projection.col_var().isApprox(
+        Eigen::RowVectorXd{{2.0 / 3.0, 2.0 / 9.0}}));
+    REQUIRE(projection.valid_indices().size() == 2);
 }
 
 TEST_CASE("Moved BayesModel keeps compact design valid", "[bayes_model]")
 {
     auto source = gelex::test::make_compact_model(
-        GENOTYPES,
+        genotypes,
         make_phenotype(),
         GeneticMode::A | GeneticMode::D,
         GenotypeMethod::OrthCenter);
@@ -131,13 +133,15 @@ TEST_CASE("Moved BayesModel keeps compact design valid", "[bayes_model]")
     const Eigen::VectorXd values{{1.0, -0.5, 0.25}};
     Eigen::VectorXd additive_output = Eigen::VectorXd::Zero(3);
     Eigen::VectorXd dominance_output = Eigen::VectorXd::Zero(3);
+    const auto& additive_projection = design.projection(GeneticMode::A);
+    const auto& dominance_projection = design.projection(GeneticMode::D);
 
-    design.axpy(GeneticMode::A, 0, 1.0, additive_output);
-    design.axpy(GeneticMode::D, 0, 1.0, dominance_output);
+    additive_projection.axpy(0, 1.0, additive_output);
+    dominance_projection.axpy(0, 1.0, dominance_output);
 
+    REQUIRE(additive_projection.dot(0, values) == additive_output.dot(values));
     REQUIRE(
-        design.dot(GeneticMode::A, 0, values) == additive_output.dot(values));
-    REQUIRE(
-        design.dot(GeneticMode::D, 0, values) == dominance_output.dot(values));
-    REQUIRE(design.modes().size() == 2);
+        dominance_projection.dot(0, values) == dominance_output.dot(values));
+    REQUIRE(design.contains(GeneticMode::A));
+    REQUIRE(design.contains(GeneticMode::D));
 }

@@ -29,7 +29,7 @@ namespace gelex
 
 class Bed;
 
-inline constexpr double MAX_SNP_MISSING_RATIO = 0.2;
+inline constexpr double max_snp_missing_ratio = 0.2;
 
 // Maps training SNP effects (canonical axis) onto the columns of a prediction
 // .bim by SNP id, orienting each match to the training A1. Three outcomes per

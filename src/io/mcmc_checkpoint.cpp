@@ -26,7 +26,7 @@
 #include <string>
 #include <string_view>
 
-#include "gelex/bayes/state.h"
+#include "gelex/bayes/legacy_state.h"
 #include "gelex/exception.h"
 #include "gelex/infra/field_flag.h"
 #include "gelex/infra/field_visitor.h"
@@ -45,7 +45,7 @@ class CheckpointReader final : private FieldVisitor
    public:
     explicit CheckpointReader(const BinaryReader& reader) : reader_(reader) {}
 
-    auto read(BayesState& state) -> void { state.visit(*this); }
+    auto read(LegacyBayesState& state) -> void { state.visit(*this); }
 
    private:
     auto on(
@@ -207,7 +207,7 @@ class CheckpointWriter final : private FieldVisitor
    public:
     explicit CheckpointWriter(BinaryWriter& writer) : writer_(writer) {}
 
-    auto write(BayesState& state) -> void { state.visit(*this); }
+    auto write(LegacyBayesState& state) -> void { state.visit(*this); }
 
    private:
     auto on(
@@ -295,7 +295,7 @@ class CheckpointWriter final : private FieldVisitor
 
 }  // namespace
 
-auto read_checkpoint(const std::filesystem::path& path, BayesState& state)
+auto read_checkpoint(const std::filesystem::path& path, LegacyBayesState& state)
     -> std::mt19937_64
 {
     BinaryReader reader(path.string());
@@ -325,7 +325,7 @@ auto read_checkpoint(const std::filesystem::path& path, BayesState& state)
 }
 
 auto write_checkpoint(
-    BayesState& state,
+    LegacyBayesState& state,
     const std::mt19937_64& rng,
     std::string_view prefix) -> void
 {

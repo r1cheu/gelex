@@ -63,12 +63,12 @@ class VarianceBudget
     }
 
    private:
-    std::array<double, ALL_GENETIC_MODES.size()> genetic_;
+    std::array<double, all_genetic_modes.size()> genetic_;
     double random_;
 };
 
-inline constexpr double DEFAULT_ADDITIVE_SHARE = 0.5;
-inline constexpr double DEFAULT_DOMINANCE_SHARE = 0.2;
+inline constexpr double default_additive_share = 0.5;
+inline constexpr double default_dominance_share = 0.2;
 
 // Derived from mode presence rather than a per-mode-set table, so the defaults
 // cannot disagree with the mode set they are meant to serve. Yields Shares
@@ -79,9 +79,9 @@ inline constexpr double DEFAULT_DOMINANCE_SHARE = 0.2;
 {
     return {
         .additive
-        = modes.contains(GeneticMode::A) ? DEFAULT_ADDITIVE_SHARE : 0.0,
+        = modes.contains(GeneticMode::A) ? default_additive_share : 0.0,
         .dominance
-        = modes.contains(GeneticMode::D) ? DEFAULT_DOMINANCE_SHARE : 0.0,
+        = modes.contains(GeneticMode::D) ? default_dominance_share : 0.0,
     };
 }
 

@@ -146,14 +146,14 @@ TEST_CASE(
         [](const auto& entry) { return entry.first; });
     expect_sync(
         "MODEL",
-        gelex::bayes::BAYES_RECIPE_SCHEME_NAMES,
+        gelex::bayes::bayes_recipe_scheme_names,
         [](const auto& entry) { return entry.second; });
     expect_sync(
         "MODE",
-        gelex::GENETIC_MODE_SET_NAMES,
+        gelex::genetic_mode_set_names,
         [](const auto& entry) { return entry.second; });
     expect_sync(
         "TRANSFORM",
-        gelex::RINT_TYPE_NAMES,
+        gelex::rint_type_names,
         [](const auto& entry) { return entry.second; });
 }

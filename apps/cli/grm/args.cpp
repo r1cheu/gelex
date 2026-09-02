@@ -58,7 +58,10 @@ auto setup_grm_command(CLI::App& program, int& exit_code) -> void
         ->default_str("OSH")
         ->check(cli::genotype_method_validator());
 
-    cmd.add_option("--mode", config->mode, "Effect mode: A, D, AD")
+    cmd.add_option_function<std::string>(
+           "--mode",
+           cli::lexical_assigner(config->mode),
+           "Effect mode: A, D, AD")
         ->group("Model")
         ->type_name("<MODE>")
         ->default_str("A")

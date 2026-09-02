@@ -63,7 +63,7 @@ TEST_CASE("BayesPrior owns single and joint genetic blocks", "[bayes_prior]")
     std::vector<gelex::bayes::GeneticPrior> genetics;
     genetics.emplace_back(make_shared_prior(gelex::GeneticMode::A));
 
-    gelex::bayes::BayesPrior prior{
+    gelex::bayes::LegacyBayesPrior prior{
         make_random_prior(), std::move(genetics), make_residual_prior()};
 
     REQUIRE(prior.genetics().size() == 1);
@@ -143,7 +143,7 @@ TEST_CASE("BayesPrior rejects duplicate genetic modes", "[bayes_prior]")
     genetics.emplace_back(make_shared_prior(gelex::GeneticMode::A));
 
     REQUIRE_THROWS_AS(
-        gelex::bayes::BayesPrior(
+        gelex::bayes::LegacyBayesPrior(
             make_random_prior(), std::move(genetics), make_residual_prior()),
         gelex::GelexException);
 }

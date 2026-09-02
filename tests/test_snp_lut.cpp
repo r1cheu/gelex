@@ -37,12 +37,12 @@ TEST_CASE("SNP LUT round-trip preserves missing values", "[snp_lut]")
     gelex::test::FileFixture fixture;
     const auto& dir = fixture.get_test_dir();
 
-    constexpr Eigen::Index NUM_SNPS = 150;
-    SnpLutMatrix add = Eigen::VectorXd::LinSpaced(4 * NUM_SNPS, 0.1, 0.9)
-                           .reshaped(4, NUM_SNPS)
+    constexpr Eigen::Index num_snps = 150;
+    SnpLutMatrix add = Eigen::VectorXd::LinSpaced(4 * num_snps, 0.1, 0.9)
+                           .reshaped(4, num_snps)
                            .array();
-    SnpLutMatrix dom = Eigen::VectorXd::LinSpaced(4 * NUM_SNPS, -0.8, 0.8)
-                           .reshaped(4, NUM_SNPS)
+    SnpLutMatrix dom = Eigen::VectorXd::LinSpaced(4 * num_snps, -0.8, 0.8)
+                           .reshaped(4, num_snps)
                            .array();
 
     const auto path = dir / "test_ad.snplut";
@@ -83,8 +83,8 @@ TEST_CASE("SNP LUT writer persists a genetic design", "[snp_lut]")
 
     const auto actual = load_snp_luts(path);
     REQUIRE(actual.size() == 2);
-    REQUIRE(
-        actual.at(GeneticMode::A).isApprox(design.snp_luts(GeneticMode::A)));
-    REQUIRE(
-        actual.at(GeneticMode::D).isApprox(design.snp_luts(GeneticMode::D)));
+    REQUIRE(actual.at(GeneticMode::A)
+                .isApprox(design.projection(GeneticMode::A).snp_luts()));
+    REQUIRE(actual.at(GeneticMode::D)
+                .isApprox(design.projection(GeneticMode::D).snp_luts()));
 }

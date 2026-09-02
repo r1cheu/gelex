@@ -35,9 +35,9 @@ struct TestValue
     int value;
 };
 
-constexpr auto MODE_AD = GeneticMode::A | GeneticMode::D;
+constexpr auto mode_ad = GeneticMode::A | GeneticMode::D;
 
-using TestModeTopology = IndependentTopology<MODE_AD, TestValue>;
+using TestModeTopology = IndependentTopology<mode_ad, TestValue>;
 using TestJointTopology = JointTopology<TestValue, std::string>;
 
 static_assert(TestJointTopology::modes == (GeneticMode::A | GeneticMode::D));
@@ -62,7 +62,7 @@ static_assert(std::same_as<
               JointTopology<TestValue, int>>);
 static_assert(
     std::same_as<
-        decltype(JointTopology{IndependentTopology<MODE_AD, int>{1, 2}, 3}),
+        decltype(JointTopology{IndependentTopology<mode_ad, int>{1, 2}, 3}),
         JointTopology<int, int>>);
 
 static_assert(
@@ -83,12 +83,12 @@ static_assert(
 
 // A coinciding joint type must not shift into the mode storage.
 static_assert(
-    JointTopology{IndependentTopology<MODE_AD, int>{1, 2}, 3}
+    JointTopology{IndependentTopology<mode_ad, int>{1, 2}, 3}
         .mode_values()
         .get<GeneticMode::D>()
     == 2);
 static_assert(
-    JointTopology{IndependentTopology<MODE_AD, int>{1, 2}, 3}.joint() == 3);
+    JointTopology{IndependentTopology<mode_ad, int>{1, 2}, 3}.joint() == 3);
 
 }  // namespace
 
@@ -97,7 +97,7 @@ TEST_CASE(
     "[bayes][genetic][joint_topology]")
 {
     auto topology = JointTopology{
-        IndependentTopology<MODE_AD, std::unique_ptr<int>>{
+        IndependentTopology<mode_ad, std::unique_ptr<int>>{
             std::make_unique<int>(1), std::make_unique<int>(2)},
         std::string{"joint"}};
 
@@ -119,7 +119,7 @@ TEST_CASE(
     "[bayes][genetic][joint_topology]")
 {
     auto topology = JointTopology{
-        IndependentTopology<MODE_AD, int>{1, 2}, std::string{"joint"}};
+        IndependentTopology<mode_ad, int>{1, 2}, std::string{"joint"}};
 
     topology.mode_values().get<GeneticMode::A>() = 3;
     topology.mode_values().get<GeneticMode::D>() = 4;

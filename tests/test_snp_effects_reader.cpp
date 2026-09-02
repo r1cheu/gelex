@@ -30,13 +30,13 @@ TEST_CASE(
 {
     FileFixture files;
 
-    constexpr std::string_view CONTENT
+    constexpr std::string_view content
         = "CHR\tSNP\tBP\tA1\tA2\tA1FREQ\tBETA_A\tBETA_D\n"
           "1\trs1\t1000\tA\tG\t0.3\t0.5\t0.1\n"
           "1\trs2\t2000\tC\tT\t0.4\t-0.2\t0.0\n"
           "2\trs3\t500\tA\tT\t0.1\t0.8\t-0.3\n";
 
-    auto path = files.create_text_file(CONTENT, ".snpeff");
+    auto path = files.create_text_file(content, ".snpeff");
     auto df = gelex::read_snp_effects(path);
 
     REQUIRE(df.rows() == 3);

@@ -15,6 +15,7 @@
  */
 
 #include <catch2/catch_test_macros.hpp>
+#include <concepts>
 #include <cstddef>
 #include <ranges>
 #include <string_view>
@@ -30,25 +31,21 @@ namespace
 {
 
 template <GeneticModeSet>
-inline constexpr bool ACCEPTS_GENETIC_MODE_SET_NTTP = true;
+inline constexpr bool accepts_genetic_mode_set_nttp = true;
 
-static_assert(ACCEPTS_GENETIC_MODE_SET_NTTP<GeneticMode::A | GeneticMode::D>);
+static_assert(accepts_genetic_mode_set_nttp<GeneticMode::A | GeneticMode::D>);
 
-static_assert(GeneticModeSet{}.size() == 0);
-static_assert(!GeneticModeSet{}.contains(GeneticMode::A));
-static_assert(!GeneticModeSet{}.contains(GeneticMode::D));
-
-inline constexpr auto STRAY_BIT_MODES = []
+inline constexpr auto stray_bit_modes = []
 {
     auto modes = GeneticModeSet{GeneticMode::D};
     modes.bits |= 0b1000'0000U;
     return modes;
 }();
 
-static_assert(STRAY_BIT_MODES.size() == 1);
-static_assert(STRAY_BIT_MODES.contains(GeneticMode::D));
-static_assert(!STRAY_BIT_MODES.contains(GeneticMode::A));
-static_assert(STRAY_BIT_MODES.index_of(GeneticMode::D) == 0);
+static_assert(stray_bit_modes.size() == 1);
+static_assert(stray_bit_modes.contains(GeneticMode::D));
+static_assert(!stray_bit_modes.contains(GeneticMode::A));
+static_assert(stray_bit_modes.index_of(GeneticMode::D) == 0);
 
 static_assert((GeneticMode::A | GeneticMode::D).index_of(GeneticMode::A) == 0);
 static_assert((GeneticMode::A | GeneticMode::D).index_of(GeneticMode::D) == 1);
@@ -56,7 +53,6 @@ static_assert(GeneticModeSet{GeneticMode::D}.index_of(GeneticMode::D) == 0);
 
 // An absent mode reports size(), mirroring std::find returning end().
 static_assert(GeneticModeSet{GeneticMode::D}.index_of(GeneticMode::A) == 1);
-static_assert(GeneticModeSet{}.index_of(GeneticMode::A) == 0);
 
 static_assert(name_of(GeneticModeSet{GeneticMode::A}) == "A");
 static_assert(name_of(GeneticModeSet{GeneticMode::D}) == "D");
@@ -64,19 +60,12 @@ static_assert(name_of(GeneticMode::A | GeneticMode::D) == "AD");
 
 // Undefined bits are ignored here too, so a stray write cannot turn a labelled
 // set into an unnamed one.
-static_assert(name_of(STRAY_BIT_MODES) == "D");
-static_assert(name_of(GeneticModeSet{}).empty());
+static_assert(name_of(stray_bit_modes) == "D");
+
+// The type has no default constructor, so a mode set can never start out empty.
+static_assert(!std::default_initializable<GeneticModeSet>);
 
 }  // namespace
-
-TEST_CASE("GeneticModeSet defaults to the empty set", "[types][genetic_mode]")
-{
-    const auto modes = GeneticModeSet{};
-
-    REQUIRE(modes.size() == 0);
-    REQUIRE_FALSE(modes.contains(GeneticMode::A));
-    REQUIRE((modes.each() | std::ranges::to<std::vector>()).empty());
-}
 
 TEST_CASE("GeneticModeSet iterates in canonical order", "[types][genetic_mode]")
 {

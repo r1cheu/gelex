@@ -34,8 +34,8 @@ class FieldVisitor;
 namespace gelex::bayes
 {
 
-inline constexpr std::string_view SINGLE_GENETIC_PRIOR_NAME = "single";
-inline constexpr std::string_view JOINT_GENETIC_PRIOR_NAME = "joint";
+inline constexpr std::string_view single_genetic_prior_name = "single";
+inline constexpr std::string_view joint_genetic_prior_name = "joint";
 
 using SingleGeneticPrior = std::variant<
     SingleSharedGaussianPrior,

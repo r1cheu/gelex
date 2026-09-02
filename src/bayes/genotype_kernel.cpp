@@ -17,6 +17,7 @@
 #include "gelex/bayes/genotype_kernel.h"
 
 #include <Eigen/Core>
+#include <algorithm>
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
@@ -64,6 +65,22 @@ auto axpy_scalar(
     for (std::size_t index = 0; index < size; ++index)
     {
         residual[index] += scale * lut[genotype_column[index]];
+    }
+}
+
+auto axpy_multi_target_scalar(
+    const std::uint8_t* genotype_column,
+    const double* lut,
+    std::span<const AxpyTarget> targets,
+    std::size_t size) noexcept -> void
+{
+    for (std::size_t index = 0; index < size; ++index)
+    {
+        const double value = lut[genotype_column[index]];
+        for (const auto& target : targets)
+        {
+            target.values[index] += target.scale * value;
+        }
     }
 }
 
@@ -179,6 +196,77 @@ GELEX_AVX2_TARGET auto axpy_avx2(
     }
 }
 
+GELEX_AVX2_TARGET auto axpy_multi_target_avx2(
+    const std::uint8_t* genotype_column,
+    const double* lut,
+    std::span<const AxpyTarget> targets,
+    std::size_t size) noexcept -> void
+{
+    const __m256i lut_parts = _mm256_castpd_si256(_mm256_loadu_pd(lut));
+
+    std::size_t index = 0;
+    for (; index + 16 <= size; index += 16)
+    {
+        const __m256d values0
+            = load_values_avx2(genotype_column + index, lut_parts);
+        const __m256d values1
+            = load_values_avx2(genotype_column + index + 4, lut_parts);
+        const __m256d values2
+            = load_values_avx2(genotype_column + index + 8, lut_parts);
+        const __m256d values3
+            = load_values_avx2(genotype_column + index + 12, lut_parts);
+        for (const auto& target : targets)
+        {
+            const __m256d scale = _mm256_set1_pd(target.scale);
+            _mm256_storeu_pd(
+                target.values.data() + index,
+                _mm256_fmadd_pd(
+                    scale,
+                    values0,
+                    _mm256_loadu_pd(target.values.data() + index)));
+            _mm256_storeu_pd(
+                target.values.data() + index + 4,
+                _mm256_fmadd_pd(
+                    scale,
+                    values1,
+                    _mm256_loadu_pd(target.values.data() + index + 4)));
+            _mm256_storeu_pd(
+                target.values.data() + index + 8,
+                _mm256_fmadd_pd(
+                    scale,
+                    values2,
+                    _mm256_loadu_pd(target.values.data() + index + 8)));
+            _mm256_storeu_pd(
+                target.values.data() + index + 12,
+                _mm256_fmadd_pd(
+                    scale,
+                    values3,
+                    _mm256_loadu_pd(target.values.data() + index + 12)));
+        }
+    }
+    for (; index + 4 <= size; index += 4)
+    {
+        const __m256d values
+            = load_values_avx2(genotype_column + index, lut_parts);
+        for (const auto& target : targets)
+        {
+            const __m256d updated = _mm256_fmadd_pd(
+                _mm256_set1_pd(target.scale),
+                values,
+                _mm256_loadu_pd(target.values.data() + index));
+            _mm256_storeu_pd(target.values.data() + index, updated);
+        }
+    }
+    for (; index < size; ++index)
+    {
+        const double value = lut[genotype_column[index]];
+        for (const auto& target : targets)
+        {
+            target.values[index] += target.scale * value;
+        }
+    }
+}
+
 GELEX_AVX512_TARGET static inline auto load_values_avx512(
     const std::uint8_t* genotype_column,
     __m512d lut_values) noexcept -> __m512d
@@ -269,6 +357,78 @@ GELEX_AVX512_TARGET auto axpy_avx512(
     }
 }
 
+GELEX_AVX512_TARGET auto axpy_multi_target_avx512(
+    const std::uint8_t* genotype_column,
+    const double* lut,
+    std::span<const AxpyTarget> targets,
+    std::size_t size) noexcept -> void
+{
+    const __m512d lut_values = _mm512_setr_pd(
+        lut[0], lut[1], lut[2], lut[3], lut[0], lut[1], lut[2], lut[3]);
+
+    std::size_t index = 0;
+    for (; index + 32 <= size; index += 32)
+    {
+        const __m512d values0
+            = load_values_avx512(genotype_column + index, lut_values);
+        const __m512d values1
+            = load_values_avx512(genotype_column + index + 8, lut_values);
+        const __m512d values2
+            = load_values_avx512(genotype_column + index + 16, lut_values);
+        const __m512d values3
+            = load_values_avx512(genotype_column + index + 24, lut_values);
+        for (const auto& target : targets)
+        {
+            const __m512d scale = _mm512_set1_pd(target.scale);
+            _mm512_storeu_pd(
+                target.values.data() + index,
+                _mm512_fmadd_pd(
+                    scale,
+                    values0,
+                    _mm512_loadu_pd(target.values.data() + index)));
+            _mm512_storeu_pd(
+                target.values.data() + index + 8,
+                _mm512_fmadd_pd(
+                    scale,
+                    values1,
+                    _mm512_loadu_pd(target.values.data() + index + 8)));
+            _mm512_storeu_pd(
+                target.values.data() + index + 16,
+                _mm512_fmadd_pd(
+                    scale,
+                    values2,
+                    _mm512_loadu_pd(target.values.data() + index + 16)));
+            _mm512_storeu_pd(
+                target.values.data() + index + 24,
+                _mm512_fmadd_pd(
+                    scale,
+                    values3,
+                    _mm512_loadu_pd(target.values.data() + index + 24)));
+        }
+    }
+    for (; index + 8 <= size; index += 8)
+    {
+        const __m512d values
+            = load_values_avx512(genotype_column + index, lut_values);
+        for (const auto& target : targets)
+        {
+            const __m512d updated = _mm512_fmadd_pd(
+                _mm512_set1_pd(target.scale),
+                values,
+                _mm512_loadu_pd(target.values.data() + index));
+            _mm512_storeu_pd(target.values.data() + index, updated);
+        }
+    }
+    for (; index < size; ++index)
+    {
+        const double value = lut[genotype_column[index]];
+        for (const auto& target : targets)
+        {
+            target.values[index] += target.scale * value;
+        }
+    }
+}
+
 auto supports_avx2() noexcept -> bool
 {
     __builtin_cpu_init();
@@ -303,6 +463,15 @@ auto axpy_avx2(
     axpy_scalar(genotype_column, lut, scale, residual, size);
 }
 
+auto axpy_multi_target_avx2(
+    const std::uint8_t* genotype_column,
+    const double* lut,
+    std::span<const AxpyTarget> targets,
+    std::size_t size) noexcept -> void
+{
+    axpy_multi_target_scalar(genotype_column, lut, targets, size);
+}
+
 auto dot_avx512(
     const std::uint8_t* genotype_column,
     const double* lut,
@@ -320,6 +489,15 @@ auto axpy_avx512(
     std::size_t size) noexcept -> void
 {
     axpy_scalar(genotype_column, lut, scale, residual, size);
+}
+
+auto axpy_multi_target_avx512(
+    const std::uint8_t* genotype_column,
+    const double* lut,
+    std::span<const AxpyTarget> targets,
+    std::size_t size) noexcept -> void
+{
+    axpy_multi_target_scalar(genotype_column, lut, targets, size);
 }
 
 auto supports_avx2() noexcept -> bool
@@ -366,6 +544,14 @@ auto select_axpy_kernel() noexcept -> AxpyKernel
     return select_kernel<AxpyKernel>(axpy_scalar, axpy_avx2, axpy_avx512);
 }
 
+auto select_multi_target_axpy_kernel() noexcept -> MultiTargetAxpyKernel
+{
+    return select_kernel<MultiTargetAxpyKernel>(
+        axpy_multi_target_scalar,
+        axpy_multi_target_avx2,
+        axpy_multi_target_avx512);
+}
+
 }  // namespace gelex::bayes::detail
 
 namespace gelex::bayes
@@ -396,6 +582,21 @@ auto axpy(
         scale,
         residual.data(),
         residual.size());
+}
+
+auto axpy(
+    std::span<const std::uint8_t> genotype_column,
+    const Eigen::Ref<const Eigen::Array4d>& lut,
+    std::span<const AxpyTarget> targets) noexcept -> void
+{
+    assert(
+        std::ranges::all_of(
+            targets,
+            [size = genotype_column.size()](const AxpyTarget& target)
+            { return target.values.size() == size; }));
+    static const detail::MultiTargetAxpyKernel kernel
+        = detail::select_multi_target_axpy_kernel();
+    kernel(genotype_column.data(), lut.data(), targets, genotype_column.size());
 }
 
 }  // namespace gelex::bayes

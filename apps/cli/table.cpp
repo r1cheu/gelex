@@ -34,8 +34,8 @@ namespace cli
 namespace
 {
 
-constexpr std::string_view INDENT = "   ";
-constexpr std::string_view GAP = "   ";
+constexpr std::string_view indent = "   ";
+constexpr std::string_view gap = "   ";
 
 auto display_width(std::string_view s) -> size_t
 {
@@ -156,12 +156,12 @@ auto Table::compose_row(
     std::span<const std::string> cells,
     std::span<const size_t> widths) const -> std::string
 {
-    std::string line(INDENT);
+    std::string line(indent);
     for (size_t i = 0; i < widths.size(); ++i)
     {
         if (i != 0)
         {
-            line += GAP;
+            line += gap;
         }
         std::string_view cell = i < cells.size() ? std::string_view(cells[i])
                                                  : std::string_view();
@@ -172,12 +172,12 @@ auto Table::compose_row(
 
 auto Table::rule_line(std::span<const size_t> widths) -> std::string
 {
-    size_t inner = GAP.size() * (widths.empty() ? 0 : widths.size() - 1);
+    size_t inner = gap.size() * (widths.empty() ? 0 : widths.size() - 1);
     for (size_t w : widths)
     {
         inner += w;
     }
-    return std::string(INDENT) + cli::separator(inner);
+    return std::string(indent) + cli::separator(inner);
 }
 
 auto Table::header_block(std::span<const size_t> widths) const -> std::string

@@ -65,7 +65,7 @@ auto PostReporter::show_diagnostics(
         [&](const auto& lhs, const auto& rhs)
         { return section_order(lhs.section) < section_order(rhs.section); });
 
-    constexpr int TABLE_WIDTH = 92;
+    constexpr int table_width = 92;
 
     double lo_pct = (1.0 - hdpi_prob) / 2.0 * 100.0;
     double hi_pct = (1.0 + hdpi_prob) / 2.0 * 100.0;
@@ -83,7 +83,7 @@ auto PostReporter::show_diagnostics(
         hpdi_label,
         "ESS",
         "R-hat");
-    p.line(cli::table_separator(TABLE_WIDTH));
+    p.line(cli::table_separator(table_width));
 
     std::string current_section;
     for (const auto& d : sorted_diags)
@@ -93,7 +93,7 @@ auto PostReporter::show_diagnostics(
             current_section = d.section;
             if (!d.section.empty() && d.section != "Parameter")
             {
-                p.line(cli::named_section(current_section, TABLE_WIDTH, 3));
+                p.line(cli::named_section(current_section, table_width, 3));
             }
         }
         p.line(
@@ -107,7 +107,7 @@ auto PostReporter::show_diagnostics(
             d.ess,
             d.rhat);
     }
-    p.line(cli::table_separator(TABLE_WIDTH));
+    p.line(cli::table_separator(table_width));
 }
 
 }  // namespace cli

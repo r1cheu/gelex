@@ -19,6 +19,7 @@
 #include <cmath>
 #include <fmt/format.h>
 #include <fmt/ranges.h>
+#include <optional>
 #include <ranges>
 #include <span>
 #include <string>
@@ -36,7 +37,7 @@ namespace gelex::detail
 namespace
 {
 
-constexpr double SIMPLEX_TOLERANCE = 1e-9;
+constexpr double simplex_tolerance = 1e-9;
 
 [[nodiscard]] auto is_finite_positive(double value) noexcept -> bool
 {
@@ -64,7 +65,7 @@ auto check_simplex(
         total += weight;
     }
 
-    if (std::abs(total - 1.0) > SIMPLEX_TOLERANCE)
+    if (std::abs(total - 1.0) > simplex_tolerance)
     {
         issues.add(
             scope, fmt::format("mixture weights must sum to 1, got {}", total));
@@ -90,11 +91,11 @@ auto check_open_unit(
 
 }  // namespace
 
-auto RecipeIssues::add(GeneticModeSet scope, std::string issue) -> void
+auto RecipeIssues::add(std::optional<GeneticModeSet> scope, std::string issue)
+    -> void
 {
     issues_.push_back(
-        scope == GeneticModeSet{} ? std::move(issue)
-                                  : fmt::format("{} {}", scope, issue));
+        scope ? fmt::format("{} {}", *scope, issue) : std::move(issue));
 }
 
 auto RecipeIssues::throw_if_any() const -> void
@@ -112,8 +113,7 @@ auto RecipeIssues::throw_if_any() const -> void
 auto check(RecipeIssues& issues, const SpikeSlab& spec, GeneticModeSet scope)
     -> void
 {
-    check_open_unit(
-        issues, scope, spec.probability.initial, "inclusion probability");
+    check_open_unit(issues, scope, spec.probability, "inclusion probability");
 }
 
 auto check(
@@ -121,7 +121,7 @@ auto check(
     const ScaledMixture& spec,
     GeneticModeSet scope) -> void
 {
-    check_simplex(issues, scope, spec.probabilities.initial);
+    check_simplex(issues, scope, spec.probabilities);
 
     // The first component is the null scale, which zeroes the effect it
     // weights. The array has a fixed extent, so there is always one.
@@ -155,11 +155,11 @@ auto check(
     const JointSpikeSlab& spec,
     GeneticModeSet scope) -> void
 {
-    check_simplex(issues, scope, spec.probabilities.initial);
+    check_simplex(issues, scope, spec.probabilities);
     check_open_unit(
         issues,
         scope,
-        spec.positive_probability.initial,
+        spec.positive_probability,
         "dominance positive-sign probability");
 }
 
@@ -173,13 +173,13 @@ auto check(
     if (!std::isfinite(budget.random()) || budget.random() < 0.0)
     {
         issues.add(
-            {},
+            std::nullopt,
             fmt::format(
                 "random variance share must be finite and non-negative, got {}",
                 budget.random()));
     }
 
-    for (const auto mode : ALL_GENETIC_MODES)
+    for (const auto mode : all_genetic_modes)
     {
         const auto share = budget.share(mode);
         allocated += share;
@@ -211,7 +211,7 @@ auto check(
     if (!(allocated < 1.0))
     {
         issues.add(
-            {},
+            std::nullopt,
             fmt::format(
                 "variance shares must sum to less than 1, got {}", allocated));
     }

@@ -63,9 +63,9 @@ auto setup_assoc_command(CLI::App& program, int& exit_code) -> void
         ->type_name("<K>")
         ->capture_default_str();
 
-    cmd.add_option(
+    cmd.add_option_function<std::string>(
            "--mode",
-           config->mode,
+           cli::lexical_assigner(config->mode),
            "Wald test: A, D (single, df=1); AD (joint add+dom, df=2)")
         ->group("Model")
         ->type_name("<MODE>")

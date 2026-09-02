@@ -20,7 +20,7 @@
 #include <random>
 
 #include "gelex/bayes/legacy_prior.h"
-#include "gelex/bayes/state.h"
+#include "gelex/bayes/legacy_state.h"
 
 namespace gelex
 {

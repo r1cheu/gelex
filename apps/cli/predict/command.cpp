@@ -134,7 +134,7 @@ auto predict_execute(const cli::PredictConfig& config) -> int
     const double missing_ratio
         = static_cast<double>(alignment.missing_pos.size())
           / static_cast<double>(n_snps);
-    if (missing_ratio > gelex::MAX_SNP_MISSING_RATIO)
+    if (missing_ratio > gelex::max_snp_missing_ratio)
     {
         throw gelex::GelexException(
             fmt::format(
@@ -145,7 +145,7 @@ auto predict_execute(const cli::PredictConfig& config) -> int
                 alignment.missing_pos.size(),
                 n_snps,
                 missing_ratio * 100.0,
-                gelex::MAX_SNP_MISSING_RATIO * 100.0));
+                gelex::max_snp_missing_ratio * 100.0));
     }
 
     gelex::ModeMap<Eigen::MatrixXd> geno;

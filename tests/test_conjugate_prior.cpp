@@ -39,8 +39,8 @@ using gelex::ScaledInvChi2Sampler;
 namespace
 {
 
-constexpr std::uint64_t SEED = 0xC0FFEE1234ULL;
-constexpr int DRAW_COUNT = 20000;
+constexpr std::uint64_t seed = 0xC0FFEE1234ULL;
+constexpr int draw_count = 20000;
 
 TEMPLATE_TEST_CASE(
     "NormalSampler computes posterior parameters",
@@ -121,16 +121,16 @@ TEST_CASE(
     "NormalSampler is reproducible under fixed seed",
     "[conjugate][normal]")
 {
-    constexpr int ITERS = 100;
+    constexpr int iters = 100;
     NormalSampler<double> s1{2.0};
     NormalSampler<double> s2{2.0};
     const NormalSampler<double>::Params posterior{.mean = 1.5, .var = 0.25};
 
-    std::mt19937_64 r1{SEED};
-    std::mt19937_64 r2{SEED};
-    Eigen::VectorXd a(ITERS);
-    Eigen::VectorXd b(ITERS);
-    for (int i = 0; i < ITERS; ++i)
+    std::mt19937_64 r1{seed};
+    std::mt19937_64 r2{seed};
+    Eigen::VectorXd a(iters);
+    Eigen::VectorXd b(iters);
+    for (int i = 0; i < iters; ++i)
     {
         a(i) = s1.draw(posterior, r1);
         b(i) = s2.draw(posterior, r2);
@@ -147,10 +147,10 @@ TEMPLATE_TEST_CASE(
     using T = TestType;
     BetaSampler<T> s{T{1}, T{1}};
     typename BetaSampler<T>::Likelihood likelihood{800, 200};
-    std::mt19937_64 rng{SEED};
+    std::mt19937_64 rng{seed};
 
-    Eigen::VectorX<T> draws(DRAW_COUNT);
-    for (int i = 0; i < DRAW_COUNT; ++i)
+    Eigen::VectorX<T> draws(draw_count);
+    for (int i = 0; i < draw_count; ++i)
     {
         draws(i) = s(likelihood, rng);
     }
@@ -160,7 +160,7 @@ TEMPLATE_TEST_CASE(
 
     const T mean = draws.mean();
     const T var
-        = ((draws.array() - mean).square()).sum() / static_cast<T>(DRAW_COUNT);
+        = ((draws.array() - mean).square()).sum() / static_cast<T>(draw_count);
 
     REQUIRE_THAT(
         static_cast<double>(mean),
@@ -175,8 +175,8 @@ TEST_CASE("BetaSampler is reproducible under fixed seed", "[conjugate][beta]")
     BetaSampler<double> s1{2.0, 3.0};
     BetaSampler<double> s2{2.0, 3.0};
     BetaSampler<double>::Likelihood likelihood{10, 5};
-    std::mt19937_64 r1{SEED};
-    std::mt19937_64 r2{SEED};
+    std::mt19937_64 r1{seed};
+    std::mt19937_64 r2{seed};
 
     Eigen::VectorXd a(100);
     Eigen::VectorXd b(100);
@@ -199,10 +199,10 @@ TEMPLATE_TEST_CASE(
     DirichletSampler<T> s{alpha};
 
     const Eigen::VectorXi counts{{600, 300, 100}};
-    std::mt19937_64 rng{SEED};
+    std::mt19937_64 rng{seed};
 
-    Eigen::Matrix<T, 3, Eigen::Dynamic> draws(3, DRAW_COUNT);
-    for (int i = 0; i < DRAW_COUNT; ++i)
+    Eigen::Matrix<T, 3, Eigen::Dynamic> draws(3, draw_count);
+    for (int i = 0; i < draw_count; ++i)
     {
         draws.col(i) = s(counts, rng);
     }
@@ -211,7 +211,7 @@ TEMPLATE_TEST_CASE(
     REQUIRE((draws.array() >= T{0}).all());
     REQUIRE((draws.array() <= T{1}).all());
     const Eigen::RowVectorX<T> sums = draws.colwise().sum();
-    const Eigen::RowVectorX<T> ones = Eigen::RowVectorX<T>::Ones(DRAW_COUNT);
+    const Eigen::RowVectorX<T> ones = Eigen::RowVectorX<T>::Ones(draw_count);
     REQUIRE(sums.isApprox(ones));
 
     // posterior mean matches Dirichlet(α + counts) mean
@@ -225,16 +225,16 @@ TEST_CASE(
     "DirichletSampler is reproducible under fixed seed",
     "[conjugate][dirichlet]")
 {
-    constexpr int ITERS = 50;
+    constexpr int iters = 50;
     DirichletSampler<double> s1{Eigen::VectorXd{{1.5, 2.0, 0.5}}};
     DirichletSampler<double> s2{Eigen::VectorXd{{1.5, 2.0, 0.5}}};
     const Eigen::VectorXi counts{{4, 7, 2}};
 
-    std::mt19937_64 r1{SEED};
-    std::mt19937_64 r2{SEED};
-    Eigen::MatrixXd a(3, ITERS);
-    Eigen::MatrixXd b(3, ITERS);
-    for (int i = 0; i < ITERS; ++i)
+    std::mt19937_64 r1{seed};
+    std::mt19937_64 r2{seed};
+    Eigen::MatrixXd a(3, iters);
+    Eigen::MatrixXd b(3, iters);
+    for (int i = 0; i < iters; ++i)
     {
         a.col(i) = s1(counts, r1);
         b.col(i) = s2(counts, r2);
@@ -251,13 +251,13 @@ TEMPLATE_TEST_CASE(
     using T = TestType;
     ScaledInvChi2Sampler<T> s{T{4}, T{1}};
     constexpr Eigen::Index N = 5000;
-    constexpr T TRUE_VAR = T{4};
+    constexpr T true_var = T{4};
     typename ScaledInvChi2Sampler<T>::Likelihood likelihood{
-        N, TRUE_VAR * static_cast<T>(N)};
-    std::mt19937_64 rng{SEED};
+        N, true_var * static_cast<T>(N)};
+    std::mt19937_64 rng{seed};
 
-    Eigen::VectorX<T> draws(DRAW_COUNT);
-    for (int i = 0; i < DRAW_COUNT; ++i)
+    Eigen::VectorX<T> draws(draw_count);
+    for (int i = 0; i < draw_count; ++i)
     {
         draws(i) = s(likelihood, rng);
     }
@@ -266,7 +266,7 @@ TEMPLATE_TEST_CASE(
 
     const T mean = draws.mean();
     const T nu1 = T{4} + static_cast<T>(N);
-    const T s2_1 = ((T{4} * T{1}) + (TRUE_VAR * static_cast<T>(N))) / nu1;
+    const T s2_1 = ((T{4} * T{1}) + (true_var * static_cast<T>(N))) / nu1;
     const T expected = (nu1 * s2_1) / (nu1 - T{2});
     REQUIRE_THAT(
         static_cast<double>(mean),
@@ -277,16 +277,16 @@ TEST_CASE(
     "ScaledInvChi2Sampler is reproducible under fixed seed",
     "[conjugate][invchi2]")
 {
-    constexpr int ITERS = 100;
+    constexpr int iters = 100;
     ScaledInvChi2Sampler<double> s1{3.0, 0.5};
     ScaledInvChi2Sampler<double> s2{3.0, 0.5};
     ScaledInvChi2Sampler<double>::Likelihood likelihood{20, 12.5};
 
-    std::mt19937_64 r1{SEED};
-    std::mt19937_64 r2{SEED};
-    Eigen::VectorXd a(ITERS);
-    Eigen::VectorXd b(ITERS);
-    for (int i = 0; i < ITERS; ++i)
+    std::mt19937_64 r1{seed};
+    std::mt19937_64 r2{seed};
+    Eigen::VectorXd a(iters);
+    Eigen::VectorXd b(iters);
+    for (int i = 0; i < iters; ++i)
     {
         a(i) = s1(likelihood, r1);
         b(i) = s2(likelihood, r2);

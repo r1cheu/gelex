@@ -72,7 +72,7 @@ inline std::string results_saved(
     return success("Results saved: {}*  ({})", prefix, artifacts);
 }
 
-inline constexpr size_t FIELD_LABEL_WIDTH = 16;
+inline constexpr size_t field_label_width = 16;
 
 // Aligned "   <label>: <value>" line for summary sections; single source of the
 // label column width so the alignment stays consistent across reporters.
@@ -85,7 +85,7 @@ std::string field(
     return fmt::format(
         "   {:<{}}: {}",
         label,
-        FIELD_LABEL_WIDTH,
+        field_label_width,
         fmt::format(fmt_str, std::forward<Args>(args)...));
 }
 

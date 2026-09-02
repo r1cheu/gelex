@@ -29,7 +29,7 @@
 
 using gelex::read_dataframe;
 using gelex::ReadOptions;
-using gelex::SEPARATOR;
+using gelex::separator;
 using gelex::test::FileFixture;
 
 TEST_CASE(
@@ -37,12 +37,12 @@ TEST_CASE(
     "[covariates]")
 {
     FileFixture files;
-    constexpr std::string_view CONTENT
+    constexpr std::string_view content
         = "id\theight\tage\n"
           "s1\t1.5\t20\n"
           "s2\t2.5\t30\n";
 
-    auto path = files.create_text_file(CONTENT, ".tsv");
+    auto path = files.create_text_file(content, ".tsv");
     ReadOptions options;
     options.index_cols = {0};
     auto frame = read_dataframe<std::string, double>(path.string(), options);
@@ -62,13 +62,13 @@ TEST_CASE(
     "[covariates]")
 {
     FileFixture files;
-    constexpr std::string_view CONTENT
+    constexpr std::string_view content
         = "id\tsex\tbatch\tmono\n"
           "s1\tF\tB\tz\n"
           "s2\tM\tA\tz\n"
           "s3\tM\tB\tz\n";
 
-    auto path = files.create_text_file(CONTENT, ".tsv");
+    auto path = files.create_text_file(content, ".tsv");
     ReadOptions options;
     options.index_cols = {0};
     auto frame
@@ -91,13 +91,13 @@ TEST_CASE(
     "[covariates]")
 {
     FileFixture files;
-    constexpr std::string_view CONTENT
+    constexpr std::string_view content
         = "id\tsex\tbatch\n"
           "s1\tF\tB\n"
           "s2\tM\tA\n"
           "s3\tM\tB\n";
 
-    auto path = files.create_text_file(CONTENT, ".tsv");
+    auto path = files.create_text_file(content, ".tsv");
     ReadOptions options;
     options.index_cols = {0};
     auto frame
@@ -110,8 +110,8 @@ TEST_CASE(
     REQUIRE(designs[0].levels.has_value());
     const auto& sex_levels = *designs[0].levels;
     REQUIRE(sex_levels.size() == 2);
-    REQUIRE(sex_levels[0] == std::string{"sex"} + SEPARATOR + "F");
-    REQUIRE(sex_levels[1] == std::string{"sex"} + SEPARATOR + "M");
+    REQUIRE(sex_levels[0] == std::string{"sex"} + separator + "F");
+    REQUIRE(sex_levels[1] == std::string{"sex"} + separator + "M");
 
     Eigen::MatrixXd expected_sex{
         {1.0, 0.0, 0.0}, {0.0, 1.0, 1.0}, {0.0, 1.0, 1.0}};
@@ -121,8 +121,8 @@ TEST_CASE(
     REQUIRE(designs[1].levels.has_value());
     const auto& batch_levels = *designs[1].levels;
     REQUIRE(batch_levels.size() == 2);
-    REQUIRE(batch_levels[0] == std::string{"batch"} + SEPARATOR + "A");
-    REQUIRE(batch_levels[1] == std::string{"batch"} + SEPARATOR + "B");
+    REQUIRE(batch_levels[0] == std::string{"batch"} + separator + "A");
+    REQUIRE(batch_levels[1] == std::string{"batch"} + separator + "B");
 
     Eigen::MatrixXd expected_batch{
         {1.0, 0.0, 1.0}, {0.0, 1.0, 0.0}, {1.0, 0.0, 1.0}};
@@ -134,13 +134,13 @@ TEST_CASE(
     "[covariates]")
 {
     FileFixture files;
-    constexpr std::string_view CONTENT
+    constexpr std::string_view content
         = "FID\tIID\tx1\tx2\n"
           "F1\ts1\t1.0\t0.0\n"
           "F1\ts2\t0.0\t2.0\n"
           "F1\ts3\t1.0\t1.0\n";
 
-    auto path = files.create_text_file(CONTENT, ".tsv");
+    auto path = files.create_text_file(content, ".tsv");
     auto frame = gelex::read_qcovar(path);
 
     auto design = gelex::make_quantitative_random_design(frame, "qrand");
@@ -174,12 +174,12 @@ TEST_CASE(
 TEST_CASE("make_random_designs rejects single-level columns", "[covariates]")
 {
     FileFixture files;
-    constexpr std::string_view CONTENT
+    constexpr std::string_view content
         = "id\tmono\n"
           "s1\tz\n"
           "s2\tz\n";
 
-    auto path = files.create_text_file(CONTENT, ".tsv");
+    auto path = files.create_text_file(content, ".tsv");
     ReadOptions options;
     options.index_cols = {0};
     auto frame

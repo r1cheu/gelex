@@ -22,7 +22,7 @@
 
 #include "gelex/bayes/design.h"
 #include "gelex/bayes/genetic/gaussian_prior_state.h"
-#include "gelex/bayes/state.h"
+#include "gelex/bayes/legacy_state.h"
 #include "gelex/types/genetic_mode.h"
 
 namespace gelex
@@ -70,13 +70,11 @@ class GeneticResidualAdjustmentGuard
 {
    public:
     GeneticResidualAdjustmentGuard(
-        const bayes::GeneticDesign& design,
-        GeneticMode mode,
+        const bayes::GeneticProjection& projection,
         Eigen::Index marker,
         bayes::GeneticState& state,
         bayes::ResidualState& residual)
-        : design_(design),
-          mode_(mode),
+        : projection_(projection),
           marker_(marker),
           state_(state),
           residual_(residual),
@@ -97,13 +95,12 @@ class GeneticResidualAdjustmentGuard
         const double diff = old_value_ - state_.coeffs(marker_);
         if (diff != 0.0)
         {
-            design_.axpy(mode_, marker_, diff, residual_.y_adj);
+            projection_.axpy(marker_, diff, residual_.y_adj);
         }
     }
 
    private:
-    const bayes::GeneticDesign& design_;
-    GeneticMode mode_;
+    const bayes::GeneticProjection& projection_;
     Eigen::Index marker_;
     bayes::GeneticState& state_;
     bayes::ResidualState& residual_;
@@ -142,13 +139,11 @@ class ComponentGebvAdjustmentGuard
 {
    public:
     ComponentGebvAdjustmentGuard(
-        const bayes::GeneticDesign& design,
-        GeneticMode mode,
+        const bayes::GeneticProjection& projection,
         Eigen::Index marker,
         bayes::GeneticState& state,
         bayes::SingleScaledMixtureGaussianState& prior_state)
-        : design_(design),
-          mode_(mode),
+        : projection_(projection),
           marker_(marker),
           state_(state),
           prior_state_(prior_state),
@@ -174,28 +169,24 @@ class ComponentGebvAdjustmentGuard
         {
             if (old_class > 0 && old_value_ != coeff)
             {
-                design_.axpy(
-                    mode_,
-                    marker_,
-                    coeff - old_value_,
-                    component.gebv[old_class - 1]);
+                projection_.axpy(
+                    marker_, coeff - old_value_, component.gebv[old_class - 1]);
             }
             return;
         }
         if (old_class > 0)
         {
-            design_.axpy(
-                mode_, marker_, -old_value_, component.gebv[old_class - 1]);
+            projection_.axpy(
+                marker_, -old_value_, component.gebv[old_class - 1]);
         }
         if (new_class > 0)
         {
-            design_.axpy(mode_, marker_, coeff, component.gebv[new_class - 1]);
+            projection_.axpy(marker_, coeff, component.gebv[new_class - 1]);
         }
     }
 
    private:
-    const bayes::GeneticDesign& design_;
-    GeneticMode mode_;
+    const bayes::GeneticProjection& projection_;
     Eigen::Index marker_;
     bayes::GeneticState& state_;
     bayes::SingleScaledMixtureGaussianState& prior_state_;
@@ -206,12 +197,19 @@ class ComponentGebvAdjustmentGuard
 class JointGeneticAdjustmentGuard
 {
    public:
+    struct Projections
+    {
+        const bayes::GeneticProjection& additive;
+        const bayes::GeneticProjection& dominance;
+    };
+
     JointGeneticAdjustmentGuard(
-        const bayes::GeneticDesign& design,
+        Projections projections,
         Eigen::Index marker,
         bayes::JointGeneticBlockState& block,
         bayes::ResidualState& residual)
-        : design_(design),
+        : additive_projection_(projections.additive),
+          dominance_projection_(projections.dominance),
           marker_(marker),
           block_(block),
           residual_(residual),
@@ -240,20 +238,20 @@ class JointGeneticAdjustmentGuard
         }
         if (additive_diff != 0.0)
         {
-            design_.axpy(
-                GeneticMode::A, marker_, additive_diff, residual_.y_adj);
-            design_.axpy(GeneticMode::A, marker_, -additive_diff, additive.u);
+            additive_projection_.axpy(marker_, additive_diff, residual_.y_adj);
+            additive_projection_.axpy(marker_, -additive_diff, additive.u);
         }
         if (dominance_diff != 0.0)
         {
-            design_.axpy(
-                GeneticMode::D, marker_, dominance_diff, residual_.y_adj);
-            design_.axpy(GeneticMode::D, marker_, -dominance_diff, dominance.u);
+            dominance_projection_.axpy(
+                marker_, dominance_diff, residual_.y_adj);
+            dominance_projection_.axpy(marker_, -dominance_diff, dominance.u);
         }
     }
 
    private:
-    const bayes::GeneticDesign& design_;
+    const bayes::GeneticProjection& additive_projection_;
+    const bayes::GeneticProjection& dominance_projection_;
     Eigen::Index marker_;
     bayes::JointGeneticBlockState& block_;
     bayes::ResidualState& residual_;

@@ -227,35 +227,35 @@ TEST_CASE(
     "[simulate]")
 {
     BedFixture fixture;
-    constexpr Eigen::Index N_SAMPLES = 50;
-    constexpr Eigen::Index N_SNPS = 100;
+    constexpr Eigen::Index n_samples = 50;
+    constexpr Eigen::Index n_snps = 100;
     auto [bed_path, _]
-        = fixture.create_bed_files(N_SAMPLES, N_SNPS, 0.0, 0.05, 0.5, 42);
+        = fixture.create_bed_files(n_samples, n_snps, 0.0, 0.05, 0.5, 42);
 
     auto phen_path = fs::path(bed_path).replace_extension(".phen");
     auto causal_path = fs::path(bed_path).replace_extension(".causal");
 
     SECTION("A mode")
     {
-        run_simulation(make_config(bed_path, N_SNPS, 0.5, 0.0));
+        run_simulation(make_config(bed_path, n_snps, 0.5, 0.0));
         REQUIRE(read_first_line(phen_path) == "FID\tIID\tPhenotype");
-        REQUIRE(count_lines(phen_path) == N_SAMPLES + 1);
+        REQUIRE(count_lines(phen_path) == n_samples + 1);
         REQUIRE(read_first_line(causal_path) == "id\tadditive");
-        REQUIRE(count_lines(causal_path) == N_SNPS + 1);
+        REQUIRE(count_lines(causal_path) == n_snps + 1);
     }
 
     SECTION("AD mode")
     {
-        run_simulation(make_config(bed_path, N_SNPS, 0.4, 0.2));
+        run_simulation(make_config(bed_path, n_snps, 0.4, 0.2));
         REQUIRE(read_first_line(causal_path) == "id\tadditive\tdominance");
-        REQUIRE(count_lines(causal_path) == N_SNPS + 1);
+        REQUIRE(count_lines(causal_path) == n_snps + 1);
     }
 
     SECTION("D mode")
     {
-        run_simulation(make_config(bed_path, N_SNPS, 0.0, 0.3));
+        run_simulation(make_config(bed_path, n_snps, 0.0, 0.3));
         REQUIRE(read_first_line(causal_path) == "id\tdominance");
-        REQUIRE(count_lines(causal_path) == N_SNPS + 1);
+        REQUIRE(count_lines(causal_path) == n_snps + 1);
     }
 }
 
@@ -263,14 +263,14 @@ TEST_CASE("Simulation command dataflow is reproducible", "[simulate]")
 {
     BedFixture fixture1;
     BedFixture fixture2;
-    constexpr Eigen::Index N_SNPS = 100;
+    constexpr Eigen::Index n_snps = 100;
     auto [bed_path1, _1]
-        = fixture1.create_bed_files(50, N_SNPS, 0.0, 0.05, 0.5, 42);
+        = fixture1.create_bed_files(50, n_snps, 0.0, 0.05, 0.5, 42);
     auto [bed_path2, _2]
-        = fixture2.create_bed_files(50, N_SNPS, 0.0, 0.05, 0.5, 42);
+        = fixture2.create_bed_files(50, n_snps, 0.0, 0.05, 0.5, 42);
 
-    run_simulation(make_config(bed_path1, N_SNPS, 0.5, 0.0, 123));
-    run_simulation(make_config(bed_path2, N_SNPS, 0.5, 0.0, 123));
+    run_simulation(make_config(bed_path1, n_snps, 0.5, 0.0, 123));
+    run_simulation(make_config(bed_path2, n_snps, 0.5, 0.0, 123));
 
     auto phen1 = fs::path(bed_path1).replace_extension(".phen");
     auto phen2 = fs::path(bed_path2).replace_extension(".phen");

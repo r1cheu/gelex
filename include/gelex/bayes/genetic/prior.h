@@ -19,32 +19,29 @@
 
 #include <array>
 #include <cstddef>
-#include <optional>
+#include <type_traits>
 #include <utility>
 
+#include "gelex/bayes/genetic/component_layout.h"
 #include "gelex/bayes/semantic_method.h"
+#include "gelex/bayes/variance_parameter.h"
 
 namespace gelex
 {
 
-struct ScaledInvChiSqPrior
-{
-    double degrees_of_freedom{-2.0};
-    double scale{0.0};
-};
-
-struct BetaPrior
+struct BetaHyperPrior
 {
     double alpha{1.0};
     double beta{1.0};
 };
 
 template <std::size_t Classes>
-struct DirichletPrior
+struct DirichletHyperPrior
 {
-    constexpr DirichletPrior() { concentration.fill(1.0); }
+    constexpr DirichletHyperPrior() { concentration.fill(1.0); }
 
-    explicit constexpr DirichletPrior(std::array<double, Classes> concentration)
+    explicit constexpr DirichletHyperPrior(
+        std::array<double, Classes> concentration)
         : concentration{std::move(concentration)}
     {
     }
@@ -52,53 +49,77 @@ struct DirichletPrior
     std::array<double, Classes> concentration;
 };
 
-// A quantity the user may pin. An absent hyperprior is UpdatePolicy::Fixed
-// compiled down: nothing samples the value, so there is no prior to hold.
-template <typename Value, typename Hyper>
-struct Updatable
+template <typename T>
+struct FixedParameter
 {
-    Value initial;
-    std::optional<Hyper> prior;
+    T initial;
 };
 
-// A quantity the chain always samples: the calibrated starting value and the
-// hyperprior it is drawn under.
-struct VarianceParameter
+template <typename T, typename HyperPrior>
+struct SampledParameter
 {
-    double initial{};
-    ScaledInvChiSqPrior prior;
+    T initial;
+    HyperPrior hyperprior;
 };
 
-using ProbabilityParameter = Updatable<double, BetaPrior>;
+template <UpdatePolicy Policy>
+using ProbabilityParameter = std::conditional_t<
+    Policy == UpdatePolicy::Fixed,
+    FixedParameter<double>,
+    SampledParameter<double, BetaHyperPrior>>;
 
-template <std::size_t Classes>
-using SimplexParameter
-    = Updatable<std::array<double, Classes>, DirichletPrior<Classes>>;
+template <std::size_t Classes, UpdatePolicy Policy>
+using SimplexParameter = std::conditional_t<
+    Policy == UpdatePolicy::Fixed,
+    FixedParameter<std::array<double, Classes>>,
+    SampledParameter<
+        std::array<double, Classes>,
+        DirichletHyperPrior<Classes>>>;
 
-template <Variance Kind>
+template <VarianceLayout Kind>
 struct GaussianPrior
 {
+    using component_layout = SingleComponentLayout;
+
     VarianceParameter variance;
 };
 
-template <Variance Kind>
+template <
+    VarianceLayout Kind,
+    UpdatePolicy ProbabilityUpdate = UpdatePolicy::Sampled>
+// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init,hicpp-member-init)
 struct SpikeSlabPrior
 {
+    using component_layout = ZeroInflatedComponentLayout<2>;
+
     VarianceParameter variance;
-    ProbabilityParameter probability;
+    ProbabilityParameter<ProbabilityUpdate> probability;
 };
 
+template <UpdatePolicy ProbabilitiesUpdate = UpdatePolicy::Sampled>
+// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init,hicpp-member-init)
 struct ScaledMixturePrior
 {
+    using component_layout = ZeroInflatedComponentLayout<5>;
+
+    static constexpr std::size_t class_count = component_layout::class_count;
+
     VarianceParameter variance;
-    SimplexParameter<5> probabilities;
-    std::array<double, 5> scales{};
+    SimplexParameter<class_count, ProbabilitiesUpdate> probabilities;
+    std::array<double, class_count> scales{};
 };
 
+template <
+    UpdatePolicy ProbabilitiesUpdate = UpdatePolicy::Sampled,
+    UpdatePolicy PositiveProbabilityUpdate = UpdatePolicy::Sampled>
 struct JointSpikeSlabPrior
 {
-    SimplexParameter<4> probabilities;
-    ProbabilityParameter positive_probability;
+    using component_layout = JointZeroInflatedComponentLayout;
+
+    static constexpr std::size_t class_count = component_layout::class_count;
+
+    SimplexParameter<class_count, ProbabilitiesUpdate> probabilities;
+    ProbabilityParameter<PositiveProbabilityUpdate> positive_probability;
 };
 
 }  // namespace gelex

@@ -34,9 +34,9 @@
 #include "gelex/bayes/genetic/legacy_genetic_prior.h"
 #include "gelex/bayes/labels.h"
 #include "gelex/bayes/legacy_prior.h"
+#include "gelex/bayes/legacy_state.h"
 #include "gelex/bayes/model.h"
 #include "gelex/bayes/parameter/values.h"
-#include "gelex/bayes/state.h"
 #include "gelex/infra/logging/fit_event.h"
 #include "gelex/infra/stats/result.h"
 #include "gelex/types/genetic_mode.h"
@@ -60,7 +60,7 @@ auto GenoReporter::show_total(int64_t num_variants) const -> void
 auto GenoReporter::show_loaded(const gelex::bayes::GeneticDesign& design) const
     -> void
 {
-    for (const gelex::GeneticMode mode : design.modes().each())
+    for (const gelex::GeneticMode mode : design.each_mode())
     {
         show_loaded_mode(
             mode,
@@ -141,7 +141,7 @@ auto McmcReporter::show_dataset_summary(
 }
 
 auto McmcReporter::show_prior(
-    const gelex::bayes::BayesPrior& prior,
+    const gelex::bayes::LegacyBayesPrior& prior,
     const gelex::BayesModel& model) -> void
 {
     prior_ = &prior;

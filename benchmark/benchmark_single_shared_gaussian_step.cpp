@@ -21,17 +21,16 @@
 #include <random>
 #include <string_view>
 #include <utility>
-#include <variant>
 
 #include "gelex/algo/mcmc/steps/single_genetic_step.h"
 #include "gelex/bayes/design.h"
 #include "gelex/bayes/genetic/gaussian_prior.h"
 #include "gelex/bayes/genetic/gaussian_prior_state.h"
 #include "gelex/bayes/genetic/parameters.h"
+#include "gelex/bayes/legacy_state.h"
 #include "gelex/bayes/model.h"
 #include "gelex/bayes/parameter/distributions.h"
 #include "gelex/bayes/parameter/values.h"
-#include "gelex/bayes/state.h"
 #include "gelex/data/bed.h"
 #include "gelex/data/genotype_method.h"
 #include "gelex/types/fixed_designs.h"
@@ -40,7 +39,7 @@
 namespace
 {
 
-constexpr std::string_view BFILE_PREFIX
+constexpr std::string_view bfile_prefix
     = "/home/rlchen/tmp/gelex_single_shared_gaussian_step";
 
 }  // namespace
@@ -49,8 +48,8 @@ TEST_CASE(
     "SingleSharedGaussianStep throughput",
     "[!benchmark][mcmc][genetic][single_shared_gaussian]")
 {
-    REQUIRE(std::filesystem::exists(std::string{BFILE_PREFIX} + ".bed"));
-    auto bed = gelex::open_bed(std::string{BFILE_PREFIX});
+    REQUIRE(std::filesystem::exists(std::string{bfile_prefix} + ".bed"));
+    auto bed = gelex::open_bed(std::string{bfile_prefix});
     const auto rows = bed.num_samples();
     auto genetic = gelex::bayes::GeneticDesign{
         std::move(bed),

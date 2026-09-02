@@ -34,8 +34,8 @@
 #include "gelex/bayes/genetic/gaussian_prior.h"
 #include "gelex/bayes/genetic/parameters.h"
 #include "gelex/bayes/legacy_prior.h"
+#include "gelex/bayes/legacy_state.h"
 #include "gelex/bayes/model.h"
-#include "gelex/bayes/state.h"
 #include "gelex/data/genotype_method.h"
 #include "gelex/exception.h"
 #include "gelex/io/mcmc.h"
@@ -74,7 +74,7 @@ auto make_model() -> gelex::BayesModel
         std::move(genetic)};
 }
 
-auto make_prior() -> gelex::bayes::BayesPrior
+auto make_prior() -> gelex::bayes::LegacyBayesPrior
 {
     std::vector<gelex::bayes::GeneticPrior> genetics;
     genetics.emplace_back(
@@ -86,14 +86,15 @@ auto make_prior() -> gelex::bayes::BayesPrior
                 gelex::bayes::MixtureProportion{
                     Eigen::VectorXd{{0.25, 0.25, 0.25, 0.25}}}}});
 
-    return gelex::bayes::BayesPrior{
+    return gelex::bayes::LegacyBayesPrior{
         gelex::bayes::RandomPrior{make_variance(0.3)},
         std::move(genetics),
         gelex::bayes::ResidualPrior{make_variance(0.4)}};
 }
 
-auto make_records(const gelex::BayesModel& model, gelex::BayesState& state)
-    -> gelex::Records
+auto make_records(
+    const gelex::BayesModel& model,
+    gelex::LegacyBayesState& state) -> gelex::Records
 {
     gelex::Records records{2, ""};
     auto& block
@@ -126,7 +127,7 @@ TEST_CASE("Result owns finalized record values", "[mcmc][mcmc_result]")
 {
     auto model = make_model();
     auto prior = make_prior();
-    gelex::BayesState state(model, prior);
+    gelex::LegacyBayesState state(model, prior);
     auto records = make_records(model, state);
 
     gelex::Result result{std::move(records), model, 2};
@@ -205,7 +206,7 @@ TEST_CASE("Result rejects missing record paths", "[mcmc][mcmc_result]")
 {
     auto model = make_model();
     auto prior = make_prior();
-    gelex::BayesState state(model, prior);
+    gelex::LegacyBayesState state(model, prior);
     auto records = make_records(model, state);
     gelex::Result result{std::move(records), model, 2};
 
@@ -227,12 +228,12 @@ TEST_CASE("Result derives joint genetic PIP by effect", "[mcmc][mcmc_result]")
                 gelex::bayes::SharedMarkerVariance{make_variance(0.3)}}},
             gelex::bayes::MixtureProportion{
                 Eigen::VectorXd{{0.25, 0.25, 0.25, 0.25}}}}});
-    gelex::bayes::BayesPrior prior{
+    gelex::bayes::LegacyBayesPrior prior{
         gelex::bayes::RandomPrior{make_variance(0.4)},
         std::move(priors),
         gelex::bayes::ResidualPrior{make_variance(0.5)}};
 
-    gelex::BayesState state(model, prior);
+    gelex::LegacyBayesState state(model, prior);
     auto& block
         = std::get<gelex::bayes::JointGeneticBlockState>(state.genetics()[0]);
     auto& prior_state = std::get<gelex::bayes::JointGaussianMixtureState>(
@@ -303,7 +304,7 @@ TEST_CASE("write_summary writes user-facing summary", "[mcmc][mcmc_result]")
 {
     auto model = make_model();
     auto prior = make_prior();
-    gelex::BayesState state(model, prior);
+    gelex::LegacyBayesState state(model, prior);
     auto records = make_records(model, state);
     gelex::Result result{std::move(records), model, 2};
 
@@ -340,7 +341,7 @@ TEST_CASE("write_params writes fixed and random effects", "[mcmc][mcmc_result]")
 {
     auto model = make_model();
     auto prior = make_prior();
-    gelex::BayesState state(model, prior);
+    gelex::LegacyBayesState state(model, prior);
     auto records = make_records(model, state);
     gelex::Result result{std::move(records), model, 2};
 
@@ -373,7 +374,7 @@ TEST_CASE(
 {
     auto model = make_model();
     auto prior = make_prior();
-    gelex::BayesState state(model, prior);
+    gelex::LegacyBayesState state(model, prior);
     auto records = make_records(model, state);
     gelex::Result result{std::move(records), model, 2};
 

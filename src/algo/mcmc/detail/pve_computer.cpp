@@ -36,20 +36,20 @@ PveComputer::PveComputer(
             "PveComputer: phenotype variance must be positive");
     }
 
-    if (!design_.modes().contains(GeneticMode::A)
-        || !design_.modes().contains(GeneticMode::D))
+    if (!design_.contains(GeneticMode::A) || !design_.contains(GeneticMode::D))
     {
         return;
     }
 
-    cov_ad_ = design_.col_covariance(GeneticMode::A, GeneticMode::D);
+    cov_ad_ = design_.projection(GeneticMode::A)
+                  .col_covariance(design_.projection(GeneticMode::D));
 }
 
 auto PveComputer::single(
     GeneticMode mode,
     const Eigen::Ref<const Eigen::VectorXd>& beta) const -> Eigen::VectorXd
 {
-    const auto& col_var = design_.col_var(mode);
+    const auto& col_var = design_.projection(mode).col_var();
     if (col_var.size() != beta.size())
     {
         throw GelexException("PveComputer: beta and col_var size mismatch");
@@ -65,8 +65,9 @@ auto PveComputer::total(
     const Eigen::Ref<const Eigen::VectorXd>& beta_A,
     const Eigen::Ref<const Eigen::VectorXd>& beta_D) const -> Eigen::VectorXd
 {
-    const auto& additive_col_var = design_.col_var(GeneticMode::A);
-    const auto& dominance_col_var = design_.col_var(GeneticMode::D);
+    const auto& additive_col_var = design_.projection(GeneticMode::A).col_var();
+    const auto& dominance_col_var
+        = design_.projection(GeneticMode::D).col_var();
     if (beta_A.size() != beta_D.size()
         || beta_A.size() != additive_col_var.size()
         || beta_A.size() != dominance_col_var.size()

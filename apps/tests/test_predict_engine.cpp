@@ -361,7 +361,7 @@ auto run_predict_dataflow(
     const double missing_ratio
         = static_cast<double>(alignment.missing_pos.size())
           / static_cast<double>(snp_effects.rows());
-    if (missing_ratio > gelex::MAX_SNP_MISSING_RATIO)
+    if (missing_ratio > gelex::max_snp_missing_ratio)
     {
         throw gelex::GelexException(
             fmt::format(

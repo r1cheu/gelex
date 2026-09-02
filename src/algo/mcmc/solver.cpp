@@ -23,7 +23,7 @@
 
 #include "gelex/algo/mcmc/chain.h"
 #include "gelex/algo/mcmc/records.h"
-#include "gelex/bayes/state.h"
+#include "gelex/bayes/legacy_state.h"
 #include "gelex/exception.h"
 #include "gelex/infra/logging/notify.h"
 #include "gelex/io/mcmc_checkpoint.h"
@@ -77,30 +77,30 @@ Solver::Solver(
 
 auto Solver::run(
     const BayesModel& model,
-    const bayes::BayesPrior& prior,
+    const bayes::LegacyBayesPrior& prior,
     Eigen::Index seed,
     const MCMCObserver& observer) -> Result
 {
-    auto state = BayesState{model, prior};
+    auto state = LegacyBayesState{model, prior};
     auto rng = std::mt19937_64{static_cast<std::mt19937_64::result_type>(seed)};
     return run_iterations(model, prior, state, rng, observer);
 }
 
 auto Solver::run_from(
     const BayesModel& model,
-    const bayes::BayesPrior& prior,
+    const bayes::LegacyBayesPrior& prior,
     const std::filesystem::path& checkpoint_path,
     const MCMCObserver& observer) -> Result
 {
-    auto state = BayesState{model, prior};
+    auto state = LegacyBayesState{model, prior};
     auto rng = read_checkpoint(checkpoint_path, state);
     return run_iterations(model, prior, state, rng, observer);
 }
 
 auto Solver::run_iterations(
     const BayesModel& model,
-    const bayes::BayesPrior& prior,
-    BayesState& state,
+    const bayes::LegacyBayesPrior& prior,
+    LegacyBayesState& state,
     std::mt19937_64& rng,
     const MCMCObserver& observer) -> Result
 {

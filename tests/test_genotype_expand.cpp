@@ -39,7 +39,7 @@
 
 namespace
 {
-constexpr std::array<Eigen::Index, 3> RAW_CODE_BY_DOSAGE{3, 2, 0};
+constexpr std::array<Eigen::Index, 3> raw_code_by_dosage{3, 2, 0};
 
 // Mirrors GrmBuilder's fused path: tabulate once per variant, then expand each
 // packed column straight into an encoded column.
@@ -91,7 +91,7 @@ auto dosage_encode(
             const Eigen::Index raw_code
                 = std::isnan(d)
                       ? 1
-                      : RAW_CODE_BY_DOSAGE[static_cast<std::size_t>(d)];
+                      : raw_code_by_dosage[static_cast<std::size_t>(d)];
             out(i, snp) = encoding.lut[raw_code];
         }
     }

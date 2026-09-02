@@ -17,6 +17,7 @@
 #ifndef GELEX_BAYES_DETAIL_RECIPE_VALIDATION_H_
 #define GELEX_BAYES_DETAIL_RECIPE_VALIDATION_H_
 
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -28,15 +29,10 @@
 namespace gelex::detail
 {
 
-// Gathers every domain violation of one recipe's inputs before reporting, so
-// that a caller fixes all of them in one pass. Only throw_if_any() throws.
-//
-// Each issue is labelled with the modes it belongs to, because a leaf spec
-// cannot know where it sits: the container holding it passes the scope in.
 class RecipeIssues
 {
    public:
-    auto add(GeneticModeSet scope, std::string issue) -> void;
+    auto add(std::optional<GeneticModeSet> scope, std::string issue) -> void;
     auto throw_if_any() const -> void;
 
    private:

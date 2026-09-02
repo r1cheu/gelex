@@ -57,7 +57,7 @@ auto create_progress_bar(size_t& counter, size_t total, std::string_view format)
     {
         elements.push_back((bk::Animation(
             {.message = " ",
-             .style = GREEN_SPINNER,
+             .style = green_spinner,
              .interval = 0.08,
              .no_tty = false,
              .show = false})));
@@ -112,7 +112,7 @@ auto create_progress_info() -> ProgressInfo
         elements.push_back(
             barkeep::Animation(
                 {.message = " ",
-                 .style = GREEN_SPINNER,
+                 .style = green_spinner,
                  .interval = 0.08,
                  .no_tty = false,
                  .show = false}));

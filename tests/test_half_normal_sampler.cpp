@@ -35,16 +35,16 @@ using gelex::NormalSampler;
 namespace
 {
 
-constexpr std::uint64_t SEED = 0xDEADBEEF42ULL;
-constexpr int DRAW_COUNT = 1'000'000;
+constexpr std::uint64_t seed = 0xDEADBEEF42ULL;
+constexpr int draw_count = 1'000'000;
 
 TEST_CASE(
     "HalfNormalSampler::posterior matches NormalSampler::posterior",
     "[stats][half_normal_sampler]")
 {
-    constexpr double PRIOR_VAR = 2.5;
-    HalfNormalSampler<double> hn{PRIOR_VAR};
-    NormalSampler<double> n{PRIOR_VAR};
+    constexpr double prior_var = 2.5;
+    HalfNormalSampler<double> hn{prior_var};
+    NormalSampler<double> n{prior_var};
 
     const NormalSampler<double>::Kernel kernel{
         .quadratic = 3.0,
@@ -65,9 +65,9 @@ TEST_CASE(
     "HalfNormalSampler log_marginal_kernel includes sign tail mass",
     "[stats][half_normal_sampler]")
 {
-    constexpr double PRIOR_VAR = 3.0;
-    HalfNormalSampler<double> hn{PRIOR_VAR};
-    NormalSampler<double> n{PRIOR_VAR};
+    constexpr double prior_var = 3.0;
+    HalfNormalSampler<double> hn{prior_var};
+    NormalSampler<double> n{prior_var};
 
     const NormalSampler<double>::Kernel kernel{
         .quadratic = 4.0,
@@ -109,7 +109,7 @@ TEST_CASE(
     "asymptotic",
     "[stats][half_normal_sampler]")
 {
-    constexpr double SQRT_2 = std::numbers::sqrt2;
+    constexpr double sqrt_2 = std::numbers::sqrt2;
 
     for (const double sign_val : {1.0, -1.0})
     {
@@ -117,7 +117,7 @@ TEST_CASE(
         NormalSampler<double> n{1.0};
         const NormalSampler<double>::Kernel kernel{
             .quadratic = 1.0,
-            .linear = sign_val * 10.0 * SQRT_2,
+            .linear = sign_val * 10.0 * sqrt_2,
             .scale = 1.0,
         };
         const auto pos = hn.posterior_with_logL(kernel, +1);
@@ -197,17 +197,17 @@ TEST_CASE(
     HalfNormalSampler<double> hn{1.0};
     const HalfNormalSampler<double>::Params post{.mean = 0.0, .var = 1.0};
 
-    std::mt19937_64 rng{SEED};
+    std::mt19937_64 rng{seed};
     double sum = 0.0;
     double sum2 = 0.0;
-    for (int i = 0; i < DRAW_COUNT; ++i)
+    for (int i = 0; i < draw_count; ++i)
     {
         const double x = hn.draw(post, +1, rng);
         sum += x;
         sum2 += x * x;
     }
-    const double mean = sum / DRAW_COUNT;
-    const double var = (sum2 / DRAW_COUNT) - (mean * mean);
+    const double mean = sum / draw_count;
+    const double var = (sum2 / draw_count) - (mean * mean);
 
     const double expected_mean = std::sqrt(2.0 / std::numbers::pi);
     const double expected_var = 1.0 - (2.0 / std::numbers::pi);
@@ -248,7 +248,7 @@ TEST_CASE(
     };
     const auto post = hn.posterior_with_logL(kernel, -1);
 
-    std::mt19937_64 rng{SEED};
+    std::mt19937_64 rng{seed};
     for (int i = 0; i < 1000; ++i)
     {
         REQUIRE(hn.draw(post, rng) < 0.0);
@@ -262,21 +262,21 @@ TEST_CASE(
     HalfNormalSampler<double> hn{1.0};
     const HalfNormalSampler<double>::Params post{.mean = -3.0, .var = 1.0};
 
-    std::mt19937_64 rng{SEED};
+    std::mt19937_64 rng{seed};
     double sum = 0.0;
-    for (int i = 0; i < DRAW_COUNT; ++i)
+    for (int i = 0; i < draw_count; ++i)
     {
         sum += hn.draw(post, +1, rng);
     }
-    const double sample_mean = sum / DRAW_COUNT;
+    const double sample_mean = sum / draw_count;
 
-    constexpr double MU = -3.0;
-    constexpr double SIGMA = 1.0;
-    constexpr double ALPHA = 3.0;  // (0 - MU) / SIGMA
+    constexpr double mu = -3.0;
+    constexpr double sigma = 1.0;
+    constexpr double alpha = 3.0;  // (0 - mu) / sigma
     const double phi_alpha
-        = std::exp((-0.5 * ALPHA) * ALPHA) / std::sqrt(2.0 * std::numbers::pi);
-    const double Phi_alpha = 0.5 * std::erfc(-ALPHA / std::numbers::sqrt2);
-    const double expected_mean = MU + (SIGMA * phi_alpha / (1.0 - Phi_alpha));
+        = std::exp((-0.5 * alpha) * alpha) / std::sqrt(2.0 * std::numbers::pi);
+    const double Phi_alpha = 0.5 * std::erfc(-alpha / std::numbers::sqrt2);
+    const double expected_mean = mu + (sigma * phi_alpha / (1.0 - Phi_alpha));
 
     REQUIRE_THAT(sample_mean, Catch::Matchers::WithinAbs(expected_mean, 1e-2));
 }

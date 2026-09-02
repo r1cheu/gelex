@@ -28,7 +28,7 @@
 #include "cli/predict/compute.h"
 #include "file_fixture.h"
 
-using gelex::SEPARATOR;
+using gelex::separator;
 using gelex::test::FileFixture;
 
 TEST_CASE(
@@ -36,13 +36,13 @@ TEST_CASE(
     "[predict][io]")
 {
     FileFixture files;
-    constexpr std::string_view CONTENT
+    constexpr std::string_view content
         = "term\tmean\n"
           "Intercept\t0.5\n"
           "Age\t-0.3\n"
           "Sex_M\t1.2\n";
 
-    auto path = files.create_text_file(CONTENT, ".tsv");
+    auto path = files.create_text_file(content, ".tsv");
     auto param = gelex::read_param(path);
 
     auto names = param.index().keys();
@@ -63,7 +63,7 @@ TEST_CASE(
     "[predict][io]")
 {
     FileFixture files;
-    auto sep = std::string(1, SEPARATOR);
+    auto sep = std::string(1, separator);
 
     // qcovar file (tab-delimited, header)
     auto qcovar_path = files.create_text_file(
@@ -116,7 +116,7 @@ TEST_CASE(
     "[predict][io]")
 {
     FileFixture files;
-    auto sep = std::string(1, SEPARATOR);
+    auto sep = std::string(1, separator);
 
     // Data has an "X" level the model was never fitted on.
     auto dcovar_path = files.create_text_file(

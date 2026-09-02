@@ -33,7 +33,7 @@
 namespace gelex
 {
 
-constexpr size_t BUFFER_FLUSH_THRESHOLD = static_cast<size_t>(64 * 1024);
+constexpr size_t buffer_flush_threshold = static_cast<size_t>(64 * 1024);
 
 GwasWriter::GwasWriter(
     std::string_view out_prefix,
@@ -49,7 +49,7 @@ GwasWriter::GwasWriter(
           std::string(out_prefix) + ".gwas.tsv",
           std::ios::out | std::ios::binary)
 {
-    line_buffer_.reserve(BUFFER_FLUSH_THRESHOLD);
+    line_buffer_.reserve(buffer_flush_threshold);
 
     switch (test_type_)
     {
@@ -141,7 +141,7 @@ auto GwasWriter::write(std::size_t start, const TestResults& results) -> void
         line_buffer_.push_back('\n');
     }
 
-    if (line_buffer_.size() >= BUFFER_FLUSH_THRESHOLD)
+    if (line_buffer_.size() >= buffer_flush_threshold)
     {
         ofs_.write(
             line_buffer_.data(),

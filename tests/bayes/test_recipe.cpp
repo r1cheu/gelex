@@ -18,10 +18,12 @@
 #include <catch2/matchers/catch_matchers_string.hpp>
 #include <concepts>
 #include <string>
+#include <type_traits>
 
+#include "gelex/bayes/builtin_recipe.h"
 #include "gelex/bayes/genetic/independent_topology.h"
-#include "gelex/bayes/method.h"
 #include "gelex/bayes/recipe.h"
+#include "gelex/bayes/semantic_method.h"
 #include "gelex/bayes/spec.h"
 #include "gelex/bayes/variance_budget.h"
 #include "gelex/exception.h"
@@ -30,96 +32,140 @@
 using Catch::Matchers::ContainsSubstring;
 using gelex::BayesMethod;
 using gelex::BayesRecipe;
+using gelex::BuiltinBayesRecipe;
+using gelex::GaussianMethod;
 using gelex::GelexException;
 using gelex::GeneticMode;
 using gelex::GeneticModeSet;
 using gelex::IndependentTopology;
 using gelex::JointSpikeSlab;
+using gelex::JointSpikeSlabMethod;
 using gelex::NoParameters;
 using gelex::ScaledMixture;
+using gelex::ScaledMixtureMethod;
 using gelex::SpikeSlab;
+using gelex::SpikeSlabMethod;
 using gelex::UpdatePolicy;
 using gelex::VarianceBudget;
+using gelex::VarianceLayout;
 
 namespace
 {
 
-constexpr auto MODE_A = GeneticModeSet{GeneticMode::A};
-constexpr auto MODE_AD = GeneticMode::A | GeneticMode::D;
+constexpr auto mode_a = GeneticModeSet{GeneticMode::A};
+constexpr auto mode_ad = GeneticMode::A | GeneticMode::D;
 
-using SpikeSlabA = IndependentTopology<MODE_A, SpikeSlab>;
-using SpikeSlabAD = IndependentTopology<MODE_AD, SpikeSlab>;
-using ScaledMixtureAD = IndependentTopology<MODE_AD, ScaledMixture>;
+using SpikeSlabA = IndependentTopology<mode_a, SpikeSlab>;
+using SpikeSlabAD = IndependentTopology<mode_ad, SpikeSlab>;
+using ScaledMixtureAD = IndependentTopology<mode_ad, ScaledMixture>;
+using PooledGaussianMethod = GaussianMethod<VarianceLayout::Pooled>;
+using UnpooledGaussianMethod = GaussianMethod<VarianceLayout::Unpooled>;
+using PooledSpikeSlabMethod = SpikeSlabMethod<VarianceLayout::Pooled>;
+using UnpooledSpikeSlabMethod = SpikeSlabMethod<VarianceLayout::Unpooled>;
+using FixedPooledSpikeSlabMethod
+    = SpikeSlabMethod<VarianceLayout::Pooled, UpdatePolicy::Fixed>;
+using DefaultScaledMixtureMethod = ScaledMixtureMethod<>;
+using DefaultJointSpikeSlabMethod = JointSpikeSlabMethod<>;
 
 const auto BUDGET_AD = VarianceBudget{{.additive = 0.5, .dominance = 0.2}};
 
-template <BayesMethod Method, GeneticModeSet Modes>
+template <typename Method, GeneticModeSet Modes>
 concept RecipeExists = requires { typename BayesRecipe<Method, Modes>; };
 
-// A recipe carries the method and mode set it was chosen with, so downstream
-// compilation reads them off the type instead of a runtime tag.
-static_assert(BayesRecipe<BayesMethod::R, MODE_A>::method == BayesMethod::R);
-static_assert(BayesRecipe<BayesMethod::R, MODE_A>::modes == MODE_A);
+template <typename Recipe>
+concept HasMethodToken = requires { Recipe::method; };
+
+static_assert(BayesRecipe<DefaultScaledMixtureMethod, mode_a>::modes == mode_a);
+static_assert(!HasMethodToken<BayesRecipe<DefaultScaledMixtureMethod, mode_a>>);
+static_assert(std::same_as<
+              BayesRecipe<PooledGaussianMethod, mode_a>::method_type,
+              PooledGaussianMethod>);
+static_assert(std::same_as<
+              BuiltinBayesRecipe<BayesMethod::RR, mode_a>,
+              BayesRecipe<PooledGaussianMethod, mode_a>>);
+static_assert(std::same_as<
+              BuiltinBayesRecipe<BayesMethod::A, mode_a>,
+              BayesRecipe<UnpooledGaussianMethod, mode_a>>);
+static_assert(std::same_as<
+              BuiltinBayesRecipe<BayesMethod::B, mode_a>,
+              BayesRecipe<UnpooledSpikeSlabMethod, mode_a>>);
+static_assert(std::same_as<
+              BuiltinBayesRecipe<BayesMethod::C, mode_a>,
+              BayesRecipe<PooledSpikeSlabMethod, mode_a>>);
+static_assert(std::same_as<
+              BuiltinBayesRecipe<BayesMethod::R, mode_a>,
+              BayesRecipe<DefaultScaledMixtureMethod, mode_a>>);
+static_assert(std::same_as<
+              BuiltinBayesRecipe<BayesMethod::CD, mode_ad>,
+              BayesRecipe<DefaultJointSpikeSlabMethod, mode_ad>>);
 
 // B and C take identical parameters but stay distinct types: the shared and
 // per-marker variance difference is intrinsic to the method.
 static_assert(!std::same_as<
-              BayesRecipe<BayesMethod::B, MODE_AD>,
-              BayesRecipe<BayesMethod::C, MODE_AD>>);
+              BayesRecipe<UnpooledSpikeSlabMethod, mode_ad>,
+              BayesRecipe<PooledSpikeSlabMethod, mode_ad>>);
 
 // RR and A have no structural parameters: their prior shape is fixed by the
 // data alone. NoParameters says so at the type level and costs no storage.
-static_assert(std::same_as<
-              gelex::method_parameters_t<BayesMethod::RR, MODE_AD>,
-              NoParameters>);
-static_assert(std::same_as<
-              gelex::method_parameters_t<BayesMethod::A, MODE_AD>,
-              NoParameters>);
 static_assert(
-    sizeof(BayesRecipe<BayesMethod::RR, MODE_AD>) == sizeof(VarianceBudget));
+    std::same_as<
+        std::remove_cvref_t<
+            decltype(BayesRecipe<PooledGaussianMethod, mode_ad>::defaults()
+                         .parameters())>,
+        NoParameters>);
+static_assert(
+    std::same_as<
+        std::remove_cvref_t<
+            decltype(BayesRecipe<UnpooledGaussianMethod, mode_ad>::defaults()
+                         .parameters())>,
+        NoParameters>);
+static_assert(
+    sizeof(BayesRecipe<PooledGaussianMethod, mode_ad>)
+    == sizeof(VarianceBudget));
 static_assert(std::constructible_from<
-              BayesRecipe<BayesMethod::RR, MODE_AD>,
+              BayesRecipe<PooledGaussianMethod, mode_ad>,
               VarianceBudget>);
 static_assert(!std::constructible_from<
-              BayesRecipe<BayesMethod::RR, MODE_AD>,
+              BayesRecipe<PooledGaussianMethod, mode_ad>,
               SpikeSlabAD,
               VarianceBudget>);
 
 // A parameterized method takes its own shape and only its own shape.
 static_assert(std::constructible_from<
-              BayesRecipe<BayesMethod::B, MODE_AD>,
+              BayesRecipe<UnpooledSpikeSlabMethod, mode_ad>,
               SpikeSlabAD,
               VarianceBudget>);
 static_assert(!std::constructible_from<
-              BayesRecipe<BayesMethod::B, MODE_AD>,
+              BayesRecipe<UnpooledSpikeSlabMethod, mode_ad>,
               ScaledMixtureAD,
               VarianceBudget>);
 static_assert(!std::constructible_from<
-              BayesRecipe<BayesMethod::B, MODE_AD>,
+              BayesRecipe<UnpooledSpikeSlabMethod, mode_ad>,
               VarianceBudget>);
 static_assert(std::constructible_from<
-              BayesRecipe<BayesMethod::R, MODE_AD>,
+              BayesRecipe<DefaultScaledMixtureMethod, mode_ad>,
               ScaledMixtureAD,
               VarianceBudget>);
 static_assert(std::constructible_from<
-              BayesRecipe<BayesMethod::CD, MODE_AD>,
+              BayesRecipe<DefaultJointSpikeSlabMethod, mode_ad>,
               JointSpikeSlab,
               VarianceBudget>);
 
 // CD is a joint allocation across A and D, so it has no single-mode form.
-static_assert(RecipeExists<BayesMethod::CD, MODE_AD>);
-static_assert(!RecipeExists<BayesMethod::CD, MODE_A>);
-static_assert(!RecipeExists<BayesMethod::RR, GeneticModeSet{}>);
+static_assert(RecipeExists<DefaultJointSpikeSlabMethod, mode_ad>);
+static_assert(!RecipeExists<DefaultJointSpikeSlabMethod, mode_a>);
 
-// Whether a parameter is sampled is a value, not part of the type.
-static_assert(std::same_as<
-              decltype(BayesRecipe<BayesMethod::C, MODE_A>{
-                  SpikeSlabA{SpikeSlab{
-                      .probability = {.update = UpdatePolicy::Fixed}}},
-                  VarianceBudget{{.additive = 0.5}}}),
-              decltype(BayesRecipe<BayesMethod::C, MODE_A>{
-                  SpikeSlabA{SpikeSlab{}},
-                  VarianceBudget{{.additive = 0.5}}})>);
+static_assert(!std::same_as<
+              BayesRecipe<FixedPooledSpikeSlabMethod, mode_a>,
+              BayesRecipe<PooledSpikeSlabMethod, mode_a>>);
+static_assert(
+    std::same_as<
+        std::remove_cvref_t<
+            decltype(BayesRecipe<FixedPooledSpikeSlabMethod, mode_a>::defaults()
+                         .parameters())>,
+        std::remove_cvref_t<
+            decltype(BayesRecipe<PooledSpikeSlabMethod, mode_a>::defaults()
+                         .parameters())>>);
 
 auto message_of(auto&& construct) -> std::string
 {
@@ -138,7 +184,7 @@ auto message_of(auto&& construct) -> std::string
 
 TEST_CASE("BayesRecipe accepts a well-formed input", "[bayes][recipe]")
 {
-    const auto recipe = BayesRecipe<BayesMethod::R, MODE_AD>{
+    const auto recipe = BayesRecipe<DefaultScaledMixtureMethod, mode_ad>{
         ScaledMixtureAD{ScaledMixture{}, ScaledMixture{}},
         VarianceBudget{{.additive = 0.4, .dominance = 0.05, .random = 0.05}},
     };
@@ -157,9 +203,9 @@ TEST_CASE("BayesRecipe validates its inputs on construction", "[bayes][recipe]")
         const auto message = message_of(
             []
             {
-                return BayesRecipe<BayesMethod::B, MODE_AD>{
+                return BayesRecipe<UnpooledSpikeSlabMethod, mode_ad>{
                     SpikeSlabAD{
-                        SpikeSlab{.probability = {.initial = 1.5}},
+                        SpikeSlab{.probability = 1.5},
                         SpikeSlab{},
                     },
                     BUDGET_AD,
@@ -175,7 +221,7 @@ TEST_CASE("BayesRecipe validates its inputs on construction", "[bayes][recipe]")
         const auto message = message_of(
             []
             {
-                return BayesRecipe<BayesMethod::RR, MODE_A>{
+                return BayesRecipe<PooledGaussianMethod, mode_a>{
                     VarianceBudget{{.additive = 0.5, .dominance = 0.2}}};
             });
 
@@ -186,31 +232,28 @@ TEST_CASE("BayesRecipe validates its inputs on construction", "[bayes][recipe]")
 
 TEST_CASE("BayesRecipe::defaults fills in the mode defaults", "[bayes][recipe]")
 {
-    const auto additive_only = BayesRecipe<BayesMethod::RR, MODE_A>::defaults();
+    const auto additive_only
+        = BayesRecipe<PooledGaussianMethod, mode_a>::defaults();
 
     REQUIRE(additive_only.variance().share(GeneticMode::A) == 0.5);
     REQUIRE(additive_only.variance().share(GeneticMode::D) == 0.0);
     REQUIRE(additive_only.variance().random() == 0.0);
 
-    const auto both = BayesRecipe<BayesMethod::R, MODE_AD>::defaults();
+    const auto both
+        = BayesRecipe<DefaultScaledMixtureMethod, mode_ad>::defaults();
 
     REQUIRE(both.variance().share(GeneticMode::D) == 0.2);
     REQUIRE(
-        both.parameters().get<GeneticMode::A>().probabilities.initial
-        == ScaledMixture{}.probabilities.initial);
-    REQUIRE(
-        both.parameters().get<GeneticMode::D>().probabilities.update
-        == UpdatePolicy::Sampled);
+        both.parameters().get<GeneticMode::A>().probabilities
+        == ScaledMixture{}.probabilities);
 }
 
 TEST_CASE("BayesRecipe::defaults covers every joint default", "[bayes][recipe]")
 {
-    const auto recipe = BayesRecipe<BayesMethod::CD, MODE_AD>::defaults();
+    const auto recipe
+        = BayesRecipe<DefaultJointSpikeSlabMethod, mode_ad>::defaults();
 
     REQUIRE(
-        recipe.parameters().positive_probability.initial
-        == JointSpikeSlab{}.positive_probability.initial);
-    REQUIRE(
-        recipe.parameters().positive_probability.update
-        == UpdatePolicy::Sampled);
+        recipe.parameters().positive_probability
+        == JointSpikeSlab{}.positive_probability);
 }

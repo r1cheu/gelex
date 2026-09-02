@@ -31,7 +31,6 @@ namespace gelex
 {
 
 template <GeneticModeSet Modes, typename T>
-    requires(Modes.size() > 0)
 class IndependentTopology
 {
    public:
@@ -65,17 +64,17 @@ class IndependentTopology
     template <GeneticMode Mode>
     [[nodiscard]] constexpr auto get() noexcept -> T&
     {
-        static constexpr std::size_t INDEX = Modes.index_of(Mode);
-        static_assert(INDEX < Modes.size(), "mode not in topology");
-        return values_[INDEX];
+        static constexpr std::size_t index = Modes.index_of(Mode);
+        static_assert(index < Modes.size(), "mode not in topology");
+        return values_[index];
     }
 
     template <GeneticMode Mode>
     [[nodiscard]] constexpr auto get() const noexcept -> const T&
     {
-        static constexpr std::size_t INDEX = Modes.index_of(Mode);
-        static_assert(INDEX < Modes.size(), "mode not in topology");
-        return values_[INDEX];
+        static constexpr std::size_t index = Modes.index_of(Mode);
+        static_assert(index < Modes.size(), "mode not in topology");
+        return values_[index];
     }
 
     [[nodiscard]] constexpr auto each()
@@ -93,7 +92,7 @@ class IndependentTopology
 };
 
 template <GeneticModeSet Modes, typename Make>
-    requires(Modes.size() > 0 && std::invocable<Make&, GeneticMode>)
+    requires std::invocable<Make&, GeneticMode>
 [[nodiscard]] constexpr auto generate_mode_values(Make make)
 {
     using Value = std::remove_cvref_t<std::invoke_result_t<Make&, GeneticMode>>;

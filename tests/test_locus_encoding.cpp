@@ -37,8 +37,8 @@ using namespace gelex;
 
 namespace
 {
-constexpr double TOLERANCE = 1e-12;
-constexpr std::array<Eigen::Index, 3> RAW_CODE_BY_DOSAGE{3, 2, 0};
+constexpr double tolerance = 1e-12;
+constexpr std::array<Eigen::Index, 3> raw_code_by_dosage{3, 2, 0};
 
 // Standardizes one genotype column through the fused per-locus path.
 auto encode_column(const Eigen::VectorXd& column, const EncodingSpec& spec)
@@ -112,10 +112,10 @@ TEST_CASE(
     REQUIRE(stats.n_missing == 1);
     REQUIRE(stats.n_nonmissing() == 4);
     REQUIRE(stats.has_nonmissing());
-    REQUIRE_THAT(stats.pA2A2(), WithinRel(0.25, TOLERANCE));
-    REQUIRE_THAT(stats.pA1A2(), WithinRel(0.5, TOLERANCE));
-    REQUIRE_THAT(stats.pA1A1(), WithinRel(0.25, TOLERANCE));
-    REQUIRE_THAT(stats.A1freq(), WithinRel(0.5, TOLERANCE));
+    REQUIRE_THAT(stats.pA2A2(), WithinRel(0.25, tolerance));
+    REQUIRE_THAT(stats.pA1A2(), WithinRel(0.5, tolerance));
+    REQUIRE_THAT(stats.pA1A1(), WithinRel(0.25, tolerance));
+    REQUIRE_THAT(stats.A1freq(), WithinRel(0.5, tolerance));
 }
 
 TEST_CASE(
@@ -136,13 +136,13 @@ TEST_CASE(
 
     REQUIRE(encoding.valid);
     REQUIRE(encoding.marker_index == 7);
-    REQUIRE_THAT(encoding.mean, WithinRel(1.0, TOLERANCE));
-    REQUIRE_THAT(encoding.var, WithinRel(0.5, TOLERANCE));
-    REQUIRE_THAT(encoding.sd, WithinRel(sd, TOLERANCE));
-    REQUIRE_THAT(encoding.lut[3], WithinRel(-1.0 / sd, TOLERANCE));
-    REQUIRE_THAT(encoding.lut[2], WithinAbs(0.0, TOLERANCE));
-    REQUIRE_THAT(encoding.lut[0], WithinRel(1.0 / sd, TOLERANCE));
-    REQUIRE_THAT(encoding.lut[1], WithinAbs(0.0, TOLERANCE));
+    REQUIRE_THAT(encoding.mean, WithinRel(1.0, tolerance));
+    REQUIRE_THAT(encoding.var, WithinRel(0.5, tolerance));
+    REQUIRE_THAT(encoding.sd, WithinRel(sd, tolerance));
+    REQUIRE_THAT(encoding.lut[3], WithinRel(-1.0 / sd, tolerance));
+    REQUIRE_THAT(encoding.lut[2], WithinAbs(0.0, tolerance));
+    REQUIRE_THAT(encoding.lut[0], WithinRel(1.0 / sd, tolerance));
+    REQUIRE_THAT(encoding.lut[1], WithinAbs(0.0, tolerance));
 }
 
 TEST_CASE(
@@ -159,11 +159,11 @@ TEST_CASE(
         const double sd{std::sqrt(0.56)};
 
         REQUIRE(enc.valid);
-        REQUIRE_THAT(enc.mean, WithinRel(0.8, TOLERANCE));
-        REQUIRE_THAT(enc.sd, WithinRel(sd, TOLERANCE));
-        REQUIRE_THAT(enc.lut[3], WithinRel(-0.8 / sd, TOLERANCE));
-        REQUIRE_THAT(enc.lut[2], WithinRel(0.2 / sd, TOLERANCE));
-        REQUIRE_THAT(enc.lut[0], WithinRel(1.2 / sd, TOLERANCE));
+        REQUIRE_THAT(enc.mean, WithinRel(0.8, tolerance));
+        REQUIRE_THAT(enc.sd, WithinRel(sd, tolerance));
+        REQUIRE_THAT(enc.lut[3], WithinRel(-0.8 / sd, tolerance));
+        REQUIRE_THAT(enc.lut[2], WithinRel(0.2 / sd, tolerance));
+        REQUIRE_THAT(enc.lut[0], WithinRel(1.2 / sd, tolerance));
     }
 
     SECTION("empirical center")
@@ -173,10 +173,10 @@ TEST_CASE(
         const LocusEncoding enc{encode_column(genotypes, spec)};
 
         REQUIRE(enc.valid);
-        REQUIRE_THAT(enc.mean, WithinRel(0.8, TOLERANCE));
-        REQUIRE_THAT(enc.lut[3], WithinRel(-0.8, TOLERANCE));
-        REQUIRE_THAT(enc.lut[2], WithinRel(0.2, TOLERANCE));
-        REQUIRE_THAT(enc.lut[0], WithinRel(1.2, TOLERANCE));
+        REQUIRE_THAT(enc.mean, WithinRel(0.8, tolerance));
+        REQUIRE_THAT(enc.lut[3], WithinRel(-0.8, tolerance));
+        REQUIRE_THAT(enc.lut[2], WithinRel(0.2, tolerance));
+        REQUIRE_THAT(enc.lut[0], WithinRel(1.2, tolerance));
     }
 
     SECTION("theoretical center-scale")
@@ -187,11 +187,11 @@ TEST_CASE(
         const double sd{std::sqrt(2.0 * 0.4 * 0.6)};
 
         REQUIRE(enc.valid);
-        REQUIRE_THAT(enc.mean, WithinRel(0.8, TOLERANCE));
-        REQUIRE_THAT(enc.sd, WithinRel(sd, TOLERANCE));
-        REQUIRE_THAT(enc.lut[3], WithinRel(-0.8 / sd, TOLERANCE));
-        REQUIRE_THAT(enc.lut[2], WithinRel(0.2 / sd, TOLERANCE));
-        REQUIRE_THAT(enc.lut[0], WithinRel(1.2 / sd, TOLERANCE));
+        REQUIRE_THAT(enc.mean, WithinRel(0.8, tolerance));
+        REQUIRE_THAT(enc.sd, WithinRel(sd, tolerance));
+        REQUIRE_THAT(enc.lut[3], WithinRel(-0.8 / sd, tolerance));
+        REQUIRE_THAT(enc.lut[2], WithinRel(0.2 / sd, tolerance));
+        REQUIRE_THAT(enc.lut[0], WithinRel(1.2 / sd, tolerance));
     }
 }
 
@@ -209,11 +209,11 @@ TEST_CASE(
         const double sd{std::sqrt(2.0 / 9.0)};
 
         REQUIRE(enc.valid);
-        REQUIRE_THAT(enc.mean, WithinRel(mean, TOLERANCE));
-        REQUIRE_THAT(enc.sd, WithinRel(sd, TOLERANCE));
-        REQUIRE_THAT(enc.lut[3], WithinRel(-mean / sd, TOLERANCE));
-        REQUIRE_THAT(enc.lut[2], WithinRel((1.0 - mean) / sd, TOLERANCE));
-        REQUIRE_THAT(enc.lut[0], WithinRel(-mean / sd, TOLERANCE));
+        REQUIRE_THAT(enc.mean, WithinRel(mean, tolerance));
+        REQUIRE_THAT(enc.sd, WithinRel(sd, tolerance));
+        REQUIRE_THAT(enc.lut[3], WithinRel(-mean / sd, tolerance));
+        REQUIRE_THAT(enc.lut[2], WithinRel((1.0 - mean) / sd, tolerance));
+        REQUIRE_THAT(enc.lut[0], WithinRel(-mean / sd, tolerance));
     }
 
     SECTION("heterozygote theoretical center-scale")
@@ -227,11 +227,11 @@ TEST_CASE(
             std::sqrt(2.0 * 0.4 * 0.6 * ((0.4 * 0.4) + (0.6 * 0.6)))};
 
         REQUIRE(enc.valid);
-        REQUIRE_THAT(enc.mean, WithinRel(mean, TOLERANCE));
-        REQUIRE_THAT(enc.sd, WithinRel(sd, TOLERANCE));
-        REQUIRE_THAT(enc.lut[3], WithinRel(-mean / sd, TOLERANCE));
-        REQUIRE_THAT(enc.lut[2], WithinRel((1.0 - mean) / sd, TOLERANCE));
-        REQUIRE_THAT(enc.lut[0], WithinRel(-mean / sd, TOLERANCE));
+        REQUIRE_THAT(enc.mean, WithinRel(mean, tolerance));
+        REQUIRE_THAT(enc.sd, WithinRel(sd, tolerance));
+        REQUIRE_THAT(enc.lut[3], WithinRel(-mean / sd, tolerance));
+        REQUIRE_THAT(enc.lut[2], WithinRel((1.0 - mean) / sd, tolerance));
+        REQUIRE_THAT(enc.lut[0], WithinRel(-mean / sd, tolerance));
     }
 
     SECTION("orthogonal empirical center")
@@ -242,10 +242,10 @@ TEST_CASE(
         const LocusEncoding enc{encode_column(genotypes, spec)};
 
         REQUIRE(enc.valid);
-        REQUIRE_THAT(enc.mean, WithinRel(0.24, TOLERANCE));
-        REQUIRE_THAT(enc.lut[3], WithinRel(-0.24, TOLERANCE));
-        REQUIRE_THAT(enc.lut[2], WithinRel(0.56, TOLERANCE));
-        REQUIRE_THAT(enc.lut[0], WithinRel(-0.64, TOLERANCE));
+        REQUIRE_THAT(enc.mean, WithinRel(0.24, tolerance));
+        REQUIRE_THAT(enc.lut[3], WithinRel(-0.24, tolerance));
+        REQUIRE_THAT(enc.lut[2], WithinRel(0.56, tolerance));
+        REQUIRE_THAT(enc.lut[0], WithinRel(-0.64, tolerance));
     }
 
     SECTION("orthogonal empirical center-scale")
@@ -257,11 +257,11 @@ TEST_CASE(
         const double sd{std::sqrt(0.2304)};
 
         REQUIRE(enc.valid);
-        REQUIRE_THAT(enc.mean, WithinRel(0.24, TOLERANCE));
-        REQUIRE_THAT(enc.sd, WithinRel(sd, TOLERANCE));
-        REQUIRE_THAT(enc.lut[3], WithinRel(-0.24 / sd, TOLERANCE));
-        REQUIRE_THAT(enc.lut[2], WithinRel(0.56 / sd, TOLERANCE));
-        REQUIRE_THAT(enc.lut[0], WithinRel(-0.64 / sd, TOLERANCE));
+        REQUIRE_THAT(enc.mean, WithinRel(0.24, tolerance));
+        REQUIRE_THAT(enc.sd, WithinRel(sd, tolerance));
+        REQUIRE_THAT(enc.lut[3], WithinRel(-0.24 / sd, tolerance));
+        REQUIRE_THAT(enc.lut[2], WithinRel(0.56 / sd, tolerance));
+        REQUIRE_THAT(enc.lut[0], WithinRel(-0.64 / sd, tolerance));
     }
 
     SECTION("orthogonal theoretical center-scale")
@@ -273,11 +273,11 @@ TEST_CASE(
         const double sd{2.0 * 0.4 * 0.6};
 
         REQUIRE(enc.valid);
-        REQUIRE_THAT(enc.mean, WithinRel(0.32, TOLERANCE));
-        REQUIRE_THAT(enc.sd, WithinRel(sd, TOLERANCE));
-        REQUIRE_THAT(enc.lut[3], WithinRel(-0.32 / sd, TOLERANCE));
-        REQUIRE_THAT(enc.lut[2], WithinRel(0.48 / sd, TOLERANCE));
-        REQUIRE_THAT(enc.lut[0], WithinRel(-0.72 / sd, TOLERANCE));
+        REQUIRE_THAT(enc.mean, WithinRel(0.32, tolerance));
+        REQUIRE_THAT(enc.sd, WithinRel(sd, tolerance));
+        REQUIRE_THAT(enc.lut[3], WithinRel(-0.32 / sd, tolerance));
+        REQUIRE_THAT(enc.lut[2], WithinRel(0.48 / sd, tolerance));
+        REQUIRE_THAT(enc.lut[0], WithinRel(-0.72 / sd, tolerance));
     }
 }
 
@@ -296,11 +296,11 @@ TEST_CASE("NOIA locus LUTs match genotype processor values", "[data][encoding]")
         const double sd{std::sqrt(0.56)};
 
         REQUIRE(enc.valid);
-        REQUIRE_THAT(enc.mean, WithinRel(0.8, TOLERANCE));
-        REQUIRE_THAT(enc.sd, WithinRel(sd, TOLERANCE));
-        REQUIRE_THAT(enc.lut[3], WithinRel(-0.8 / sd, TOLERANCE));
-        REQUIRE_THAT(enc.lut[2], WithinRel(0.2 / sd, TOLERANCE));
-        REQUIRE_THAT(enc.lut[0], WithinRel(1.2 / sd, TOLERANCE));
+        REQUIRE_THAT(enc.mean, WithinRel(0.8, tolerance));
+        REQUIRE_THAT(enc.sd, WithinRel(sd, tolerance));
+        REQUIRE_THAT(enc.lut[3], WithinRel(-0.8 / sd, tolerance));
+        REQUIRE_THAT(enc.lut[2], WithinRel(0.2 / sd, tolerance));
+        REQUIRE_THAT(enc.lut[0], WithinRel(1.2 / sd, tolerance));
     }
 
     SECTION("dominance center")
@@ -311,10 +311,10 @@ TEST_CASE("NOIA locus LUTs match genotype processor values", "[data][encoding]")
         const LocusEncoding enc{encode_column(genotypes, spec)};
 
         REQUIRE(enc.valid);
-        REQUIRE_THAT(enc.mean, WithinAbs(0.0, TOLERANCE));
-        REQUIRE_THAT(enc.lut[3], WithinRel(cA2A2, TOLERANCE));
-        REQUIRE_THAT(enc.lut[2], WithinRel(cA1A2, TOLERANCE));
-        REQUIRE_THAT(enc.lut[0], WithinRel(cA1A1, TOLERANCE));
+        REQUIRE_THAT(enc.mean, WithinAbs(0.0, tolerance));
+        REQUIRE_THAT(enc.lut[3], WithinRel(cA2A2, tolerance));
+        REQUIRE_THAT(enc.lut[2], WithinRel(cA1A2, tolerance));
+        REQUIRE_THAT(enc.lut[0], WithinRel(cA1A1, tolerance));
     }
 
     SECTION("dominance center-scale")
@@ -328,10 +328,10 @@ TEST_CASE("NOIA locus LUTs match genotype processor values", "[data][encoding]")
             / 5.0)};
 
         REQUIRE(enc.valid);
-        REQUIRE_THAT(enc.sd, WithinRel(sd, TOLERANCE));
-        REQUIRE_THAT(enc.lut[3], WithinRel(cA2A2 / sd, TOLERANCE));
-        REQUIRE_THAT(enc.lut[2], WithinRel(cA1A2 / sd, TOLERANCE));
-        REQUIRE_THAT(enc.lut[0], WithinRel(cA1A1 / sd, TOLERANCE));
+        REQUIRE_THAT(enc.sd, WithinRel(sd, tolerance));
+        REQUIRE_THAT(enc.lut[3], WithinRel(cA2A2 / sd, tolerance));
+        REQUIRE_THAT(enc.lut[2], WithinRel(cA1A2 / sd, tolerance));
+        REQUIRE_THAT(enc.lut[0], WithinRel(cA1A1 / sd, tolerance));
     }
 
     SECTION("additive and dominance center LUTs are sample-orthogonal")
@@ -350,14 +350,14 @@ TEST_CASE("NOIA locus LUTs match genotype processor values", "[data][encoding]")
             Eigen::VectorXd out(genotypes.size());
             for (Eigen::Index i = 0; i < genotypes.size(); ++i)
             {
-                out[i] = enc.lut[RAW_CODE_BY_DOSAGE[static_cast<std::size_t>(
+                out[i] = enc.lut[raw_code_by_dosage[static_cast<std::size_t>(
                     genotypes[i])]];
             }
             return out;
         };
 
         REQUIRE_THAT(
-            apply(additive).dot(apply(dominance)), WithinAbs(0.0, TOLERANCE));
+            apply(additive).dot(apply(dominance)), WithinAbs(0.0, tolerance));
     }
 }
 
@@ -396,7 +396,7 @@ TEST_CASE(
         const LocusEncoding enc{encode_column(genotypes, spec)};
 
         REQUIRE(enc.valid);
-        REQUIRE_THAT(enc.lut[1], WithinAbs(0.0, TOLERANCE));
+        REQUIRE_THAT(enc.lut[1], WithinAbs(0.0, tolerance));
     }
 
     SECTION("unnormalized encoding maps missing genotype to the analytic mean")
@@ -410,7 +410,7 @@ TEST_CASE(
         const LocusEncoding enc{encode_column(genotypes, spec)};
 
         REQUIRE(enc.valid);
-        REQUIRE_THAT(enc.mean, WithinAbs(1.0, TOLERANCE));
-        REQUIRE_THAT(enc.lut[1], WithinAbs(enc.mean, TOLERANCE));
+        REQUIRE_THAT(enc.mean, WithinAbs(1.0, tolerance));
+        REQUIRE_THAT(enc.lut[1], WithinAbs(enc.mean, tolerance));
     }
 }

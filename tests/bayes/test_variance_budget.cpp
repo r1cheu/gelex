@@ -22,7 +22,7 @@
 #include "gelex/types/genetic_mode.h"
 
 using Catch::Matchers::WithinAbs;
-using gelex::DEFAULT_ADDITIVE_SHARE;
+using gelex::default_additive_share;
 using gelex::default_shares;
 using gelex::GeneticMode;
 using gelex::GeneticModeSet;
@@ -39,41 +39,41 @@ static_assert(!std::constructible_from<VarianceBudget, double, double, double>);
 // residual() is a sum and only ever agrees with a decimal literal up to
 // rounding, so it is checked at run time with a matcher; share() returns what
 // was stored and is compared exactly.
-constexpr double RESIDUAL_TOLERANCE = 1e-12;
+constexpr double residual_tolerance = 1e-12;
 
-constexpr auto BUDGET
+constexpr auto budget
     = VarianceBudget{{.additive = 0.4, .dominance = 0.05, .random = 0.05}};
 
-static_assert(BUDGET.share(GeneticMode::A) == 0.4);
-static_assert(BUDGET.share(GeneticMode::D) == 0.05);
-static_assert(BUDGET.random() == 0.05);
+static_assert(budget.share(GeneticMode::A) == 0.4);
+static_assert(budget.share(GeneticMode::D) == 0.05);
+static_assert(budget.random() == 0.05);
 
-constexpr auto ADDITIVE_ONLY
+constexpr auto additive_only
     = VarianceBudget{default_shares(GeneticModeSet{GeneticMode::A})};
-constexpr auto DOMINANCE_ONLY
+constexpr auto dominance_only
     = VarianceBudget{default_shares(GeneticModeSet{GeneticMode::D})};
-constexpr auto BOTH
+constexpr auto both
     = VarianceBudget{default_shares(GeneticMode::A | GeneticMode::D)};
 
-static_assert(ADDITIVE_ONLY.share(GeneticMode::A) == 0.5);
-static_assert(ADDITIVE_ONLY.share(GeneticMode::D) == 0.0);
+static_assert(additive_only.share(GeneticMode::A) == 0.5);
+static_assert(additive_only.share(GeneticMode::D) == 0.0);
 
-static_assert(DOMINANCE_ONLY.share(GeneticMode::A) == 0.0);
-static_assert(DOMINANCE_ONLY.share(GeneticMode::D) == 0.2);
+static_assert(dominance_only.share(GeneticMode::A) == 0.0);
+static_assert(dominance_only.share(GeneticMode::D) == 0.2);
 
-static_assert(BOTH.share(GeneticMode::A) == 0.5);
-static_assert(BOTH.share(GeneticMode::D) == 0.2);
+static_assert(both.share(GeneticMode::A) == 0.5);
+static_assert(both.share(GeneticMode::D) == 0.2);
 
 // Defaults never request a random design.
-static_assert(ADDITIVE_ONLY.random() == 0.0);
-static_assert(DOMINANCE_ONLY.random() == 0.0);
-static_assert(BOTH.random() == 0.0);
+static_assert(additive_only.random() == 0.0);
+static_assert(dominance_only.random() == 0.0);
+static_assert(both.random() == 0.0);
 
 // An input adapter overrides the fields the user gave and keeps the rest, so
 // the untouched share holds its default without the caller naming it. Asserted
 // against the constant rather than a literal: this pins the override mechanism,
 // not the value of the table.
-constexpr auto PARTIALLY_OVERRIDDEN = []
+constexpr auto partially_overridden = []
 {
     auto shares = default_shares(GeneticMode::A | GeneticMode::D);
     shares.dominance = 0.3;
@@ -81,8 +81,8 @@ constexpr auto PARTIALLY_OVERRIDDEN = []
 }();
 
 static_assert(
-    PARTIALLY_OVERRIDDEN.share(GeneticMode::A) == DEFAULT_ADDITIVE_SHARE);
-static_assert(PARTIALLY_OVERRIDDEN.share(GeneticMode::D) == 0.3);
+    partially_overridden.share(GeneticMode::A) == default_additive_share);
+static_assert(partially_overridden.share(GeneticMode::D) == 0.3);
 
 }  // namespace
 
@@ -90,10 +90,10 @@ TEST_CASE(
     "VarianceBudget derives the residual from every share",
     "[bayes][variance_budget]")
 {
-    REQUIRE_THAT(BUDGET.residual(), WithinAbs(0.5, RESIDUAL_TOLERANCE));
-    REQUIRE_THAT(ADDITIVE_ONLY.residual(), WithinAbs(0.5, RESIDUAL_TOLERANCE));
-    REQUIRE_THAT(DOMINANCE_ONLY.residual(), WithinAbs(0.8, RESIDUAL_TOLERANCE));
-    REQUIRE_THAT(BOTH.residual(), WithinAbs(0.3, RESIDUAL_TOLERANCE));
+    REQUIRE_THAT(budget.residual(), WithinAbs(0.5, residual_tolerance));
+    REQUIRE_THAT(additive_only.residual(), WithinAbs(0.5, residual_tolerance));
+    REQUIRE_THAT(dominance_only.residual(), WithinAbs(0.8, residual_tolerance));
+    REQUIRE_THAT(both.residual(), WithinAbs(0.3, residual_tolerance));
 }
 
 TEST_CASE(
@@ -104,7 +104,7 @@ TEST_CASE(
     // negative residual. SpecDiagnostics rejects it later.
     REQUIRE_THAT(
         VarianceBudget{{.additive = 1.5}}.residual(),
-        WithinAbs(-0.5, RESIDUAL_TOLERANCE));
+        WithinAbs(-0.5, residual_tolerance));
 }
 
 TEST_CASE(
@@ -119,7 +119,7 @@ TEST_CASE(
     {
         const auto budget = VarianceBudget{default_shares(modes)};
 
-        for (const auto mode : gelex::ALL_GENETIC_MODES)
+        for (const auto mode : gelex::all_genetic_modes)
         {
             REQUIRE((budget.share(mode) > 0.0) == modes.contains(mode));
         }

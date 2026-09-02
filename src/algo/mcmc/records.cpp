@@ -25,8 +25,8 @@
 #include <utility>
 #include <variant>
 
+#include "gelex/bayes/legacy_state.h"
 #include "gelex/bayes/model.h"
-#include "gelex/bayes/state.h"
 #include "gelex/exception.h"
 #include "gelex/infra/field_flag.h"
 #include "gelex/io/binary_writer.h"
@@ -70,7 +70,7 @@ auto Records::operator=(Records&& other) noexcept -> Records&
 
 Records::~Records() = default;
 
-auto Records::store(const BayesModel& model, BayesState& state) -> void
+auto Records::store(const BayesModel& model, LegacyBayesState& state) -> void
 {
     state.visit(*this);
     model.visit(*this);

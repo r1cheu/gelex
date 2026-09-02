@@ -25,7 +25,7 @@
 namespace gelex
 {
 
-inline constexpr char SAMPLE_ID_SEPARATOR = '\x1F';
+inline constexpr char sample_id_separator = '\x1F';
 
 inline auto split_sample_id(std::string_view sample_id)
     -> std::pair<std::string_view, std::string_view>
@@ -35,7 +35,7 @@ inline auto split_sample_id(std::string_view sample_id)
         throw GelexException("sample ID cannot be empty");
     }
 
-    auto separator_pos = sample_id.find(SAMPLE_ID_SEPARATOR);
+    auto separator_pos = sample_id.find(sample_id_separator);
     if (separator_pos == std::string_view::npos)
     {
         throw GelexException(

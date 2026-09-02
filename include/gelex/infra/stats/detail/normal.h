@@ -29,19 +29,19 @@ namespace gelex::detail
 template <std::floating_point T>
 auto log_norm_cdf_asymptotic(T z) -> T
 {
-    constexpr T LOG_2_PI = std::log(T{2} * std::numbers::pi_v<T>);
+    constexpr T log_2_pi = std::log(T{2} * std::numbers::pi_v<T>);
     const T z2 = z * z;
     const T z4 = z2 * z2;
     const T z6 = z4 * z2;
     const T correction = std::log1p((-T{1} / z2) + (T{3} / z4) - (T{15} / z6));
-    return (-T{0.5} * z2) - (T{0.5} * LOG_2_PI) - std::log(-z) + correction;
+    return (-T{0.5} * z2) - (T{0.5} * log_2_pi) - std::log(-z) + correction;
 }
 
 template <std::floating_point T>
 auto log_norm_cdf(T z) -> T
 {
-    constexpr T SQRT_2 = std::numbers::sqrt2_v<T>;
-    const T erfc_val = std::erfc(-z / SQRT_2);
+    constexpr T sqrt_2 = std::numbers::sqrt2_v<T>;
+    const T erfc_val = std::erfc(-z / sqrt_2);
     if (erfc_val > T{0})
     {
         return std::log(T{0.5}) + std::log(erfc_val);
@@ -82,8 +82,8 @@ inline auto norm_ppf(double p) -> double
            2.445134137142996e+00,
            3.754408661907416e+00};
 
-    static constexpr double P_LOW = 0.02425;
-    static constexpr double P_HIGH = 1.0 - P_LOW;
+    static constexpr double p_low = 0.02425;
+    static constexpr double p_high = 1.0 - p_low;
 
     if (p <= 0.0 || p >= 1.0)
     {
@@ -94,14 +94,14 @@ inline auto norm_ppf(double p) -> double
     double x = 0;
 
     // NOLINTBEGIN(readability-math-missing-parentheses)
-    if (p < P_LOW)
+    if (p < p_low)
     {
         r = std::sqrt(-2.0 * std::log(p));
         x = (((((c[0] * r + c[1]) * r + c[2]) * r + c[3]) * r + c[4]) * r
              + c[5])
             / ((((d[0] * r + d[1]) * r + d[2]) * r + d[3]) * r + 1.0);
     }
-    else if (p <= P_HIGH)
+    else if (p <= p_high)
     {
         r = p - 0.5;
         double r2 = r * r;

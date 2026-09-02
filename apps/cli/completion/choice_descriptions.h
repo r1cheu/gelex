@@ -26,7 +26,7 @@ namespace cli
 using ChoiceEntry = std::pair<std::string_view, std::string_view>;
 
 // Per-member descriptions for enum choices, keyed by the CLI type-name token
-// (e.g. "CODING", "MODEL"). Grouping by type token is required because choice
+// (e.g. "coding", "model"). Grouping by type token is required because choice
 // tokens collide across enums ("A" is both BayesA and the additive mode). A
 // regression test pins each group's tokens to the core name-map constant they
 // mirror, so this hand-written table cannot drift from the domain enums.

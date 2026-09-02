@@ -94,7 +94,8 @@ auto target_marker_variance(
     double h2,
     double active_marker_weight) -> double
 {
-    const double projection_variance = model.genetic().col_var(mode).sum();
+    const double projection_variance
+        = model.genetic().projection(mode).col_var().sum();
     if (projection_variance <= 0)
     {
         throw GelexException(
