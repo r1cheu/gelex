@@ -32,7 +32,7 @@
 #include "gelex/bayes/result.h"
 #include "gelex/bayes/result_io.h"
 #include "gelex/bayes/state.h"
-#include "gelex/bayes/variance_budget.h"
+#include "gelex/bayes/variance/budget.h"
 #include "gelex/data/covariates.h"
 #include "gelex/data/dataframe/constants.h"
 #include "gelex/data/fixed_design.h"
@@ -121,7 +121,7 @@ auto collect_parameter_result(const std::filesystem::path& path)
     state.genetic().get<gelex::GeneticMode::A>().family_state.variance = 0.5;
     state.residual().variance = 4.0;
 
-    gelex::BayesDraws draws(prior, model, path.string(), 2);
+    auto draws = gelex::make_draws(prior, model, path.string(), 2);
     draws.append(state);
     draws.append(state);
     return gelex::make_result(model, draws);
@@ -141,7 +141,7 @@ auto collect_genetic_result(
     auto state = gelex::make_state(prior, model);
     configure(state);
 
-    gelex::BayesDraws draws(prior, model, path.string(), 2);
+    auto draws = gelex::make_draws(prior, model, path.string(), 2);
     draws.append(state);
     draws.append(state);
     return gelex::make_result(model, draws);
@@ -265,7 +265,7 @@ TEST_CASE(
     {
         using Family = gelex::SpikeSlabFamily<
             gelex::VarianceLayout::Unpooled,
-            gelex::UpdatePolicy::Sampled>;
+            gelex::MixtureWeightUpdate::Enabled>;
         const auto result = collect_genetic_result<mode_a, Family>(
             fixture.get_test_dir() / "unpooled_summary.draws",
             [](auto& state)

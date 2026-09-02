@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_BAYES_GENETIC_SCALED_MIXTURE_KERNEL_H_
-#define GELEX_BAYES_GENETIC_SCALED_MIXTURE_KERNEL_H_
+#ifndef GELEX_BAYES_GENETIC_KERNEL_SCALED_MIXTURE_H_
+#define GELEX_BAYES_GENETIC_KERNEL_SCALED_MIXTURE_H_
 
 #include <Eigen/Core>
 #include <array>
@@ -23,10 +23,10 @@
 #include <cstddef>
 #include <cstdint>
 #include <random>
+#include <span>
 
-#include "gelex/bayes/detail/fitted_value_update.h"
+#include "gelex/bayes/genetic/kernel/mixture_weight_updater.h"
 #include "gelex/bayes/genetic/prior.h"
-#include "gelex/bayes/genetic/probability_updater.h"
 #include "gelex/bayes/genetic/state.h"
 #include "gelex/bayes/genotype/design.h"
 #include "gelex/bayes/state.h"
@@ -37,10 +37,10 @@
 namespace gelex::detail
 {
 
-template <std::size_t ClassCount, UpdatePolicy ProbabilitiesUpdate>
+template <std::size_t ClassCount, MixtureWeightUpdate WeightUpdate>
 class ScaledMixtureKernel
 {
-    using Prior = ScaledMixturePrior<ClassCount, ProbabilitiesUpdate>;
+    using Prior = ScaledMixturePrior<ClassCount, WeightUpdate>;
     using State = GeneticModeState<ScaledMixtureState<ClassCount>>;
     using Posterior = NormalSampler<double>::Posterior;
     using PosteriorParams = NormalSampler<double>::Params;
@@ -75,7 +75,7 @@ class ScaledMixtureKernel
         normal_.reset();
         uniform_.reset();
         variance_sampler_.reset();
-        if constexpr (ProbabilitiesUpdate == UpdatePolicy::Sampled)
+        if constexpr (WeightUpdate == MixtureWeightUpdate::Enabled)
         {
             probabilities_updater_.reset();
         }
@@ -114,16 +114,46 @@ class ScaledMixtureKernel
             family_state.assignment(marker)
                 = static_cast<std::uint8_t>(sample.class_index);
 
-            apply_fitted_value_transition(
-                projection,
-                marker,
-                FittedValueTransition{
-                    .old_class_index = old_class_index,
-                    .new_class_index = sample.class_index,
-                    .old_coefficient = old_value,
-                    .new_coefficient = new_value},
-                family_state,
-                residual.adjusted_response);
+            std::array<bayes::AxpyTarget, 3> fitted_targets{};
+            std::size_t fitted_target_count = 0;
+            const double coefficient_delta = new_value - old_value;
+            if (coefficient_delta != 0.0)
+            {
+                fitted_targets.at(fitted_target_count++) = bayes::AxpyTarget{
+                    -coefficient_delta, residual.adjusted_response};
+            }
+
+            const auto append_component_target
+                = [&](std::size_t class_index, double delta)
+            {
+                if (class_index == 0 || delta == 0.0)
+                {
+                    return;
+                }
+
+                const auto component_index
+                    = static_cast<Eigen::Index>(class_index - 1);
+                fitted_targets.at(fitted_target_count++) = bayes::AxpyTarget{
+                    delta, family_state.fitted_values.col(component_index)};
+            };
+
+            if (old_class_index == sample.class_index)
+            {
+                append_component_target(old_class_index, coefficient_delta);
+            }
+            else
+            {
+                append_component_target(old_class_index, -old_value);
+                append_component_target(sample.class_index, new_value);
+            }
+
+            if (fitted_target_count != 0)
+            {
+                projection.axpy(
+                    marker,
+                    std::span<const bayes::AxpyTarget>{
+                        fitted_targets.data(), fitted_target_count});
+            }
 
             if (sample.class_index != 0)
             {
@@ -131,7 +161,7 @@ class ScaledMixtureKernel
                 scaled_sum_squares
                     += (new_value * new_value) / scales_[sample.class_index];
             }
-            if constexpr (ProbabilitiesUpdate == UpdatePolicy::Sampled)
+            if constexpr (WeightUpdate == MixtureWeightUpdate::Enabled)
             {
                 probabilities_updater_.observe(sample.class_index);
             }
@@ -139,7 +169,7 @@ class ScaledMixtureKernel
 
         family_state.variance = variance_sampler_(
             {.n = active_count, .sum_squares = scaled_sum_squares}, rng);
-        if constexpr (ProbabilitiesUpdate == UpdatePolicy::Sampled)
+        if constexpr (WeightUpdate == MixtureWeightUpdate::Enabled)
         {
             probabilities_updater_.update(family_state.probabilities, rng);
         }
@@ -194,7 +224,7 @@ class ScaledMixtureKernel
 
     ScaledInvChi2Sampler<double> variance_sampler_;
     [[no_unique_address]]
-    SimplexUpdater<ProbabilitiesUpdate, ClassCount> probabilities_updater_;
+    SimplexUpdater<WeightUpdate, ClassCount> probabilities_updater_;
     std::array<double, ClassCount> scales_;
     NormalSampler<double> normal_{0.0};
     std::uniform_real_distribution<double> uniform_{0.0, 1.0};
@@ -202,4 +232,4 @@ class ScaledMixtureKernel
 
 }  // namespace gelex::detail
 
-#endif  // GELEX_BAYES_GENETIC_SCALED_MIXTURE_KERNEL_H_
+#endif  // GELEX_BAYES_GENETIC_KERNEL_SCALED_MIXTURE_H_

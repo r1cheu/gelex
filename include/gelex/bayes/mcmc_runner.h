@@ -51,7 +51,7 @@ class MCMCRunner
         const MCMCObserver& observer = {}) -> void
     {
         auto state = make_state(prior, model);
-        BayesKernel kernel(prior);
+        auto kernel = make_kernel(prior);
         auto rng
             = std::mt19937_64{static_cast<std::mt19937_64::result_type>(seed)};
 

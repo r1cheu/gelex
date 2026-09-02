@@ -19,20 +19,27 @@
 #include <catch2/catch_test_macros.hpp>
 #include <concepts>
 #include <filesystem>
+#include <string>
+#include <utility>
+#include <vector>
 
+#include "gelex/bayes/design.h"
 #include "gelex/bayes/draws.h"
 #include "gelex/bayes/genetic_family.h"
 #include "gelex/bayes/model.h"
 #include "gelex/bayes/prior.h"
 #include "gelex/bayes/recipe.h"
 #include "gelex/bayes/state.h"
-#include "gelex/bayes/variance_budget.h"
+#include "gelex/bayes/variance/budget.h"
+#include "gelex/data/fixed_design.h"
 #include "gelex/exception.h"
 #include "gelex/genetic_mode.h"
 #include "gelex/io/binary_reader.h"
 
 #include "bayes_model_fixture.h"
+#include "compact_genotype_fixture.h"
 #include "file_fixture.h"
+#include "random_design_fixture.h"
 
 namespace
 {
@@ -56,7 +63,7 @@ TEST_CASE("BayesDraws records every state component", "[bayes][draws]")
     auto state = gelex::make_state(prior, model);
 
     {
-        gelex::BayesDraws draws(prior, model, path.string(), 2);
+        auto draws = gelex::make_draws(prior, model, path.string(), 2);
         static_assert(!std::movable<decltype(draws)>);
         auto& additive = state.genetic().get<gelex::GeneticMode::A>();
 
@@ -119,7 +126,7 @@ TEST_CASE("BayesDraws bounds the number of appended draws", "[bayes][draws]")
         model);
     auto state = gelex::make_state(prior, model);
 
-    gelex::BayesDraws draws(prior, model, path.string(), 1);
+    auto draws = gelex::make_draws(prior, model, path.string(), 1);
     draws.append(state);
 
     REQUIRE_THROWS_AS(draws.append(state), gelex::GelexException);
@@ -139,7 +146,7 @@ TEST_CASE("BayesDraws records the variance decomposition", "[bayes][draws]")
     auto state = gelex::make_state(prior, model);
 
     {
-        gelex::BayesDraws draws(prior, model, path.string(), 1);
+        auto draws = gelex::make_draws(prior, model, path.string(), 1);
 
         state.genetic().get<gelex::GeneticMode::A>().family_state.fitted_values
             = Eigen::VectorXd{{0.0, 3.0, 0.0}};
@@ -154,7 +161,7 @@ TEST_CASE("BayesDraws records the variance decomposition", "[bayes][draws]")
         REQUIRE(
             summary.total_heritability().result().mean == Catch::Approx(0.25));
         REQUIRE(
-            draws.random()[0].explained_variance().result().mean
+            draws.variance_summary().random()[0].result().mean
             == Catch::Approx(2.0));
     }
 
@@ -170,6 +177,60 @@ TEST_CASE("BayesDraws records the variance decomposition", "[bayes][draws]")
                 .isApprox(Eigen::MatrixXd{{0.25}}));
     REQUIRE(reader.to_map<double>("random/batch/explained_variance")
                 .isApprox(Eigen::MatrixXd{{2.0}}));
+}
+
+TEST_CASE(
+    "BayesDraws adds independent random variance components",
+    "[bayes][draws]")
+{
+    using Family = gelex::GaussianFamily<gelex::VarianceLayout::Pooled>;
+
+    auto genetic = gelex::test::make_genetic_design(
+        Eigen::MatrixXd{{0.0, 1.0}, {1.0, 0.0}, {2.0, 1.0}}, mode_a);
+    std::vector<gelex::bayes::RandomDesign> random;
+    random.push_back(
+        gelex::test::make_random_design(
+            "batch",
+            std::vector<std::string>{"batch"},
+            Eigen::MatrixXd{{1.0}, {0.0}, {1.0}}));
+    random.push_back(
+        gelex::test::make_random_design(
+            "location",
+            std::vector<std::string>{"location"},
+            Eigen::MatrixXd{{1.0}, {0.0}, {1.0}}));
+    const gelex::BayesModel model{
+        Eigen::VectorXd{{1.0, 2.0, 3.0}},
+        gelex::FixedDesign::make(3),
+        std::move(random),
+        std::move(genetic)};
+    const auto prior = gelex::make_prior(
+        gelex::BayesRecipe<mode_a, Family>{
+            gelex::VarianceBudget{{.additive = 0.4, .random = 0.2}}},
+        model);
+    auto state = gelex::make_state(prior, model);
+    state.genetic().get<gelex::GeneticMode::A>().family_state.fitted_values
+        = Eigen::VectorXd{{0.0, 3.0, 0.0}};
+    state.random()[0].fitted_values = Eigen::VectorXd{{0.0, 3.0, 0.0}};
+    state.random()[1].fitted_values = Eigen::VectorXd{{0.0, 3.0, 0.0}};
+    state.residual().variance = 2.0;
+
+    gelex::test::FileFixture fixture;
+    auto draws = gelex::make_draws(
+        prior,
+        model,
+        (fixture.get_test_dir() / "independent_random.draws").string(),
+        1);
+    draws.append(state);
+
+    REQUIRE(
+        draws.variance_summary().random()[0].result().mean
+        == Catch::Approx(2.0));
+    REQUIRE(
+        draws.variance_summary().random()[1].result().mean
+        == Catch::Approx(2.0));
+    REQUIRE(
+        draws.variance_summary().total_heritability().result().mean
+        == Catch::Approx(0.25));
 }
 
 // Joint families reach the mode states through JointModeValues, a path no
@@ -188,7 +249,7 @@ TEST_CASE("BayesDraws decomposes a joint spike-slab state", "[bayes][draws]")
     auto state = gelex::make_state(prior, model);
 
     {
-        gelex::BayesDraws draws(prior, model, path.string(), 1);
+        auto draws = gelex::make_draws(prior, model, path.string(), 1);
 
         state.genetic().get<gelex::GeneticMode::A>().family_state.fitted_values
             = Eigen::VectorXd{{1.0, 2.0, 3.0}};
@@ -200,19 +261,18 @@ TEST_CASE("BayesDraws decomposes a joint spike-slab state", "[bayes][draws]")
     }
 
     const gelex::BinaryReader reader(path.string());
-    // Each mode alone varies by 2/3, but their sum {1, 3, 5} varies by 8/3:
-    // the total carries the A-D covariance that the parts cannot.
+    // A and D are independent variance components, so the total is their sum.
     REQUIRE(reader.to_map<double>("genetic/A/explained_variance")
                 .isApprox(Eigen::MatrixXd{{2.0 / 3.0}}));
     REQUIRE(reader.to_map<double>("genetic/D/explained_variance")
                 .isApprox(Eigen::MatrixXd{{2.0 / 3.0}}));
     REQUIRE(reader.to_map<double>("genetic/total/explained_variance")
-                .isApprox(Eigen::MatrixXd{{8.0 / 3.0}}));
-    // Phenotypic variance is 8/3 + 2 + 10/3 = 8.
+                .isApprox(Eigen::MatrixXd{{4.0 / 3.0}}));
+    // Phenotypic variance is 4/3 + 2 + 10/3 = 20/3.
     REQUIRE(reader.to_map<double>("genetic/A/heritability")
-                .isApprox(Eigen::MatrixXd{{1.0 / 12.0}}));
+                .isApprox(Eigen::MatrixXd{{0.1}}));
     REQUIRE(reader.to_map<double>("genetic/total/heritability")
-                .isApprox(Eigen::MatrixXd{{1.0 / 3.0}}));
+                .isApprox(Eigen::MatrixXd{{0.2}}));
     REQUIRE(reader.to_map<double>("random/batch/explained_variance")
                 .isApprox(Eigen::MatrixXd{{2.0}}));
 }
@@ -234,7 +294,7 @@ TEST_CASE("BayesDraws decomposes per-class genetic values", "[bayes][draws]")
     auto state = gelex::make_state(prior, model);
 
     {
-        gelex::BayesDraws draws(prior, model, path.string(), 1);
+        auto draws = gelex::make_draws(prior, model, path.string(), 1);
 
         // Each mode's class columns sum row-wise to {0, 3, 0}.
         const Eigen::MatrixXd classes{
@@ -249,13 +309,13 @@ TEST_CASE("BayesDraws decomposes per-class genetic values", "[bayes][draws]")
     }
 
     const gelex::BinaryReader reader(path.string());
-    // Each mode varies by 2, their sum {0, 6, 0} by 8; phenotypic is 8+2+2.
+    // Each mode varies by 2; phenotypic variance is 2+2+2+2.
     REQUIRE(reader.to_map<double>("genetic/A/explained_variance")
                 .isApprox(Eigen::MatrixXd{{2.0}}));
     REQUIRE(reader.to_map<double>("genetic/total/explained_variance")
-                .isApprox(Eigen::MatrixXd{{8.0}}));
+                .isApprox(Eigen::MatrixXd{{4.0}}));
     REQUIRE(reader.to_map<double>("genetic/total/heritability")
-                .isApprox(Eigen::MatrixXd{{2.0 / 3.0}}));
+                .isApprox(Eigen::MatrixXd{{0.5}}));
 }
 
 TEST_CASE("BayesDraws commits a short run", "[bayes][draws]")
@@ -273,7 +333,7 @@ TEST_CASE("BayesDraws commits a short run", "[bayes][draws]")
     state.residual().variance = 5.0;
 
     {
-        gelex::BayesDraws draws(prior, model, path.string(), 3);
+        auto draws = gelex::make_draws(prior, model, path.string(), 3);
         draws.append(state);
     }
 

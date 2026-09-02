@@ -19,61 +19,13 @@
 
 #include <array>
 #include <cstddef>
-#include <type_traits>
-#include <utility>
 
+#include "gelex/bayes/genetic/parameter.h"
 #include "gelex/bayes/genetic_family.h"
-#include "gelex/bayes/variance_parameter.h"
+#include "gelex/bayes/variance/parameter.h"
 
 namespace gelex
 {
-
-struct BetaHyperPrior
-{
-    double alpha{1.0};
-    double beta{1.0};
-};
-
-template <std::size_t Classes>
-struct DirichletHyperPrior
-{
-    constexpr DirichletHyperPrior() { concentration.fill(1.0); }
-
-    explicit constexpr DirichletHyperPrior(
-        std::array<double, Classes> concentration)
-        : concentration{std::move(concentration)}
-    {
-    }
-
-    std::array<double, Classes> concentration;
-};
-
-template <typename T>
-struct FixedParameter
-{
-    T initial;
-};
-
-template <typename T, typename HyperPrior>
-struct SampledParameter
-{
-    T initial;
-    HyperPrior hyperprior;
-};
-
-template <UpdatePolicy Policy>
-using ProbabilityParameter = std::conditional_t<
-    Policy == UpdatePolicy::Fixed,
-    FixedParameter<double>,
-    SampledParameter<double, BetaHyperPrior>>;
-
-template <std::size_t ClassCount, UpdatePolicy Policy>
-using SimplexParameter = std::conditional_t<
-    Policy == UpdatePolicy::Fixed,
-    FixedParameter<std::array<double, ClassCount>>,
-    SampledParameter<
-        std::array<double, ClassCount>,
-        DirichletHyperPrior<ClassCount>>>;
 
 template <VarianceLayout Kind>
 struct GaussianPrior
@@ -89,7 +41,7 @@ template <>
 struct HalfNormalPrior<HalfNormalAsymmetry::Count>
 {
     VarianceParameter variance;
-    ProbabilityParameter<UpdatePolicy::Sampled> positive_probability;
+    ProbabilityParameter<MixtureWeightUpdate::Enabled> positive_probability;
 };
 
 template <>
@@ -101,35 +53,35 @@ struct HalfNormalPrior<HalfNormalAsymmetry::Magnitude>
 
 template <
     VarianceLayout Kind,
-    UpdatePolicy ProbabilityUpdate = UpdatePolicy::Sampled>
+    MixtureWeightUpdate WeightUpdate = MixtureWeightUpdate::Enabled>
 // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init,hicpp-member-init)
 struct SpikeSlabPrior
 {
     VarianceParameter variance;
-    ProbabilityParameter<ProbabilityUpdate> probability;
+    ProbabilityParameter<WeightUpdate> probability;
 };
 
 template <
     std::size_t ClassCount,
-    UpdatePolicy ProbabilitiesUpdate = UpdatePolicy::Sampled>
+    MixtureWeightUpdate WeightUpdate = MixtureWeightUpdate::Enabled>
 // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init,hicpp-member-init)
 struct ScaledMixturePrior
 {
     static constexpr std::size_t class_count = ClassCount;
 
     VarianceParameter variance;
-    SimplexParameter<class_count, ProbabilitiesUpdate> probabilities;
+    SimplexParameter<class_count, WeightUpdate> probabilities;
     std::array<double, class_count> scales{};
 };
 
 template <
     std::size_t ClassCount,
-    UpdatePolicy ProbabilitiesUpdate = UpdatePolicy::Sampled>
+    MixtureWeightUpdate WeightUpdate = MixtureWeightUpdate::Enabled>
 struct JointSpikeSlabPrior
 {
     static constexpr std::size_t class_count = ClassCount;
 
-    SimplexParameter<class_count, ProbabilitiesUpdate> probabilities;
+    SimplexParameter<class_count, WeightUpdate> probabilities;
 };
 
 }  // namespace gelex

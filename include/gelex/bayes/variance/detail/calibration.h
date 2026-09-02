@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_BAYES_DETAIL_CALIBRATION_H_
-#define GELEX_BAYES_DETAIL_CALIBRATION_H_
+#ifndef GELEX_BAYES_VARIANCE_DETAIL_CALIBRATION_H_
+#define GELEX_BAYES_VARIANCE_DETAIL_CALIBRATION_H_
 
-#include "gelex/bayes/variance_parameter.h"
+#include "gelex/bayes/variance/parameter.h"
 #include "gelex/genetic_mode.h"
 
 namespace gelex
@@ -54,4 +54,4 @@ class MarkerVarianceCalibrator
 
 }  // namespace gelex
 
-#endif  // GELEX_BAYES_DETAIL_CALIBRATION_H_
+#endif  // GELEX_BAYES_VARIANCE_DETAIL_CALIBRATION_H_

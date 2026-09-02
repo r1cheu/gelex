@@ -23,14 +23,15 @@
 #include <utility>
 #include <vector>
 
-#include "gelex/bayes/detail/calibration.h"
 #include "gelex/bayes/detail/genetic_spec.h"
+#include "gelex/bayes/genetic/parameter.h"
 #include "gelex/bayes/genetic/prior.h"
 #include "gelex/bayes/genetic_family.h"
 #include "gelex/bayes/mode_values.h"
 #include "gelex/bayes/model.h"
 #include "gelex/bayes/spec.h"
-#include "gelex/bayes/variance_budget.h"
+#include "gelex/bayes/variance/budget.h"
+#include "gelex/bayes/variance/detail/calibration.h"
 #include "gelex/exception.h"
 #include "gelex/genetic_mode.h"
 #include "gelex/infra/var.h"
@@ -41,10 +42,10 @@ namespace gelex
 namespace detail
 {
 
-template <UpdatePolicy Policy, typename T, typename HyperPrior>
+template <MixtureWeightUpdate Update, typename T, typename HyperPrior>
 auto make_parameter(T initial, HyperPrior hyperprior)
 {
-    if constexpr (Policy == UpdatePolicy::Fixed)
+    if constexpr (Update == MixtureWeightUpdate::Disabled)
     {
         return FixedParameter<T>{.initial = std::move(initial)};
     }
@@ -82,7 +83,7 @@ constexpr auto initial_activity(const JointSpikeSlab& spec) -> double
 }
 
 template <GeneticModeSet Modes, VarianceLayout Kind>
-auto make_genetic_prior(
+auto make_prior(
     GaussianFamily<Kind> /*family*/,
     const Gaussian& /*genetic_spec*/,
     const MarkerVarianceCalibrator& calibrator)
@@ -95,42 +96,40 @@ auto make_genetic_prior(
 template <
     GeneticModeSet Modes,
     VarianceLayout Kind,
-    UpdatePolicy ProbabilityUpdate>
-auto make_genetic_prior(
-    SpikeSlabFamily<Kind, ProbabilityUpdate> /*family*/,
-    const genetic_spec_t<Modes, SpikeSlabFamily<Kind, ProbabilityUpdate>>&
+    MixtureWeightUpdate WeightUpdate>
+auto make_prior(
+    SpikeSlabFamily<Kind, WeightUpdate> /*family*/,
+    const genetic_spec_t<Modes, SpikeSlabFamily<Kind, WeightUpdate>>&
         genetic_spec,
     const MarkerVarianceCalibrator& calibrator)
 {
     return transform_mode_values(
         genetic_spec,
         [&]<GeneticMode Mode>(
-            const SpikeSlab& spec) -> SpikeSlabPrior<Kind, ProbabilityUpdate>
+            const SpikeSlab& spec) -> SpikeSlabPrior<Kind, WeightUpdate>
         {
             return {
                 .variance = calibrator.calibrate(Mode, spec.probability()),
-                .probability = make_parameter<ProbabilityUpdate>(
+                .probability = make_parameter<WeightUpdate>(
                     spec.probability(), BetaHyperPrior{})};
         });
 }
 
-template <GeneticModeSet Modes, UpdatePolicy ProbabilitiesUpdate>
-auto make_genetic_prior(
-    ScaledMixtureFamily<ProbabilitiesUpdate> /*family*/,
-    const genetic_spec_t<Modes, ScaledMixtureFamily<ProbabilitiesUpdate>>&
+template <GeneticModeSet Modes, MixtureWeightUpdate WeightUpdate>
+auto make_prior(
+    ScaledMixtureFamily<WeightUpdate> /*family*/,
+    const genetic_spec_t<Modes, ScaledMixtureFamily<WeightUpdate>>&
         genetic_spec,
     const MarkerVarianceCalibrator& calibrator)
 {
     return transform_mode_values(
         genetic_spec,
         [&]<GeneticMode Mode>(const ScaledMixture& spec)
-            -> ScaledMixturePrior<
-                ScaledMixture::class_count,
-                ProbabilitiesUpdate>
+            -> ScaledMixturePrior<ScaledMixture::class_count, WeightUpdate>
         {
             return {
                 .variance = calibrator.calibrate(Mode, initial_activity(spec)),
-                .probabilities = make_parameter<ProbabilitiesUpdate>(
+                .probabilities = make_parameter<WeightUpdate>(
                     spec.probabilities(),
                     DirichletHyperPrior<ScaledMixture::class_count>{}),
                 .scales = spec.scales()};
@@ -139,14 +138,13 @@ auto make_genetic_prior(
 
 template <
     GeneticModeSet Modes,
-    UpdatePolicy ProbabilitiesUpdate,
+    MixtureWeightUpdate WeightUpdate,
     HalfNormalAsymmetry Axis>
     requires(Modes == (GeneticMode::A | GeneticMode::D))
-auto make_genetic_prior(
-    JointSpikeSlabFamily<ProbabilitiesUpdate, Axis> /*family*/,
-    const genetic_spec_t<
-        Modes,
-        JointSpikeSlabFamily<ProbabilitiesUpdate, Axis>>& genetic_spec,
+auto make_prior(
+    JointSpikeSlabFamily<WeightUpdate, Axis> /*family*/,
+    const genetic_spec_t<Modes, JointSpikeSlabFamily<WeightUpdate, Axis>>&
+        genetic_spec,
     const MarkerVarianceCalibrator& calibrator)
 {
     const auto& joint_spec = genetic_spec.joint();
@@ -166,7 +164,7 @@ auto make_genetic_prior(
                 return HalfNormalPrior<Axis>{
                     .variance = std::move(variance),
                     .positive_probability
-                    = make_parameter<UpdatePolicy::Sampled>(
+                    = make_parameter<MixtureWeightUpdate::Enabled>(
                         mode_spec.positive_probability(), BetaHyperPrior{})};
             }
             else
@@ -176,11 +174,11 @@ auto make_genetic_prior(
         });
 
     using JointPrior
-        = JointSpikeSlabPrior<JointSpikeSlab::class_count, ProbabilitiesUpdate>;
+        = JointSpikeSlabPrior<JointSpikeSlab::class_count, WeightUpdate>;
     return JointModeValues{
         std::move(mode_priors),
         JointPrior{
-            .probabilities = make_parameter<ProbabilitiesUpdate>(
+            .probabilities = make_parameter<WeightUpdate>(
                 joint_spec.probabilities(),
                 DirichletHyperPrior<JointPrior::class_count>{})}};
 }
@@ -201,7 +199,7 @@ inline auto random_projection_variance(const bayes::RandomDesign& design)
     return variance;
 }
 
-inline auto make_random_prior(
+inline auto make_random_variance_parameters(
     const BayesModel& model,
     const VarianceBudget& budget,
     double phenotype_variance) -> std::vector<VarianceParameter>

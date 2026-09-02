@@ -37,22 +37,22 @@ struct GeneticSpecFor<Modes, GaussianFamily<Kind>>
 template <
     GeneticModeSet Modes,
     VarianceLayout Kind,
-    UpdatePolicy ProbabilityUpdate>
-struct GeneticSpecFor<Modes, SpikeSlabFamily<Kind, ProbabilityUpdate>>
+    MixtureWeightUpdate WeightUpdate>
+struct GeneticSpecFor<Modes, SpikeSlabFamily<Kind, WeightUpdate>>
 {
     using type = HomogeneousModeValues<Modes, SpikeSlab>;
 };
 
-template <GeneticModeSet Modes, UpdatePolicy ProbabilitiesUpdate>
-struct GeneticSpecFor<Modes, ScaledMixtureFamily<ProbabilitiesUpdate>>
+template <GeneticModeSet Modes, MixtureWeightUpdate WeightUpdate>
+struct GeneticSpecFor<Modes, ScaledMixtureFamily<WeightUpdate>>
 {
     using type = HomogeneousModeValues<Modes, ScaledMixture>;
 };
 
-template <UpdatePolicy ProbabilitiesUpdate, HalfNormalAsymmetry Axis>
+template <MixtureWeightUpdate WeightUpdate, HalfNormalAsymmetry Axis>
 struct GeneticSpecFor<
     GeneticMode::A | GeneticMode::D,
-    JointSpikeSlabFamily<ProbabilitiesUpdate, Axis>>
+    JointSpikeSlabFamily<WeightUpdate, Axis>>
 {
     using type = JointModeValues<
         ModeValues<GeneticMode::A | GeneticMode::D, Gaussian, HalfNormal<Axis>>,

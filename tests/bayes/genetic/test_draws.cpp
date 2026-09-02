@@ -58,6 +58,7 @@ using gelex::JointSpikeSlab;
 using gelex::JointSpikeSlabDraws;
 using gelex::JointSpikeSlabFamily;
 using gelex::JointSpikeSlabPrior;
+using gelex::MixtureWeightUpdate;
 using gelex::ModeValues;
 using gelex::ScalarDraw;
 using gelex::ScaledMixture;
@@ -66,7 +67,6 @@ using gelex::ScaledMixtureFamily;
 using gelex::SpikeSlabDraws;
 using gelex::SpikeSlabFamily;
 using gelex::SpikeSlabPrior;
-using gelex::UpdatePolicy;
 using gelex::VarianceLayout;
 using gelex::detail::genetic_draws_t;
 using gelex::detail::genetic_state_t;
@@ -85,7 +85,7 @@ using UnpooledSpikeSlabPriorA
     = ModeValues<mode_a, SpikeSlabPrior<VarianceLayout::Unpooled>>;
 using FixedUnpooledSpikeSlabPriorA = ModeValues<
     mode_a,
-    SpikeSlabPrior<VarianceLayout::Unpooled, UpdatePolicy::Fixed>>;
+    SpikeSlabPrior<VarianceLayout::Unpooled, MixtureWeightUpdate::Disabled>>;
 using JointPrior = JointModeValues<
     ModeValues<
         mode_ad,
@@ -95,9 +95,9 @@ using JointPrior = JointModeValues<
 
 using UnpooledSpikeSlabFamily = SpikeSlabFamily<VarianceLayout::Unpooled>;
 using FixedPooledSpikeSlabFamily
-    = SpikeSlabFamily<VarianceLayout::Pooled, UpdatePolicy::Fixed>;
+    = SpikeSlabFamily<VarianceLayout::Pooled, MixtureWeightUpdate::Disabled>;
 using MagnitudeJointSpikeSlabFamily = JointSpikeSlabFamily<
-    UpdatePolicy::Sampled,
+    MixtureWeightUpdate::Enabled,
     HalfNormalAsymmetry::Magnitude>;
 
 static_assert(
@@ -117,7 +117,7 @@ static_assert(std::same_as<
                       mode_a,
                       GeneticModeDraws<SpikeSlabDraws<
                           VarianceLayout::Unpooled,
-                          UpdatePolicy::Sampled>>>>>);
+                          MixtureWeightUpdate::Enabled>>>>>);
 static_assert(
     std::same_as<
         genetic_draws_t<JointPrior>,
@@ -129,7 +129,7 @@ static_assert(
                 GeneticModeDraws<HalfNormalDraws<HalfNormalAsymmetry::Count>>>,
             JointSpikeSlabDraws<
                 JointSpikeSlab::class_count,
-                UpdatePolicy::Sampled>>>);
+                MixtureWeightUpdate::Enabled>>>);
 
 // Unlike state, the draws tree does distinguish fixed from sampled parameters:
 // a fixed parameter maps to EmptyDraw and reserves no payload.
@@ -142,17 +142,17 @@ static_assert(!std::same_as<
 static_assert(std::same_as<
               decltype(SpikeSlabDraws<
                        VarianceLayout::Unpooled,
-                       UpdatePolicy::Sampled>::probability),
+                       MixtureWeightUpdate::Enabled>::probability),
               ScalarDraw>);
-static_assert(
-    std::same_as<
-        decltype(SpikeSlabDraws<VarianceLayout::Unpooled, UpdatePolicy::Fixed>::
-                     probability),
-        EmptyDraw>);
+static_assert(std::same_as<
+              decltype(SpikeSlabDraws<
+                       VarianceLayout::Unpooled,
+                       MixtureWeightUpdate::Disabled>::probability),
+              EmptyDraw>);
 static_assert(std::same_as<
               decltype(ScaledMixtureDraws<
                        ScaledMixture::class_count,
-                       UpdatePolicy::Fixed>::probabilities),
+                       MixtureWeightUpdate::Disabled>::probabilities),
               EmptyDraw>);
 
 auto make_model(GeneticModeSet modes) -> BayesModel
@@ -174,12 +174,11 @@ TEST_CASE(
     const auto model = make_model(mode_a);
     const auto prior = gelex::make_prior(
         BayesRecipe<mode_a, UnpooledSpikeSlabFamily>::defaults(), model);
-    auto state
-        = gelex::detail::make_genetic_state(prior.genetic(), model.genetic());
+    auto state = gelex::detail::make_state(prior.genetic(), model.genetic());
 
     {
         gelex::BinaryWriter writer(path.string());
-        auto draws = gelex::detail::make_genetic_draws(
+        auto draws = gelex::detail::make_draws(
             prior.genetic(), model.genetic(), writer, 2);
 
         auto& additive = state.get<GeneticMode::A>();
@@ -223,12 +222,11 @@ TEST_CASE("a fixed probability reserves no payload", "[bayes][draws][genetic]")
     const auto model = make_model(mode_a);
     const auto prior = gelex::make_prior(
         BayesRecipe<mode_a, FixedPooledSpikeSlabFamily>::defaults(), model);
-    auto state
-        = gelex::detail::make_genetic_state(prior.genetic(), model.genetic());
+    auto state = gelex::detail::make_state(prior.genetic(), model.genetic());
 
     {
         gelex::BinaryWriter writer(path.string());
-        auto draws = gelex::detail::make_genetic_draws(
+        auto draws = gelex::detail::make_draws(
             prior.genetic(), model.genetic(), writer, 1);
         draws.append(state);
     }
@@ -250,12 +248,11 @@ TEST_CASE(
     const auto model = make_model(mode_a);
     const auto prior = gelex::make_prior(
         BayesRecipe<mode_a, ScaledMixtureFamily<>>::defaults(), model);
-    auto state
-        = gelex::detail::make_genetic_state(prior.genetic(), model.genetic());
+    auto state = gelex::detail::make_state(prior.genetic(), model.genetic());
 
     {
         gelex::BinaryWriter writer(path.string());
-        auto draws = gelex::detail::make_genetic_draws(
+        auto draws = gelex::detail::make_draws(
             prior.genetic(), model.genetic(), writer, 1);
 
         auto& additive = state.get<GeneticMode::A>();
@@ -287,12 +284,11 @@ TEST_CASE(
     const auto model = make_model(mode_ad);
     const auto prior = gelex::make_prior(
         BayesRecipe<mode_ad, JointSpikeSlabFamily<>>::defaults(), model);
-    auto state
-        = gelex::detail::make_genetic_state(prior.genetic(), model.genetic());
+    auto state = gelex::detail::make_state(prior.genetic(), model.genetic());
 
     {
         gelex::BinaryWriter writer(path.string());
-        auto draws = gelex::detail::make_genetic_draws(
+        auto draws = gelex::detail::make_draws(
             prior.genetic(), model.genetic(), writer, 1);
 
         auto& additive = state.mode_values().get<GeneticMode::A>();
@@ -357,12 +353,11 @@ TEST_CASE(
     const auto model = make_model(mode_ad);
     const auto prior = gelex::make_prior(
         BayesRecipe<mode_ad, MagnitudeJointSpikeSlabFamily>::defaults(), model);
-    auto state
-        = gelex::detail::make_genetic_state(prior.genetic(), model.genetic());
+    auto state = gelex::detail::make_state(prior.genetic(), model.genetic());
 
     {
         gelex::BinaryWriter writer(path.string());
-        auto draws = gelex::detail::make_genetic_draws(
+        auto draws = gelex::detail::make_draws(
             prior.genetic(), model.genetic(), writer, 1);
 
         auto& dominance = state.mode_values().get<GeneticMode::D>();

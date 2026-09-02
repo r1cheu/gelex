@@ -33,7 +33,7 @@ class BayesModel
    public:
     BayesModel(
         Eigen::VectorXd phenotype,
-        FixedDesign fixed_design,
+        FixedDesign fixed,
         std::vector<bayes::RandomDesign> random,
         bayes::GeneticDesign genetic);
 
@@ -43,25 +43,23 @@ class BayesModel
     auto operator=(BayesModel&&) noexcept -> BayesModel& = default;
     ~BayesModel() = default;
 
-    auto fixed() const -> const FixedDesign& { return fixed_; }
+    auto num_individuals() const -> Eigen::Index { return num_individuals_; }
 
+    auto phenotype() const -> const Eigen::VectorXd& { return phenotype_; }
+    auto phenotype_variance() const -> double { return phenotype_var_; }
+
+    auto fixed() const -> const FixedDesign& { return fixed_; }
     auto random() const -> std::span<const bayes::RandomDesign>
     {
         return random_;
     }
-
     auto genetic() const -> const bayes::GeneticDesign& { return genetic_; }
-
-    auto phenotype() const -> const Eigen::VectorXd& { return phenotype_; }
-
-    auto phenotype_variance() const -> double { return phenotype_var_; }
-    auto num_individuals() const -> Eigen::Index { return num_individuals_; }
 
    private:
     Eigen::Index num_individuals_{};
-    double phenotype_var_{};
 
     Eigen::VectorXd phenotype_;
+    double phenotype_var_{};
 
     FixedDesign fixed_;
     std::vector<bayes::RandomDesign> random_;

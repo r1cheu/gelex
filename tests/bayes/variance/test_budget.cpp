@@ -22,7 +22,7 @@
 #include <limits>
 #include <string>
 
-#include "gelex/bayes/variance_budget.h"
+#include "gelex/bayes/variance/budget.h"
 #include "gelex/exception.h"
 #include "gelex/genetic_mode.h"
 

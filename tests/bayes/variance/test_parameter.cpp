@@ -17,7 +17,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <limits>
 
-#include "gelex/bayes/variance_parameter.h"
+#include "gelex/bayes/variance/parameter.h"
 #include "gelex/exception.h"
 
 TEST_CASE(

@@ -51,9 +51,9 @@ struct MarkerVarianceDrawType<VarianceLayout::Unpooled>
 template <VarianceLayout Kind>
 using marker_variance_draw_t = typename MarkerVarianceDrawType<Kind>::type;
 
-template <UpdatePolicy Policy, typename Draw>
-using policy_draw_t
-    = std::conditional_t<Policy == UpdatePolicy::Sampled, Draw, EmptyDraw>;
+template <MixtureWeightUpdate Update, typename Draw>
+using weight_draw_t = std::
+    conditional_t<Update == MixtureWeightUpdate::Enabled, Draw, EmptyDraw>;
 
 }  // namespace detail
 
@@ -101,12 +101,12 @@ struct HalfNormalDraws<HalfNormalAsymmetry::Magnitude>
     }
 };
 
-template <VarianceLayout Kind, UpdatePolicy ProbabilityUpdate>
+template <VarianceLayout Kind, MixtureWeightUpdate WeightUpdate>
 struct SpikeSlabDraws
 {
     detail::marker_variance_draw_t<Kind> variance;
     CategoryDraw<2> assignment;
-    detail::policy_draw_t<ProbabilityUpdate, ScalarDraw> probability;
+    detail::weight_draw_t<WeightUpdate, ScalarDraw> probability;
 
     auto append(const SpikeSlabState<Kind>& state) -> void
     {
@@ -116,12 +116,12 @@ struct SpikeSlabDraws
     }
 };
 
-template <std::size_t ClassCount, UpdatePolicy ProbabilitiesUpdate>
+template <std::size_t ClassCount, MixtureWeightUpdate WeightUpdate>
 struct ScaledMixtureDraws
 {
     ScalarDraw variance;
     CategoryDraw<ClassCount> assignment;
-    detail::policy_draw_t<ProbabilitiesUpdate, VectorDraw> probabilities;
+    detail::weight_draw_t<WeightUpdate, VectorDraw> probabilities;
     VectorDraw component_explained_variance;
 
     auto append(const ScaledMixtureState<ClassCount>& state) -> void
@@ -134,11 +134,11 @@ struct ScaledMixtureDraws
     }
 };
 
-template <std::size_t ClassCount, UpdatePolicy ProbabilitiesUpdate>
+template <std::size_t ClassCount, MixtureWeightUpdate WeightUpdate>
 struct JointSpikeSlabDraws
 {
     CategoryDraw<ClassCount> assignment;
-    detail::policy_draw_t<ProbabilitiesUpdate, VectorDraw> probabilities;
+    detail::weight_draw_t<WeightUpdate, VectorDraw> probabilities;
     VectorDraw component_explained_variance;
 
     auto append(const JointSpikeSlabState<ClassCount>& state) -> void

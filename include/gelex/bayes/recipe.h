@@ -21,7 +21,7 @@
 #include <utility>
 
 #include "gelex/bayes/detail/genetic_spec.h"
-#include "gelex/bayes/variance_budget.h"
+#include "gelex/bayes/variance/budget.h"
 #include "gelex/exception.h"
 #include "gelex/genetic_mode.h"
 

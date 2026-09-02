@@ -24,7 +24,7 @@
 #include "gelex/bayes/state.h"
 #include "gelex/bayes/stats/normal_sampler.h"
 #include "gelex/bayes/stats/scaled_inv_chi2_sampler.h"
-#include "gelex/bayes/variance_parameter.h"
+#include "gelex/bayes/variance/parameter.h"
 #include "gelex/data/fixed_design.h"
 
 namespace gelex::detail

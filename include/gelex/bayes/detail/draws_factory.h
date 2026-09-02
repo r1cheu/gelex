@@ -110,12 +110,12 @@ template <VarianceLayout Kind>
     }
 }
 
-template <UpdatePolicy Policy>
+template <MixtureWeightUpdate Update>
 [[nodiscard]] auto make_probability_draw(
     GeneticDrawsBuilder& builder,
-    std::string_view name) -> policy_draw_t<Policy, ScalarDraw>
+    std::string_view name) -> weight_draw_t<Update, ScalarDraw>
 {
-    if constexpr (Policy == UpdatePolicy::Sampled)
+    if constexpr (Update == MixtureWeightUpdate::Enabled)
     {
         return builder.scalar(name);
     }
@@ -125,11 +125,11 @@ template <UpdatePolicy Policy>
     }
 }
 
-template <UpdatePolicy Policy, std::size_t ClassCount>
+template <MixtureWeightUpdate Update, std::size_t ClassCount>
 [[nodiscard]] auto make_probabilities_draw(GeneticDrawsBuilder& builder)
-    -> policy_draw_t<Policy, VectorDraw>
+    -> weight_draw_t<Update, VectorDraw>
 {
-    if constexpr (Policy == UpdatePolicy::Sampled)
+    if constexpr (Update == MixtureWeightUpdate::Enabled)
     {
         return builder.vector(
             "probabilities", static_cast<Eigen::Index>(ClassCount));
@@ -150,14 +150,14 @@ template <std::size_t ComponentCount>
 }
 
 template <VarianceLayout Kind>
-[[nodiscard]] auto make_family_draws(
+[[nodiscard]] auto make_draws(
     const GaussianPrior<Kind>& /*prior*/,
     GeneticDrawsBuilder& builder) -> GaussianDraws<Kind>
 {
     return {.variance = make_marker_variance_draw<Kind>(builder)};
 }
 
-[[nodiscard]] inline auto make_family_draws(
+[[nodiscard]] inline auto make_draws(
     const HalfNormalPrior<HalfNormalAsymmetry::Count>& /*prior*/,
     GeneticDrawsBuilder& builder) -> HalfNormalDraws<HalfNormalAsymmetry::Count>
 {
@@ -167,7 +167,7 @@ template <VarianceLayout Kind>
         .positive_probability = builder.scalar("positive_probability")};
 }
 
-[[nodiscard]] inline auto make_family_draws(
+[[nodiscard]] inline auto make_draws(
     const HalfNormalPrior<HalfNormalAsymmetry::Magnitude>& /*prior*/,
     GeneticDrawsBuilder& builder)
     -> HalfNormalDraws<HalfNormalAsymmetry::Magnitude>
@@ -178,53 +178,53 @@ template <VarianceLayout Kind>
         = builder.category<3>("assignment", builder.marker_count())};
 }
 
-template <VarianceLayout Kind, UpdatePolicy ProbabilityUpdate>
-[[nodiscard]] auto make_family_draws(
-    const SpikeSlabPrior<Kind, ProbabilityUpdate>& /*prior*/,
-    GeneticDrawsBuilder& builder) -> SpikeSlabDraws<Kind, ProbabilityUpdate>
+template <VarianceLayout Kind, MixtureWeightUpdate WeightUpdate>
+[[nodiscard]] auto make_draws(
+    const SpikeSlabPrior<Kind, WeightUpdate>& /*prior*/,
+    GeneticDrawsBuilder& builder) -> SpikeSlabDraws<Kind, WeightUpdate>
 {
     return {
         .variance = make_marker_variance_draw<Kind>(builder),
         .assignment = builder.category<2>("assignment", builder.marker_count()),
         .probability
-        = make_probability_draw<ProbabilityUpdate>(builder, "probability")};
+        = make_probability_draw<WeightUpdate>(builder, "probability")};
 }
 
-template <std::size_t ClassCount, UpdatePolicy ProbabilitiesUpdate>
-[[nodiscard]] auto make_family_draws(
-    const ScaledMixturePrior<ClassCount, ProbabilitiesUpdate>& /*prior*/,
+template <std::size_t ClassCount, MixtureWeightUpdate WeightUpdate>
+[[nodiscard]] auto make_draws(
+    const ScaledMixturePrior<ClassCount, WeightUpdate>& /*prior*/,
     GeneticDrawsBuilder& builder)
-    -> ScaledMixtureDraws<ClassCount, ProbabilitiesUpdate>
+    -> ScaledMixtureDraws<ClassCount, WeightUpdate>
 {
     return {
         .variance = builder.scalar("variance"),
         .assignment
         = builder.category<ClassCount>("assignment", builder.marker_count()),
         .probabilities
-        = make_probabilities_draw<ProbabilitiesUpdate, ClassCount>(builder),
+        = make_probabilities_draw<WeightUpdate, ClassCount>(builder),
         .component_explained_variance = make_component_explained_variance_draw<
             ScaledMixtureState<ClassCount>::component_count>(builder)};
 }
 
 // Rows follow the fitted column layout of JointSpikeSlabState: A in A-only,
 // A in AD, D in D-only, D in AD.
-template <std::size_t ClassCount, UpdatePolicy ProbabilitiesUpdate>
-[[nodiscard]] auto make_family_draws(
-    const JointSpikeSlabPrior<ClassCount, ProbabilitiesUpdate>& /*prior*/,
+template <std::size_t ClassCount, MixtureWeightUpdate WeightUpdate>
+[[nodiscard]] auto make_draws(
+    const JointSpikeSlabPrior<ClassCount, WeightUpdate>& /*prior*/,
     GeneticDrawsBuilder& builder)
-    -> JointSpikeSlabDraws<ClassCount, ProbabilitiesUpdate>
+    -> JointSpikeSlabDraws<ClassCount, WeightUpdate>
 {
     return {
         .assignment
         = builder.category<ClassCount>("assignment", builder.marker_count()),
         .probabilities
-        = make_probabilities_draw<ProbabilitiesUpdate, ClassCount>(builder),
+        = make_probabilities_draw<WeightUpdate, ClassCount>(builder),
         .component_explained_variance = make_component_explained_variance_draw<
             JointSpikeSlabState<ClassCount>::component_count>(builder)};
 }
 
 template <typename Prior>
-[[nodiscard]] auto make_mode_draws(
+[[nodiscard]] auto make_draws(
     const Prior& prior,
     BinaryWriter& writer,
     std::string prefix,
@@ -232,14 +232,32 @@ template <typename Prior>
 {
     GeneticDrawsBuilder builder{writer, std::move(prefix), dimensions};
     auto coefficients = builder.vector("coefficients", dimensions.marker_count);
-    auto family_draws = make_family_draws(prior, builder);
+    auto family_draws = make_draws(prior, builder);
     return GeneticModeDraws<decltype(family_draws)>{
         .coefficients = std::move(coefficients),
         .family_draws = std::move(family_draws)};
 }
 
 template <GeneticModeSet Modes, typename... Priors>
-[[nodiscard]] auto make_genetic_draws(
+[[nodiscard]] auto make_draws(
+    const ModeValues<Modes, Priors...>& prior,
+    BinaryWriter& writer,
+    GeneticDrawsDimensions dimensions)
+{
+    return transform_mode_values(
+        prior,
+        [&]<GeneticMode Mode>(const auto& mode_prior)
+        {
+            return make_draws(
+                mode_prior,
+                writer,
+                fmt::format("genetic/{}", Mode),
+                dimensions);
+        });
+}
+
+template <GeneticModeSet Modes, typename... Priors>
+[[nodiscard]] auto make_draws(
     const ModeValues<Modes, Priors...>& prior,
     const bayes::GeneticDesign& design,
     BinaryWriter& writer,
@@ -247,23 +265,14 @@ template <GeneticModeSet Modes, typename... Priors>
 {
     const auto dimensions = GeneticDrawsDimensions{
         .marker_count = design.cols(), .draw_count = draw_count};
-    auto mode_draws = transform_mode_values(
-        prior,
-        [&]<GeneticMode Mode>(const auto& mode_prior)
-        {
-            return make_mode_draws(
-                mode_prior,
-                writer,
-                fmt::format("genetic/{}", Mode),
-                dimensions);
-        });
+    auto mode_draws = make_draws(prior, writer, dimensions);
     using GeneticState = genetic_state_t<ModeValues<Modes, Priors...>>;
     return IndependentDraws<GeneticState, decltype(mode_draws)>{
         std::move(mode_draws)};
 }
 
 template <typename ModeValuesType, typename JointPrior>
-[[nodiscard]] auto make_genetic_draws(
+[[nodiscard]] auto make_draws(
     const JointModeValues<ModeValuesType, JointPrior>& prior,
     const bayes::GeneticDesign& design,
     BinaryWriter& writer,
@@ -271,18 +280,9 @@ template <typename ModeValuesType, typename JointPrior>
 {
     const auto dimensions = GeneticDrawsDimensions{
         .marker_count = design.cols(), .draw_count = draw_count};
-    auto mode_draws = transform_mode_values(
-        prior.mode_values(),
-        [&]<GeneticMode Mode>(const auto& mode_prior)
-        {
-            return make_mode_draws(
-                mode_prior,
-                writer,
-                fmt::format("genetic/{}", Mode),
-                dimensions);
-        });
+    auto mode_draws = make_draws(prior.mode_values(), writer, dimensions);
     GeneticDrawsBuilder joint_builder{writer, "genetic/joint", dimensions};
-    auto joint_draws = make_family_draws(prior.joint(), joint_builder);
+    auto joint_draws = make_draws(prior.joint(), joint_builder);
     using GeneticState
         = genetic_state_t<JointModeValues<ModeValuesType, JointPrior>>;
     return JointDraws<
@@ -292,7 +292,7 @@ template <typename ModeValuesType, typename JointPrior>
 }
 
 template <typename Prior>
-using genetic_draws_t = decltype(make_genetic_draws(
+using genetic_draws_t = decltype(make_draws(
     std::declval<const Prior&>(),
     std::declval<const bayes::GeneticDesign&>(),
     std::declval<BinaryWriter&>(),

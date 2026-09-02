@@ -197,7 +197,6 @@ auto BinaryWriter::reserve_payload(
 
 auto BinaryWriter::append_bytes(
     std::size_t index,
-    BinaryType type,
     std::span<const std::byte> bytes) -> void
 {
     assert(index < reservations_.size());
@@ -210,7 +209,6 @@ auto BinaryWriter::append_bytes(
     }
 
     auto& reservation = reservations_[index];
-    assert(reservation.entry.info.descriptor.type == type);
     const auto byte_count = static_cast<std::uint64_t>(bytes.size());
     const auto written = reservation.cursor - reservation.entry.offset;
     if (byte_count > reservation.entry.size - written)

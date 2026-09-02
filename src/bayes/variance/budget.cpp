@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "gelex/bayes/variance_budget.h"
+#include "gelex/bayes/variance/budget.h"
 
 #include <cmath>
 #include <fmt/format.h>

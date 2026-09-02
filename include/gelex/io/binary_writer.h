@@ -94,8 +94,9 @@ class BinaryWriter
     ~BinaryWriter() noexcept;
 
     template <detail::SupportedDtype T>
-    [[nodiscard]] auto reserve(std::string_view identifier, BinaryShape shape)
-        -> PayloadWriter<T>
+    [[nodiscard]] auto reserve(
+        std::string_view identifier,
+        BinaryShape shape) & -> PayloadWriter<T>
     {
         auto owned_identifier = std::string{identifier};
         const auto index = reserve_payload(
@@ -118,10 +119,8 @@ class BinaryWriter
         std::string_view identifier,
         BinaryType type,
         BinaryShape shape) -> std::size_t;
-    auto append_bytes(
-        std::size_t index,
-        BinaryType type,
-        std::span<const std::byte> bytes) -> void;
+    auto append_bytes(std::size_t index, std::span<const std::byte> bytes)
+        -> void;
     auto finalize() -> void;
     auto check_duplicate_identifier(std::string_view identifier) const -> void;
     static auto align_up(std::uint64_t value, std::uint64_t alignment)
@@ -172,8 +171,7 @@ auto PayloadWriter<T>::append(std::span<const T> payload) -> void
         throw GelexException("payload writer is invalid");
     }
     assert(std::cmp_equal(payload.size(), shape_[0]));
-    writer_->append_bytes(
-        index_, detail::binary_type_for<T>, std::as_bytes(payload));
+    writer_->append_bytes(index_, std::as_bytes(payload));
     ++columns_written_;
 }
 
@@ -192,8 +190,7 @@ auto PayloadWriter<T>::write(std::span<const T> payload) -> void
     }
     assert(columns_written_ == 0);
     assert(std::cmp_equal(payload.size(), shape_[0] * shape_[1]));
-    writer_->append_bytes(
-        index_, detail::binary_type_for<T>, std::as_bytes(payload));
+    writer_->append_bytes(index_, std::as_bytes(payload));
     columns_written_ = shape_[1];
 }
 

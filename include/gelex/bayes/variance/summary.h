@@ -17,12 +17,12 @@
 #ifndef GELEX_BAYES_VARIANCE_SUMMARY_H_
 #define GELEX_BAYES_VARIANCE_SUMMARY_H_
 
-#include <Eigen/Core>
 #include <cmath>
-#include <cstddef>
 #include <fmt/format.h>
+#include <span>
 #include <string_view>
 #include <utility>
+#include <vector>
 
 #include "gelex/bayes/genetic/state.h"
 #include "gelex/bayes/mode_values.h"
@@ -39,7 +39,7 @@ class VarianceSummary;
 
 template <typename GeneticPrior>
 [[nodiscard]] auto make_variance_summary(const BayesState<GeneticPrior>& state)
-    -> VarianceSummary<BayesState<GeneticPrior>::genetic_state_type::modes>;
+    -> VarianceSummary<GeneticPrior::modes>;
 
 template <GeneticModeSet Modes>
 class VarianceSummary
@@ -59,6 +59,11 @@ class VarianceSummary
     [[nodiscard]] constexpr auto random_total() const noexcept -> double
     {
         return random_total_;
+    }
+
+    [[nodiscard]] auto random() const noexcept -> std::span<const double>
+    {
+        return random_;
     }
 
     [[nodiscard]] constexpr auto residual() const noexcept -> double
@@ -85,18 +90,23 @@ class VarianceSummary
    private:
     VarianceSummary(
         HomogeneousModeValues<Modes, double> genetic,
-        double genetic_total,
-        double random_total,
+        std::vector<double> random,
         double residual)
         : genetic_{std::move(genetic)},
-          genetic_total_{genetic_total},
-          random_total_{random_total},
+          random_{std::move(random)},
           residual_{residual}
     {
-        genetic_.for_each([]<GeneticMode /*Mode*/>(double value)
-                          { require_component(value, "genetic"); });
-        require_component(genetic_total_, "total genetic");
-        require_component(random_total_, "random");
+        genetic_.for_each(
+            [&]<GeneticMode /*Mode*/>(double value)
+            {
+                require_component(value, "genetic");
+                genetic_total_ += value;
+            });
+        for (const double value : random_)
+        {
+            require_component(value, "random");
+            random_total_ += value;
+        }
         require_component(residual_, "residual");
         if (phenotypic() <= 0.0)
         {
@@ -120,39 +130,26 @@ class VarianceSummary
 
     template <typename GeneticPrior>
     friend auto make_variance_summary(const BayesState<GeneticPrior>& state)
-        -> VarianceSummary<BayesState<GeneticPrior>::genetic_state_type::modes>;
+        -> VarianceSummary<GeneticPrior::modes>;
 
     HomogeneousModeValues<Modes, double> genetic_;
-    double genetic_total_;
-    double random_total_;
+    std::vector<double> random_;
+    double genetic_total_{0.0};
+    double random_total_{0.0};
     double residual_;
 };
 
-// decltype(auto) is load-bearing: a single-mode fold is that mode's own vector
-// and several modes fold into a lazy expression, so deducing by value would
-// materialize a length-n vector on every draw.
-template <GeneticModeSet Modes, typename GeneticState>
-[[nodiscard]] auto total_genetic_value(const GeneticState& genetic)
-    -> decltype(auto)
-{
-    return [&]<std::size_t... Index>(
-               std::index_sequence<Index...>) -> decltype(auto)
-    {
-        return (genetic_value(genetic.template get<Modes.at(Index)>()) + ...);
-    }(std::make_index_sequence<Modes.size()>{});
-}
-
 template <typename GeneticPrior>
 [[nodiscard]] auto make_variance_summary(const BayesState<GeneticPrior>& state)
-    -> VarianceSummary<BayesState<GeneticPrior>::genetic_state_type::modes>
+    -> VarianceSummary<GeneticPrior::modes>
 {
-    constexpr auto modes = BayesState<GeneticPrior>::genetic_state_type::modes;
+    constexpr auto modes = GeneticPrior::modes;
     const auto& genetic = state.genetic();
-
-    double random_total = 0.0;
+    std::vector<double> random;
+    random.reserve(state.random().size());
     for (const auto& block : state.random())
     {
-        random_total += vecvar(block.fitted_values, VarNormType::Population);
+        random.push_back(vecvar(block.fitted_values, VarNormType::Population));
     }
 
     return VarianceSummary<modes>{
@@ -163,8 +160,7 @@ template <typename GeneticPrior>
                     genetic_value(genetic.template get<Mode>()),
                     VarNormType::Population);
             }),
-        vecvar(total_genetic_value<modes>(genetic), VarNormType::Population),
-        random_total,
+        std::move(random),
         state.residual().variance};
 }
 

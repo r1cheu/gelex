@@ -28,10 +28,10 @@ enum class VarianceLayout : std::uint8_t
     Unpooled,
 };
 
-enum class UpdatePolicy : std::uint8_t
+enum class MixtureWeightUpdate : std::uint8_t
 {
-    Fixed,
-    Sampled,
+    Disabled,
+    Enabled,
 };
 
 enum class HalfNormalAsymmetry : std::uint8_t
@@ -47,18 +47,18 @@ struct GaussianFamily
 
 template <
     VarianceLayout Kind,
-    UpdatePolicy ProbabilityUpdate = UpdatePolicy::Sampled>
+    MixtureWeightUpdate WeightUpdate = MixtureWeightUpdate::Enabled>
 struct SpikeSlabFamily
 {
 };
 
-template <UpdatePolicy ProbabilitiesUpdate = UpdatePolicy::Sampled>
+template <MixtureWeightUpdate WeightUpdate = MixtureWeightUpdate::Enabled>
 struct ScaledMixtureFamily
 {
 };
 
 template <
-    UpdatePolicy ProbabilitiesUpdate = UpdatePolicy::Sampled,
+    MixtureWeightUpdate WeightUpdate = MixtureWeightUpdate::Enabled,
     HalfNormalAsymmetry Axis = HalfNormalAsymmetry::Count>
 struct JointSpikeSlabFamily
 {
