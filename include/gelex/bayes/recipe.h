@@ -17,72 +17,108 @@
 #ifndef GELEX_BAYES_RECIPE_H_
 #define GELEX_BAYES_RECIPE_H_
 
-#include <fmt/format.h>
-#include <string_view>
+#include <concepts>
+#include <utility>
 
-#include "gelex/bayes/prior.h"
-#include "gelex/bayes/recipe_options.h"
-#include "gelex/bayes/scheme.h"
+#include "gelex/bayes/detail/recipe_validation.h"
+#include "gelex/bayes/genetic/independent_topology.h"
+#include "gelex/bayes/semantic_method.h"
+#include "gelex/bayes/spec.h"
+#include "gelex/bayes/variance_budget.h"
+#include "gelex/types/genetic_mode.h"
 
 namespace gelex
 {
-class BayesModel;
-}  // namespace gelex
 
-namespace gelex::bayes
+namespace detail
 {
 
-class BayesRecipe
+template <typename Method, GeneticModeSet Modes>
+struct MethodParameters;
+
+template <Variance Kind, GeneticModeSet Modes>
+struct MethodParameters<GaussianMethod<Kind>, Modes>
 {
-   public:
-    explicit BayesRecipe(BayesRecipeOptions options);
-    ~BayesRecipe();
-
-    BayesRecipe(const BayesRecipe&) = delete;
-    auto operator=(const BayesRecipe&) -> BayesRecipe& = delete;
-
-    BayesRecipe(BayesRecipe&&) noexcept = delete;
-    auto operator=(BayesRecipe&&) noexcept -> BayesRecipe& = delete;
-
-    auto make_prior(const BayesModel& model) const -> BayesPrior;
-
-   private:
-    auto make_random_prior(const BayesModel& model) const -> RandomPrior;
-    static auto make_residual_prior(const BayesModel& model) -> ResidualPrior;
-
-    BayesRecipeOptions options_;
-    BayesScheme scheme_;
+    using type = NoParameters;
 };
 
-auto to_bayes_recipe_scheme(std::string_view recipe_scheme)
-    -> BayesRecipeScheme;
+template <Variance Kind, GeneticModeSet Modes>
+struct MethodParameters<SpikeSlabMethod<Kind>, Modes>
+{
+    using type = IndependentTopology<Modes, SpikeSlab>;
+};
 
-}  // namespace gelex::bayes
+template <GeneticModeSet Modes>
+struct MethodParameters<ScaledMixtureMethod, Modes>
+{
+    using type = IndependentTopology<Modes, ScaledMixture>;
+};
 
 template <>
-struct fmt::formatter<gelex::bayes::BayesRecipeScheme>
-    : fmt::formatter<std::string_view>
+struct MethodParameters<JointSpikeSlabMethod, GeneticMode::A | GeneticMode::D>
 {
-    auto format(gelex::bayes::BayesRecipeScheme recipe_scheme, auto& ctx) const
+    using type = JointSpikeSlab;
+};
+
+template <typename Method, GeneticModeSet Modes>
+using method_parameters_t = typename MethodParameters<Method, Modes>::type;
+
+template <typename SemanticMethod, GeneticModeSet Modes>
+concept SupportedSemanticMethod = Modes.size() > 0 && requires {
+    typename method_parameters_t<SemanticMethod, Modes>;
+};
+
+}  // namespace detail
+
+template <typename SemanticMethod, GeneticModeSet Modes>
+    requires detail::SupportedSemanticMethod<SemanticMethod, Modes>
+class BayesRecipe
+{
+    using MethodParameterT = detail::method_parameters_t<SemanticMethod, Modes>;
+
+   public:
+    static constexpr GeneticModeSet modes = Modes;
+    using method_type = SemanticMethod;
+
+    BayesRecipe(MethodParameterT parameters, VarianceBudget variance)
+        : parameters_(std::move(parameters)), variance_(variance)
     {
-        return fmt::formatter<std::string_view>::format(
-            to_string_view(recipe_scheme), ctx);
+        validate();
+    }
+
+    explicit BayesRecipe(VarianceBudget variance)
+        requires std::same_as<MethodParameterT, NoParameters>
+        : variance_(variance)
+    {
+        validate();
+    }
+
+    [[nodiscard]] static auto defaults() -> BayesRecipe
+    {
+        return BayesRecipe{
+            MethodParameterT{}, VarianceBudget{default_shares(Modes)}};
+    }
+
+    [[nodiscard]] auto parameters() const noexcept -> const MethodParameterT&
+    {
+        return parameters_;
+    }
+
+    [[nodiscard]] auto variance() const noexcept -> const VarianceBudget&
+    {
+        return variance_;
     }
 
    private:
-    static constexpr auto to_string_view(
-        gelex::bayes::BayesRecipeScheme recipe_scheme) -> std::string_view
+    auto validate() const -> void
     {
-        for (const auto& [value, name] :
-             gelex::bayes::BAYES_RECIPE_SCHEME_NAMES)
-        {
-            if (value == recipe_scheme)
-            {
-                return name;
-            }
-        }
-        return "unknown";
+        detail::validate_recipe_inputs(parameters_, variance_, Modes);
     }
+
+    [[no_unique_address]] MethodParameterT parameters_;
+    VarianceBudget variance_;
 };
+
+}  // namespace gelex
 
 #endif  // GELEX_BAYES_RECIPE_H_

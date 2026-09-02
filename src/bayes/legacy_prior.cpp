@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "gelex/bayes/prior.h"
+#include "gelex/bayes/legacy_prior.h"
 
 #include <fmt/format.h>
 #include <ranges>
@@ -25,7 +25,7 @@
 #include <variant>
 #include <vector>
 
-#include "gelex/bayes/genetic/prior.h"
+#include "gelex/bayes/genetic/legacy_genetic_prior.h"
 #include "gelex/exception.h"
 #include "gelex/infra/field_visitor.h"
 #include "gelex/types/genetic_mode.h"

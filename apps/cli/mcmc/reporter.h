@@ -22,7 +22,7 @@
 #include <string>
 #include <string_view>
 
-#include "gelex/bayes/prior.h"
+#include "gelex/bayes/legacy_prior.h"
 #include "gelex/infra/logging/fit_event.h"
 #include "gelex/infra/logging/geno_event.h"
 #include "gelex/types/genetic_mode.h"

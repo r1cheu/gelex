@@ -14,15 +14,15 @@
  * limitations under the License.
  */
 
-#include "gelex/bayes/recipe.h"
+#include "gelex/bayes/legacy_recipe.h"
 
 #include <fmt/format.h>
 #include <string_view>
 #include <utility>
 #include <variant>
 
+#include "gelex/bayes/legacy_prior.h"
 #include "gelex/bayes/model.h"
-#include "gelex/bayes/prior.h"
 #include "gelex/bayes/recipe_options.h"
 #include "gelex/exception.h"
 

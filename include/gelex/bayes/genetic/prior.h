@@ -17,50 +17,90 @@
 #ifndef GELEX_BAYES_GENETIC_PRIOR_H_
 #define GELEX_BAYES_GENETIC_PRIOR_H_
 
-#include <Eigen/Core>
-#include <string_view>
-#include <variant>
+#include <array>
+#include <cstddef>
+#include <optional>
+#include <utility>
 
-#include "gelex/bayes/genetic/gaussian_prior.h"
-#include "gelex/bayes/genetic/half_normal_prior.h"
-#include "gelex/bayes/genetic/prior_state.h"
-#include "gelex/types/genetic_mode.h"
+#include "gelex/bayes/semantic_method.h"
 
 namespace gelex
 {
-class FieldVisitor;
-}
 
-namespace gelex::bayes
+struct ScaledInvChiSqPrior
 {
+    double degrees_of_freedom{-2.0};
+    double scale{0.0};
+};
 
-inline constexpr std::string_view SINGLE_GENETIC_PRIOR_NAME = "single";
-inline constexpr std::string_view JOINT_GENETIC_PRIOR_NAME = "joint";
+struct BetaPrior
+{
+    double alpha{1.0};
+    double beta{1.0};
+};
 
-using SingleGeneticPrior = std::variant<
-    SingleSharedGaussianPrior,
-    SinglePerMarkerGaussianPrior,
-    SingleSharedSpikeSlabGaussianPrior,
-    SinglePerMarkerSpikeSlabGaussianPrior,
-    SingleScaledMixtureGaussianPrior>;
+template <std::size_t Classes>
+struct DirichletPrior
+{
+    constexpr DirichletPrior() { concentration.fill(1.0); }
 
-using JointGeneticPrior
-    = std::variant<JointGaussianMixturePrior, JointHalfNormalMixturePrior>;
+    explicit constexpr DirichletPrior(std::array<double, Classes> concentration)
+        : concentration{std::move(concentration)}
+    {
+    }
 
-auto mode(const SingleGeneticPrior& prior) -> GeneticMode;
+    std::array<double, Classes> concentration;
+};
 
-auto visit(SingleGeneticPrior& prior, FieldVisitor& visitor) -> void;
-auto visit(JointGeneticPrior& prior, FieldVisitor& visitor) -> void;
+// A quantity the user may pin. An absent hyperprior is UpdatePolicy::Fixed
+// compiled down: nothing samples the value, so there is no prior to hold.
+template <typename Value, typename Hyper>
+struct Updatable
+{
+    Value initial;
+    std::optional<Hyper> prior;
+};
 
-auto make_state(
-    const SingleGeneticPrior& prior,
-    Eigen::Index num_markers,
-    Eigen::Index num_individuals) -> SingleGeneticPriorState;
-auto make_state(
-    const JointGeneticPrior& prior,
-    Eigen::Index num_markers,
-    Eigen::Index num_individuals) -> JointGeneticPriorState;
+// A quantity the chain always samples: the calibrated starting value and the
+// hyperprior it is drawn under.
+struct VarianceParameter
+{
+    double initial{};
+    ScaledInvChiSqPrior prior;
+};
 
-}  // namespace gelex::bayes
+using ProbabilityParameter = Updatable<double, BetaPrior>;
+
+template <std::size_t Classes>
+using SimplexParameter
+    = Updatable<std::array<double, Classes>, DirichletPrior<Classes>>;
+
+template <Variance Kind>
+struct GaussianPrior
+{
+    VarianceParameter variance;
+};
+
+template <Variance Kind>
+struct SpikeSlabPrior
+{
+    VarianceParameter variance;
+    ProbabilityParameter probability;
+};
+
+struct ScaledMixturePrior
+{
+    VarianceParameter variance;
+    SimplexParameter<5> probabilities;
+    std::array<double, 5> scales{};
+};
+
+struct JointSpikeSlabPrior
+{
+    SimplexParameter<4> probabilities;
+    ProbabilityParameter positive_probability;
+};
+
+}  // namespace gelex
 
 #endif  // GELEX_BAYES_GENETIC_PRIOR_H_

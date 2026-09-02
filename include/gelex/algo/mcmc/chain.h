@@ -26,8 +26,8 @@
 #include "gelex/algo/mcmc/steps/random.h"
 #include "gelex/algo/mcmc/steps/residual.h"
 #include "gelex/algo/mcmc/steps/single_genetic_step.h"
+#include "gelex/bayes/legacy_prior.h"
 #include "gelex/bayes/model.h"
-#include "gelex/bayes/prior.h"
 #include "gelex/bayes/state.h"
 
 namespace gelex

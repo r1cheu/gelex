@@ -17,8 +17,8 @@
 #include <vector>
 
 #include "gelex/bayes/genetic/gaussian_prior.h"
+#include "gelex/bayes/genetic/legacy_genetic_prior.h"
 #include "gelex/bayes/genetic/parameters.h"
-#include "gelex/bayes/genetic/prior.h"
 #include "gelex/bayes/model.h"
 #include "gelex/bayes/recipe_options.h"
 #include "gelex/bayes/scheme.h"

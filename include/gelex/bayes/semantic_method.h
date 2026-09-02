@@ -14,35 +14,38 @@
  * limitations under the License.
  */
 
-#include "gelex/algo/mcmc/steps/residual.h"
+#ifndef GELEX_BAYES_SEMANTIC_METHOD_H_
+#define GELEX_BAYES_SEMANTIC_METHOD_H_
 
-#include <Eigen/Core>
-#include <random>
-
-#include "gelex/bayes/legacy_prior.h"
-#include "gelex/bayes/state.h"
+#include <cstdint>
 
 namespace gelex
 {
 
-ResidualStep::ResidualStep(
-    Eigen::Index num_individuals,
-    const bayes::ResidualPrior& prior,
-    bayes::ResidualState& state,
-    std::mt19937_64& rng)
-    : num_individuals_(num_individuals),
-      state_(state),
-      rng_(rng),
-      sampler_(prior.prior())
+enum class Variance : std::uint8_t
 {
-}
+    Pooled,
+    Unpooled,
+};
 
-auto ResidualStep::step() -> void
+template <Variance Kind>
+struct GaussianMethod
 {
-    sampler_.reset();
-    state_.variance = sampler_(
-        {.n = num_individuals_, .sum_squares = state_.y_adj.squaredNorm()},
-        rng_);
-}
+};
+
+template <Variance Kind>
+struct SpikeSlabMethod
+{
+};
+
+struct ScaledMixtureMethod
+{
+};
+
+struct JointSpikeSlabMethod
+{
+};
 
 }  // namespace gelex
+
+#endif  // GELEX_BAYES_SEMANTIC_METHOD_H_
