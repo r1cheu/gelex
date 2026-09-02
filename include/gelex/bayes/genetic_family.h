@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_BAYES_SEMANTIC_METHOD_H_
-#define GELEX_BAYES_SEMANTIC_METHOD_H_
+#ifndef GELEX_BAYES_GENETIC_FAMILY_H_
+#define GELEX_BAYES_GENETIC_FAMILY_H_
 
 #include <cstdint>
 
@@ -41,29 +41,29 @@ enum class HalfNormalAsymmetry : std::uint8_t
 };
 
 template <VarianceLayout Kind>
-struct GaussianMethod
+struct GaussianFamily
 {
 };
 
 template <
     VarianceLayout Kind,
     UpdatePolicy ProbabilityUpdate = UpdatePolicy::Sampled>
-struct SpikeSlabMethod
+struct SpikeSlabFamily
 {
 };
 
 template <UpdatePolicy ProbabilitiesUpdate = UpdatePolicy::Sampled>
-struct ScaledMixtureMethod
+struct ScaledMixtureFamily
 {
 };
 
 template <
     UpdatePolicy ProbabilitiesUpdate = UpdatePolicy::Sampled,
     HalfNormalAsymmetry Axis = HalfNormalAsymmetry::Count>
-struct JointSpikeSlabMethod
+struct JointSpikeSlabFamily
 {
 };
 
 }  // namespace gelex
 
-#endif  // GELEX_BAYES_SEMANTIC_METHOD_H_
+#endif  // GELEX_BAYES_GENETIC_FAMILY_H_

@@ -15,10 +15,13 @@
  */
 
 #include <Eigen/Core>
+#include <array>
 #include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <cmath>
 #include <concepts>
+#include <cstdint>
+#include <span>
 
 #include "gelex/exception.h"
 #include "gelex/infra/stats/detail/running_stats.h"
@@ -28,6 +31,7 @@ namespace gelex
 {
 
 using Catch::Approx;
+using gelex::detail::CategoryRunningStats;
 using gelex::detail::ScalarRunningStats;
 using gelex::detail::VectorRunningStats;
 
@@ -91,6 +95,41 @@ TEST_CASE(
         REQUIRE(result.mean.isApprox(Eigen::VectorXd{{2.0, 5.0}}));
         REQUIRE(result.stddev.isApprox(
             Eigen::VectorXd{{std::sqrt(2.0), std::sqrt(8.0)}}));
+    }
+}
+
+TEST_CASE(
+    "CategoryRunningStats computes per-item category probabilities",
+    "[infra][stats][running_stats]")
+{
+    SECTION("requires a positive size")
+    {
+        REQUIRE_THROWS_AS(CategoryRunningStats<3>{0}, GelexException);
+        REQUIRE_THROWS_AS(CategoryRunningStats<3>{-1}, GelexException);
+    }
+
+    CategoryRunningStats<3> stats{2};
+    static_assert(
+        std::same_as<decltype(stats.result()), CategoryRunningStatsResult>);
+
+    const std::array<std::uint8_t, 2> first{0, 1};
+    stats.update(first);
+
+    SECTION("single sample")
+    {
+        const auto result = stats.result();
+        const Eigen::MatrixXd expected{{1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}};
+        REQUIRE(result.probabilities.isApprox(expected));
+    }
+
+    SECTION("multiple samples")
+    {
+        const std::array<std::uint8_t, 2> second{2, 1};
+        stats.update(std::span{second});
+
+        const auto result = stats.result();
+        const Eigen::MatrixXd expected{{0.5, 0.0, 0.5}, {0.0, 1.0, 0.0}};
+        REQUIRE(result.probabilities.isApprox(expected));
     }
 }
 

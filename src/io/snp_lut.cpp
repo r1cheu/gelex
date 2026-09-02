@@ -69,7 +69,7 @@ auto write_snp_luts(
                 BinaryShape{
                     static_cast<std::uint64_t>(luts.rows()),
                     static_cast<std::uint64_t>(luts.cols())})
-            .append(
+            .write(
                 std::span<const double>{
                     luts.data(), static_cast<std::size_t>(luts.size())});
     }

@@ -28,14 +28,14 @@
 namespace gelex
 {
 
-template <GeneticModeSet Modes, typename SemanticMethod>
-    requires detail::SupportedSemanticMethod<Modes, SemanticMethod>
+template <GeneticModeSet Modes, typename GeneticFamily>
+    requires detail::SupportedGeneticFamily<Modes, GeneticFamily>
 class BayesRecipe
 {
    public:
     static constexpr GeneticModeSet modes = Modes;
-    using method_type = SemanticMethod;
-    using genetic_spec_type = detail::genetic_spec_t<Modes, SemanticMethod>;
+    using family_type = GeneticFamily;
+    using genetic_spec_type = detail::genetic_spec_t<Modes, GeneticFamily>;
 
     BayesRecipe(genetic_spec_type genetic_spec, VarianceBudget variance)
         : genetic_spec_(std::move(genetic_spec)), variance_(variance)

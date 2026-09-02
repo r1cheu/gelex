@@ -110,11 +110,7 @@ auto check_dot_impl(Dot impl) -> void
         }
 
         const double expected = decoded.dot(residual);
-        const double actual = impl(
-            genotype_column,
-            lut,
-            std::span<const double>{
-                residual.data(), static_cast<std::size_t>(residual.size())});
+        const double actual = impl(genotype_column, lut, residual);
 
         REQUIRE(actual == Catch::Approx(expected).epsilon(1e-12).margin(1e-12));
     }
@@ -153,13 +149,7 @@ auto check_axpy_impl(Axpy impl) -> void
                 Eigen::VectorXd expected = initial_residual;
                 expected.array() += scale * decoded.array();
                 Eigen::VectorXd actual = initial_residual;
-                impl(
-                    genotype_column,
-                    lut,
-                    scale,
-                    std::span<double>{
-                        actual.data(),
-                        static_cast<std::size_t>(actual.size())});
+                impl(genotype_column, lut, scale, actual);
 
                 REQUIRE(actual.isApprox(expected, 1e-13));
             }
@@ -243,10 +233,8 @@ TEST_CASE(
     const Eigen::Vector4d decoded = const_luts.col(0).matrix();
 
     const double expected = decoded.dot(residual);
-    const double actual = gelex::bayes::dot(
-        genotype_column,
-        const_luts.col(0),
-        std::span<const double>{residual.data(), 4});
+    const double actual
+        = gelex::bayes::dot(genotype_column, const_luts.col(0), residual);
 
     REQUIRE(actual == Catch::Approx(expected).epsilon(1e-12).margin(1e-12));
 }
@@ -277,11 +265,7 @@ TEST_CASE(
     expected.array() += 0.25 * decoded.array();
     Eigen::Vector4d actual = initial_residual;
 
-    gelex::bayes::axpy(
-        genotype_column,
-        const_luts.col(0),
-        0.25,
-        std::span<double>{actual.data(), 4});
+    gelex::bayes::axpy(genotype_column, const_luts.col(0), 0.25, actual);
 
     REQUIRE(actual.isApprox(expected));
 }

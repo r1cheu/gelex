@@ -17,6 +17,7 @@
 #ifndef GELEX_IO_BINARY_WRITER_H_
 #define GELEX_IO_BINARY_WRITER_H_
 
+#include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <span>
@@ -46,17 +47,28 @@ class PayloadWriter
 
     auto append(std::span<const T> payload) -> void;
     auto append(T value) -> void;
+    auto write(std::span<const T> payload) -> void;
+
+    [[nodiscard]] auto rows() const noexcept -> std::uint64_t
+    {
+        return shape_[0];
+    }
 
    private:
     friend class BinaryWriter;
 
-    PayloadWriter(BinaryWriter* writer, std::size_t index) noexcept
-        : writer_(writer), index_(index)
+    PayloadWriter(
+        BinaryWriter* writer,
+        std::size_t index,
+        BinaryShape shape) noexcept
+        : writer_(writer), index_(index), shape_(shape)
     {
     }
 
     BinaryWriter* writer_;
     std::size_t index_;
+    BinaryShape shape_;
+    std::uint64_t columns_written_{};
 };
 
 class BinaryWriter
@@ -78,7 +90,8 @@ class BinaryWriter
     {
         return PayloadWriter<T>{
             this,
-            reserve_payload(identifier, detail::binary_type_for<T>, shape)};
+            reserve_payload(identifier, detail::binary_type_for<T>, shape),
+            shape};
     }
 
    private:
@@ -118,7 +131,10 @@ class BinaryWriter
 
 template <detail::SupportedDtype T>
 PayloadWriter<T>::PayloadWriter(PayloadWriter&& other) noexcept
-    : writer_(std::exchange(other.writer_, nullptr)), index_(other.index_)
+    : writer_(std::exchange(other.writer_, nullptr)),
+      index_(other.index_),
+      shape_(other.shape_),
+      columns_written_(other.columns_written_)
 {
 }
 
@@ -130,6 +146,8 @@ auto PayloadWriter<T>::operator=(PayloadWriter&& other) noexcept
     {
         writer_ = std::exchange(other.writer_, nullptr);
         index_ = other.index_;
+        shape_ = other.shape_;
+        columns_written_ = other.columns_written_;
     }
     return *this;
 }
@@ -141,14 +159,30 @@ auto PayloadWriter<T>::append(std::span<const T> payload) -> void
     {
         throw GelexException("payload writer is invalid");
     }
+    assert(std::cmp_equal(payload.size(), shape_[0]));
     writer_->append_bytes(
         index_, detail::binary_type_for<T>, std::as_bytes(payload));
+    ++columns_written_;
 }
 
 template <detail::SupportedDtype T>
 auto PayloadWriter<T>::append(T value) -> void
 {
     append(std::span<const T>{&value, 1});
+}
+
+template <detail::SupportedDtype T>
+auto PayloadWriter<T>::write(std::span<const T> payload) -> void
+{
+    if (writer_ == nullptr)
+    {
+        throw GelexException("payload writer is invalid");
+    }
+    assert(columns_written_ == 0);
+    assert(std::cmp_equal(payload.size(), shape_[0] * shape_[1]));
+    writer_->append_bytes(
+        index_, detail::binary_type_for<T>, std::as_bytes(payload));
+    columns_written_ = shape_[1];
 }
 
 }  // namespace gelex

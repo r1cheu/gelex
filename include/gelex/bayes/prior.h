@@ -32,9 +32,9 @@ namespace gelex
 template <typename GeneticPrior>
 class BayesPrior;
 
-template <GeneticModeSet Modes, typename SemanticMethod>
+template <GeneticModeSet Modes, typename GeneticFamily>
 [[nodiscard]] auto make_prior(
-    const BayesRecipe<Modes, SemanticMethod>& recipe,
+    const BayesRecipe<Modes, GeneticFamily>& recipe,
     const BayesModel& model);
 
 template <typename GeneticPrior>
@@ -70,9 +70,9 @@ class BayesPrior
     {
     }
 
-    template <GeneticModeSet Modes, typename SemanticMethod>
+    template <GeneticModeSet Modes, typename GeneticFamily>
     friend auto make_prior(
-        const BayesRecipe<Modes, SemanticMethod>& recipe,
+        const BayesRecipe<Modes, GeneticFamily>& recipe,
         const BayesModel& model);
 
     std::vector<VarianceParameter> random_;
@@ -80,15 +80,15 @@ class BayesPrior
     VarianceParameter residual_;
 };
 
-template <GeneticModeSet Modes, typename SemanticMethod>
+template <GeneticModeSet Modes, typename GeneticFamily>
 [[nodiscard]] auto make_prior(
-    const BayesRecipe<Modes, SemanticMethod>& recipe,
+    const BayesRecipe<Modes, GeneticFamily>& recipe,
     const BayesModel& model)
 {
     const double phenotype_variance = model.phenotype_variance();
     const detail::MarkerVarianceCalibrator calibrator{model, recipe.variance()};
     auto genetic = detail::make_genetic_prior<Modes>(
-        SemanticMethod{}, recipe.genetic_spec(), calibrator);
+        GeneticFamily{}, recipe.genetic_spec(), calibrator);
     auto random = detail::make_random_prior(
         model, recipe.variance(), phenotype_variance);
     auto residual = detail::make_mean_calibrated_variance_parameter(

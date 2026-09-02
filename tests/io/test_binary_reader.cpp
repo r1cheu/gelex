@@ -72,7 +72,7 @@ auto write_matrix(
             gelex::BinaryShape{
                 static_cast<std::uint64_t>(matrix.rows()),
                 static_cast<std::uint64_t>(matrix.cols())})
-        .append(
+        .write(
             std::span<const T>{
                 matrix.data(), static_cast<std::size_t>(matrix.size())});
 }

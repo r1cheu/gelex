@@ -17,7 +17,7 @@
 #ifndef GELEX_BAYES_DETAIL_GENETIC_SPEC_H_
 #define GELEX_BAYES_DETAIL_GENETIC_SPEC_H_
 
-#include "gelex/bayes/semantic_method.h"
+#include "gelex/bayes/genetic_family.h"
 #include "gelex/bayes/spec.h"
 #include "gelex/types/genetic_mode.h"
 #include "gelex/types/mode_values.h"
@@ -25,11 +25,11 @@
 namespace gelex::detail
 {
 
-template <GeneticModeSet Modes, typename Method>
+template <GeneticModeSet Modes, typename Family>
 struct GeneticSpecFor;
 
 template <GeneticModeSet Modes, VarianceLayout Kind>
-struct GeneticSpecFor<Modes, GaussianMethod<Kind>>
+struct GeneticSpecFor<Modes, GaussianFamily<Kind>>
 {
     using type = Gaussian;
 };
@@ -38,13 +38,13 @@ template <
     GeneticModeSet Modes,
     VarianceLayout Kind,
     UpdatePolicy ProbabilityUpdate>
-struct GeneticSpecFor<Modes, SpikeSlabMethod<Kind, ProbabilityUpdate>>
+struct GeneticSpecFor<Modes, SpikeSlabFamily<Kind, ProbabilityUpdate>>
 {
     using type = HomogeneousModeValues<Modes, SpikeSlab>;
 };
 
 template <GeneticModeSet Modes, UpdatePolicy ProbabilitiesUpdate>
-struct GeneticSpecFor<Modes, ScaledMixtureMethod<ProbabilitiesUpdate>>
+struct GeneticSpecFor<Modes, ScaledMixtureFamily<ProbabilitiesUpdate>>
 {
     using type = HomogeneousModeValues<Modes, ScaledMixture>;
 };
@@ -52,19 +52,19 @@ struct GeneticSpecFor<Modes, ScaledMixtureMethod<ProbabilitiesUpdate>>
 template <UpdatePolicy ProbabilitiesUpdate, HalfNormalAsymmetry Axis>
 struct GeneticSpecFor<
     GeneticMode::A | GeneticMode::D,
-    JointSpikeSlabMethod<ProbabilitiesUpdate, Axis>>
+    JointSpikeSlabFamily<ProbabilitiesUpdate, Axis>>
 {
     using type = JointModeValues<
         ModeValues<GeneticMode::A | GeneticMode::D, Gaussian, HalfNormal<Axis>>,
         JointSpikeSlab>;
 };
 
-template <GeneticModeSet Modes, typename Method>
-using genetic_spec_t = typename GeneticSpecFor<Modes, Method>::type;
+template <GeneticModeSet Modes, typename Family>
+using genetic_spec_t = typename GeneticSpecFor<Modes, Family>::type;
 
-template <GeneticModeSet Modes, typename SemanticMethod>
-concept SupportedSemanticMethod
-    = requires { typename genetic_spec_t<Modes, SemanticMethod>; };
+template <GeneticModeSet Modes, typename GeneticFamily>
+concept SupportedGeneticFamily
+    = requires { typename genetic_spec_t<Modes, GeneticFamily>; };
 
 }  // namespace gelex::detail
 

@@ -18,7 +18,6 @@
 #define GELEX_BAYES_GENOTYPE_OPERATIONS_H_
 
 #include <Eigen/Core>
-#include <cstddef>
 #include <cstdint>
 #include <span>
 
@@ -30,8 +29,7 @@ struct AxpyTarget
     AxpyTarget() = default;
 
     AxpyTarget(double scale, Eigen::Ref<Eigen::VectorXd> values) noexcept
-        : scale{scale},
-          values{values.data(), static_cast<std::size_t>(values.size())}
+        : scale{scale}, values{values}
     {
     }
 

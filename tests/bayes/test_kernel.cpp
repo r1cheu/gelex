@@ -25,10 +25,10 @@
 #include <utility>
 #include <vector>
 
+#include "gelex/bayes/genetic_family.h"
 #include "gelex/bayes/kernel.h"
 #include "gelex/bayes/prior.h"
 #include "gelex/bayes/recipe.h"
-#include "gelex/bayes/semantic_method.h"
 #include "gelex/bayes/spec.h"
 #include "gelex/bayes/state.h"
 #include "gelex/bayes/variance_budget.h"
@@ -46,18 +46,18 @@ namespace
 
 constexpr auto mode_a = gelex::GeneticModeSet{gelex::GeneticMode::A};
 constexpr auto mode_ad = gelex::GeneticMode::A | gelex::GeneticMode::D;
-using Method = gelex::GaussianMethod<gelex::VarianceLayout::Pooled>;
-using UnpooledMethod = gelex::GaussianMethod<gelex::VarianceLayout::Unpooled>;
-using PooledSpikeSlabMethod
-    = gelex::SpikeSlabMethod<gelex::VarianceLayout::Pooled>;
-using UnpooledSpikeSlabMethod
-    = gelex::SpikeSlabMethod<gelex::VarianceLayout::Unpooled>;
-using FixedUnpooledSpikeSlabMethod = gelex::SpikeSlabMethod<
+using Family = gelex::GaussianFamily<gelex::VarianceLayout::Pooled>;
+using UnpooledFamily = gelex::GaussianFamily<gelex::VarianceLayout::Unpooled>;
+using PooledSpikeSlabFamily
+    = gelex::SpikeSlabFamily<gelex::VarianceLayout::Pooled>;
+using UnpooledSpikeSlabFamily
+    = gelex::SpikeSlabFamily<gelex::VarianceLayout::Unpooled>;
+using FixedUnpooledSpikeSlabFamily = gelex::SpikeSlabFamily<
     gelex::VarianceLayout::Unpooled,
     gelex::UpdatePolicy::Fixed>;
-using SampledScaledMixtureMethod = gelex::ScaledMixtureMethod<>;
-using FixedScaledMixtureMethod
-    = gelex::ScaledMixtureMethod<gelex::UpdatePolicy::Fixed>;
+using SampledScaledMixtureFamily = gelex::ScaledMixtureFamily<>;
+using FixedScaledMixtureFamily
+    = gelex::ScaledMixtureFamily<gelex::UpdatePolicy::Fixed>;
 using AdditiveGeneticPrior = gelex::
     ModeValues<mode_a, gelex::GaussianPrior<gelex::VarianceLayout::Pooled>>;
 using AdditiveDominanceGeneticPrior = gelex::ModeValues<
@@ -243,7 +243,7 @@ TEST_CASE(
 {
     const auto model = make_model();
     const auto prior = gelex::make_prior(
-        gelex::BayesRecipe<mode_a, Method>::defaults(), model);
+        gelex::BayesRecipe<mode_a, Family>::defaults(), model);
     auto state = gelex::make_state(prior, model);
     auto kernel = gelex::make_kernel(prior);
     std::mt19937_64 rng{123};
@@ -271,7 +271,7 @@ TEST_CASE(
 {
     const auto model = make_ad_model();
     const auto prior = gelex::make_prior(
-        gelex::BayesRecipe<mode_ad, Method>::defaults(), model);
+        gelex::BayesRecipe<mode_ad, Family>::defaults(), model);
     auto state = gelex::make_state(prior, model);
     auto kernel = gelex::make_kernel(prior);
     std::mt19937_64 rng{123};
@@ -305,7 +305,7 @@ TEST_CASE(
 {
     const auto model = make_model();
     const auto prior = gelex::make_prior(
-        gelex::BayesRecipe<mode_a, UnpooledMethod>::defaults(), model);
+        gelex::BayesRecipe<mode_a, UnpooledFamily>::defaults(), model);
     auto state = gelex::make_state(prior, model);
     auto kernel = gelex::make_kernel(prior);
     const double invalid_marker_variance
@@ -336,7 +336,7 @@ TEST_CASE(
 {
     const auto model = make_ad_model();
     const auto prior = gelex::make_prior(
-        gelex::BayesRecipe<mode_ad, Method>::defaults(), model);
+        gelex::BayesRecipe<mode_ad, Family>::defaults(), model);
     auto state = gelex::make_state(prior, model);
     auto kernel = gelex::make_kernel(prior);
     const auto incomplete_model = make_model();
@@ -359,7 +359,7 @@ TEST_CASE(
 {
     const auto model = make_model_with_random();
     const auto prior = gelex::make_prior(
-        gelex::BayesRecipe<mode_a, Method>{
+        gelex::BayesRecipe<mode_a, Family>{
             gelex::VarianceBudget{{.additive = 0.4, .random = 0.1}}},
         model);
     auto state = gelex::make_state(prior, model);
@@ -390,7 +390,7 @@ TEST_CASE(
 {
     const auto model = make_model();
     const auto prior = gelex::make_prior(
-        gelex::BayesRecipe<mode_a, PooledSpikeSlabMethod>{
+        gelex::BayesRecipe<mode_a, PooledSpikeSlabFamily>{
             gelex::ModeValues<mode_a, gelex::SpikeSlab>{gelex::SpikeSlab{0.5}},
             gelex::VarianceBudget{{.additive = 0.4}}},
         model);
@@ -433,7 +433,7 @@ TEST_CASE(
 {
     const auto model = make_ad_model();
     const auto prior = gelex::make_prior(
-        gelex::BayesRecipe<mode_ad, PooledSpikeSlabMethod>{
+        gelex::BayesRecipe<mode_ad, PooledSpikeSlabFamily>{
             gelex::ModeValues<mode_ad, gelex::SpikeSlab, gelex::SpikeSlab>{
                 gelex::SpikeSlab{0.5}, gelex::SpikeSlab{0.5}},
             gelex::VarianceBudget{{.additive = 0.4, .dominance = 0.1}}},
@@ -479,7 +479,7 @@ TEST_CASE(
     const auto model = make_model();
     constexpr double fixed_probability = 1.0e-12;
     const auto prior = gelex::make_prior(
-        gelex::BayesRecipe<mode_a, FixedUnpooledSpikeSlabMethod>{
+        gelex::BayesRecipe<mode_a, FixedUnpooledSpikeSlabFamily>{
             gelex::ModeValues<mode_a, gelex::SpikeSlab>{
                 gelex::SpikeSlab{fixed_probability}},
             gelex::VarianceBudget{{.additive = 0.4}}},
@@ -516,7 +516,7 @@ TEST_CASE(
     const auto model = make_model();
     constexpr std::array probabilities{0.05, 0.1, 0.15, 0.2, 0.5};
     const auto prior = gelex::make_prior(
-        gelex::BayesRecipe<mode_a, SampledScaledMixtureMethod>{
+        gelex::BayesRecipe<mode_a, SampledScaledMixtureFamily>{
             gelex::ModeValues<mode_a, gelex::ScaledMixture>{
                 gelex::ScaledMixture{probabilities}},
             gelex::VarianceBudget{{.additive = 0.4}}},
@@ -570,7 +570,7 @@ TEST_CASE(
     constexpr std::array probabilities{
         1.0e-12, 1.0e-12, 1.0e-12, 1.0e-12, 1.0 - 4.0e-12};
     const auto prior = gelex::make_prior(
-        gelex::BayesRecipe<mode_a, FixedScaledMixtureMethod>{
+        gelex::BayesRecipe<mode_a, FixedScaledMixtureFamily>{
             gelex::ModeValues<mode_a, gelex::ScaledMixture>{
                 gelex::ScaledMixture{probabilities}},
             gelex::VarianceBudget{{.additive = 0.4}}},

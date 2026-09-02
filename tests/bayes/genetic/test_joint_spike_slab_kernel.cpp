@@ -25,10 +25,10 @@
 #include <utility>
 
 #include "gelex/bayes/genetic/prior.h"
+#include "gelex/bayes/genetic_family.h"
 #include "gelex/bayes/kernel.h"
 #include "gelex/bayes/prior.h"
 #include "gelex/bayes/recipe.h"
-#include "gelex/bayes/semantic_method.h"
 #include "gelex/bayes/spec.h"
 #include "gelex/bayes/state.h"
 #include "gelex/bayes/variance_budget.h"
@@ -300,13 +300,13 @@ TEST_CASE(
     "joint count kernel maintains totals and fixed component groups",
     "[bayes][kernel][joint_spike_slab]")
 {
-    using Method = gelex::JointSpikeSlabMethod<
+    using Family = gelex::JointSpikeSlabFamily<
         gelex::UpdatePolicy::Sampled,
         gelex::HalfNormalAsymmetry::Count>;
     constexpr std::array probabilities{0.25, 0.25, 0.25, 0.25};
     const auto model = make_model();
     const auto prior = gelex::make_prior(
-        gelex::BayesRecipe<mode_ad, Method>{
+        gelex::BayesRecipe<mode_ad, Family>{
             JointGeneticSpec<gelex::HalfNormalAsymmetry::Count>{
                 JointModeSpecs<gelex::HalfNormalAsymmetry::Count>{
                     gelex::Gaussian{},
@@ -338,13 +338,13 @@ TEST_CASE(
     "joint fixed allocation kernel preserves class probabilities",
     "[bayes][kernel][joint_spike_slab]")
 {
-    using Method = gelex::JointSpikeSlabMethod<
+    using Family = gelex::JointSpikeSlabFamily<
         gelex::UpdatePolicy::Fixed,
         gelex::HalfNormalAsymmetry::Count>;
     constexpr std::array probabilities{0.1, 0.2, 0.3, 0.4};
     const auto model = make_model();
     const auto prior = gelex::make_prior(
-        gelex::BayesRecipe<mode_ad, Method>{
+        gelex::BayesRecipe<mode_ad, Family>{
             JointGeneticSpec<gelex::HalfNormalAsymmetry::Count>{
                 JointModeSpecs<gelex::HalfNormalAsymmetry::Count>{
                     gelex::Gaussian{},
@@ -367,13 +367,13 @@ TEST_CASE(
     "joint magnitude kernel updates negative and positive variances",
     "[bayes][kernel][joint_spike_slab]")
 {
-    using Method = gelex::JointSpikeSlabMethod<
+    using Family = gelex::JointSpikeSlabFamily<
         gelex::UpdatePolicy::Sampled,
         gelex::HalfNormalAsymmetry::Magnitude>;
     constexpr std::array probabilities{0.25, 0.25, 0.25, 0.25};
     const auto model = make_model();
     const auto prior = gelex::make_prior(
-        gelex::BayesRecipe<mode_ad, Method>{
+        gelex::BayesRecipe<mode_ad, Family>{
             JointGeneticSpec<gelex::HalfNormalAsymmetry::Magnitude>{
                 JointModeSpecs<gelex::HalfNormalAsymmetry::Magnitude>{
                     gelex::Gaussian{},
