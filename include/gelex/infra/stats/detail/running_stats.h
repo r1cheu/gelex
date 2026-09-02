@@ -19,11 +19,8 @@
 
 #include <Eigen/Core>
 #include <cassert>
-#include <cmath>
 #include <cstddef>
-#include <type_traits>
 
-#include "gelex/exception.h"
 #include "gelex/infra/stats/result.h"
 
 namespace gelex::detail
@@ -74,110 +71,6 @@ class VectorRunningStats
     Eigen::VectorXd mean_;
     Eigen::VectorXd m2_;
     Eigen::VectorXd delta_;
-};
-
-class RunningStats
-{
-   public:
-    RunningStats() = default;
-
-    auto update(double value) -> void
-    {
-        if (rows_ == 0)
-        {
-            rows_ = 1;
-            mean_ = Eigen::VectorXd::Zero(1);
-            m2_ = Eigen::VectorXd::Zero(1);
-        }
-        if (rows_ != 1)
-        {
-            throw GelexException("Scalar update on multi-row RunningStats");
-        }
-        if (!std::isfinite(value))
-        {
-            throw GelexException("Non-finite value in RunningStats::update");
-        }
-        ++count_;
-        const double delta = value - mean_(0);
-        mean_(0) += delta / static_cast<double>(count_);
-        const double delta2 = value - mean_(0);
-        m2_(0) += delta * delta2;
-    }
-
-    template <typename Derived>
-        requires std::is_arithmetic_v<typename Derived::Scalar>
-    auto update(const Eigen::DenseBase<Derived>& block) -> void
-    {
-        if (rows_ != 0 && block.rows() != rows_)
-        {
-            throw GelexException("Row size mismatch in RunningStats::update");
-        }
-
-        if (block.cols() == 0)
-        {
-            return;
-        }
-
-        if (rows_ == 0 && block.rows() == 0)
-        {
-            throw GelexException("Zero-row block in RunningStats::update");
-        }
-
-        if (!block.derived().allFinite())
-        {
-            throw GelexException("Non-finite value in RunningStats::update");
-        }
-
-        if (rows_ == 0)
-        {
-            rows_ = block.rows();
-            mean_ = Eigen::VectorXd::Zero(rows_);
-            m2_ = Eigen::VectorXd::Zero(rows_);
-        }
-
-        if (column_buffer_.size() != rows_)
-        {
-            column_buffer_.resize(rows_);
-            delta_buffer_.resize(rows_);
-            delta2_buffer_.resize(rows_);
-        }
-
-        for (Eigen::Index col = 0; col < block.cols(); ++col)
-        {
-            ++count_;
-            auto inv_count = 1.0 / static_cast<double>(count_);
-
-            column_buffer_ = block.derived().col(col).template cast<double>();
-            delta_buffer_ = column_buffer_ - mean_;
-            mean_ += delta_buffer_ * inv_count;
-            delta2_buffer_ = column_buffer_ - mean_;
-            m2_ += delta_buffer_.cwiseProduct(delta2_buffer_);
-        }
-    }
-
-    auto result() const -> RunningStatsResult;
-
-   private:
-    Eigen::Index rows_{0};
-    std::size_t count_{0};
-    Eigen::VectorXd mean_;
-    Eigen::VectorXd m2_;
-    Eigen::VectorXd column_buffer_;
-    Eigen::VectorXd delta_buffer_;
-    Eigen::VectorXd delta2_buffer_;
-};
-
-class CategoricalFrequency
-{
-   public:
-    CategoricalFrequency(Eigen::Index n_items, Eigen::Index n_categories);
-
-    auto update(const Eigen::Ref<const Eigen::VectorXi>& categories) -> void;
-    auto take_probabilities() && -> CategoryProbResult;
-
-   private:
-    Eigen::MatrixXd probabilities_;
-    std::size_t count_{0};
 };
 
 }  // namespace gelex::detail

@@ -22,7 +22,7 @@
 #include <cstdint>
 #include <random>
 
-#include "gelex/bayes/design.h"
+#include "gelex/bayes/design_data.h"
 #include "gelex/bayes/genetic/prior.h"
 #include "gelex/bayes/genetic/probability_updater.h"
 #include "gelex/bayes/genetic/state.h"
@@ -163,14 +163,6 @@ class SpikeSlabKernel
     std::uniform_real_distribution<double> uniform_{0.0, 1.0};
     Eigen::VectorXd previous_adjusted_response_;
 };
-
-template <VarianceLayout Kind, UpdatePolicy ProbabilityUpdate>
-[[nodiscard]] auto make_mode_kernel(
-    const SpikeSlabPrior<Kind, ProbabilityUpdate>& prior)
-    -> SpikeSlabKernel<Kind, ProbabilityUpdate>
-{
-    return SpikeSlabKernel<Kind, ProbabilityUpdate>{prior};
-}
 
 }  // namespace gelex::detail
 

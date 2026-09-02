@@ -24,7 +24,7 @@
 #include <utility>
 #include <vector>
 
-#include "gelex/bayes/detail/genetic_state_compilation.h"
+#include "gelex/bayes/detail/state_factory.h"
 #include "gelex/bayes/model.h"
 #include "gelex/bayes/prior.h"
 #include "gelex/exception.h"
@@ -161,11 +161,6 @@ template <typename GeneticPrior>
             .adjusted_response = model.phenotype(),
             .variance = prior.residual().initial_value()}};
 }
-
-template <typename Prior>
-using bayes_state_t = decltype(make_state(
-    std::declval<const Prior&>(),
-    std::declval<const BayesModel&>()));
 
 }  // namespace gelex
 

@@ -24,7 +24,6 @@
 #include "cli/completion/args.h"
 #include "cli/grm/args.h"
 #include "cli/mcmc/args.h"
-#include "cli/post/args.h"
 #include "cli/predict/args.h"
 #include "cli/reml/args.h"
 #include "cli/simulate/args.h"
@@ -52,7 +51,6 @@ Docs: https://gelex.readthedocs.io/en/latest/)",
     setup_predict_command(program, exit_code);
     setup_grm_command(program, exit_code);
     setup_assoc_command(program, exit_code);
-    setup_post_command(program, exit_code);
     setup_reml_command(program, exit_code);
     setup_completion_command(program, exit_code);
 

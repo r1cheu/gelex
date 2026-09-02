@@ -26,8 +26,6 @@
 namespace gelex
 {
 
-class FieldVisitor;
-
 struct QuantitativeCovariate
 {
     std::vector<std::string> names;
@@ -73,8 +71,6 @@ struct FixedDesign
         std::optional<DiscreteCovariate> dcovariate) -> FixedDesign;
 
     static auto make(Eigen::Index n_samples) -> FixedDesign;
-
-    auto visit(FieldVisitor& visitor) const -> void;
 };
 
 }  // namespace gelex

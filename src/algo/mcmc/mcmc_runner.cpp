@@ -14,24 +14,22 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_INFRA_LOGGING_FIT_EVENT_H_
-#define GELEX_INFRA_LOGGING_FIT_EVENT_H_
+#include "gelex/algo/mcmc/mcmc_runner.h"
 
-#include <cstddef>
-#include <functional>
+#include <fmt/format.h>
+
+#include "gelex/exception.h"
 
 namespace gelex
 {
 
-struct MCMCProgressEvent
+MCMCRunner::MCMCRunner(int iterations) : iterations_{iterations}
 {
-    size_t current{};
-    size_t total{};
-    bool done{};
-};
-
-using MCMCObserver = std::function<void(const MCMCProgressEvent&)>;
+    if (iterations_ <= 0)
+    {
+        throw GelexException(
+            fmt::format("iterations must be positive, got {}", iterations_));
+    }
+}
 
 }  // namespace gelex
-
-#endif  // GELEX_INFRA_LOGGING_FIT_EVENT_H_

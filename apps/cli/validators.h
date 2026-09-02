@@ -30,7 +30,7 @@ auto non_negative_number() -> CLI::Validator;
 
 auto genotype_method_validator() -> CLI::Validator;
 
-auto bayes_recipe_scheme_validator() -> CLI::Validator;
+auto bayes_method_validator() -> CLI::Validator;
 
 auto genetic_mode_set_validator() -> CLI::Validator;
 

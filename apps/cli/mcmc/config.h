@@ -53,13 +53,9 @@ struct McmcConfig
     std::optional<bool> sample_dpi;
     std::optional<bool> sample_jpi;
     int iters{5000};
-    int burn_in{3000};
-    int thin{1};
     int seed{42};
     int threads{
         std::max(1, static_cast<int>(std::thread::hardware_concurrency() / 2))};
-    std::optional<int> checkpoint_step;
-    std::optional<std::string> from_ckpt;
 };
 
 }  // namespace cli

@@ -21,7 +21,7 @@
 #include <utility>
 #include <vector>
 
-#include "gelex/bayes/design.h"
+#include "gelex/bayes/design_data.h"
 #include "gelex/bayes/model.h"
 #include "gelex/data/bed.h"
 #include "gelex/data/genotype_method.h"

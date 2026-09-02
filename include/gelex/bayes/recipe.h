@@ -17,105 +17,45 @@
 #ifndef GELEX_BAYES_RECIPE_H_
 #define GELEX_BAYES_RECIPE_H_
 
-#include <concepts>
+#include <fmt/format.h>
 #include <utility>
 
-#include "gelex/bayes/detail/recipe_validation.h"
-#include "gelex/bayes/genetic/independent_topology.h"
-#include "gelex/bayes/genetic/joint_topology.h"
-#include "gelex/bayes/semantic_method.h"
-#include "gelex/bayes/spec.h"
+#include "gelex/bayes/detail/genetic_spec.h"
 #include "gelex/bayes/variance_budget.h"
+#include "gelex/exception.h"
 #include "gelex/types/genetic_mode.h"
 
 namespace gelex
 {
 
-namespace detail
-{
-
-template <typename Method, GeneticModeSet Modes>
-struct MethodParameters;
-
-template <GeneticModeSet Modes, typename T>
-using repeated_mode_parameters_t = decltype(generate_mode_values<Modes>(
-    []<GeneticMode /*Mode*/>() { return T{}; }));
-
-template <VarianceLayout Kind, GeneticModeSet Modes>
-struct MethodParameters<GaussianMethod<Kind>, Modes>
-{
-    using type = Gaussian;
-};
-
-template <
-    VarianceLayout Kind,
-    UpdatePolicy ProbabilityUpdate,
-    GeneticModeSet Modes>
-struct MethodParameters<SpikeSlabMethod<Kind, ProbabilityUpdate>, Modes>
-{
-    using type = repeated_mode_parameters_t<Modes, SpikeSlab>;
-};
-
-template <UpdatePolicy ProbabilitiesUpdate, GeneticModeSet Modes>
-struct MethodParameters<ScaledMixtureMethod<ProbabilitiesUpdate>, Modes>
-{
-    using type = repeated_mode_parameters_t<Modes, ScaledMixture>;
-};
-
-template <UpdatePolicy ProbabilitiesUpdate, HalfNormalAsymmetry Axis>
-struct MethodParameters<
-    JointSpikeSlabMethod<ProbabilitiesUpdate, Axis>,
-    GeneticMode::A | GeneticMode::D>
-{
-    using type = JointTopology<
-        IndependentTopology<
-            GeneticMode::A | GeneticMode::D,
-            Gaussian,
-            HalfNormal<Axis>>,
-        JointSpikeSlab>;
-};
-
-template <typename Method, GeneticModeSet Modes>
-using method_parameters_t = typename MethodParameters<Method, Modes>::type;
-
-template <typename SemanticMethod, GeneticModeSet Modes>
-concept SupportedSemanticMethod
-    = requires { typename method_parameters_t<SemanticMethod, Modes>; };
-
-}  // namespace detail
-
-template <typename SemanticMethod, GeneticModeSet Modes>
-    requires detail::SupportedSemanticMethod<SemanticMethod, Modes>
+template <GeneticModeSet Modes, typename SemanticMethod>
+    requires detail::SupportedSemanticMethod<Modes, SemanticMethod>
 class BayesRecipe
 {
-    using MethodParameterT = detail::method_parameters_t<SemanticMethod, Modes>;
-
    public:
     static constexpr GeneticModeSet modes = Modes;
     using method_type = SemanticMethod;
+    using genetic_spec_type = detail::genetic_spec_t<Modes, SemanticMethod>;
 
-    BayesRecipe(MethodParameterT parameters, VarianceBudget variance)
-        : parameters_(std::move(parameters)), variance_(variance)
+    BayesRecipe(genetic_spec_type genetic_spec, VarianceBudget variance)
+        : genetic_spec_(std::move(genetic_spec)), variance_(variance)
     {
         validate();
     }
 
     explicit BayesRecipe(VarianceBudget variance)
-        requires std::same_as<MethodParameterT, Gaussian>
-        : variance_(variance)
+        : BayesRecipe(genetic_spec_type{}, variance)
     {
-        validate();
     }
 
     [[nodiscard]] static auto defaults() -> BayesRecipe
     {
-        return BayesRecipe{
-            MethodParameterT{}, VarianceBudget{default_shares(Modes)}};
+        return BayesRecipe{VarianceBudget{default_shares(Modes)}};
     }
 
-    [[nodiscard]] auto parameters() const noexcept -> const MethodParameterT&
+    [[nodiscard]] auto genetic_spec() const noexcept -> const genetic_spec_type&
     {
-        return parameters_;
+        return genetic_spec_;
     }
 
     [[nodiscard]] auto variance() const noexcept -> const VarianceBudget&
@@ -126,10 +66,32 @@ class BayesRecipe
    private:
     auto validate() const -> void
     {
-        detail::validate_recipe_inputs(variance_, Modes);
+        for (const auto mode : all_genetic_modes)
+        {
+            const double share = variance_.share(mode);
+            const bool is_present = Modes.contains(mode);
+            if (is_present && share == 0.0)
+            {
+                throw GelexException(
+                    fmt::format(
+                        "invalid Bayes recipe input: {} variance share must "
+                        "be positive when the mode is present, got {}",
+                        mode,
+                        share));
+            }
+            if (!is_present && share != 0.0)
+            {
+                throw GelexException(
+                    fmt::format(
+                        "invalid Bayes recipe input: {} variance share must "
+                        "be zero when the mode is absent, got {}",
+                        mode,
+                        share));
+            }
+        }
     }
 
-    [[no_unique_address]] MethodParameterT parameters_;
+    [[no_unique_address]] genetic_spec_type genetic_spec_;
     VarianceBudget variance_;
 };
 

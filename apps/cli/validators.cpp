@@ -20,7 +20,7 @@
 #include <string>
 #include <vector>
 
-#include "gelex/bayes/recipe_options.h"
+#include "gelex/bayes/builtin_method.h"
 #include "gelex/data/genotype_method.h"
 #include "gelex/infra/stats/rank_inverse_norm_transform.h"
 #include "gelex/types/genetic_mode.h"
@@ -73,11 +73,11 @@ auto genotype_method_validator() -> CLI::Validator
     return CLI::IsMember(names, CLI::ignore_case);
 }
 
-auto bayes_recipe_scheme_validator() -> CLI::Validator
+auto bayes_method_validator() -> CLI::Validator
 {
     std::vector<std::string> names;
-    names.reserve(gelex::bayes::bayes_recipe_scheme_names.size());
-    for (const auto& [scheme, name] : gelex::bayes::bayes_recipe_scheme_names)
+    names.reserve(gelex::bayes_method_names.size());
+    for (const auto& [method, name] : gelex::bayes_method_names)
     {
         names.emplace_back(name);
     }

@@ -24,11 +24,9 @@
 #include <random>
 #include <utility>
 
-#include "gelex/bayes/genetic/independent_topology.h"
-#include "gelex/bayes/genetic/joint_topology.h"
 #include "gelex/bayes/genetic/prior.h"
 #include "gelex/bayes/kernel.h"
-#include "gelex/bayes/prior_compilation.h"
+#include "gelex/bayes/prior.h"
 #include "gelex/bayes/recipe.h"
 #include "gelex/bayes/semantic_method.h"
 #include "gelex/bayes/spec.h"
@@ -36,6 +34,7 @@
 #include "gelex/bayes/variance_budget.h"
 #include "gelex/data/genotype_method.h"
 #include "gelex/types/genetic_mode.h"
+#include "gelex/types/mode_values.h"
 
 #include "compact_genotype_fixture.h"
 
@@ -47,21 +46,21 @@ namespace
 constexpr auto mode_ad = gelex::GeneticMode::A | gelex::GeneticMode::D;
 
 template <gelex::HalfNormalAsymmetry Axis>
-using JointModeParameters = gelex::
-    IndependentTopology<mode_ad, gelex::Gaussian, gelex::HalfNormal<Axis>>;
+using JointModeSpecs
+    = gelex::ModeValues<mode_ad, gelex::Gaussian, gelex::HalfNormal<Axis>>;
 
 template <gelex::HalfNormalAsymmetry Axis>
-using JointParameters
-    = gelex::JointTopology<JointModeParameters<Axis>, gelex::JointSpikeSlab>;
+using JointGeneticSpec
+    = gelex::JointModeValues<JointModeSpecs<Axis>, gelex::JointSpikeSlab>;
 
 template <gelex::HalfNormalAsymmetry Axis>
-using JointModePriors = gelex::IndependentTopology<
+using JointModePriors = gelex::ModeValues<
     mode_ad,
     gelex::GaussianPrior<gelex::VarianceLayout::Pooled>,
     gelex::HalfNormalPrior<Axis>>;
 
 template <gelex::UpdatePolicy Policy, gelex::HalfNormalAsymmetry Axis>
-using JointGeneticPrior = gelex::JointTopology<
+using JointGeneticPrior = gelex::JointModeValues<
     JointModePriors<Axis>,
     gelex::JointSpikeSlabPrior<gelex::JointSpikeSlab::class_count, Policy>>;
 
@@ -306,10 +305,10 @@ TEST_CASE(
         gelex::HalfNormalAsymmetry::Count>;
     constexpr std::array probabilities{0.25, 0.25, 0.25, 0.25};
     const auto model = make_model();
-    const auto prior = gelex::compile(
-        gelex::BayesRecipe<Method, mode_ad>{
-            JointParameters<gelex::HalfNormalAsymmetry::Count>{
-                JointModeParameters<gelex::HalfNormalAsymmetry::Count>{
+    const auto prior = gelex::make_prior(
+        gelex::BayesRecipe<mode_ad, Method>{
+            JointGeneticSpec<gelex::HalfNormalAsymmetry::Count>{
+                JointModeSpecs<gelex::HalfNormalAsymmetry::Count>{
                     gelex::Gaussian{},
                     gelex::HalfNormal<gelex::HalfNormalAsymmetry::Count>{0.6}},
                 gelex::JointSpikeSlab{probabilities}},
@@ -344,10 +343,10 @@ TEST_CASE(
         gelex::HalfNormalAsymmetry::Count>;
     constexpr std::array probabilities{0.1, 0.2, 0.3, 0.4};
     const auto model = make_model();
-    const auto prior = gelex::compile(
-        gelex::BayesRecipe<Method, mode_ad>{
-            JointParameters<gelex::HalfNormalAsymmetry::Count>{
-                JointModeParameters<gelex::HalfNormalAsymmetry::Count>{
+    const auto prior = gelex::make_prior(
+        gelex::BayesRecipe<mode_ad, Method>{
+            JointGeneticSpec<gelex::HalfNormalAsymmetry::Count>{
+                JointModeSpecs<gelex::HalfNormalAsymmetry::Count>{
                     gelex::Gaussian{},
                     gelex::HalfNormal<gelex::HalfNormalAsymmetry::Count>{0.75}},
                 gelex::JointSpikeSlab{probabilities}},
@@ -373,10 +372,10 @@ TEST_CASE(
         gelex::HalfNormalAsymmetry::Magnitude>;
     constexpr std::array probabilities{0.25, 0.25, 0.25, 0.25};
     const auto model = make_model();
-    const auto prior = gelex::compile(
-        gelex::BayesRecipe<Method, mode_ad>{
-            JointParameters<gelex::HalfNormalAsymmetry::Magnitude>{
-                JointModeParameters<gelex::HalfNormalAsymmetry::Magnitude>{
+    const auto prior = gelex::make_prior(
+        gelex::BayesRecipe<mode_ad, Method>{
+            JointGeneticSpec<gelex::HalfNormalAsymmetry::Magnitude>{
+                JointModeSpecs<gelex::HalfNormalAsymmetry::Magnitude>{
                     gelex::Gaussian{},
                     gelex::HalfNormal<gelex::HalfNormalAsymmetry::Magnitude>{}},
                 gelex::JointSpikeSlab{probabilities}},

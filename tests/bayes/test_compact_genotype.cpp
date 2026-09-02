@@ -26,7 +26,7 @@
 #include <utility>
 #include <vector>
 
-#include "gelex/bayes/design.h"
+#include "gelex/bayes/design_data.h"
 #include "gelex/data/bed.h"
 #include "gelex/data/dataframe/index.h"
 #include "gelex/data/encode/encoder.h"

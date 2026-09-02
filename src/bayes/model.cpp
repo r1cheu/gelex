@@ -17,14 +17,13 @@
 #include "gelex/bayes/model.h"
 
 #include <Eigen/Core>
+#include <cmath>
 #include <fmt/format.h>
-#include <ranges>
 #include <utility>
 #include <vector>
 
-#include "gelex/bayes/design.h"
+#include "gelex/bayes/design_data.h"
 #include "gelex/exception.h"
-#include "gelex/infra/field_visitor.h"
 #include "gelex/infra/stats/detail/var.h"
 #include "gelex/types/fixed_designs.h"
 
@@ -41,8 +40,21 @@ BayesModel::BayesModel(
       genetic_(std::move(genetic))
 {
     num_individuals_ = phenotype_.rows();
+    if (num_individuals_ == 0)
+    {
+        throw GelexException("BayesModel: phenotype must not be empty");
+    }
+
     phenotype_var_
         = detail::vecvar(phenotype_, detail::VarNormType::Population);
+    if (!std::isfinite(phenotype_var_) || phenotype_var_ <= 0.0)
+    {
+        throw GelexException(
+            fmt::format(
+                "BayesModel: phenotype variance must be finite and positive, "
+                "got {}",
+                phenotype_var_));
+    }
 
     if (fixed_.X.rows() != num_individuals_)
     {
@@ -74,20 +86,6 @@ BayesModel::BayesModel(
                 "BayesModel: genetic design rows {} != phenotype rows {}",
                 genetic_.rows(),
                 num_individuals_));
-    }
-}
-
-auto BayesModel::visit(FieldVisitor& visitor) const -> void
-{
-    auto state_scope = visitor.scope("state");
-    {
-        auto fixed_scope = visitor.scope("fixed");
-        fixed_.visit(visitor);
-    }
-    for (auto [i, random] : std::views::enumerate(random_))
-    {
-        auto random_scope = visitor.scope(fmt::format("random_{}", i));
-        random.visit(visitor);
     }
 }
 
