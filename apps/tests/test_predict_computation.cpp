@@ -20,7 +20,7 @@
 #include <vector>
 
 #include "gelex/exception.h"
-#include "gelex/types/genetic_mode.h"
+#include "gelex/genetic_mode.h"
 
 #include "cli/predict/compute.h"
 

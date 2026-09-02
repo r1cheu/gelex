@@ -27,10 +27,10 @@
 #include "gelex/data/covariates.h"
 #include "gelex/data/dataframe/dataframe.h"
 #include "gelex/data/dataframe/index.h"
+#include "gelex/data/fixed_design.h"
+#include "gelex/data/rank_inverse_norm_transform.h"
 #include "gelex/data/reader.h"
 #include "gelex/exception.h"
-#include "gelex/infra/stats/rank_inverse_norm_transform.h"
-#include "gelex/types/fixed_designs.h"
 
 namespace cli
 {
@@ -104,25 +104,27 @@ auto load_base_data(Handler& handler, const BaseDataConfig& config) -> BaseData
     }
     handler.gather(common_index);
 
-    std::optional<gelex::FixedDesign> fixed_design;
-
-    if (!qcovar && !dcovar)
+    auto fixed_design = [&]() -> gelex::FixedDesign
     {
-        fixed_design = std::make_optional(
-            gelex::FixedDesign::make(
-                static_cast<Eigen::Index>(common_index.size())));
-    }
-    else
-    {
-        fixed_design = std::make_optional(
-            gelex::FixedDesign::make(
-                qcovar ? std::make_optional(
-                             gelex::make_quantitative_covariate(*qcovar))
-                       : std::nullopt,
-                dcovar ? std::make_optional(
-                             gelex::make_discrete_covariate(*dcovar))
-                       : std::nullopt));
-    }
+        if (qcovar && dcovar)
+        {
+            return gelex::FixedDesign::make(
+                gelex::make_quantitative_covariate(*qcovar),
+                gelex::make_discrete_covariate(*dcovar));
+        }
+        if (qcovar)
+        {
+            return gelex::FixedDesign::make(
+                gelex::make_quantitative_covariate(*qcovar));
+        }
+        if (dcovar)
+        {
+            return gelex::FixedDesign::make(
+                gelex::make_discrete_covariate(*dcovar));
+        }
+        return gelex::FixedDesign::make(
+            static_cast<Eigen::Index>(common_index.size()));
+    }();
     auto pheno_name = std::string(phenotype.col(0).name());
     auto pheno_vec = phenotype.col(0).to_mat<double>();
 
@@ -134,14 +136,14 @@ auto load_base_data(Handler& handler, const BaseDataConfig& config) -> BaseData
             gelex::direct_int(pheno_vec, config.int_offset);
             break;
         case gelex::RintType::Indirect:
-            gelex::indirect_int(pheno_vec, fixed_design->X, config.int_offset);
+            gelex::indirect_int(pheno_vec, fixed_design.X(), config.int_offset);
             fixed_design = gelex::FixedDesign::make(pheno_vec.size());
             break;
     }
 
     return BaseData{
         .phenotype = std::move(pheno_vec),
-        .fixed_design = std::move(*fixed_design),
+        .fixed_design = std::move(fixed_design),
         .sample_ids = std::move(common_index).take_keys(),
         .pheno_name = std::move(pheno_name),
     };

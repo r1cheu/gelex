@@ -18,41 +18,41 @@
 #define GELEX_DATA_COVARIATES_H_
 
 #include <Eigen/Core>
-#include <span>
 #include <string>
 #include <vector>
 
-#include "gelex/data/dataframe/dataframe.h"
-#include "gelex/data/dataframe/index.h"
-#include "gelex/freq/design.h"
-#include "gelex/types/fixed_designs.h"
+#include "gelex/data/dataframe/key_type.h"
 
 namespace gelex
 {
+
+template <KeyType Key>
+class DataFrame;
+
+struct QuantitativeCovariate
+{
+    std::vector<std::string> names;
+    Eigen::MatrixXd X;
+};
+
+struct DiscreteCovariateTerm
+{
+    std::string name;
+    std::vector<std::string> levels;
+    std::string reference_level;
+};
+
+struct DiscreteCovariate
+{
+    std::vector<DiscreteCovariateTerm> terms;
+    Eigen::MatrixXd X;
+};
 
 [[nodiscard]] auto make_quantitative_covariate(
     const DataFrame<std::string>& frame) -> QuantitativeCovariate;
 
 [[nodiscard]] auto make_discrete_covariate(const DataFrame<std::string>& frame)
     -> DiscreteCovariate;
-
-[[nodiscard]] auto make_random_designs(const DataFrame<std::string>& frame)
-    -> std::vector<freq::RandomDesign>;
-
-[[nodiscard]] auto make_quantitative_random_design(
-    const DataFrame<std::string>& frame,
-    std::string name) -> freq::RandomDesign;
-
-[[nodiscard]] auto make_grm_designs(
-    std::span<const std::string> prefixes,
-    const DataFrameIndex<std::string>&) -> std::vector<freq::RandomDesign>;
-
-// Hadamard product of two aligned kernels, rescaled to unit mean diagonal so
-// the interaction variance component shares the scale of its base components.
-[[nodiscard]] auto make_interaction_design(
-    std::string name,
-    const Eigen::Ref<const Eigen::MatrixXd>& lhs,
-    const Eigen::Ref<const Eigen::MatrixXd>& rhs) -> freq::RandomDesign;
 
 }  // namespace gelex
 

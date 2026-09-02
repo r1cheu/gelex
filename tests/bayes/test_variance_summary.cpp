@@ -27,18 +27,19 @@
 #include "gelex/bayes/genetic/prior.h"
 #include "gelex/bayes/genetic/state.h"
 #include "gelex/bayes/genetic_family.h"
+#include "gelex/bayes/mode_values.h"
 #include "gelex/bayes/model.h"
 #include "gelex/bayes/prior.h"
 #include "gelex/bayes/recipe.h"
 #include "gelex/bayes/state.h"
 #include "gelex/bayes/variance_budget.h"
 #include "gelex/bayes/variance_summary.h"
+#include "gelex/data/fixed_design.h"
 #include "gelex/exception.h"
-#include "gelex/types/fixed_designs.h"
-#include "gelex/types/genetic_mode.h"
-#include "gelex/types/mode_values.h"
+#include "gelex/genetic_mode.h"
 
 #include "compact_genotype_fixture.h"
+#include "random_design_fixture.h"
 
 using Catch::Approx;
 
@@ -75,10 +76,11 @@ auto make_ad_model_with_random() -> gelex::BayesModel
         Eigen::MatrixXd{{0.0, 1.0}, {1.0, 1.0}, {2.0, 1.0}, {0.0, 1.0}},
         mode_ad);
     std::vector<gelex::bayes::RandomDesign> random;
-    random.emplace_back(
-        "batch",
-        std::vector<std::string>{"batch"},
-        Eigen::MatrixXd{{0.0}, {1.0}, {0.0}, {1.0}});
+    random.push_back(
+        gelex::test::make_random_design(
+            "batch",
+            std::vector<std::string>{"batch"},
+            Eigen::MatrixXd{{0.0}, {1.0}, {0.0}, {1.0}}));
     return gelex::BayesModel{
         Eigen::VectorXd{{1.0, -0.5, 0.25, 2.0}},
         gelex::FixedDesign::make(4),

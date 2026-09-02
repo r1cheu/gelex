@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#include <gelex/infra/stats/diagnostics.h>
-#include <gelex/types/genetic_mode.h>
+#include <gelex/bayes/stats/diagnostics.h>
+#include <gelex/genetic_mode.h>
 
 auto main() -> int
 {

@@ -21,9 +21,9 @@
 #include <random>
 #include <utility>
 
-#include "gelex/bayes/design_data.h"
+#include "gelex/bayes/genotype/design.h"
 #include "gelex/bayes/state.h"
-#include "gelex/types/genetic_mode.h"
+#include "gelex/genetic_mode.h"
 
 namespace gelex::detail
 {

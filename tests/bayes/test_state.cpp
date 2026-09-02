@@ -29,18 +29,19 @@
 #include "gelex/bayes/genetic/prior.h"
 #include "gelex/bayes/genetic/state.h"
 #include "gelex/bayes/genetic_family.h"
+#include "gelex/bayes/mode_values.h"
 #include "gelex/bayes/model.h"
 #include "gelex/bayes/prior.h"
 #include "gelex/bayes/recipe.h"
 #include "gelex/bayes/spec.h"
 #include "gelex/bayes/state.h"
 #include "gelex/bayes/variance_budget.h"
+#include "gelex/data/fixed_design.h"
 #include "gelex/exception.h"
-#include "gelex/types/fixed_designs.h"
-#include "gelex/types/genetic_mode.h"
-#include "gelex/types/mode_values.h"
+#include "gelex/genetic_mode.h"
 
 #include "compact_genotype_fixture.h"
+#include "random_design_fixture.h"
 
 using Catch::Approx;
 using gelex::BayesModel;
@@ -239,10 +240,11 @@ auto make_model_with_random() -> BayesModel
     auto genetic = gelex::test::make_genetic_design(
         Eigen::MatrixXd{{0.0, 1.0}, {1.0, 0.0}, {2.0, 1.0}}, mode_a);
     std::vector<gelex::bayes::RandomDesign> random;
-    random.emplace_back(
-        "batch",
-        std::vector<std::string>{"batch_1", "batch_2"},
-        Eigen::MatrixXd{{1.0, 0.0}, {0.0, 1.0}, {1.0, 0.0}});
+    random.push_back(
+        gelex::test::make_random_design(
+            "batch",
+            std::vector<std::string>{"batch_1", "batch_2"},
+            Eigen::MatrixXd{{1.0, 0.0}, {0.0, 1.0}, {1.0, 0.0}}));
     return BayesModel{
         Eigen::VectorXd{{1.0, 2.0, 3.0}},
         gelex::FixedDesign::make(3),
@@ -453,12 +455,12 @@ TEST_CASE(
 
     const auto state = gelex::make_state(prior, model);
 
-    REQUIRE(state.fixed().coefficients.size() == model.fixed().X.cols());
+    REQUIRE(state.fixed().coefficients.size() == model.fixed().X().cols());
     REQUIRE(state.fixed().coefficients.isZero());
     REQUIRE(state.random().size() == 1);
     REQUIRE(
         state.random().front().coefficients.size()
-        == model.random().front().X.cols());
+        == model.random().front().X().cols());
     REQUIRE(state.random().front().coefficients.isZero());
     REQUIRE(
         state.random().front().variance

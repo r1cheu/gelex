@@ -27,13 +27,13 @@
 #include "gelex/bayes/detail/genetic_spec.h"
 #include "gelex/bayes/genetic/prior.h"
 #include "gelex/bayes/genetic_family.h"
+#include "gelex/bayes/mode_values.h"
 #include "gelex/bayes/model.h"
 #include "gelex/bayes/spec.h"
 #include "gelex/bayes/variance_budget.h"
 #include "gelex/exception.h"
-#include "gelex/infra/stats/detail/var.h"
-#include "gelex/types/genetic_mode.h"
-#include "gelex/types/mode_values.h"
+#include "gelex/genetic_mode.h"
+#include "gelex/infra/var.h"
 
 namespace gelex
 {
@@ -188,14 +188,14 @@ auto make_genetic_prior(
 inline auto random_projection_variance(const bayes::RandomDesign& design)
     -> double
 {
-    const double variance = matvar(design.X, VarNormType::Population).sum();
+    const double variance = matvar(design.X(), VarNormType::Population).sum();
     if (!std::isfinite(variance) || variance <= 0.0)
     {
         throw GelexException(
             fmt::format(
                 "random design '{}' projection variance must be finite and "
                 "positive, got {}",
-                design.name,
+                design.name(),
                 variance));
     }
     return variance;
@@ -239,7 +239,7 @@ inline auto make_random_prior(
                 fmt::format(
                     "random coefficient variance for design '{}' must be "
                     "finite and positive, got {}",
-                    design.name,
+                    design.name(),
                     initial));
         }
         parameters.push_back(make_mean_calibrated_variance_parameter(initial));

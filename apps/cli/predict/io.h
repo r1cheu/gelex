@@ -22,7 +22,7 @@
 #include <span>
 #include <string>
 
-#include "gelex/types/genetic_mode.h"
+#include "gelex/genetic_mode.h"
 
 #include "compute.h"
 

@@ -44,7 +44,7 @@ auto AssocReporter::show_dataset_summary(
     auto& p = cli::printer();
     p.block(cli::section("Dataset Summary:"));
     p.line(cli::field("Analyzed Samples", "{}", model.num_individuals()));
-    p.line(cli::field("Covariates", "{}", model.fixed().X.cols()));
+    p.line(cli::field("Covariates", "{}", model.fixed().X().cols()));
     auto names = model.random()
                  | std::views::transform([](const auto& d)
                                          { return std::string_view(d.name); });

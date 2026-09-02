@@ -21,8 +21,9 @@
 #include <span>
 #include <vector>
 
-#include "gelex/bayes/design_data.h"
-#include "gelex/types/fixed_designs.h"
+#include "gelex/bayes/design.h"
+#include "gelex/bayes/genotype/design.h"
+#include "gelex/data/fixed_design.h"
 
 namespace gelex
 {

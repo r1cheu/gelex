@@ -117,10 +117,20 @@ TEST_CASE("PayloadWriter transfers ownership on move", "[io][binary_writer]")
     test::FileFixture fixture;
     gelex::BinaryWriter writer(
         (fixture.get_test_dir() / "move.samples").string());
-    auto payload = writer.reserve<double>("value", gelex::BinaryShape{1, 1});
+    auto payload = writer.reserve<double>(
+        "fixed/coefficients", gelex::BinaryShape{1, 1});
+
+    for (std::size_t index = 0; index < 64; ++index)
+    {
+        [[maybe_unused]] auto reservation = writer.reserve<double>(
+            "other/" + std::to_string(index), gelex::BinaryShape{1, 0});
+    }
+
+    REQUIRE(payload.identifier() == "fixed/coefficients");
     auto moved_payload = std::move(payload);
 
     REQUIRE_THROWS_AS(payload.append(1.0), gelex::GelexException);
+    REQUIRE(moved_payload.identifier() == "fixed/coefficients");
     moved_payload.append(1.0);
 }
 

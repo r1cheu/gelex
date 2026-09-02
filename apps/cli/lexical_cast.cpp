@@ -21,8 +21,8 @@
 #include <string>
 
 #include "gelex/data/genotype_method.h"
-#include "gelex/infra/stats/rank_inverse_norm_transform.h"
-#include "gelex/types/genetic_mode.h"
+#include "gelex/data/rank_inverse_norm_transform.h"
+#include "gelex/genetic_mode.h"
 
 namespace gelex
 {

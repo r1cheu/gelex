@@ -30,7 +30,7 @@
 #include <string_view>
 #include <vector>
 
-#include "bayes/detail/genotype_operations.h"
+#include "bayes/genotype/detail/operations.h"
 
 #if defined(__x86_64__) || defined(_M_X64)
 #include <immintrin.h>

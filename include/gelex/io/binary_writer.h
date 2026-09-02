@@ -21,6 +21,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <span>
+#include <string>
 #include <string_view>
 #include <utility>
 #include <vector>
@@ -54,20 +55,30 @@ class PayloadWriter
         return shape_[0];
     }
 
+    [[nodiscard]] auto identifier() const noexcept -> std::string_view
+    {
+        return identifier_;
+    }
+
    private:
     friend class BinaryWriter;
 
     PayloadWriter(
         BinaryWriter* writer,
         std::size_t index,
-        BinaryShape shape) noexcept
-        : writer_(writer), index_(index), shape_(shape)
+        BinaryShape shape,
+        std::string identifier) noexcept
+        : writer_(writer),
+          index_(index),
+          shape_(shape),
+          identifier_(std::move(identifier))
     {
     }
 
     BinaryWriter* writer_;
     std::size_t index_;
     BinaryShape shape_;
+    std::string identifier_;
     std::uint64_t columns_written_{};
 };
 
@@ -86,10 +97,11 @@ class BinaryWriter
     [[nodiscard]] auto reserve(std::string_view identifier, BinaryShape shape)
         -> PayloadWriter<T>
     {
+        auto owned_identifier = std::string{identifier};
+        const auto index = reserve_payload(
+            owned_identifier, detail::binary_type_for<T>, shape);
         return PayloadWriter<T>{
-            this,
-            reserve_payload(identifier, detail::binary_type_for<T>, shape),
-            shape};
+            this, index, shape, std::move(owned_identifier)};
     }
 
    private:
@@ -132,6 +144,7 @@ PayloadWriter<T>::PayloadWriter(PayloadWriter&& other) noexcept
     : writer_(std::exchange(other.writer_, nullptr)),
       index_(other.index_),
       shape_(other.shape_),
+      identifier_(std::move(other.identifier_)),
       columns_written_(other.columns_written_)
 {
 }
@@ -145,6 +158,7 @@ auto PayloadWriter<T>::operator=(PayloadWriter&& other) noexcept
         writer_ = std::exchange(other.writer_, nullptr);
         index_ = other.index_;
         shape_ = other.shape_;
+        identifier_ = std::move(other.identifier_);
         columns_written_ = other.columns_written_;
     }
     return *this;

@@ -22,8 +22,8 @@
 #include <span>
 #include <vector>
 
+#include "gelex/data/fixed_design.h"
 #include "gelex/freq/design.h"
-#include "gelex/types/fixed_designs.h"
 
 namespace gelex
 {

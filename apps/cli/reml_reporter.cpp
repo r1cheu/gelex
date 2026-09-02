@@ -25,10 +25,10 @@
 #include <utility>
 #include <vector>
 
-#include "gelex/algo/reml/statistics.h"
-#include "gelex/algo/reml/summary.h"
 #include "gelex/freq/model.h"
-#include "gelex/infra/logging/reml_event.h"
+#include "gelex/freq/reml/progress.h"
+#include "gelex/freq/reml/statistics.h"
+#include "gelex/freq/reml/summary.h"
 
 #include "cli/formatter.h"
 #include "cli/report_printer.h"
@@ -45,7 +45,7 @@ auto RemlReporter::show_dataset_summary(
     p.block(cli::section("Dataset Summary:"));
     p.line(cli::field("Trait", "{}", pheno_name));
     p.line(cli::field("Analyzed Samples", "{}", model.num_individuals()));
-    p.line(cli::field("Covariates", "{}", model.fixed().X.cols()));
+    p.line(cli::field("Covariates", "{}", model.fixed().X().cols()));
 
     p.line(cli::field("Random effects", "{}", model.random().size()));
 }

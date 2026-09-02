@@ -22,10 +22,11 @@
 #include <string>
 #include <string_view>
 
-#include "gelex/bayes/design_data.h"
+#include "gelex/bayes/genotype/design.h"
+#include "gelex/bayes/genotype/progress.h"
+#include "gelex/bayes/mcmc_progress.h"
 #include "gelex/bayes/model.h"
-#include "gelex/infra/logging/fit_event.h"
-#include "gelex/types/genetic_mode.h"
+#include "gelex/genetic_mode.h"
 
 #include "cli/formatter.h"
 #include "cli/progress_bar.h"
@@ -123,7 +124,7 @@ auto McmcReporter::show_dataset_summary(
     p.block(cli::section("Dataset Summary:"));
     p.line(cli::field("Trait", "{}", pheno_name));
     p.line(cli::field("Analyzed Samples", "{}", model.num_individuals()));
-    p.line(cli::field("Covariates", "{}", model.fixed().X.cols()));
+    p.line(cli::field("Covariates", "{}", model.fixed().X().cols()));
 }
 
 auto McmcReporter::on_event(const gelex::MCMCProgressEvent& event) -> void

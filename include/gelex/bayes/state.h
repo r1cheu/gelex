@@ -149,14 +149,14 @@ template <typename GeneticPrior>
     {
         random.push_back(
             RandomEffectState{
-                .coefficients = Eigen::VectorXd::Zero(design.X.cols()),
-                .fitted_values = Eigen::VectorXd::Zero(design.X.rows()),
+                .coefficients = Eigen::VectorXd::Zero(design.X().cols()),
+                .fitted_values = Eigen::VectorXd::Zero(design.X().rows()),
                 .variance = parameter.initial_value()});
     }
 
     return BayesState<GeneticPrior>{
         FixedEffectState{
-            .coefficients = Eigen::VectorXd::Zero(model.fixed().X.cols())},
+            .coefficients = Eigen::VectorXd::Zero(model.fixed().X().cols())},
         std::move(random),
         detail::make_genetic_state(prior.genetic(), model.genetic()),
         ResidualState{

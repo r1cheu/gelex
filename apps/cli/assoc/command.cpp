@@ -24,22 +24,22 @@
 #include <utility>
 #include <vector>
 
-#include "gelex/algo/gwas/assoc_tester.h"
-#include "gelex/algo/gwas/assoc_type.h"
-#include "gelex/algo/reml/estimator.h"
-#include "gelex/algo/reml/operators.h"
-#include "gelex/algo/reml/summary.h"
 #include "gelex/data/bed.h"
 #include "gelex/data/dataframe/index.h"
 #include "gelex/data/encode/encoder.h"
+#include "gelex/data/fixed_design.h"
+#include "gelex/data/grm/io.h"
 #include "gelex/data/marker_range.h"
-#include "gelex/data/reader.h"
 #include "gelex/exception.h"
 #include "gelex/freq/design.h"
+#include "gelex/freq/gwas/assoc_tester.h"
+#include "gelex/freq/gwas/assoc_type.h"
+#include "gelex/freq/gwas/loco_grm.h"
+#include "gelex/freq/gwas/writer.h"
 #include "gelex/freq/model.h"
-#include "gelex/io/gwas_writer.h"
-#include "gelex/io/loco_reader.h"
-#include "gelex/types/fixed_designs.h"
+#include "gelex/freq/reml/estimator.h"
+#include "gelex/freq/reml/operators.h"
+#include "gelex/freq/reml/summary.h"
 
 #include "cli/common_data.h"
 #include "cli/formatter.h"
@@ -177,12 +177,12 @@ auto assoc_execute(const cli::AssocConfig& config) -> int
     {
         std::vector<Eigen::MatrixXd> whole_grms;
         whole_grms.reserve(config.random.grm.size());
-        std::vector<gelex::LocoReader> loco_readers;
-        loco_readers.reserve(config.random.grm.size());
+        std::vector<gelex::LocoGrmBuilder> loco_builders;
+        loco_builders.reserve(config.random.grm.size());
         for (const auto& path : config.random.grm)
         {
             whole_grms.push_back(gelex::read_grm(path, &sample_index, false));
-            loco_readers.emplace_back(whole_grms.back());
+            loco_builders.emplace_back(whole_grms.back());
         }
 
         std::vector<Eigen::Index> grm_slots;
@@ -203,16 +203,16 @@ auto assoc_execute(const cli::AssocConfig& config) -> int
         gelex::Estimator estimator(config.max_iter, config.tolerance);
         for (const auto& range : ranges)
         {
-            for (std::size_t i = 0; i < loco_readers.size(); ++i)
+            for (std::size_t i = 0; i < loco_builders.size(); ++i)
             {
                 const auto chr_grm_prefix = fmt::format(
                     "{}.chr{:02d}",
                     config.random.grm[i],
                     std::stoi(range.label));
-                loco_readers[i].load_into(
-                    chr_grm_prefix,
-                    sample_index,
-                    model.random()[grm_slots[i]].K);
+                const auto chromosome_grm
+                    = gelex::read_grm(chr_grm_prefix, &sample_index, false);
+                loco_builders[i].build_into(
+                    chromosome_grm, model.random()[grm_slots[i]].K);
             }
 
             reporter.show_loco_phase(range.label, "REML");

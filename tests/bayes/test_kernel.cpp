@@ -27,17 +27,18 @@
 
 #include "gelex/bayes/genetic_family.h"
 #include "gelex/bayes/kernel.h"
+#include "gelex/bayes/mode_values.h"
 #include "gelex/bayes/prior.h"
 #include "gelex/bayes/recipe.h"
 #include "gelex/bayes/spec.h"
 #include "gelex/bayes/state.h"
 #include "gelex/bayes/variance_budget.h"
+#include "gelex/data/fixed_design.h"
 #include "gelex/exception.h"
-#include "gelex/types/fixed_designs.h"
-#include "gelex/types/genetic_mode.h"
-#include "gelex/types/mode_values.h"
+#include "gelex/genetic_mode.h"
 
 #include "compact_genotype_fixture.h"
+#include "random_design_fixture.h"
 
 using Catch::Approx;
 
@@ -171,10 +172,11 @@ auto make_model_with_random() -> gelex::BayesModel
         Eigen::MatrixXd{{0.0, 1.0}, {1.0, 1.0}, {2.0, 1.0}, {0.0, 1.0}},
         mode_a);
     std::vector<gelex::bayes::RandomDesign> random;
-    random.emplace_back(
-        "batch",
-        std::vector<std::string>{"batch"},
-        Eigen::MatrixXd{{0.0}, {1.0}, {0.0}, {1.0}});
+    random.push_back(
+        gelex::test::make_random_design(
+            "batch",
+            std::vector<std::string>{"batch"},
+            Eigen::MatrixXd{{0.0}, {1.0}, {0.0}, {1.0}}));
     return gelex::BayesModel{
         Eigen::VectorXd{{1.0, -0.5, 0.25, 2.0}},
         gelex::FixedDesign::make(4),
@@ -240,7 +242,7 @@ TEST_CASE(
     const auto reconstructed = reconstruct_genetic_fitted(
         model.genetic(), gelex::GeneticMode::A, genetic.coefficients);
     const Eigen::VectorXd fixed_fitted
-        = model.fixed().X * state.fixed().coefficients;
+        = model.fixed().X() * state.fixed().coefficients;
 
     REQUIRE(genetic.family_state.fitted_values.isApprox(reconstructed));
     REQUIRE((state.residual().adjusted_response + fixed_fitted + reconstructed)
@@ -271,7 +273,7 @@ TEST_CASE(
     const auto dominance_fitted = reconstruct_genetic_fitted(
         model.genetic(), gelex::GeneticMode::D, dominance.coefficients);
     const Eigen::VectorXd fixed_fitted
-        = model.fixed().X * state.fixed().coefficients;
+        = model.fixed().X() * state.fixed().coefficients;
 
     REQUIRE(additive.family_state.fitted_values.isApprox(additive_fitted));
     REQUIRE(dominance.family_state.fitted_values.isApprox(dominance_fitted));
@@ -304,7 +306,7 @@ TEST_CASE(
     const auto reconstructed = reconstruct_genetic_fitted(
         model.genetic(), gelex::GeneticMode::A, genetic.coefficients);
     const Eigen::VectorXd fixed_fitted
-        = model.fixed().X * state.fixed().coefficients;
+        = model.fixed().X() * state.fixed().coefficients;
 
     REQUIRE(genetic.family_state.fitted_values.isApprox(reconstructed));
     REQUIRE((state.residual().adjusted_response + fixed_fitted + reconstructed)
@@ -362,9 +364,9 @@ TEST_CASE(
     const auto& random = state.random().front();
     const auto& genetic = state.genetic().get<gelex::GeneticMode::A>();
     const Eigen::VectorXd fixed_fitted
-        = model.fixed().X * state.fixed().coefficients;
+        = model.fixed().X() * state.fixed().coefficients;
     const Eigen::VectorXd random_fitted
-        = model.random().front().X * random.coefficients;
+        = model.random().front().X() * random.coefficients;
     const auto genetic_fitted = reconstruct_genetic_fitted(
         model.genetic(), gelex::GeneticMode::A, genetic.coefficients);
 
@@ -397,7 +399,7 @@ TEST_CASE(
     const auto reconstructed = reconstruct_genetic_fitted(
         model.genetic(), gelex::GeneticMode::A, genetic.coefficients);
     const Eigen::VectorXd fixed_fitted
-        = model.fixed().X * state.fixed().coefficients;
+        = model.fixed().X() * state.fixed().coefficients;
 
     REQUIRE(genetic.family_state.fitted_values.isApprox(reconstructed));
     REQUIRE((state.residual().adjusted_response + fixed_fitted + reconstructed)
@@ -443,7 +445,7 @@ TEST_CASE(
     const auto dominance_fitted = reconstruct_genetic_fitted(
         model.genetic(), gelex::GeneticMode::D, dominance.coefficients);
     const Eigen::VectorXd fixed_fitted
-        = model.fixed().X * state.fixed().coefficients;
+        = model.fixed().X() * state.fixed().coefficients;
 
     REQUIRE(additive.family_state.fitted_values.isApprox(additive_fitted));
     REQUIRE(dominance.family_state.fitted_values.isApprox(dominance_fitted));
@@ -488,7 +490,7 @@ TEST_CASE(
     const auto& genetic = state.genetic().get<gelex::GeneticMode::A>();
     const auto& family = genetic.family_state;
     const Eigen::VectorXd fixed_fitted
-        = model.fixed().X * state.fixed().coefficients;
+        = model.fixed().X() * state.fixed().coefficients;
 
     REQUIRE(genetic.coefficients.isZero());
     REQUIRE(family.assignment.isZero());
@@ -529,7 +531,7 @@ TEST_CASE(
         genetic.coefficients,
         family.assignment);
     const Eigen::VectorXd fixed_fitted
-        = model.fixed().X * state.fixed().coefficients;
+        = model.fixed().X() * state.fixed().coefficients;
     REQUIRE((state.residual().adjusted_response + fixed_fitted + fitted)
                 .isApprox(model.phenotype()));
     REQUIRE(family.fitted_values.isApprox(component_fitted));
@@ -583,7 +585,7 @@ TEST_CASE(
         genetic.coefficients,
         family.assignment);
     const Eigen::VectorXd fixed_fitted
-        = model.fixed().X * state.fixed().coefficients;
+        = model.fixed().X() * state.fixed().coefficients;
 
     REQUIRE(family.probabilities == probabilities);
     REQUIRE(family.fitted_values.isApprox(component_fitted));

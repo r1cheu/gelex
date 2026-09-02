@@ -21,9 +21,9 @@
 #include <cstdint>
 #include <string_view>
 
-#include "gelex/infra/logging/fit_event.h"
-#include "gelex/infra/logging/geno_event.h"
-#include "gelex/types/genetic_mode.h"
+#include "gelex/bayes/genotype/progress.h"
+#include "gelex/bayes/mcmc_progress.h"
+#include "gelex/genetic_mode.h"
 
 #include "cli/progress_bar.h"
 #include "cli/timer.h"

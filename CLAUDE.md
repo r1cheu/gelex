@@ -38,6 +38,12 @@ pixi r benchmark             # run benchmarks
 - Use `class` when a type independently owns runtime invariants: keep its representation private and enforce validity through construction and controlled mutation. Use `struct` only for transparent aggregates, compile-time traits, or internal algorithm state whose invariants are explicitly owned elsewhere.
 - Templates and concepts constrain types and compile-time values; they do not replace validation of runtime numeric invariants.
 
+### Construction APIs
+
+- A constructor accepts the final representation or retained dependencies and validates every invariant determined by that stored state. Delegating constructors only supply defaults or normalize arguments — no separate validation, I/O, or policy.
+- Use a namespace-level free factory when construction involves anything not retained by the result: source objects from another abstraction, combining independent owners, relationships that need validating but aren't stored, or a deduced/selected return type. If only a factory can establish validity, make the constructor non-public instead of duplicating checks.
+- Naming: no generic static `T::make(...)`. `make_*` free functions for in-memory construction, `open_*`/`read_*` for I/O, type-local statics only for named presets like `defaults()`.
+
 ## Code Style
 
 - Only comment when the logic is not obvious; names and signatures should carry the intent
@@ -60,16 +66,23 @@ pixi r benchmark             # run benchmarks
 - Use Eigen::isApprox for testing instead of element-wise comparisons.
 - Prefer Eigen init-list construction (`Eigen::MatrixXd{{1,2},{3,4}}`, `Eigen::VectorXd{{1,2,3}}`) over `<<` streaming or per-cell assignment.
 
-## Agent skills
+## Modules
 
-### Issue tracker
+```
+layer 3   freq   bayes   simulate   (mutually independent)
+layer 2   data
+layer 1   io  ->  infra
+layer 0   exception.h   genetic_mode.h
+```
 
-Issues live in the `r1cheu/gelex` GitHub Issues, accessed via the `gh` CLI. See `docs/agents/issue-tracker.md`.
+- `infra` — runtime facilities (logging/notify, threading, shared math primitives); must stay ignorant of domain concepts
+- `io` — byte-level file IO (binary format, mmap, atomic writes); must not include any domain header
+- `data` — genotype/phenotype reading, encoding, alignment, design matrices, GRM computation; knows nothing about model fitting
+- `freq` — frequentist family: design, REML estimation, LOCO GRM, GWAS association testing, result serialization; must not depend on bayes
+- `bayes` — Bayesian family: priors, kernels, MCMC runner, chain statistics, posterior output; must not depend on freq
+- `simulate` — phenotype simulation from real genotypes; consumes only data
 
-### Triage labels
+Placement rules:
 
-The five canonical triage roles, each label string equal to its name. See `docs/agents/triage-labels.md`.
-
-### Domain docs
-
-Single-context: `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.
+- A file that includes a domain header belongs to that domain, never to `io`/`infra`.
+- Serialization lives next to the type it serializes.

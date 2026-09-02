@@ -29,13 +29,13 @@
 
 #include "gelex/data/sample_id.h"
 #include "gelex/exception.h"
-#include "gelex/infra/stats/detail/var.h"
+#include "gelex/genetic_mode.h"
+#include "gelex/infra/var.h"
 #include "gelex/io/detail/text_writer.h"
 #include "gelex/simulate/effect_sampler.h"
 #include "gelex/simulate/genetic_value_calculator.h"
 #include "gelex/simulate/genetic_value_scaler.h"
 #include "gelex/simulate/sim_types.h"
-#include "gelex/types/genetic_mode.h"
 
 #include "reporter.h"
 
@@ -209,22 +209,20 @@ auto simulate_execute(const cli::SimulateConfig& config) -> int
     }
     phenotypes += residual;
 
-    const double var_phen = gelex::detail::vecvar(
-        phenotypes, gelex::detail::VarNormType::Population);
+    const double var_phen
+        = gelex::vecvar(phenotypes, gelex::VarNormType::Population);
     std::optional<double> realized_h2;
     std::optional<double> realized_d2;
     if (additive && var_phen > 0.0)
     {
         realized_h2
-            = gelex::detail::vecvar(
-                  additive->gebv, gelex::detail::VarNormType::Population)
+            = gelex::vecvar(additive->gebv, gelex::VarNormType::Population)
               / var_phen;
     }
     if (dominance && var_phen > 0.0)
     {
         realized_d2
-            = gelex::detail::vecvar(
-                  dominance->gebv, gelex::detail::VarNormType::Population)
+            = gelex::vecvar(dominance->gebv, gelex::VarNormType::Population)
               / var_phen;
     }
     reporter.show_variance_summary(realized_h2, realized_d2);

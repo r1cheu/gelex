@@ -22,10 +22,10 @@
 #include <utility>
 #include <vector>
 
-#include "gelex/bayes/design_data.h"
+#include "gelex/bayes/genotype/design.h"
+#include "gelex/data/fixed_design.h"
 #include "gelex/exception.h"
-#include "gelex/infra/stats/detail/var.h"
-#include "gelex/types/fixed_designs.h"
+#include "gelex/infra/var.h"
 
 namespace gelex
 {
@@ -45,8 +45,7 @@ BayesModel::BayesModel(
         throw GelexException("BayesModel: phenotype must not be empty");
     }
 
-    phenotype_var_
-        = detail::vecvar(phenotype_, detail::VarNormType::Population);
+    phenotype_var_ = vecvar(phenotype_, VarNormType::Population);
     if (!std::isfinite(phenotype_var_) || phenotype_var_ <= 0.0)
     {
         throw GelexException(
@@ -56,25 +55,25 @@ BayesModel::BayesModel(
                 phenotype_var_));
     }
 
-    if (fixed_.X.rows() != num_individuals_)
+    if (fixed_.X().rows() != num_individuals_)
     {
         throw GelexException(
             fmt::format(
                 "BayesModel: fixed design rows {} != phenotype rows {}",
-                fixed_.X.rows(),
+                fixed_.X().rows(),
                 num_individuals_));
     }
 
     for (const auto& random : random_)
     {
-        if (random.X.rows() != num_individuals_)
+        if (random.X().rows() != num_individuals_)
         {
             throw GelexException(
                 fmt::format(
                     "BayesModel: random design '{}' rows {} != phenotype rows "
                     "{}",
-                    random.name,
-                    random.X.rows(),
+                    random.name(),
+                    random.X().rows(),
                     num_individuals_));
         }
     }

@@ -26,7 +26,7 @@
 
 #include "gelex/data/dataframe/dataframe.h"
 #include "gelex/data/dataframe/encode.h"
-#include "gelex/types/genetic_mode.h"
+#include "gelex/genetic_mode.h"
 
 namespace cli
 {

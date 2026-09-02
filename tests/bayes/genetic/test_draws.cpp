@@ -20,20 +20,20 @@
 #include <concepts>
 #include <cstdint>
 
+#include "gelex/bayes/basic_draw.h"
 #include "gelex/bayes/detail/draws_factory.h"
 #include "gelex/bayes/detail/state_factory.h"
-#include "gelex/bayes/draw.h"
 #include "gelex/bayes/genetic/draws.h"
 #include "gelex/bayes/genetic/prior.h"
 #include "gelex/bayes/genetic_family.h"
+#include "gelex/bayes/mode_values.h"
 #include "gelex/bayes/model.h"
 #include "gelex/bayes/prior.h"
 #include "gelex/bayes/recipe.h"
 #include "gelex/bayes/spec.h"
+#include "gelex/genetic_mode.h"
 #include "gelex/io/binary_reader.h"
 #include "gelex/io/binary_writer.h"
-#include "gelex/types/genetic_mode.h"
-#include "gelex/types/mode_values.h"
 
 #include "compact_genotype_fixture.h"
 #include "file_fixture.h"

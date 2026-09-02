@@ -21,13 +21,13 @@
 #include <nanobench.h>
 #include <string>
 
-#include "gelex/algo/gwas/assoc_tester.h"
 #include "gelex/data/reader.h"
-#include "gelex/io/gwas_writer.h"
+#include "gelex/freq/gwas/assoc_tester.h"
+#include "gelex/freq/gwas/writer.h"
 
 using namespace gelex;
 
-TEST_CASE("GWAS writer output", "[!benchmark][io][gwas]")
+TEST_CASE("GWAS writer output", "[!benchmark][freq][gwas][writer]")
 {
     std::string temp_filename = "/tmp/bench_test_ignore";
     std::string bim_file = "/tmp/bench_test_ignore.bim";

@@ -18,15 +18,13 @@
 
 #include <Eigen/Core>
 #include <cstddef>
-#include <filesystem>
-#include <optional>
 #include <span>
 #include <string>
 #include <utility>
 #include <vector>
 
+#include "gelex/data/dataframe/dataframe.h"
 #include "gelex/data/dataframe/encode.h"
-#include "gelex/data/reader.h"
 
 namespace gelex
 {
@@ -41,10 +39,7 @@ auto make_quantitative_covariate(const DataFrame<std::string>& frame)
 auto make_discrete_covariate(const DataFrame<std::string>& frame)
     -> DiscreteCovariate
 {
-    std::vector<std::string> names;
-    std::vector<std::vector<std::string>> levels;
-    std::vector<std::string> reference_levels;
-    std::vector<std::string> column_names;
+    std::vector<DiscreteCovariateTerm> terms;
     std::vector<EncodedResult<>> encoded_results;
 
     for (std::size_t i = 0; i < frame.cols(); ++i)
@@ -55,15 +50,14 @@ auto make_discrete_covariate(const DataFrame<std::string>& frame)
         {
             continue;
         }
-        names.emplace_back(col.name());
-        reference_levels.push_back(all_levels.front());
+        auto reference_level = all_levels.front();
         encoded_results.push_back(
             encode(col, std::span<const std::string>(all_levels).subspan(1)));
-        levels.push_back(std::move(all_levels));
-        column_names.insert(
-            column_names.end(),
-            std::make_move_iterator(encoded_results.back().level_names.begin()),
-            std::make_move_iterator(encoded_results.back().level_names.end()));
+        terms.push_back(
+            DiscreteCovariateTerm{
+                .name = std::string(col.name()),
+                .levels = std::move(all_levels),
+                .reference_level = std::move(reference_level)});
     }
 
     Eigen::Index total_cols = 0;
@@ -80,79 +74,6 @@ auto make_discrete_covariate(const DataFrame<std::string>& frame)
         col_offset += r.data.cols();
     }
 
-    return DiscreteCovariate{
-        .names = std::move(names),
-        .levels = std::move(levels),
-        .reference_levels = std::move(reference_levels),
-        .column_names = std::move(column_names),
-        .X = std::move(X)};
-}
-
-auto make_random_designs(const DataFrame<std::string>& frame)
-    -> std::vector<freq::RandomDesign>
-{
-    std::vector<freq::RandomDesign> random_designs;
-    random_designs.reserve(frame.cols());
-    for (std::size_t i = 0; i < frame.cols(); ++i)
-    {
-        const auto& col = frame.col(i);
-        auto result = one_hot_encode(col);
-
-        random_designs.emplace_back(
-            result.name,
-            std::move(result.level_names),
-            std::nullopt,
-            result.data * result.data.transpose(),
-            freq::RandomKind::Discrete);
-    }
-    return random_designs;
-}
-
-auto make_quantitative_random_design(
-    const DataFrame<std::string>& frame,
-    std::string name) -> freq::RandomDesign
-{
-    Eigen::MatrixXd Z = frame.to_mat<double>();
-    return freq::RandomDesign{
-        .name = std::move(name),
-        .levels = std::nullopt,
-        .Z = std::nullopt,
-        .K = Z * Z.transpose(),
-        .kind = freq::RandomKind::Quantitative};
-}
-
-auto make_grm_designs(
-    std::span<const std::string> prefixes,
-    const DataFrameIndex<std::string>& index) -> std::vector<freq::RandomDesign>
-{
-    std::vector<freq::RandomDesign> grm_designs;
-    grm_designs.reserve(prefixes.size());
-    for (const auto& prefix : prefixes)
-    {
-        auto name = std::filesystem::path(prefix).filename().string();
-        auto K = read_grm(prefix, &index);
-        grm_designs.emplace_back(
-            name,
-            std::nullopt,
-            std::nullopt,
-            std::move(K),
-            freq::RandomKind::Grm);
-    }
-    return grm_designs;
-}
-
-auto make_interaction_design(
-    std::string name,
-    const Eigen::Ref<const Eigen::MatrixXd>& lhs,
-    const Eigen::Ref<const Eigen::MatrixXd>& rhs) -> freq::RandomDesign
-{
-    Eigen::MatrixXd K = lhs.cwiseProduct(rhs);
-    K /= K.diagonal().mean();
-    return freq::RandomDesign{
-        .name = std::move(name),
-        .levels = std::nullopt,
-        .Z = std::nullopt,
-        .K = std::move(K),
-        .kind = freq::RandomKind::Interaction};
+    return DiscreteCovariate{.terms = std::move(terms), .X = std::move(X)};
 }
 }  // namespace gelex

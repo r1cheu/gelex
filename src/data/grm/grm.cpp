@@ -31,7 +31,7 @@
 #include "gelex/data/encode/stats.h"
 #include "gelex/data/encode/types.h"
 #include "gelex/data/marker_range.h"
-#include "gelex/infra/logging/notify.h"
+#include "gelex/infra/notify.h"
 
 namespace gelex
 {

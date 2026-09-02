@@ -21,13 +21,13 @@
 #include <random>
 #include <vector>
 
-#include "gelex/bayes/common_kernel.h"
+#include "gelex/bayes/detail/common_kernel.h"
 #include "gelex/bayes/detail/kernel_factory.h"
 #include "gelex/bayes/model.h"
 #include "gelex/bayes/prior.h"
 #include "gelex/bayes/state.h"
 #include "gelex/exception.h"
-#include "gelex/types/genetic_mode.h"
+#include "gelex/genetic_mode.h"
 
 namespace gelex
 {

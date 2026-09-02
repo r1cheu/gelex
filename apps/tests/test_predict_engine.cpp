@@ -41,10 +41,10 @@
 #include "gelex/data/genotype_method.h"
 #include "gelex/data/reader.h"
 #include "gelex/data/snp_alignment.h"
+#include "gelex/data/snp_lut_io.h"
 #include "gelex/exception.h"
+#include "gelex/genetic_mode.h"
 #include "gelex/io/binary_writer.h"
-#include "gelex/io/snp_lut.h"
-#include "gelex/types/genetic_mode.h"
 
 #include "bed_fixture.h"
 #include "cli/predict/compute.h"

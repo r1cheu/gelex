@@ -23,7 +23,10 @@
 #include <string>
 #include <vector>
 
-#include "gelex/types/fixed_designs.h"
+namespace gelex
+{
+class FixedDesign;
+}
 
 namespace gelex::freq
 {

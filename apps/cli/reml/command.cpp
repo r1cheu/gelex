@@ -18,11 +18,11 @@
 
 #include <utility>
 
-#include "gelex/algo/reml/estimator.h"
-#include "gelex/algo/reml/summary.h"
 #include "gelex/exception.h"
 #include "gelex/freq/model.h"
-#include "gelex/io/reml.h"
+#include "gelex/freq/reml/estimator.h"
+#include "gelex/freq/reml/io.h"
+#include "gelex/freq/reml/summary.h"
 
 #include "cli/common_data.h"
 #include "cli/formatter.h"

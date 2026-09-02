@@ -16,80 +16,19 @@
 
 #include "gelex/data/dataframe/reader.h"
 
-#include <Eigen/Core>
-#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <filesystem>
-#include <fmt/format.h>
 #include <fstream>
-#include <ranges>
 #include <sstream>
 #include <string>
-#include <system_error>
-#include <utility>
 #include <vector>
 
 #include "gelex/data/reader.h"
-#include "gelex/exception.h"
 #include "gelex/io/detail/parser.h"
-#include "gelex/io/mapped_file.h"
 
 namespace
 {
-
-auto lower_triangle_index(size_t i, size_t j) -> size_t
-{
-    return (i * (i + 1) / 2) + j;
-}
-
-auto mmap_and_check_size(const std::string& path, size_t expected_size)
-    -> gelex::MappedFile
-{
-    std::error_code ec;
-    gelex::MappedFile mmap;
-    mmap.map(path, ec);
-    if (ec)
-    {
-        throw gelex::GelexException(
-            fmt::format("failed to memory map {}.", path));
-    }
-
-    if (mmap.size() != expected_size)
-    {
-        throw gelex::GelexException(
-            fmt::format(
-                "{}: file size mismatch. Expected {} bytes, got {} bytes",
-                path,
-                expected_size,
-                mmap.size()));
-    }
-    return mmap;
-}
-
-auto create_index_mapping(
-    const gelex::DataFrameIndex<std::string>& source_indices,
-    const gelex::DataFrameIndex<std::string>& target_indices)
-    -> std::vector<std::pair<Eigen::Index, Eigen::Index>>
-{
-    std::vector<std::pair<Eigen::Index, Eigen::Index>> idx_mapping;
-    idx_mapping.reserve(target_indices.size());
-
-    for (auto&& [tgt_idx, id] : std::views::enumerate(target_indices.keys()))
-    {
-        if (!source_indices.contains(id))
-        {
-            throw gelex::GelexException(
-                fmt::format(
-                    "targe index '{}' not found in source indices", id));
-        }
-
-        idx_mapping.emplace_back(
-            static_cast<Eigen::Index>(source_indices.at(id)),
-            static_cast<Eigen::Index>(tgt_idx));
-    }
-    return idx_mapping;
-}
 
 auto detect_delimiter(const std::filesystem::path& path) -> char
 {
@@ -211,98 +150,6 @@ auto read_dcovar(const std::filesystem::path& path) -> DataFrame<std::string>
     ReadOptions options;
     options.index_cols = {0, 1};
     return read_dataframe<std::string, std::string>(path, options);
-}
-
-auto read_grm_ids(const std::string& prefix)
-    -> gelex::DataFrameIndex<std::string>
-{
-    std::string path = prefix + ".id";
-    ReadOptions options;
-    options.delimiter = '\t';
-    options.header = false;
-    options.index_cols = {0, 1};
-    auto index = read_index<std::string>(path, options);
-    if (index.size() == 0)
-    {
-        throw GelexException(fmt::format("{}: no sample IDs found", path));
-    }
-    return index;
-}
-
-auto read_grm(
-    const std::string& prefix,
-    const DataFrameIndex<std::string>* index,
-    bool normalize) -> Eigen::MatrixXd
-{
-    auto source_index = gelex::read_grm_ids(prefix);
-    auto n = static_cast<Eigen::Index>(source_index.size());
-
-    auto grm_path = prefix + ".bin";
-    std::size_t buffer_size = n * (n + 1) / 2 * sizeof(float);
-    auto mmap = mmap_and_check_size(grm_path, buffer_size);
-
-    Eigen::MatrixXd target;
-
-    if (index != nullptr)
-    {
-        auto out_n = static_cast<Eigen::Index>(index->size());
-        auto idx_mapping = create_index_mapping(source_index, *index);
-        target.setZero(out_n, out_n);
-
-        const auto* data = reinterpret_cast<const float*>(mmap.data());
-
-        for (Eigen::Index ii = 0; ii < out_n; ++ii)
-        {
-            auto [src_i, tgt_i] = idx_mapping[ii];
-
-            for (Eigen::Index jj = 0; jj <= ii; ++jj)
-            {
-                auto [src_j, tgt_j] = idx_mapping[jj];
-
-                // Read from lower triangle (ensure src_i >= src_j)
-                Eigen::Index file_i = src_i;
-                Eigen::Index file_j = src_j;
-                if (file_i < file_j)
-                {
-                    std::swap(file_i, file_j);
-                }
-
-                auto idx = lower_triangle_index(file_i, file_j);
-                target(tgt_i, tgt_j) = static_cast<double>(data[idx]);
-                if (tgt_i != tgt_j)
-                {
-                    target(tgt_j, tgt_i) = target(tgt_i, tgt_j);
-                }
-            }
-        }
-    }
-    else
-    {
-        target.resize(n, n);
-        const auto* data = reinterpret_cast<const float*>(mmap.data());
-
-        for (Eigen::Index i = 0; i < n; ++i)
-        {
-            for (Eigen::Index j = 0; j <= i; ++j)
-            {
-                auto idx = lower_triangle_index(i, j);
-                target(i, j) = static_cast<double>(data[idx]);
-                if (i != j)
-                {
-                    target(j, i) = target(i, j);  // Symmetric
-                }
-            }
-        }
-    }
-
-    if (normalize && target.size() > 0)
-    {
-        double denominator
-            = target.trace() / static_cast<double>(target.rows());
-        target /= denominator;
-    }
-
-    return target;
 }
 
 }  // namespace gelex

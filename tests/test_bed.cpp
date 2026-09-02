@@ -25,7 +25,7 @@
 #include "gelex/data/encode/encoder.h"
 #include "gelex/data/encode/types.h"
 #include "gelex/exception.h"
-#include "gelex/types/genetic_mode.h"
+#include "gelex/genetic_mode.h"
 
 #include "bed_fixture.h"
 

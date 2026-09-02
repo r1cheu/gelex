@@ -18,9 +18,9 @@
 #define GELEX_BAYES_DETAIL_GENETIC_SPEC_H_
 
 #include "gelex/bayes/genetic_family.h"
+#include "gelex/bayes/mode_values.h"
 #include "gelex/bayes/spec.h"
-#include "gelex/types/genetic_mode.h"
-#include "gelex/types/mode_values.h"
+#include "gelex/genetic_mode.h"
 
 namespace gelex::detail
 {

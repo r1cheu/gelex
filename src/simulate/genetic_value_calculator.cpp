@@ -29,10 +29,10 @@
 #include "gelex/data/encode/stats.h"
 #include "gelex/data/encode/types.h"
 #include "gelex/data/genotype_method.h"
-#include "gelex/infra/logging/notify.h"
-#include "gelex/infra/logging/simulate_event.h"
+#include "gelex/genetic_mode.h"
+#include "gelex/infra/notify.h"
+#include "gelex/simulate/progress.h"
 #include "gelex/simulate/sim_types.h"
-#include "gelex/types/genetic_mode.h"
 
 namespace gelex
 {

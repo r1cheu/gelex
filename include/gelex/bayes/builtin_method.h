@@ -23,6 +23,8 @@
 #include <utility>
 
 #include "gelex/bayes/genetic_family.h"
+#include "gelex/bayes/recipe.h"
+#include "gelex/genetic_mode.h"
 
 namespace gelex
 {
@@ -92,6 +94,9 @@ struct GeneticFamilyFor<BayesMethod::CD>
 
 template <BayesMethod Method>
 using genetic_family_t = typename detail::GeneticFamilyFor<Method>::type;
+
+template <GeneticModeSet Modes, BayesMethod Method>
+using BuiltinBayesRecipe = BayesRecipe<Modes, genetic_family_t<Method>>;
 
 }  // namespace gelex
 

@@ -21,12 +21,12 @@
 #include <utility>
 #include <vector>
 
-#include "gelex/bayes/design_data.h"
+#include "gelex/bayes/genotype/design.h"
 #include "gelex/bayes/model.h"
 #include "gelex/data/bed.h"
+#include "gelex/data/fixed_design.h"
 #include "gelex/data/genotype_method.h"
-#include "gelex/types/fixed_designs.h"
-#include "gelex/types/genetic_mode.h"
+#include "gelex/genetic_mode.h"
 
 #include "bed_fixture.h"
 

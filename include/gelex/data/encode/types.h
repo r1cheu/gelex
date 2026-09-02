@@ -23,7 +23,7 @@
 #include "gelex/data/encode/stats.h"
 #include "gelex/data/genotype_method.h"
 #include "gelex/data/snp_lut.h"
-#include "gelex/types/genetic_mode.h"
+#include "gelex/genetic_mode.h"
 
 namespace gelex
 {
