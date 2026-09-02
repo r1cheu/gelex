@@ -47,8 +47,8 @@ Scope
     (:doc:`reference/cli/reml`).
 *   **Association testing** — mixed linear models with LOCO correction
     (:doc:`concepts/mixed_model_gwas`).
-*   **Supporting utilities** — genomic relationship matrices, phenotype
-    simulation, and posterior diagnostics (:doc:`reference/cli/index`).
+*   **Supporting utilities** — genomic relationship matrices and posterior
+    diagnostics (:doc:`reference/cli/index`).
 
 How This Documentation Is Organized
 -----------------------------------

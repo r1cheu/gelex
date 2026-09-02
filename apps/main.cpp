@@ -26,7 +26,6 @@
 #include "cli/mcmc/args.h"
 #include "cli/predict/args.h"
 #include "cli/reml/args.h"
-#include "cli/simulate/args.h"
 #include "version.h"
 
 auto main(int argc, char* argv[]) -> int
@@ -47,7 +46,6 @@ Docs: https://gelex.readthedocs.io/en/latest/)",
 
     int exit_code = 0;
     setup_mcmc_command(program, exit_code);
-    setup_simulate_command(program, exit_code);
     setup_predict_command(program, exit_code);
     setup_grm_command(program, exit_code);
     setup_assoc_command(program, exit_code);
