@@ -66,7 +66,6 @@ class BayesState
     using genetic_state_type = detail::genetic_state_t<GeneticPrior>;
 
     [[nodiscard]] auto fixed() noexcept -> FixedEffectState& { return fixed_; }
-
     [[nodiscard]] auto fixed() const noexcept -> const FixedEffectState&
     {
         return fixed_;
@@ -76,7 +75,6 @@ class BayesState
     {
         return random_;
     }
-
     [[nodiscard]] auto random() const noexcept
         -> std::span<const RandomEffectState>
     {
@@ -87,7 +85,6 @@ class BayesState
     {
         return genetic_;
     }
-
     [[nodiscard]] auto genetic() const noexcept -> const genetic_state_type&
     {
         return genetic_;
@@ -97,7 +94,6 @@ class BayesState
     {
         return residual_;
     }
-
     [[nodiscard]] auto residual() const noexcept -> const ResidualState&
     {
         return residual_;
@@ -158,7 +154,7 @@ template <typename GeneticPrior>
         FixedEffectState{
             .coefficients = Eigen::VectorXd::Zero(model.fixed().X().cols())},
         std::move(random),
-        detail::make_genetic_state(prior.genetic(), model.genetic()),
+        detail::make_state(prior.genetic(), model.genetic()),
         ResidualState{
             .adjusted_response = model.phenotype(),
             .variance = prior.residual().initial_value()}};

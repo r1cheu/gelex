@@ -30,24 +30,9 @@ namespace gelex
 
 namespace detail
 {
-
 template <VarianceLayout Kind>
-struct MarkerVarianceStateType;
-
-template <>
-struct MarkerVarianceStateType<VarianceLayout::Pooled>
-{
-    using type = double;
-};
-
-template <>
-struct MarkerVarianceStateType<VarianceLayout::Unpooled>
-{
-    using type = Eigen::VectorXd;
-};
-
-template <VarianceLayout Kind>
-using marker_variance_state_t = typename MarkerVarianceStateType<Kind>::type;
+using marker_variance_state_t = std::
+    conditional_t<Kind == VarianceLayout::Pooled, double, Eigen::VectorXd>;
 
 }  // namespace detail
 

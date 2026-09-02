@@ -31,15 +31,15 @@ namespace gelex
 {
 BayesModel::BayesModel(
     Eigen::VectorXd phenotype,
-    FixedDesign fixed_design,
+    FixedDesign fixed,
     std::vector<bayes::RandomDesign> random,
     bayes::GeneticDesign genetic)
-    : phenotype_(std::move(phenotype)),
-      fixed_(std::move(fixed_design)),
+    : num_individuals_(phenotype.size()),
+      phenotype_(std::move(phenotype)),
+      fixed_(std::move(fixed)),
       random_(std::move(random)),
       genetic_(std::move(genetic))
 {
-    num_individuals_ = phenotype_.rows();
     if (num_individuals_ == 0)
     {
         throw GelexException("BayesModel: phenotype must not be empty");

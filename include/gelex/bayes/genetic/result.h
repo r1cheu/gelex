@@ -21,10 +21,7 @@
 #include <type_traits>
 
 #include "gelex/bayes/basic_result.h"
-#include "gelex/bayes/genetic/prior.h"
 #include "gelex/bayes/genetic_family.h"
-#include "gelex/bayes/mode_values.h"
-#include "gelex/genetic_mode.h"
 
 namespace gelex
 {
@@ -38,9 +35,9 @@ using marker_variance_result_t = std::conditional_t<
     ScalarPosteriorResult,
     EmptyPosteriorResult>;
 
-template <UpdatePolicy Policy, typename Result>
-using policy_result_t = std::conditional_t<
-    Policy == UpdatePolicy::Sampled,
+template <MixtureWeightUpdate Update, typename Result>
+using weight_result_t = std::conditional_t<
+    Update == MixtureWeightUpdate::Enabled,
     Result,
     EmptyPosteriorResult>;
 
@@ -68,28 +65,25 @@ struct HalfNormalPosteriorResult<HalfNormalAsymmetry::Magnitude>
     VectorPosteriorResult variances;
 };
 
-template <VarianceLayout Kind, UpdatePolicy ProbabilityUpdate>
+template <VarianceLayout Kind, MixtureWeightUpdate WeightUpdate>
 struct SpikeSlabPosteriorResult
 {
     detail::marker_variance_result_t<Kind> variance;
-    detail::policy_result_t<ProbabilityUpdate, ScalarPosteriorResult>
-        probability;
+    detail::weight_result_t<WeightUpdate, ScalarPosteriorResult> probability;
 };
 
-template <std::size_t ClassCount, UpdatePolicy ProbabilitiesUpdate>
+template <std::size_t ClassCount, MixtureWeightUpdate WeightUpdate>
 struct ScaledMixturePosteriorResult
 {
     ScalarPosteriorResult variance;
-    detail::policy_result_t<ProbabilitiesUpdate, VectorPosteriorResult>
-        probabilities;
+    detail::weight_result_t<WeightUpdate, VectorPosteriorResult> probabilities;
     VectorPosteriorResult component_explained_variance;
 };
 
-template <std::size_t ClassCount, UpdatePolicy ProbabilitiesUpdate>
+template <std::size_t ClassCount, MixtureWeightUpdate WeightUpdate>
 struct JointSpikeSlabPosteriorResult
 {
-    detail::policy_result_t<ProbabilitiesUpdate, VectorPosteriorResult>
-        probabilities;
+    detail::weight_result_t<WeightUpdate, VectorPosteriorResult> probabilities;
     VectorPosteriorResult component_explained_variance;
 };
 
@@ -100,68 +94,6 @@ struct GeneticModeResult
     VectorPosteriorResult coefficients;
     FamilyResult family_result;
 };
-
-namespace detail
-{
-
-template <typename Prior>
-struct FamilyResultType;
-
-template <VarianceLayout Kind>
-struct FamilyResultType<GaussianPrior<Kind>>
-{
-    using type = GaussianPosteriorResult<Kind>;
-};
-
-template <HalfNormalAsymmetry Axis>
-struct FamilyResultType<HalfNormalPrior<Axis>>
-{
-    using type = HalfNormalPosteriorResult<Axis>;
-};
-
-template <VarianceLayout Kind, UpdatePolicy ProbabilityUpdate>
-struct FamilyResultType<SpikeSlabPrior<Kind, ProbabilityUpdate>>
-{
-    using type = SpikeSlabPosteriorResult<Kind, ProbabilityUpdate>;
-};
-
-template <std::size_t ClassCount, UpdatePolicy ProbabilitiesUpdate>
-struct FamilyResultType<ScaledMixturePrior<ClassCount, ProbabilitiesUpdate>>
-{
-    using type = ScaledMixturePosteriorResult<ClassCount, ProbabilitiesUpdate>;
-};
-
-template <std::size_t ClassCount, UpdatePolicy ProbabilitiesUpdate>
-struct FamilyResultType<JointSpikeSlabPrior<ClassCount, ProbabilitiesUpdate>>
-{
-    using type = JointSpikeSlabPosteriorResult<ClassCount, ProbabilitiesUpdate>;
-};
-
-template <typename Prior>
-using family_result_t = typename FamilyResultType<Prior>::type;
-
-template <typename GeneticPrior>
-struct GeneticResultType;
-
-template <GeneticModeSet Modes, typename... Priors>
-struct GeneticResultType<ModeValues<Modes, Priors...>>
-{
-    using type
-        = ModeValues<Modes, GeneticModeResult<family_result_t<Priors>>...>;
-};
-
-template <typename ModeValuesType, typename JointPrior>
-struct GeneticResultType<JointModeValues<ModeValuesType, JointPrior>>
-{
-    using type = JointModeValues<
-        typename GeneticResultType<ModeValuesType>::type,
-        family_result_t<JointPrior>>;
-};
-
-template <typename GeneticPrior>
-using genetic_result_t = typename GeneticResultType<GeneticPrior>::type;
-
-}  // namespace detail
 
 }  // namespace gelex
 

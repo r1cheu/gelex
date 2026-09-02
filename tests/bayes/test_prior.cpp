@@ -30,7 +30,7 @@
 #include "gelex/bayes/prior.h"
 #include "gelex/bayes/recipe.h"
 #include "gelex/bayes/spec.h"
-#include "gelex/bayes/variance_budget.h"
+#include "gelex/bayes/variance/budget.h"
 #include "gelex/data/fixed_design.h"
 #include "gelex/exception.h"
 #include "gelex/genetic_mode.h"
@@ -55,6 +55,7 @@ using gelex::JointSpikeSlab;
 using gelex::JointSpikeSlabFamily;
 using gelex::JointSpikeSlabPrior;
 using gelex::make_prior;
+using gelex::MixtureWeightUpdate;
 using gelex::ModeValues;
 using gelex::ScaledMixture;
 using gelex::ScaledMixtureFamily;
@@ -62,7 +63,6 @@ using gelex::ScaledMixturePrior;
 using gelex::SpikeSlab;
 using gelex::SpikeSlabFamily;
 using gelex::SpikeSlabPrior;
-using gelex::UpdatePolicy;
 using gelex::VarianceBudget;
 using gelex::VarianceLayout;
 
@@ -88,13 +88,15 @@ using UnpooledGaussianFamily = GaussianFamily<VarianceLayout::Unpooled>;
 using PooledSpikeSlabFamily = SpikeSlabFamily<VarianceLayout::Pooled>;
 using UnpooledSpikeSlabFamily = SpikeSlabFamily<VarianceLayout::Unpooled>;
 using FixedUnpooledSpikeSlabFamily
-    = SpikeSlabFamily<VarianceLayout::Unpooled, UpdatePolicy::Fixed>;
+    = SpikeSlabFamily<VarianceLayout::Unpooled, MixtureWeightUpdate::Disabled>;
 using DefaultScaledMixtureFamily = ScaledMixtureFamily<>;
-using FixedScaledMixtureFamily = ScaledMixtureFamily<UpdatePolicy::Fixed>;
+using FixedScaledMixtureFamily
+    = ScaledMixtureFamily<MixtureWeightUpdate::Disabled>;
 using DefaultJointSpikeSlabFamily = JointSpikeSlabFamily<>;
-using FixedJointSpikeSlabFamily = JointSpikeSlabFamily<UpdatePolicy::Fixed>;
+using FixedJointSpikeSlabFamily
+    = JointSpikeSlabFamily<MixtureWeightUpdate::Disabled>;
 using MagnitudeJointSpikeSlabFamily = JointSpikeSlabFamily<
-    UpdatePolicy::Sampled,
+    MixtureWeightUpdate::Enabled,
     HalfNormalAsymmetry::Magnitude>;
 
 // Each recipe type admits exactly one prior type, and the five independent
@@ -150,8 +152,12 @@ static_assert(
         prior_result_t<BayesRecipe<mode_ad, FixedUnpooledSpikeSlabFamily>>,
         BayesPrior<ModeValues<
             mode_ad,
-            SpikeSlabPrior<VarianceLayout::Unpooled, UpdatePolicy::Fixed>,
-            SpikeSlabPrior<VarianceLayout::Unpooled, UpdatePolicy::Fixed>>>>);
+            SpikeSlabPrior<
+                VarianceLayout::Unpooled,
+                MixtureWeightUpdate::Disabled>,
+            SpikeSlabPrior<
+                VarianceLayout::Unpooled,
+                MixtureWeightUpdate::Disabled>>>>);
 
 template <typename Recipe>
 concept CanMakePrior = requires(const Recipe& recipe, const BayesModel& model) {

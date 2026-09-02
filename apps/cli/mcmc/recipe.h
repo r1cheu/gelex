@@ -30,7 +30,7 @@
 #include "gelex/bayes/genetic_family.h"
 #include "gelex/bayes/mode_values.h"
 #include "gelex/bayes/spec.h"
-#include "gelex/bayes/variance_budget.h"
+#include "gelex/bayes/variance/budget.h"
 #include "gelex/exception.h"
 #include "gelex/genetic_mode.h"
 
@@ -108,9 +108,9 @@ auto make_genetic_spec(
 template <
     gelex::GeneticModeSet Modes,
     gelex::VarianceLayout Kind,
-    gelex::UpdatePolicy ProbabilityUpdate>
+    gelex::MixtureWeightUpdate WeightUpdate>
 auto make_genetic_spec(
-    gelex::SpikeSlabFamily<Kind, ProbabilityUpdate> /*family*/,
+    gelex::SpikeSlabFamily<Kind, WeightUpdate> /*family*/,
     const McmcConfig& config)
 {
     return gelex::generate_mode_values<Modes>(
@@ -134,9 +134,9 @@ auto make_genetic_spec(
         });
 }
 
-template <gelex::GeneticModeSet Modes, gelex::UpdatePolicy ProbabilitiesUpdate>
+template <gelex::GeneticModeSet Modes, gelex::MixtureWeightUpdate WeightUpdate>
 auto make_genetic_spec(
-    gelex::ScaledMixtureFamily<ProbabilitiesUpdate> /*family*/,
+    gelex::ScaledMixtureFamily<WeightUpdate> /*family*/,
     const McmcConfig& config)
 {
     return gelex::generate_mode_values<Modes>(
@@ -165,11 +165,11 @@ auto make_genetic_spec(
         });
 }
 
-template <gelex::GeneticModeSet Modes, gelex::UpdatePolicy ProbabilitiesUpdate>
+template <gelex::GeneticModeSet Modes, gelex::MixtureWeightUpdate WeightUpdate>
     requires(Modes == additive_dominance_mode)
 auto make_genetic_spec(
     gelex::JointSpikeSlabFamily<
-        ProbabilitiesUpdate,
+        WeightUpdate,
         gelex::HalfNormalAsymmetry::Count> /*family*/,
     const McmcConfig& config)
 {

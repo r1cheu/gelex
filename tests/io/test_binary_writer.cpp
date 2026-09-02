@@ -40,7 +40,16 @@ namespace
 namespace fs = std::filesystem;
 namespace test = gelex::test;
 
+template <typename Writer>
+concept CanReservePayload = requires(Writer&& writer) {
+    std::forward<Writer>(writer).template reserve<double>(
+        "value", gelex::BinaryShape{1, 1});
+};
+
 }  // namespace
+
+static_assert(CanReservePayload<gelex::BinaryWriter&>);
+static_assert(!CanReservePayload<gelex::BinaryWriter>);
 
 TEST_CASE(
     "BinaryWriter supports interleaved payload appends",

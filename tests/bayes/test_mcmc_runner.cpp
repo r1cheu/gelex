@@ -53,7 +53,8 @@ TEST_CASE(
     gelex::MCMCRunner runner{iterations, 0, 1};
     gelex::test::FileFixture fixture;
     const auto path = fixture.get_test_dir() / "progress.draws";
-    gelex::BayesDraws draws(prior, model, path.string(), runner.draw_count());
+    auto draws
+        = gelex::make_draws(prior, model, path.string(), runner.draw_count());
     std::vector<std::size_t> completed_iterations;
     bool done = false;
     gelex::MCMCObserver observer = [&](const gelex::MCMCProgressEvent& progress)
@@ -91,14 +92,14 @@ TEST_CASE(
 
     {
         gelex::MCMCRunner runner{5, 0, 1};
-        gelex::BayesDraws draws(
+        auto draws = gelex::make_draws(
             prior, model, full_path.string(), runner.draw_count());
         runner.run(model, prior, draws, 123);
     }
     {
         gelex::MCMCRunner runner{5, 1, 2};
         REQUIRE(runner.draw_count() == 2);
-        gelex::BayesDraws draws(
+        auto draws = gelex::make_draws(
             prior, model, retained_path.string(), runner.draw_count());
         runner.run(model, prior, draws, 123);
     }

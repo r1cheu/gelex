@@ -20,7 +20,6 @@
 #include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <concepts>
-#include <cstdint>
 #include <filesystem>
 #include <string>
 #include <type_traits>
@@ -30,14 +29,13 @@
 #include "gelex/bayes/detail/result_factory.h"
 #include "gelex/bayes/draws.h"
 #include "gelex/bayes/genetic/draws.h"
-#include "gelex/bayes/genetic/prior.h"
 #include "gelex/bayes/genetic_family.h"
 #include "gelex/bayes/model.h"
 #include "gelex/bayes/prior.h"
 #include "gelex/bayes/recipe.h"
 #include "gelex/bayes/result.h"
 #include "gelex/bayes/state.h"
-#include "gelex/bayes/variance_budget.h"
+#include "gelex/bayes/variance/budget.h"
 #include "gelex/data/covariates.h"
 #include "gelex/data/dataframe/constants.h"
 #include "gelex/data/fixed_design.h"
@@ -69,7 +67,7 @@ auto collect_result(const std::filesystem::path& path, Configure configure)
     auto state = gelex::make_state(prior, model);
     configure(state);
 
-    gelex::BayesDraws draws(prior, model, path.string(), 1);
+    auto draws = gelex::make_draws(prior, model, path.string(), 1);
     draws.append(state);
     return gelex::make_result(model, draws);
 }
@@ -150,7 +148,7 @@ TEST_CASE(
             = 0.5;
         state.residual().variance = 4.0;
 
-        gelex::BayesDraws draws(prior, model, path.string(), 1);
+        auto draws = gelex::make_draws(prior, model, path.string(), 1);
         draws.append(state);
         static_assert(std::same_as<
                       decltype(gelex::make_result(model, draws)),
@@ -218,7 +216,7 @@ TEST_CASE(
         .variance = gelex::VectorDraw{writer.reserve<float>(
             "genetic/A/variance", gelex::BinaryShape{2, 0})}};
 
-    const auto result = gelex::detail::make_family_result(draws);
+    const auto result = gelex::detail::make_result(draws);
 
     STATIC_REQUIRE(EmptyVariance<decltype(result)>);
 }
@@ -233,7 +231,7 @@ TEST_CASE(
     {
         using Family = gelex::SpikeSlabFamily<
             gelex::VarianceLayout::Unpooled,
-            gelex::UpdatePolicy::Sampled>;
+            gelex::MixtureWeightUpdate::Enabled>;
         const auto result = collect_result<mode_a, Family>(
             fixture.get_test_dir() / "sampled_unpooled.draws",
             [](auto& state)
@@ -257,7 +255,7 @@ TEST_CASE(
     {
         using Family = gelex::SpikeSlabFamily<
             gelex::VarianceLayout::Pooled,
-            gelex::UpdatePolicy::Fixed>;
+            gelex::MixtureWeightUpdate::Disabled>;
         const auto result = collect_result<mode_a, Family>(
             fixture.get_test_dir() / "fixed_pooled.draws",
             [](auto& state)
@@ -316,7 +314,8 @@ TEST_CASE(
 
     SECTION("fixed")
     {
-        using Family = gelex::ScaledMixtureFamily<gelex::UpdatePolicy::Fixed>;
+        using Family
+            = gelex::ScaledMixtureFamily<gelex::MixtureWeightUpdate::Disabled>;
         const auto result = collect_result<mode_a, Family>(
             fixture.get_test_dir() / "fixed_mixture.draws",
             [](auto& state)
@@ -387,7 +386,7 @@ TEST_CASE(
     SECTION("magnitude")
     {
         using Family = gelex::JointSpikeSlabFamily<
-            gelex::UpdatePolicy::Sampled,
+            gelex::MixtureWeightUpdate::Enabled,
             gelex::HalfNormalAsymmetry::Magnitude>;
         const auto result = collect_result<mode_ad, Family>(
             fixture.get_test_dir() / "magnitude_joint.draws",
@@ -408,7 +407,8 @@ TEST_CASE(
 
     SECTION("fixed joint probabilities")
     {
-        using Family = gelex::JointSpikeSlabFamily<gelex::UpdatePolicy::Fixed>;
+        using Family
+            = gelex::JointSpikeSlabFamily<gelex::MixtureWeightUpdate::Disabled>;
         const auto result = collect_result<mode_ad, Family>(
             fixture.get_test_dir() / "fixed_joint.draws",
             [](auto& state)
@@ -424,7 +424,7 @@ TEST_CASE(
 }
 
 TEST_CASE(
-    "BayesResult validates model draw alignment and statistics dimensions",
+    "BayesResult validates model and coefficient draw alignment",
     "[bayes][result]")
 {
     using Family = gelex::GaussianFamily<gelex::VarianceLayout::Pooled>;
@@ -436,7 +436,7 @@ TEST_CASE(
             gelex::VarianceBudget{{.additive = 0.4, .random = 0.2}}},
         source_model);
     auto state = gelex::make_state(prior, source_model);
-    gelex::BayesDraws draws(
+    auto draws = gelex::make_draws(
         prior,
         source_model,
         (fixture.get_test_dir() / "mismatched.draws").string(),
@@ -476,29 +476,6 @@ TEST_CASE(
             Eigen::MatrixXd{{0.0, 1.0}, {1.0, 0.0}, {2.0, 1.0}}, mode_a)};
     REQUIRE_THROWS_AS(
         gelex::make_result(random_mismatch, draws), gelex::GelexException);
-
-    gelex::BinaryWriter malformed_writer(
-        (fixture.get_test_dir() / "malformed_family.draws").string());
-    gelex::ScaledMixtureDraws<5, gelex::UpdatePolicy::Sampled> malformed_family{
-        .variance = gelex::ScalarDraw{malformed_writer.reserve<double>(
-            "genetic/A/variance", gelex::BinaryShape{1, 1})},
-        .assignment
-        = gelex::CategoryDraw<5>{malformed_writer.reserve<std::uint8_t>(
-            "genetic/A/assignment", gelex::BinaryShape{2, 0})},
-        .probabilities = gelex::VectorDraw{malformed_writer.reserve<float>(
-            "genetic/A/probabilities", gelex::BinaryShape{4, 1})},
-        .component_explained_variance
-        = gelex::VectorDraw{malformed_writer.reserve<float>(
-            "genetic/A/component_explained_variance",
-            gelex::BinaryShape{4, 1})}};
-    malformed_family.variance.append(1.0);
-    malformed_family.probabilities.append(
-        Eigen::VectorXd{{0.4, 0.3, 0.2, 0.1}});
-    malformed_family.component_explained_variance.append(
-        Eigen::VectorXd{{1.0, 2.0, 3.0, 4.0}});
-    REQUIRE_THROWS_AS(
-        gelex::detail::make_family_result(malformed_family),
-        gelex::GelexException);
 }
 
 TEST_CASE(
@@ -513,7 +490,7 @@ TEST_CASE(
         gelex::BayesRecipe<mode_a, Family>{
             gelex::VarianceBudget{{.additive = 0.4, .random = 0.2}}},
         model);
-    gelex::BayesDraws draws(
+    auto draws = gelex::make_draws(
         prior, model, (fixture.get_test_dir() / "empty.draws").string(), 1);
 
     REQUIRE_THROWS_AS(gelex::make_result(model, draws), gelex::GelexException);

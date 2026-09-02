@@ -25,7 +25,7 @@
 #include "gelex/bayes/mode_values.h"
 #include "gelex/bayes/recipe.h"
 #include "gelex/bayes/spec.h"
-#include "gelex/bayes/variance_budget.h"
+#include "gelex/bayes/variance/budget.h"
 #include "gelex/exception.h"
 #include "gelex/genetic_mode.h"
 
@@ -40,12 +40,12 @@ using gelex::GeneticMode;
 using gelex::GeneticModeSet;
 using gelex::JointSpikeSlab;
 using gelex::JointSpikeSlabFamily;
+using gelex::MixtureWeightUpdate;
 using gelex::ModeValues;
 using gelex::ScaledMixture;
 using gelex::ScaledMixtureFamily;
 using gelex::SpikeSlab;
 using gelex::SpikeSlabFamily;
-using gelex::UpdatePolicy;
 using gelex::VarianceBudget;
 using gelex::VarianceLayout;
 
@@ -69,11 +69,11 @@ using UnpooledGaussianFamily = GaussianFamily<VarianceLayout::Unpooled>;
 using PooledSpikeSlabFamily = SpikeSlabFamily<VarianceLayout::Pooled>;
 using UnpooledSpikeSlabFamily = SpikeSlabFamily<VarianceLayout::Unpooled>;
 using FixedPooledSpikeSlabFamily
-    = SpikeSlabFamily<VarianceLayout::Pooled, UpdatePolicy::Fixed>;
+    = SpikeSlabFamily<VarianceLayout::Pooled, MixtureWeightUpdate::Disabled>;
 using DefaultScaledMixtureFamily = ScaledMixtureFamily<>;
 using DefaultJointSpikeSlabFamily = JointSpikeSlabFamily<>;
 using MagnitudeJointSpikeSlabFamily = JointSpikeSlabFamily<
-    UpdatePolicy::Sampled,
+    MixtureWeightUpdate::Enabled,
     gelex::HalfNormalAsymmetry::Magnitude>;
 
 template <GeneticModeSet Modes, typename Family>

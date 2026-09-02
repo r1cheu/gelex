@@ -35,7 +35,7 @@
 #include "gelex/bayes/recipe.h"
 #include "gelex/bayes/spec.h"
 #include "gelex/bayes/state.h"
-#include "gelex/bayes/variance_budget.h"
+#include "gelex/bayes/variance/budget.h"
 #include "gelex/data/fixed_design.h"
 #include "gelex/exception.h"
 #include "gelex/genetic_mode.h"
@@ -64,6 +64,7 @@ using gelex::JointSpikeSlab;
 using gelex::JointSpikeSlabFamily;
 using gelex::JointSpikeSlabPrior;
 using gelex::JointSpikeSlabState;
+using gelex::MixtureWeightUpdate;
 using gelex::ModeValues;
 using gelex::ScaledMixture;
 using gelex::ScaledMixtureFamily;
@@ -73,7 +74,6 @@ using gelex::SpikeSlab;
 using gelex::SpikeSlabFamily;
 using gelex::SpikeSlabPrior;
 using gelex::SpikeSlabState;
-using gelex::UpdatePolicy;
 using gelex::VarianceBudget;
 using gelex::VarianceLayout;
 
@@ -101,12 +101,12 @@ using UnpooledSpikeSlabPriorAD = ModeValues<
     SpikeSlabPrior<VarianceLayout::Unpooled>>;
 using FixedUnpooledSpikeSlabPriorAD = ModeValues<
     mode_ad,
-    SpikeSlabPrior<VarianceLayout::Unpooled, UpdatePolicy::Fixed>,
-    SpikeSlabPrior<VarianceLayout::Unpooled, UpdatePolicy::Fixed>>;
+    SpikeSlabPrior<VarianceLayout::Unpooled, MixtureWeightUpdate::Disabled>,
+    SpikeSlabPrior<VarianceLayout::Unpooled, MixtureWeightUpdate::Disabled>>;
 using HeterogeneousPriorAD = ModeValues<
     mode_ad,
     GaussianPrior<VarianceLayout::Pooled>,
-    SpikeSlabPrior<VarianceLayout::Unpooled, UpdatePolicy::Fixed>>;
+    SpikeSlabPrior<VarianceLayout::Unpooled, MixtureWeightUpdate::Disabled>>;
 using ScaledMixturePriorAD = ModeValues<
     mode_ad,
     ScaledMixturePrior<ScaledMixture::class_count>,
@@ -219,11 +219,12 @@ static_assert(std::same_as<
 using PooledGaussianFamily = GaussianFamily<VarianceLayout::Pooled>;
 using UnpooledGaussianFamily = GaussianFamily<VarianceLayout::Unpooled>;
 using FixedUnpooledSpikeSlabFamily
-    = SpikeSlabFamily<VarianceLayout::Unpooled, UpdatePolicy::Fixed>;
+    = SpikeSlabFamily<VarianceLayout::Unpooled, MixtureWeightUpdate::Disabled>;
 using DefaultScaledMixtureFamily = ScaledMixtureFamily<>;
-using FixedJointSpikeSlabFamily = JointSpikeSlabFamily<UpdatePolicy::Fixed>;
+using FixedJointSpikeSlabFamily
+    = JointSpikeSlabFamily<MixtureWeightUpdate::Disabled>;
 using MagnitudeJointSpikeSlabFamily = JointSpikeSlabFamily<
-    UpdatePolicy::Sampled,
+    MixtureWeightUpdate::Enabled,
     HalfNormalAsymmetry::Magnitude>;
 using SpikeSlabAD = ModeValues<mode_ad, SpikeSlab, SpikeSlab>;
 
@@ -263,7 +264,7 @@ TEST_CASE(
         BayesRecipe<mode_ad, PooledGaussianFamily>::defaults(), model);
 
     const auto state
-        = gelex::detail::make_genetic_state(prior.genetic(), model.genetic());
+        = gelex::detail::make_state(prior.genetic(), model.genetic());
 
     state.for_each(
         [&]<GeneticMode Mode>(const auto& mode_state)
@@ -295,7 +296,7 @@ TEST_CASE(
         BayesRecipe<mode_a, UnpooledGaussianFamily>::defaults(), model);
 
     const auto state
-        = gelex::detail::make_genetic_state(prior.genetic(), model.genetic());
+        = gelex::detail::make_state(prior.genetic(), model.genetic());
     const auto& variance = state.get<GeneticMode::A>().family_state.variance;
 
     REQUIRE(variance.isApprox(
@@ -318,7 +319,7 @@ TEST_CASE(
     const auto prior = gelex::make_prior(recipe, model);
 
     const auto state
-        = gelex::detail::make_genetic_state(prior.genetic(), model.genetic());
+        = gelex::detail::make_state(prior.genetic(), model.genetic());
     const auto& additive = state.get<GeneticMode::A>().family_state;
     const auto& dominance = state.get<GeneticMode::D>().family_state;
 
@@ -338,7 +339,7 @@ TEST_CASE(
         BayesRecipe<mode_a, DefaultScaledMixtureFamily>::defaults(), model);
 
     const auto state
-        = gelex::detail::make_genetic_state(prior.genetic(), model.genetic());
+        = gelex::detail::make_state(prior.genetic(), model.genetic());
     const auto& mode_state = state.get<GeneticMode::A>();
     const auto& family_state = mode_state.family_state;
 
@@ -369,7 +370,7 @@ TEST_CASE(
     const auto prior = gelex::make_prior(recipe, model);
 
     const auto state
-        = gelex::detail::make_genetic_state(prior.genetic(), model.genetic());
+        = gelex::detail::make_state(prior.genetic(), model.genetic());
     const auto& joint = state.joint();
 
     REQUIRE(
@@ -413,7 +414,7 @@ TEST_CASE(
         BayesRecipe<mode_ad, MagnitudeJointSpikeSlabFamily>::defaults(), model);
 
     const auto state
-        = gelex::detail::make_genetic_state(prior.genetic(), model.genetic());
+        = gelex::detail::make_state(prior.genetic(), model.genetic());
     const auto& dominance_prior
         = prior.genetic().mode_values().get<GeneticMode::D>();
     const auto& dominance_state
@@ -439,8 +440,7 @@ TEST_CASE(
         BayesRecipe<mode_ad, PooledGaussianFamily>::defaults(), full_model);
 
     REQUIRE_THROWS_AS(
-        gelex::detail::make_genetic_state(
-            prior.genetic(), additive_model.genetic()),
+        gelex::detail::make_state(prior.genetic(), additive_model.genetic()),
         gelex::GelexException);
 }
 

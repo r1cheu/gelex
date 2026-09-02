@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_BAYES_GENETIC_JOINT_SPIKE_SLAB_KERNEL_H_
-#define GELEX_BAYES_GENETIC_JOINT_SPIKE_SLAB_KERNEL_H_
+#ifndef GELEX_BAYES_GENETIC_KERNEL_JOINT_SPIKE_SLAB_H_
+#define GELEX_BAYES_GENETIC_KERNEL_JOINT_SPIKE_SLAB_H_
 
 #include <Eigen/Core>
 #include <algorithm>
@@ -29,8 +29,8 @@
 #include <type_traits>
 
 #include "gelex/bayes/detail/state_factory.h"
+#include "gelex/bayes/genetic/kernel/mixture_weight_updater.h"
 #include "gelex/bayes/genetic/prior.h"
-#include "gelex/bayes/genetic/probability_updater.h"
 #include "gelex/bayes/genetic/state.h"
 #include "gelex/bayes/genotype/design.h"
 #include "gelex/bayes/mode_values.h"
@@ -45,7 +45,7 @@ namespace gelex::detail
 
 template <
     std::size_t ClassCount,
-    UpdatePolicy ProbabilitiesUpdate,
+    MixtureWeightUpdate WeightUpdate,
     HalfNormalAsymmetry Axis>
 class JointSpikeSlabKernel
 {
@@ -57,7 +57,7 @@ class JointSpikeSlabKernel
         GeneticMode::A | GeneticMode::D,
         AdditivePrior,
         DominancePrior>;
-    using JointPrior = JointSpikeSlabPrior<ClassCount, ProbabilitiesUpdate>;
+    using JointPrior = JointSpikeSlabPrior<ClassCount, WeightUpdate>;
     using GeneticPrior = JointModeValues<ModePriors, JointPrior>;
     using GeneticState = genetic_state_t<GeneticPrior>;
     using JointState = JointSpikeSlabState<ClassCount>;
@@ -69,7 +69,7 @@ class JointSpikeSlabKernel
 
     using PositiveProbabilityUpdater = std::conditional_t<
         Axis == HalfNormalAsymmetry::Count,
-        ProbabilityUpdater<UpdatePolicy::Sampled>,
+        ProbabilityUpdater<MixtureWeightUpdate::Enabled>,
         NoPositiveProbabilityUpdater>;
 
     static constexpr std::size_t class_count = ClassCount;
@@ -461,7 +461,7 @@ class JointSpikeSlabKernel
                     sample.dominance);
             }
         }
-        if constexpr (ProbabilitiesUpdate == UpdatePolicy::Sampled)
+        if constexpr (WeightUpdate == MixtureWeightUpdate::Enabled)
         {
             probabilities_updater_.observe(sample.class_index);
         }
@@ -506,7 +506,7 @@ class JointSpikeSlabKernel
         HalfNormalState<Axis>& dominance_state,
         std::mt19937_64& rng) -> void
     {
-        if constexpr (ProbabilitiesUpdate == UpdatePolicy::Sampled)
+        if constexpr (WeightUpdate == MixtureWeightUpdate::Enabled)
         {
             probabilities_updater_.update(joint_state.probabilities, rng);
         }
@@ -524,7 +524,7 @@ class JointSpikeSlabKernel
         normal_.reset();
         half_normal_.reset();
         uniform_.reset();
-        if constexpr (ProbabilitiesUpdate == UpdatePolicy::Sampled)
+        if constexpr (WeightUpdate == MixtureWeightUpdate::Enabled)
         {
             probabilities_updater_.reset();
         }
@@ -584,7 +584,7 @@ class JointSpikeSlabKernel
     ScaledInvChi2Sampler<double> additive_variance_sampler_;
     ScaledInvChi2Sampler<double> dominance_variance_sampler_;
     [[no_unique_address]]
-    SimplexUpdater<ProbabilitiesUpdate, class_count> probabilities_updater_;
+    SimplexUpdater<WeightUpdate, class_count> probabilities_updater_;
     [[no_unique_address]]
     PositiveProbabilityUpdater positive_probability_updater_;
     NormalSampler<double> normal_{0.0};
@@ -594,4 +594,4 @@ class JointSpikeSlabKernel
 
 }  // namespace gelex::detail
 
-#endif  // GELEX_BAYES_GENETIC_JOINT_SPIKE_SLAB_KERNEL_H_
+#endif  // GELEX_BAYES_GENETIC_KERNEL_JOINT_SPIKE_SLAB_H_

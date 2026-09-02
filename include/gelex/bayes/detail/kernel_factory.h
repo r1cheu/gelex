@@ -22,12 +22,12 @@
 #include <utility>
 
 #include "gelex/bayes/detail/state_factory.h"
-#include "gelex/bayes/genetic/gaussian_kernel.h"
-#include "gelex/bayes/genetic/independent_sweep.h"
-#include "gelex/bayes/genetic/joint_spike_slab_kernel.h"
+#include "gelex/bayes/genetic/kernel/gaussian.h"
+#include "gelex/bayes/genetic/kernel/independent_sweep.h"
+#include "gelex/bayes/genetic/kernel/joint_spike_slab.h"
+#include "gelex/bayes/genetic/kernel/scaled_mixture.h"
+#include "gelex/bayes/genetic/kernel/spike_slab.h"
 #include "gelex/bayes/genetic/prior.h"
-#include "gelex/bayes/genetic/scaled_mixture_kernel.h"
-#include "gelex/bayes/genetic/spike_slab_kernel.h"
 #include "gelex/bayes/mode_values.h"
 #include "gelex/genetic_mode.h"
 
@@ -35,33 +35,31 @@ namespace gelex::detail
 {
 
 template <VarianceLayout Kind>
-[[nodiscard]] auto make_mode_kernel(const GaussianPrior<Kind>& prior)
+[[nodiscard]] auto make_kernel(const GaussianPrior<Kind>& prior)
 {
     return GaussianKernel<Kind>{prior};
 }
 
-template <VarianceLayout Kind, UpdatePolicy ProbabilityUpdate>
-[[nodiscard]] auto make_mode_kernel(
-    const SpikeSlabPrior<Kind, ProbabilityUpdate>& prior)
+template <VarianceLayout Kind, MixtureWeightUpdate WeightUpdate>
+[[nodiscard]] auto make_kernel(const SpikeSlabPrior<Kind, WeightUpdate>& prior)
 {
-    return SpikeSlabKernel<Kind, ProbabilityUpdate>{prior};
+    return SpikeSlabKernel<Kind, WeightUpdate>{prior};
 }
 
-template <std::size_t ClassCount, UpdatePolicy ProbabilitiesUpdate>
-[[nodiscard]] auto make_mode_kernel(
-    const ScaledMixturePrior<ClassCount, ProbabilitiesUpdate>& prior)
+template <std::size_t ClassCount, MixtureWeightUpdate WeightUpdate>
+[[nodiscard]] auto make_kernel(
+    const ScaledMixturePrior<ClassCount, WeightUpdate>& prior)
 {
-    return ScaledMixtureKernel<ClassCount, ProbabilitiesUpdate>{prior};
+    return ScaledMixtureKernel<ClassCount, WeightUpdate>{prior};
 }
 
 template <GeneticModeSet Modes, typename... ModePriors>
-[[nodiscard]] auto make_genetic_kernel(
-    const ModeValues<Modes, ModePriors...>& prior)
+[[nodiscard]] auto make_kernel(const ModeValues<Modes, ModePriors...>& prior)
 {
     auto mode_kernels = transform_mode_values(
         prior,
         []<GeneticMode /*Mode*/>(const auto& mode_prior)
-        { return make_mode_kernel(mode_prior); });
+        { return make_kernel(mode_prior); });
 
     using GeneticPrior = std::remove_cvref_t<decltype(prior)>;
     using GeneticState = genetic_state_t<GeneticPrior>;
@@ -71,22 +69,22 @@ template <GeneticModeSet Modes, typename... ModePriors>
 
 template <
     std::size_t ClassCount,
-    UpdatePolicy ProbabilitiesUpdate,
+    MixtureWeightUpdate WeightUpdate,
     HalfNormalAsymmetry Axis>
-[[nodiscard]] auto make_genetic_kernel(
+[[nodiscard]] auto make_kernel(
     const JointModeValues<
         ModeValues<
             GeneticMode::A | GeneticMode::D,
             GaussianPrior<VarianceLayout::Pooled>,
             HalfNormalPrior<Axis>>,
-        JointSpikeSlabPrior<ClassCount, ProbabilitiesUpdate>>& prior)
+        JointSpikeSlabPrior<ClassCount, WeightUpdate>>& prior)
 {
-    return JointSpikeSlabKernel<ClassCount, ProbabilitiesUpdate, Axis>{prior};
+    return JointSpikeSlabKernel<ClassCount, WeightUpdate, Axis>{prior};
 }
 
 template <typename GeneticPrior>
 using genetic_kernel_t
-    = decltype(make_genetic_kernel(std::declval<const GeneticPrior&>()));
+    = decltype(make_kernel(std::declval<const GeneticPrior&>()));
 
 }  // namespace gelex::detail
 

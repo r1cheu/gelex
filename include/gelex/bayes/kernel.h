@@ -19,6 +19,7 @@
 
 #include <cstddef>
 #include <random>
+#include <utility>
 #include <vector>
 
 #include "gelex/bayes/detail/common_kernel.h"
@@ -26,34 +27,26 @@
 #include "gelex/bayes/model.h"
 #include "gelex/bayes/prior.h"
 #include "gelex/bayes/state.h"
-#include "gelex/exception.h"
-#include "gelex/genetic_mode.h"
 
 namespace gelex
 {
 
 template <typename GeneticPrior>
+class BayesKernel;
+
+template <typename GeneticPrior>
+[[nodiscard]] auto make_kernel(const BayesPrior<GeneticPrior>& prior)
+    -> BayesKernel<GeneticPrior>;
+
+template <typename GeneticPrior>
 class BayesKernel
 {
    public:
-    explicit BayesKernel(const BayesPrior<GeneticPrior>& prior)
-        : genetic_{detail::make_genetic_kernel(prior.genetic())},
-          residual_{prior.residual()}
-    {
-        random_.reserve(prior.random().size());
-        for (const auto& parameter : prior.random())
-        {
-            random_.emplace_back(parameter);
-        }
-    }
-
     auto step(
         const BayesModel& model,
         BayesState<GeneticPrior>& state,
         std::mt19937_64& rng) -> void
     {
-        validate_random_effects(model, state);
-        validate_design(model.genetic());
         fixed_.step(model.fixed(), state.fixed(), state.residual(), rng);
         for (std::size_t block = 0; block < random_.size(); ++block)
         {
@@ -68,36 +61,41 @@ class BayesKernel
     }
 
    private:
-    auto validate_random_effects(
-        const BayesModel& model,
-        const BayesState<GeneticPrior>& state) const -> void
+    BayesKernel(
+        std::vector<detail::RandomEffectKernel> random,
+        detail::genetic_kernel_t<GeneticPrior> genetic,
+        detail::ResidualVarianceKernel residual)
+        : random_{std::move(random)},
+          genetic_{std::move(genetic)},
+          residual_{residual}
     {
-        if (model.random().size() != random_.size()
-            || state.random().size() != random_.size())
-        {
-            throw GelexException(
-                "random prior, design and state counts must match");
-        }
     }
 
-    static auto validate_design(const bayes::GeneticDesign& design) -> void
-    {
-        for (const GeneticMode mode : GeneticPrior::modes.each())
-        {
-            if (!design.contains(mode))
-            {
-                throw GelexException(
-                    "genetic design does not contain every mode required by "
-                    "the kernel");
-            }
-        }
-    }
+    template <typename OtherGeneticPrior>
+    friend auto make_kernel(const BayesPrior<OtherGeneticPrior>& prior)
+        -> BayesKernel<OtherGeneticPrior>;
 
     detail::FixedEffectKernel fixed_;
     std::vector<detail::RandomEffectKernel> random_;
     detail::genetic_kernel_t<GeneticPrior> genetic_;
     detail::ResidualVarianceKernel residual_;
 };
+
+template <typename GeneticPrior>
+[[nodiscard]] auto make_kernel(const BayesPrior<GeneticPrior>& prior)
+    -> BayesKernel<GeneticPrior>
+{
+    std::vector<detail::RandomEffectKernel> random;
+    random.reserve(prior.random().size());
+    for (const auto& parameter : prior.random())
+    {
+        random.emplace_back(parameter);
+    }
+    return BayesKernel<GeneticPrior>{
+        std::move(random),
+        detail::make_kernel(prior.genetic()),
+        detail::ResidualVarianceKernel{prior.residual()}};
+}
 
 }  // namespace gelex
 

@@ -96,7 +96,7 @@ auto run_mcmc(
     { mcmc_reporter.on_event(event); };
     const auto result = [&]()
     {
-        gelex::BayesDraws draws(
+        auto draws = gelex::make_draws(
             prior, model, config.out + ".draws", runner.draw_count());
         runner.run(model, prior, draws, config.seed, observer);
         return gelex::make_result(model, draws);

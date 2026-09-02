@@ -29,31 +29,33 @@
 
 #include "gelex/bayes/basic_draw.h"
 #include "gelex/bayes/detail/draws_factory.h"
-#include "gelex/bayes/mode_values.h"
 #include "gelex/bayes/model.h"
 #include "gelex/bayes/prior.h"
 #include "gelex/bayes/state.h"
-#include "gelex/bayes/variance_summary.h"
+#include "gelex/bayes/variance/draws.h"
 #include "gelex/exception.h"
-#include "gelex/genetic_mode.h"
 #include "gelex/infra/log.h"
-#include "gelex/infra/var.h"
 #include "gelex/io/binary_format.h"
 #include "gelex/io/binary_writer.h"
 
 namespace gelex
 {
 
+template <typename GeneticPrior>
+class BayesDraws;
+
+template <typename GeneticPrior>
+[[nodiscard]] auto make_draws(
+    const BayesPrior<GeneticPrior>& prior,
+    const BayesModel& model,
+    std::string_view output_path,
+    std::uint64_t draw_count) -> BayesDraws<GeneticPrior>;
+
 class RandomEffectDraws
 {
    public:
-    RandomEffectDraws(
-        VectorDraw coefficients,
-        ScalarDraw variance,
-        ScalarDraw explained_variance)
-        : coefficients_{std::move(coefficients)},
-          variance_{std::move(variance)},
-          explained_variance_{std::move(explained_variance)}
+    RandomEffectDraws(VectorDraw coefficients, ScalarDraw variance)
+        : coefficients_{std::move(coefficients)}, variance_{std::move(variance)}
     {
     }
 
@@ -61,8 +63,6 @@ class RandomEffectDraws
     {
         coefficients_.append(state.coefficients);
         variance_.append(state.variance);
-        explained_variance_.append(
-            vecvar(state.fitted_values, VarNormType::Population));
     }
 
     [[nodiscard]] auto coefficients() const noexcept -> const VectorDraw&
@@ -75,98 +75,9 @@ class RandomEffectDraws
         return variance_;
     }
 
-    [[nodiscard]] auto explained_variance() const noexcept -> const ScalarDraw&
-    {
-        return explained_variance_;
-    }
-
    private:
     VectorDraw coefficients_;
     ScalarDraw variance_;
-    ScalarDraw explained_variance_;
-};
-
-// The total payloads are written even for a single-mode model, where they
-// repeat that mode's values, so the layout does not depend on the mode set.
-template <GeneticModeSet Modes>
-class VarianceSummaryDraws
-{
-   public:
-    VarianceSummaryDraws(BinaryWriter& writer, std::uint64_t draw_count)
-        : explained_variance_{
-              reserve_per_mode(writer, draw_count, "explained_variance")},
-          heritability_{reserve_per_mode(writer, draw_count, "heritability")},
-          total_explained_variance_{
-              reserve(writer, draw_count, "genetic/total/explained_variance")},
-          total_heritability_{
-              reserve(writer, draw_count, "genetic/total/heritability")}
-    {
-    }
-
-    auto append(const VarianceSummary<Modes>& summary) -> void
-    {
-        explained_variance_.for_each(
-            [&]<GeneticMode Mode>(ScalarDraw& draw)
-            { draw.append(summary.template genetic<Mode>()); });
-        heritability_.for_each(
-            [&]<GeneticMode Mode>(ScalarDraw& draw)
-            { draw.append(summary.template heritability<Mode>()); });
-        total_explained_variance_.append(summary.genetic_total());
-        total_heritability_.append(summary.total_heritability());
-    }
-
-    template <GeneticMode Mode>
-    [[nodiscard]] auto explained_variance() const noexcept -> const ScalarDraw&
-    {
-        return explained_variance_.template get<Mode>();
-    }
-
-    template <GeneticMode Mode>
-    [[nodiscard]] auto heritability() const noexcept -> const ScalarDraw&
-    {
-        return heritability_.template get<Mode>();
-    }
-
-    [[nodiscard]] auto total_explained_variance() const noexcept
-        -> const ScalarDraw&
-    {
-        return total_explained_variance_;
-    }
-
-    [[nodiscard]] auto total_heritability() const noexcept -> const ScalarDraw&
-    {
-        return total_heritability_;
-    }
-
-   private:
-    [[nodiscard]] static auto reserve(
-        BinaryWriter& writer,
-        std::uint64_t draw_count,
-        std::string_view name) -> ScalarDraw
-    {
-        return ScalarDraw{
-            writer.reserve<double>(name, BinaryShape{1, draw_count})};
-    }
-
-    [[nodiscard]] static auto reserve_per_mode(
-        BinaryWriter& writer,
-        std::uint64_t draw_count,
-        std::string_view leaf) -> HomogeneousModeValues<Modes, ScalarDraw>
-    {
-        return generate_mode_values<Modes>(
-            [&]<GeneticMode Mode>()
-            {
-                return reserve(
-                    writer,
-                    draw_count,
-                    fmt::format("genetic/{}/{}", Mode, leaf));
-            });
-    }
-
-    HomogeneousModeValues<Modes, ScalarDraw> explained_variance_;
-    HomogeneousModeValues<Modes, ScalarDraw> heritability_;
-    ScalarDraw total_explained_variance_;
-    ScalarDraw total_heritability_;
 };
 
 template <typename GeneticPrior>
@@ -174,31 +85,6 @@ class BayesDraws
 {
    public:
     using genetic_draws_type = detail::genetic_draws_t<GeneticPrior>;
-
-    BayesDraws(
-        const BayesPrior<GeneticPrior>& prior,
-        const BayesModel& model,
-        std::string_view output_path,
-        std::uint64_t draw_count)
-        : writer_{output_path},
-          fixed_{writer_.reserve<float>(
-              "fixed/coefficients",
-              BinaryShape{
-                  static_cast<std::uint64_t>(model.fixed().X().cols()),
-                  draw_count})},
-          random_{make_random_draws(model, writer_, draw_count)},
-          genetic_{detail::make_genetic_draws(
-              prior.genetic(),
-              model.genetic(),
-              writer_,
-              draw_count)},
-          residual_{writer_.reserve<double>(
-              "residual/variance",
-              BinaryShape{1, draw_count})},
-          variance_summary_{writer_, draw_count},
-          draw_count_{draw_count}
-    {
-    }
 
     BayesDraws(const BayesDraws&) = delete;
     BayesDraws(BayesDraws&&) = delete;
@@ -232,6 +118,7 @@ class BayesDraws
                 fmt::format(
                     "draw count exceeded: {} draws reserved", draw_count_));
         }
+        const auto variance_summary = make_variance_summary(state);
         fixed_.append(state.fixed().coefficients);
         for (auto&& [draws, random_state] :
              std::views::zip(random_, state.random()))
@@ -240,7 +127,7 @@ class BayesDraws
         }
         genetic_.append(state.genetic());
         residual_.append(state.residual().variance);
-        variance_summary_.append(make_variance_summary(state));
+        variance_summary_.append(variance_summary);
         ++appended_;
     }
 
@@ -272,6 +159,38 @@ class BayesDraws
     }
 
    private:
+    template <typename T>
+    friend auto make_draws(
+        const BayesPrior<T>& prior,
+        const BayesModel& model,
+        std::string_view output_path,
+        std::uint64_t draw_count) -> BayesDraws<T>;
+
+    BayesDraws(
+        const BayesPrior<GeneticPrior>& prior,
+        const BayesModel& model,
+        std::string_view output_path,
+        std::uint64_t draw_count)
+        : writer_{output_path},
+          fixed_{writer_.reserve<float>(
+              "fixed/coefficients",
+              BinaryShape{
+                  static_cast<std::uint64_t>(model.fixed().X().cols()),
+                  draw_count})},
+          random_{make_random_draws(model, writer_, draw_count)},
+          genetic_{detail::make_draws(
+              prior.genetic(),
+              model.genetic(),
+              writer_,
+              draw_count)},
+          residual_{writer_.reserve<double>(
+              "residual/variance",
+              BinaryShape{1, draw_count})},
+          variance_summary_{model.random(), writer_, draw_count},
+          draw_count_{draw_count}
+    {
+    }
+
     static auto make_random_draws(
         const BayesModel& model,
         BinaryWriter& writer,
@@ -290,9 +209,6 @@ class BayesDraws
                         draw_count})},
                 ScalarDraw{writer.reserve<double>(
                     fmt::format("random/{}/variance", design.name()),
-                    BinaryShape{1, draw_count})},
-                ScalarDraw{writer.reserve<double>(
-                    fmt::format("random/{}/explained_variance", design.name()),
                     BinaryShape{1, draw_count})});
         }
         return random;
@@ -308,6 +224,16 @@ class BayesDraws
     std::uint64_t draw_count_;
     std::uint64_t appended_{0};
 };
+
+template <typename GeneticPrior>
+[[nodiscard]] auto make_draws(
+    const BayesPrior<GeneticPrior>& prior,
+    const BayesModel& model,
+    std::string_view output_path,
+    std::uint64_t draw_count) -> BayesDraws<GeneticPrior>
+{
+    return BayesDraws<GeneticPrior>{prior, model, output_path, draw_count};
+}
 
 }  // namespace gelex
 

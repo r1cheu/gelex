@@ -14,16 +14,16 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_BAYES_GENETIC_SPIKE_SLAB_KERNEL_H_
-#define GELEX_BAYES_GENETIC_SPIKE_SLAB_KERNEL_H_
+#ifndef GELEX_BAYES_GENETIC_KERNEL_SPIKE_SLAB_H_
+#define GELEX_BAYES_GENETIC_KERNEL_SPIKE_SLAB_H_
 
 #include <Eigen/Core>
 #include <cmath>
 #include <cstdint>
 #include <random>
 
+#include "gelex/bayes/genetic/kernel/mixture_weight_updater.h"
 #include "gelex/bayes/genetic/prior.h"
-#include "gelex/bayes/genetic/probability_updater.h"
 #include "gelex/bayes/genetic/state.h"
 #include "gelex/bayes/genotype/design.h"
 #include "gelex/bayes/state.h"
@@ -34,10 +34,10 @@
 namespace gelex::detail
 {
 
-template <VarianceLayout Kind, UpdatePolicy ProbabilityUpdate>
+template <VarianceLayout Kind, MixtureWeightUpdate WeightUpdate>
 class SpikeSlabKernel
 {
-    using Prior = SpikeSlabPrior<Kind, ProbabilityUpdate>;
+    using Prior = SpikeSlabPrior<Kind, WeightUpdate>;
     using State = GeneticModeState<SpikeSlabState<Kind>>;
 
    public:
@@ -65,7 +65,7 @@ class SpikeSlabKernel
         normal_.reset();
         uniform_.reset();
         variance_sampler_.reset();
-        if constexpr (ProbabilityUpdate == UpdatePolicy::Sampled)
+        if constexpr (WeightUpdate == MixtureWeightUpdate::Enabled)
         {
             probability_updater_.reset();
         }
@@ -98,7 +98,7 @@ class SpikeSlabKernel
                 = posterior.log_likelihood_kernel + log_prior_odds;
             const bool is_active
                 = uniform_(rng) < active_probability(log_active_odds);
-            if constexpr (ProbabilityUpdate == UpdatePolicy::Sampled)
+            if constexpr (WeightUpdate == MixtureWeightUpdate::Enabled)
             {
                 probability_updater_.observe(is_active);
             }
@@ -138,7 +138,7 @@ class SpikeSlabKernel
                 {.n = pooled_active_count, .sum_squares = pooled_sum_squares},
                 rng);
         }
-        if constexpr (ProbabilityUpdate == UpdatePolicy::Sampled)
+        if constexpr (WeightUpdate == MixtureWeightUpdate::Enabled)
         {
             probability_updater_.update(family_state.probability, rng);
         }
@@ -158,7 +158,7 @@ class SpikeSlabKernel
 
     ScaledInvChi2Sampler<double> variance_sampler_;
     [[no_unique_address]]
-    ProbabilityUpdater<ProbabilityUpdate> probability_updater_;
+    ProbabilityUpdater<WeightUpdate> probability_updater_;
     NormalSampler<double> normal_{0.0};
     std::uniform_real_distribution<double> uniform_{0.0, 1.0};
     Eigen::VectorXd previous_adjusted_response_;
@@ -166,4 +166,4 @@ class SpikeSlabKernel
 
 }  // namespace gelex::detail
 
-#endif  // GELEX_BAYES_GENETIC_SPIKE_SLAB_KERNEL_H_
+#endif  // GELEX_BAYES_GENETIC_KERNEL_SPIKE_SLAB_H_

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_BAYES_GENETIC_PROBABILITY_UPDATER_H_
-#define GELEX_BAYES_GENETIC_PROBABILITY_UPDATER_H_
+#ifndef GELEX_BAYES_GENETIC_KERNEL_MIXTURE_WEIGHT_UPDATER_H_
+#define GELEX_BAYES_GENETIC_KERNEL_MIXTURE_WEIGHT_UPDATER_H_
 
 #include <Eigen/Core>
 #include <algorithm>
@@ -23,32 +23,33 @@
 #include <cstddef>
 #include <random>
 
-#include "gelex/bayes/genetic/prior.h"
+#include "gelex/bayes/genetic/parameter.h"
 #include "gelex/bayes/stats/beta_sampler.h"
 #include "gelex/bayes/stats/dirichlet_sampler.h"
 
 namespace gelex::detail
 {
 
-template <UpdatePolicy Policy>
+template <MixtureWeightUpdate Update>
 class ProbabilityUpdater;
 
 template <>
-class ProbabilityUpdater<UpdatePolicy::Fixed>
+class ProbabilityUpdater<MixtureWeightUpdate::Disabled>
 {
    public:
     explicit ProbabilityUpdater(
-        const ProbabilityParameter<UpdatePolicy::Fixed>& /*parameter*/) noexcept
+        const ProbabilityParameter<
+            MixtureWeightUpdate::Disabled>& /*parameter*/) noexcept
     {
     }
 };
 
 template <>
-class ProbabilityUpdater<UpdatePolicy::Sampled>
+class ProbabilityUpdater<MixtureWeightUpdate::Enabled>
 {
    public:
     explicit ProbabilityUpdater(
-        const ProbabilityParameter<UpdatePolicy::Sampled>& parameter)
+        const ProbabilityParameter<MixtureWeightUpdate::Enabled>& parameter)
         : sampler_{parameter.hyperprior.alpha, parameter.hyperprior.beta}
     {
     }
@@ -84,22 +85,22 @@ class ProbabilityUpdater<UpdatePolicy::Sampled>
     Eigen::Index n_fail_{};
 };
 
-template <UpdatePolicy Policy, std::size_t Classes>
+template <MixtureWeightUpdate Update, std::size_t Classes>
 class SimplexUpdater;
 
 template <std::size_t Classes>
-class SimplexUpdater<UpdatePolicy::Fixed, Classes>
+class SimplexUpdater<MixtureWeightUpdate::Disabled, Classes>
 {
    public:
     explicit SimplexUpdater(
-        const SimplexParameter<Classes, UpdatePolicy::Fixed>&
+        const SimplexParameter<Classes, MixtureWeightUpdate::Disabled>&
         /*parameter*/) noexcept
     {
     }
 };
 
 template <std::size_t Classes>
-class SimplexUpdater<UpdatePolicy::Sampled, Classes>
+class SimplexUpdater<MixtureWeightUpdate::Enabled, Classes>
 {
     static constexpr int class_count = static_cast<int>(Classes);
     using Concentrations = Eigen::Vector<double, class_count>;
@@ -107,7 +108,8 @@ class SimplexUpdater<UpdatePolicy::Sampled, Classes>
 
    public:
     explicit SimplexUpdater(
-        const SimplexParameter<Classes, UpdatePolicy::Sampled>& parameter)
+        const SimplexParameter<Classes, MixtureWeightUpdate::Enabled>&
+            parameter)
         : sampler_{Eigen::Map<const Concentrations>{
               parameter.hyperprior.concentration.data()}}
     {
@@ -139,4 +141,4 @@ class SimplexUpdater<UpdatePolicy::Sampled, Classes>
 
 }  // namespace gelex::detail
 
-#endif  // GELEX_BAYES_GENETIC_PROBABILITY_UPDATER_H_
+#endif  // GELEX_BAYES_GENETIC_KERNEL_MIXTURE_WEIGHT_UPDATER_H_

@@ -133,19 +133,19 @@ inline auto write_family_summary_rows(
     write_summary_rows(writer, result.variances);
 }
 
-template <VarianceLayout Kind, UpdatePolicy ProbabilityUpdate>
+template <VarianceLayout Kind, MixtureWeightUpdate WeightUpdate>
 auto write_family_summary_rows(
     TextWriter& writer,
-    const SpikeSlabPosteriorResult<Kind, ProbabilityUpdate>& result) -> void
+    const SpikeSlabPosteriorResult<Kind, WeightUpdate>& result) -> void
 {
     write_summary_rows(writer, result.variance);
     write_summary_rows(writer, result.probability);
 }
 
-template <std::size_t ClassCount, UpdatePolicy ProbabilitiesUpdate>
+template <std::size_t ClassCount, MixtureWeightUpdate WeightUpdate>
 auto write_family_summary_rows(
     TextWriter& writer,
-    const ScaledMixturePosteriorResult<ClassCount, ProbabilitiesUpdate>& result)
+    const ScaledMixturePosteriorResult<ClassCount, WeightUpdate>& result)
     -> void
 {
     write_summary_rows(writer, result.variance);
@@ -153,11 +153,11 @@ auto write_family_summary_rows(
     write_summary_rows(writer, result.component_explained_variance);
 }
 
-template <std::size_t ClassCount, UpdatePolicy ProbabilitiesUpdate>
+template <std::size_t ClassCount, MixtureWeightUpdate WeightUpdate>
 auto write_family_summary_rows(
     TextWriter& writer,
-    const JointSpikeSlabPosteriorResult<ClassCount, ProbabilitiesUpdate>&
-        result) -> void
+    const JointSpikeSlabPosteriorResult<ClassCount, WeightUpdate>& result)
+    -> void
 {
     write_summary_rows(writer, result.probabilities);
     write_summary_rows(writer, result.component_explained_variance);

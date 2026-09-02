@@ -17,12 +17,9 @@
 #ifndef GELEX_BAYES_DETAIL_RESULT_FACTORY_H_
 #define GELEX_BAYES_DETAIL_RESULT_FACTORY_H_
 
-#include <Eigen/Core>
 #include <cstddef>
-#include <fmt/format.h>
 #include <span>
 #include <string>
-#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -30,45 +27,34 @@
 #include "gelex/bayes/basic_result.h"
 #include "gelex/bayes/genetic/draws.h"
 #include "gelex/bayes/genetic/result.h"
-#include "gelex/bayes/genetic/state.h"
 #include "gelex/bayes/genetic_family.h"
 #include "gelex/bayes/mode_values.h"
-#include "gelex/exception.h"
 #include "gelex/genetic_mode.h"
 
 namespace gelex::detail
 {
 
-inline auto make_scalar_result(const ScalarDraw& draw) -> ScalarPosteriorResult
+inline auto make_result(const EmptyDraw& /*draw*/) -> EmptyPosteriorResult
+{
+    return {};
+}
+
+inline auto make_result(const ScalarDraw& draw) -> ScalarPosteriorResult
 {
     return ScalarPosteriorResult{std::string{draw.identifier()}, draw.result()};
 }
 
-inline auto make_vector_result(
-    const VectorDraw& draw,
-    Eigen::Index expected_size) -> VectorPosteriorResult
+inline auto make_result(const VectorDraw& draw) -> VectorPosteriorResult
 {
-    auto result
-        = VectorPosteriorResult{std::string{draw.identifier()}, draw.result()};
-    if (result.statistics().mean.size() != expected_size)
-    {
-        throw GelexException(
-            fmt::format(
-                "posterior '{}' has {} rows, expected {}",
-                result.identifier(),
-                result.statistics().mean.size(),
-                expected_size));
-    }
-    return result;
+    return VectorPosteriorResult{std::string{draw.identifier()}, draw.result()};
 }
 
-inline auto make_coefficient_result(
+inline auto make_result(
     const VectorDraw& draw,
-    std::span<const std::string> column_names,
-    Eigen::Index expected_size) -> CoefficientPosteriorResult
+    std::span<const std::string> column_names) -> CoefficientPosteriorResult
 {
     return CoefficientPosteriorResult{
-        make_vector_result(draw, expected_size),
+        make_result(draw),
         std::vector<std::string>{column_names.begin(), column_names.end()}};
 }
 
@@ -78,139 +64,92 @@ auto make_marker_variance_result(const marker_variance_draw_t<Kind>& draw)
 {
     if constexpr (Kind == VarianceLayout::Pooled)
     {
-        return make_scalar_result(draw);
+        return make_result(draw);
     }
     else
     {
         static_cast<void>(draw);
-        return {};
-    }
-}
-
-template <UpdatePolicy Policy>
-auto make_scalar_policy_result(const policy_draw_t<Policy, ScalarDraw>& draw)
-    -> policy_result_t<Policy, ScalarPosteriorResult>
-{
-    if constexpr (Policy == UpdatePolicy::Sampled)
-    {
-        return make_scalar_result(draw);
-    }
-    else
-    {
-        static_cast<void>(draw);
-        return {};
-    }
-}
-
-template <UpdatePolicy Policy>
-auto make_vector_policy_result(
-    const policy_draw_t<Policy, VectorDraw>& draw,
-    Eigen::Index expected_size)
-    -> policy_result_t<Policy, VectorPosteriorResult>
-{
-    if constexpr (Policy == UpdatePolicy::Sampled)
-    {
-        return make_vector_result(draw, expected_size);
-    }
-    else
-    {
-        static_cast<void>(draw);
-        static_cast<void>(expected_size);
         return {};
     }
 }
 
 template <VarianceLayout Kind>
-auto make_family_result(const GaussianDraws<Kind>& draws)
+auto make_result(const GaussianDraws<Kind>& draws)
     -> GaussianPosteriorResult<Kind>
 {
     return {.variance = make_marker_variance_result<Kind>(draws.variance)};
 }
 
-inline auto make_family_result(
+inline auto make_result(
     const HalfNormalDraws<HalfNormalAsymmetry::Count>& draws)
     -> HalfNormalPosteriorResult<HalfNormalAsymmetry::Count>
 {
     return {
-        .variance = make_scalar_result(draws.variance),
-        .positive_probability = make_scalar_result(draws.positive_probability)};
+        .variance = make_result(draws.variance),
+        .positive_probability = make_result(draws.positive_probability)};
 }
 
-inline auto make_family_result(
+inline auto make_result(
     const HalfNormalDraws<HalfNormalAsymmetry::Magnitude>& draws)
     -> HalfNormalPosteriorResult<HalfNormalAsymmetry::Magnitude>
 {
-    return {.variances = make_vector_result(draws.variances, 2)};
+    return {.variances = make_result(draws.variances)};
 }
 
-template <VarianceLayout Kind, UpdatePolicy ProbabilityUpdate>
-auto make_family_result(const SpikeSlabDraws<Kind, ProbabilityUpdate>& draws)
-    -> SpikeSlabPosteriorResult<Kind, ProbabilityUpdate>
+template <VarianceLayout Kind, MixtureWeightUpdate WeightUpdate>
+auto make_result(const SpikeSlabDraws<Kind, WeightUpdate>& draws)
+    -> SpikeSlabPosteriorResult<Kind, WeightUpdate>
 {
     return {
         .variance = make_marker_variance_result<Kind>(draws.variance),
-        .probability
-        = make_scalar_policy_result<ProbabilityUpdate>(draws.probability)};
+        .probability = make_result(draws.probability)};
 }
 
-template <std::size_t ClassCount, UpdatePolicy ProbabilitiesUpdate>
-auto make_family_result(
-    const ScaledMixtureDraws<ClassCount, ProbabilitiesUpdate>& draws)
-    -> ScaledMixturePosteriorResult<ClassCount, ProbabilitiesUpdate>
+template <std::size_t ClassCount, MixtureWeightUpdate WeightUpdate>
+auto make_result(const ScaledMixtureDraws<ClassCount, WeightUpdate>& draws)
+    -> ScaledMixturePosteriorResult<ClassCount, WeightUpdate>
 {
     return {
-        .variance = make_scalar_result(draws.variance),
-        .probabilities = make_vector_policy_result<ProbabilitiesUpdate>(
-            draws.probabilities, static_cast<Eigen::Index>(ClassCount)),
-        .component_explained_variance = make_vector_result(
-            draws.component_explained_variance,
-            static_cast<Eigen::Index>(
-                ScaledMixtureState<ClassCount>::component_count))};
+        .variance = make_result(draws.variance),
+        .probabilities = make_result(draws.probabilities),
+        .component_explained_variance
+        = make_result(draws.component_explained_variance)};
 }
 
-template <std::size_t ClassCount, UpdatePolicy ProbabilitiesUpdate>
-auto make_family_result(
-    const JointSpikeSlabDraws<ClassCount, ProbabilitiesUpdate>& draws)
-    -> JointSpikeSlabPosteriorResult<ClassCount, ProbabilitiesUpdate>
+template <std::size_t ClassCount, MixtureWeightUpdate WeightUpdate>
+auto make_result(const JointSpikeSlabDraws<ClassCount, WeightUpdate>& draws)
+    -> JointSpikeSlabPosteriorResult<ClassCount, WeightUpdate>
 {
     return {
-        .probabilities = make_vector_policy_result<ProbabilitiesUpdate>(
-            draws.probabilities, static_cast<Eigen::Index>(ClassCount)),
-        .component_explained_variance = make_vector_result(
-            draws.component_explained_variance,
-            static_cast<Eigen::Index>(
-                JointSpikeSlabState<ClassCount>::component_count))};
+        .probabilities = make_result(draws.probabilities),
+        .component_explained_variance
+        = make_result(draws.component_explained_variance)};
 }
 
-template <GeneticModeSet Modes, typename... Priors, typename Draws>
-auto make_genetic_result(
-    std::type_identity<ModeValues<Modes, Priors...>> /*prior_type*/,
-    const Draws& draws,
-    Eigen::Index marker_count) -> genetic_result_t<ModeValues<Modes, Priors...>>
+template <typename FamilyDraws>
+auto make_result(const GeneticModeDraws<FamilyDraws>& draws)
 {
-    return generate_mode_values<Modes>(
+    return GeneticModeResult{
+        .coefficients = make_result(draws.coefficients),
+        .family_result = make_result(draws.family_draws)};
+}
+
+template <typename GeneticState, typename ModeDraws>
+auto make_result(const IndependentDraws<GeneticState, ModeDraws>& draws)
+{
+    return generate_mode_values<ModeDraws::modes>(
         [&]<GeneticMode Mode>()
-        {
-            const auto& mode_draws = draws.template get<Mode>();
-            return GeneticModeResult{
-                .coefficients
-                = make_vector_result(mode_draws.coefficients, marker_count),
-                .family_result = make_family_result(mode_draws.family_draws)};
-        });
+        { return make_result(draws.template get<Mode>()); });
 }
 
-template <typename ModeValuesType, typename JointPrior, typename Draws>
-auto make_genetic_result(
-    std::type_identity<JointModeValues<ModeValuesType, JointPrior>>
-    /*prior_type*/,
-    const Draws& draws,
-    Eigen::Index marker_count)
-    -> genetic_result_t<JointModeValues<ModeValuesType, JointPrior>>
+template <typename GeneticState, typename ModeDraws, typename JointT>
+auto make_result(const JointDraws<GeneticState, ModeDraws, JointT>& draws)
 {
-    auto mode_results = make_genetic_result(
-        std::type_identity<ModeValuesType>{}, draws, marker_count);
-    auto joint_result = make_family_result(draws.joint());
-    return {std::move(mode_results), std::move(joint_result)};
+    auto mode_results = generate_mode_values<ModeDraws::modes>(
+        [&]<GeneticMode Mode>()
+        { return make_result(draws.template get<Mode>()); });
+    auto joint_result = make_result(draws.joint());
+    return JointModeValues{std::move(mode_results), std::move(joint_result)};
 }
 
 }  // namespace gelex::detail

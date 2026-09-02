@@ -24,7 +24,7 @@
 #include "gelex/bayes/detail/prior_factory.h"
 #include "gelex/bayes/model.h"
 #include "gelex/bayes/recipe.h"
-#include "gelex/bayes/variance_parameter.h"
+#include "gelex/bayes/variance/parameter.h"
 
 namespace gelex
 {
@@ -87,9 +87,9 @@ template <GeneticModeSet Modes, typename GeneticFamily>
 {
     const double phenotype_variance = model.phenotype_variance();
     const detail::MarkerVarianceCalibrator calibrator{model, recipe.variance()};
-    auto genetic = detail::make_genetic_prior<Modes>(
+    auto genetic = detail::make_prior<Modes>(
         GeneticFamily{}, recipe.genetic_spec(), calibrator);
-    auto random = detail::make_random_prior(
+    auto random = detail::make_random_variance_parameters(
         model, recipe.variance(), phenotype_variance);
     auto residual = detail::make_mean_calibrated_variance_parameter(
         phenotype_variance * recipe.variance().residual());

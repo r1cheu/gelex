@@ -33,7 +33,7 @@
 #include "gelex/bayes/recipe.h"
 #include "gelex/bayes/spec.h"
 #include "gelex/bayes/state.h"
-#include "gelex/bayes/variance_budget.h"
+#include "gelex/bayes/variance/budget.h"
 #include "gelex/data/genotype_method.h"
 #include "gelex/genetic_mode.h"
 
@@ -60,19 +60,19 @@ using JointModePriors = gelex::ModeValues<
     gelex::GaussianPrior<gelex::VarianceLayout::Pooled>,
     gelex::HalfNormalPrior<Axis>>;
 
-template <gelex::UpdatePolicy Policy, gelex::HalfNormalAsymmetry Axis>
+template <gelex::MixtureWeightUpdate Update, gelex::HalfNormalAsymmetry Axis>
 using JointGeneticPrior = gelex::JointModeValues<
     JointModePriors<Axis>,
-    gelex::JointSpikeSlabPrior<gelex::JointSpikeSlab::class_count, Policy>>;
+    gelex::JointSpikeSlabPrior<gelex::JointSpikeSlab::class_count, Update>>;
 
 using SampledCountPrior = JointGeneticPrior<
-    gelex::UpdatePolicy::Sampled,
+    gelex::MixtureWeightUpdate::Enabled,
     gelex::HalfNormalAsymmetry::Count>;
 using FixedCountPrior = JointGeneticPrior<
-    gelex::UpdatePolicy::Fixed,
+    gelex::MixtureWeightUpdate::Disabled,
     gelex::HalfNormalAsymmetry::Count>;
 using SampledMagnitudePrior = JointGeneticPrior<
-    gelex::UpdatePolicy::Sampled,
+    gelex::MixtureWeightUpdate::Enabled,
     gelex::HalfNormalAsymmetry::Magnitude>;
 
 struct JointCoefficients
@@ -89,17 +89,17 @@ struct AssignmentObservation
 };
 
 static_assert(std::same_as<
-              decltype(gelex::BayesKernel{
-                  std::declval<const gelex::BayesPrior<SampledCountPrior>&>()}),
+              decltype(gelex::make_kernel(
+                  std::declval<const gelex::BayesPrior<SampledCountPrior>&>())),
               gelex::BayesKernel<SampledCountPrior>>);
 static_assert(std::same_as<
-              decltype(gelex::BayesKernel{
-                  std::declval<const gelex::BayesPrior<FixedCountPrior>&>()}),
+              decltype(gelex::make_kernel(
+                  std::declval<const gelex::BayesPrior<FixedCountPrior>&>())),
               gelex::BayesKernel<FixedCountPrior>>);
 static_assert(
     std::same_as<
-        decltype(gelex::BayesKernel{
-            std::declval<const gelex::BayesPrior<SampledMagnitudePrior>&>()}),
+        decltype(gelex::make_kernel(
+            std::declval<const gelex::BayesPrior<SampledMagnitudePrior>&>())),
         gelex::BayesKernel<SampledMagnitudePrior>>);
 
 auto make_model() -> gelex::BayesModel
@@ -305,7 +305,7 @@ TEST_CASE(
     "[bayes][kernel][joint_spike_slab]")
 {
     using Family = gelex::JointSpikeSlabFamily<
-        gelex::UpdatePolicy::Sampled,
+        gelex::MixtureWeightUpdate::Enabled,
         gelex::HalfNormalAsymmetry::Count>;
     constexpr std::array probabilities{0.25, 0.25, 0.25, 0.25};
     const auto model = make_model();
@@ -319,7 +319,7 @@ TEST_CASE(
             gelex::VarianceBudget{{.additive = 0.4, .dominance = 0.1}}},
         model);
     auto state = gelex::make_state(prior, model);
-    gelex::BayesKernel kernel(prior);
+    auto kernel = gelex::make_kernel(prior);
     std::mt19937_64 rng{123};
     initialize_non_null_state(model, state);
 
@@ -343,7 +343,7 @@ TEST_CASE(
     "[bayes][kernel][joint_spike_slab]")
 {
     using Family = gelex::JointSpikeSlabFamily<
-        gelex::UpdatePolicy::Fixed,
+        gelex::MixtureWeightUpdate::Disabled,
         gelex::HalfNormalAsymmetry::Count>;
     constexpr std::array probabilities{0.1, 0.2, 0.3, 0.4};
     const auto model = make_model();
@@ -357,7 +357,7 @@ TEST_CASE(
             gelex::VarianceBudget{{.additive = 0.4, .dominance = 0.1}}},
         model);
     auto state = gelex::make_state(prior, model);
-    gelex::BayesKernel kernel(prior);
+    auto kernel = gelex::make_kernel(prior);
     std::mt19937_64 rng{321};
     initialize_non_null_state(model, state);
 
@@ -372,7 +372,7 @@ TEST_CASE(
     "[bayes][kernel][joint_spike_slab]")
 {
     using Family = gelex::JointSpikeSlabFamily<
-        gelex::UpdatePolicy::Sampled,
+        gelex::MixtureWeightUpdate::Enabled,
         gelex::HalfNormalAsymmetry::Magnitude>;
     constexpr std::array probabilities{0.25, 0.25, 0.25, 0.25};
     const auto model = make_model();
@@ -386,7 +386,7 @@ TEST_CASE(
             gelex::VarianceBudget{{.additive = 0.4, .dominance = 0.1}}},
         model);
     auto state = gelex::make_state(prior, model);
-    gelex::BayesKernel kernel(prior);
+    auto kernel = gelex::make_kernel(prior);
     std::mt19937_64 rng{456};
     initialize_non_null_state(model, state);
 
