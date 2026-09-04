@@ -25,8 +25,7 @@
 #include "gelex/bayes/mcmc_progress.h"
 #include "gelex/genetic_mode.h"
 
-#include "cli/progress_bar.h"
-#include "cli/timer.h"
+#include "cli/progress.h"
 
 namespace gelex
 {
@@ -44,9 +43,9 @@ namespace cli
 class GenoReporter
 {
    public:
-    GenoReporter();
+    explicit GenoReporter(std::size_t total);
 
-    auto show_total(int64_t num_variants) const -> void;
+    static auto show_total(int64_t num_variants) -> void;
     auto show_loaded(const gelex::bayes::GeneticDesign& design) const -> void;
     auto on_event(const gelex::GenotypeProgressEvent& event) -> void;
 
@@ -56,27 +55,27 @@ class GenoReporter
         int64_t num_snps,
         int64_t invalid_snps) const -> void;
 
-    std::size_t progress_{0};
-    std::size_t total_{0};
-    cli::ProgressBar bar_;
-    bool bar_active_ = false;
-    gelex::SmoothEtaCalculator eta_;
+    cli::Progress progress_;
+    decltype(cli::make_rate()) estimate_rate_;
+    decltype(cli::make_eta(std::size_t{})) estimate_eta_;
 };
 
 class McmcReporter
 {
    public:
-    McmcReporter() = default;
+    McmcReporter(std::size_t total, std::size_t burn_in);
 
-    auto show_dataset_summary(
+    static auto show_dataset_summary(
         const gelex::BayesModel& model,
         std::string_view pheno_name) -> void;
+    static auto show_sampling_header() -> void;
     auto on_event(const gelex::MCMCProgressEvent& event) -> void;
 
    private:
-    std::size_t iter_{0};
-    cli::ProgressBar bar_;
-    bool init_progress_ = false;
+    std::size_t burn_in_;
+    cli::Progress progress_;
+    decltype(cli::make_rate()) estimate_rate_;
+    decltype(cli::make_eta(std::size_t{})) estimate_eta_;
 };
 
 }  // namespace cli

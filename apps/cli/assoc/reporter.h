@@ -24,8 +24,7 @@
 
 #include "gelex/freq/reml/summary.h"
 
-#include "cli/progress_bar.h"
-#include "cli/timer.h"
+#include "cli/progress.h"
 
 namespace gelex
 {
@@ -38,24 +37,22 @@ namespace cli
 class AssocReporter
 {
    public:
-    AssocReporter();
+    explicit AssocReporter(std::size_t total_snps);
 
-    auto show_dataset_summary(
+    static auto show_dataset_summary(
         const gelex::FreqModel& model,
         Eigen::Index n_snps) -> void;
-    auto start_scan(size_t total_snps, int chunk_size, bool loco) -> void;
-    auto update_scan_progress(size_t current, size_t total) -> void;
-    auto show_loco_phase(std::string_view chr_name, std::string_view phase)
+    static auto show_scan_header(size_t total_snps, int chunk_size, bool loco)
         -> void;
+    auto update_scan_progress(size_t current, double rate) -> void;
+    auto show_loco_phase(std::string_view phase) -> void;
     auto show_loco_reml_summary(
         const std::vector<gelex::LocoRemlResult>& results) -> void;
     auto finish_scan() -> void;
 
    private:
-    size_t progress_{0};
-    cli::ProgressBar bar_;
-    bool bar_active_ = false;
-    gelex::SmoothEtaCalculator eta_;
+    cli::Progress progress_;
+    decltype(cli::make_eta(std::size_t{})) estimate_eta_;
 };
 
 }  // namespace cli

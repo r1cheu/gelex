@@ -17,6 +17,7 @@
 #include "reporter.h"
 
 #include <cstddef>
+#include <fmt/color.h>
 #include <fmt/format.h>
 #include <fmt/ranges.h>
 #include <ranges>
@@ -27,7 +28,6 @@
 #include "gelex/freq/model.h"
 
 #include "cli/formatter.h"
-#include "cli/progress_bar.h"
 #include "cli/reml_reporter.h"
 #include "cli/report_printer.h"
 #include "cli/theme.h"
@@ -35,7 +35,10 @@
 namespace cli
 {
 
-AssocReporter::AssocReporter() : eta_(1) {}
+AssocReporter::AssocReporter(std::size_t total_snps)
+    : progress_{"", total_snps, "SNP"}, estimate_eta_{cli::make_eta(total_snps)}
+{
+}
 
 auto AssocReporter::show_dataset_summary(
     const gelex::FreqModel& model,
@@ -52,11 +55,11 @@ auto AssocReporter::show_dataset_summary(
     p.line(cli::field("SNPs", "{} markers", n_snps));
 }
 
-auto AssocReporter::start_scan(size_t total_snps, int chunk_size, bool loco)
-    -> void
+auto AssocReporter::show_scan_header(
+    size_t total_snps,
+    int chunk_size,
+    bool loco) -> void
 {
-    eta_.reset(total_snps);
-
     cli::printer().block(cli::section("Association Scan:"));
     cli::printer().line("   SNPs to test : {}", total_snps);
     cli::printer().line("   Chunk size   : {}", chunk_size);
@@ -64,61 +67,35 @@ auto AssocReporter::start_scan(size_t total_snps, int chunk_size, bool loco)
     {
         cli::printer().line("   Mode         : LOCO");
     }
-
-    bar_ = cli::create_progress_bar(progress_, total_snps);
-    bar_.display->show();
-    bar_active_ = true;
 }
 
-auto AssocReporter::update_scan_progress(size_t current, size_t total) -> void
+auto AssocReporter::update_scan_progress(size_t current, double rate) -> void
 {
-    progress_ = current;
-    if (bar_.after_bar)
-    {
-        bar_.after_bar->message(
-            fmt::format(
-                "{:.1f}% ({}/{}) | ETA: {}",
-                static_cast<double>(current) / static_cast<double>(total)
-                    * 100.0,
-                cli::AbbrNumber(current),
-                cli::AbbrNumber(total),
-                eta_.get_eta(current)));
-    }
+    progress_.update(
+        {.current = current, .rate = rate, .eta = estimate_eta_(current)});
 }
 
-auto AssocReporter::show_loco_phase(
-    std::string_view chr_name,
-    std::string_view phase) -> void
+auto AssocReporter::show_loco_phase(std::string_view phase) -> void
 {
-    if (bar_.before_bar)
-    {
-        auto role = phase == "REML" ? ColorRole::warning : ColorRole::success;
-        bar_.before_bar->message(
-            fmt::format(
-                " {} [Chr {}]", colorize(role, std::string{phase}), chr_name));
-    }
+    const auto role = phase == "REML" ? ColorRole::warning : ColorRole::success;
+    progress_.set_prefix(
+        fmt::format(
+            "[{}]",
+            colorize(
+                style_for(role) | fmt::emphasis::bold, std::string{phase})));
 }
 
 auto AssocReporter::show_loco_reml_summary(
     const std::vector<gelex::LocoRemlResult>& results) -> void
 {
-    if (bar_active_)
-    {
-        bar_.display->done();
-        bar_active_ = false;
-        cli::printer().on_progress_finished();
-    }
+    finish_scan();
     cli::print_loco_reml_summary(results);
 }
 
 auto AssocReporter::finish_scan() -> void
 {
-    if (bar_active_)
-    {
-        bar_.display->done();
-        bar_active_ = false;
-        cli::printer().on_progress_finished();
-    }
+    progress_.finish();
+    cli::printer().on_progress_finished();
 }
 
 }  // namespace cli

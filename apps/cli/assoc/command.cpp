@@ -43,6 +43,7 @@
 
 #include "cli/common_data.h"
 #include "cli/formatter.h"
+#include "cli/progress.h"
 #include "cli/reml_data.h"
 #include "cli/reml_reporter.h"
 #include "cli/report_printer.h"
@@ -104,8 +105,6 @@ auto assoc_execute(const cli::AssocConfig& config) -> int
         = is_joint ? gelex::GeneticMode::A : *config.mode.each().begin();
     const gelex::GenotypeMethod geno_method{config.geno_method};
 
-    cli::AssocReporter reporter;
-
     auto bed = gelex::open_bed(config.bfile);
     AssocDataHandler handler(config, bed);
     cli::BaseData data = cli::load_base_data(handler, config.base_data);
@@ -126,7 +125,7 @@ auto assoc_execute(const cli::AssocConfig& config) -> int
         std::move(data.fixed_design),
         std::move(random_designs));
 
-    reporter.show_dataset_summary(model, bed.num_snps());
+    cli::AssocReporter::show_dataset_summary(model, bed.num_snps());
     gelex::FreqState state(model);
 
     auto tester = gelex::AssocTester::make(test_type, mode, geno_method);
@@ -136,10 +135,12 @@ auto assoc_execute(const cli::AssocConfig& config) -> int
     const auto total_snps = static_cast<std::size_t>(bim.rows());
     std::size_t progress = 0;
 
-    const auto scan_range
-        = [&](const gelex::MarkerRange& range, const gelex::GwasOperators& ops)
+    const auto scan_range = [&](const gelex::MarkerRange& range,
+                                const gelex::GwasOperators& ops,
+                                cli::AssocReporter& reporter)
     {
         const auto n_samples = ops.n_samples();
+        auto estimate_rate = cli::make_rate(progress);
 
         for (auto start = range.start; start < range.end;
              start += static_cast<Eigen::Index>(config.chunk_size))
@@ -154,7 +155,7 @@ auto assoc_execute(const cli::AssocConfig& config) -> int
             writer.write(static_cast<std::size_t>(start), results);
 
             progress += static_cast<std::size_t>(current_chunk_size);
-            reporter.update_scan_progress(progress, total_snps);
+            reporter.update_scan_progress(progress, estimate_rate(progress));
         }
     };
 
@@ -168,10 +169,15 @@ auto assoc_execute(const cli::AssocConfig& config) -> int
         auto fit = estimator.fit(model, state);
         reml_reporter.show_result(model, fit.summary, config.max_iter);
 
-        reporter.start_scan(total_snps, config.chunk_size, false);
+        cli::AssocReporter::show_scan_header(
+            total_snps, config.chunk_size, false);
+        cli::AssocReporter reporter{total_snps};
 
         scan_range(
-            {"all", 0, static_cast<Eigen::Index>(bim.rows())}, fit.operators);
+            {"all", 0, static_cast<Eigen::Index>(bim.rows())},
+            fit.operators,
+            reporter);
+        reporter.finish_scan();
     }
     else
     {
@@ -196,13 +202,17 @@ auto assoc_execute(const cli::AssocConfig& config) -> int
 
         auto ranges = gelex::chromosome_ranges(bim);
 
-        reporter.start_scan(total_snps, config.chunk_size, true);
+        cli::AssocReporter::show_scan_header(
+            total_snps, config.chunk_size, true);
+        cli::AssocReporter reporter{total_snps};
 
         std::vector<gelex::LocoRemlResult> loco_results;
 
         gelex::Estimator estimator(config.max_iter, config.tolerance);
         for (const auto& range : ranges)
         {
+            reporter.show_loco_phase("REML");
+
             for (std::size_t i = 0; i < loco_builders.size(); ++i)
             {
                 const auto chr_grm_prefix = fmt::format(
@@ -215,21 +225,18 @@ auto assoc_execute(const cli::AssocConfig& config) -> int
                     chromosome_grm, model.random()[grm_slots[i]].K);
             }
 
-            reporter.show_loco_phase(range.label, "REML");
-
             auto fit = estimator.fit(model, state);
 
             loco_results.push_back({range.label, std::move(fit.summary)});
 
-            reporter.show_loco_phase(range.label, "SCAN");
+            reporter.show_loco_phase("SCAN");
 
-            scan_range(range, fit.operators);
+            scan_range(range, fit.operators, reporter);
         }
 
         reporter.show_loco_reml_summary(loco_results);
     }
 
-    reporter.finish_scan();
     cli::printer().block(cli::results_saved(config.out, ".gwas.tsv, .log"));
 
     return 0;

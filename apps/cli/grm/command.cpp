@@ -35,8 +35,6 @@
 
 auto grm_execute(const cli::GrmConfig& config) -> int
 {
-    cli::GrmReporter reporter;
-
     cli::setup_parallelization(config.threads);
 
     const auto modes = config.mode;
@@ -45,10 +43,9 @@ auto grm_execute(const cli::GrmConfig& config) -> int
 
     auto bed = gelex::open_bed(config.bfile);
     const auto sample_ids = bed.sample_index().keys();
-    const auto observer = reporter.as_observer();
+    const auto total_snps = static_cast<std::size_t>(bed.num_snps());
 
-    cli::GrmReporter::show_data_loaded(
-        sample_ids.size(), static_cast<size_t>(bed.num_snps()));
+    cli::GrmReporter::show_data_loaded(sample_ids.size(), total_snps);
 
     std::vector<gelex::MarkerRange> ranges;
     if (config.loco)
@@ -61,7 +58,9 @@ auto grm_execute(const cli::GrmConfig& config) -> int
     }
 
     cli::printer().block(cli::section("GRM Computation:"));
-    gelex::GrmBuilder builder(bed, modes, method, chunk_size, observer);
+    cli::GrmReporter reporter{total_snps};
+    gelex::GrmBuilder builder(
+        bed, modes, method, chunk_size, reporter.as_observer());
     builder.build(
         ranges,
         [&](const gelex::GrmMatrix& matrix)
@@ -75,8 +74,6 @@ auto grm_execute(const cli::GrmConfig& config) -> int
             gelex::write_grm(
                 fmt::format("{}.{}", config.out, name), matrix.grm, sample_ids);
         });
-
-    reporter.finish_progress();
 
     const std::string task_pattern
         = modes.size() == 1 ? fmt::format(

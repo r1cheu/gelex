@@ -21,8 +21,7 @@
 
 #include "gelex/data/grm/progress.h"
 
-#include "cli/progress_bar.h"
-#include "cli/timer.h"
+#include "cli/progress.h"
 
 namespace cli
 {
@@ -30,11 +29,10 @@ namespace cli
 class GrmReporter
 {
    public:
-    GrmReporter();
+    explicit GrmReporter(std::size_t total);
 
     static auto show_data_loaded(size_t num_samples, size_t num_snps) -> void;
     auto on_event(const gelex::GrmProgressEvent& event) -> void;
-    auto finish_progress() -> void;
 
     auto as_observer() -> gelex::GrmObserver
     {
@@ -42,11 +40,9 @@ class GrmReporter
     }
 
    private:
-    size_t progress_{0};
-    cli::ProgressBar bar_;
-    bool bar_active_ = false;
-    gelex::SmoothEtaCalculator eta_;
-    size_t global_total_ = 0;
+    cli::Progress progress_;
+    decltype(cli::make_rate()) estimate_rate_;
+    decltype(cli::make_eta(std::size_t{})) estimate_eta_;
 };
 
 }  // namespace cli
