@@ -27,7 +27,6 @@
 #include <vector>
 
 #include "gelex/bayes/genotype/design.h"
-#include "gelex/bayes/genotype/progress.h"
 #include "gelex/data/bed.h"
 #include "gelex/data/dataframe/index.h"
 #include "gelex/data/encode/encoder.h"
@@ -67,29 +66,17 @@ TEST_CASE(
         gelex::DataFrameIndex<std::string>{std::vector<std::string>{
             source_keys[3], source_keys[1], source_keys[0]}});
 
-    std::size_t progress_events = 0;
-    bool done = false;
+    std::vector<std::size_t> completed_markers;
     const gelex::bayes::CompactGenotype genotype{
         bed,
-        [&](const gelex::GenotypeProgressEvent& event)
-        {
-            if (event.done)
-            {
-                done = true;
-            }
-            else
-            {
-                ++progress_events;
-            }
-        }};
+        [&](std::size_t current) { completed_markers.push_back(current); }};
 
     REQUIRE(genotype.rows() == 3);
     REQUIRE(genotype.cols() == 3);
     REQUIRE(genotype.size_bytes() == 9);
     REQUIRE(genotype.a1_frequency().isApprox(
         Eigen::VectorXd{{1.0 / 6.0, 2.0 / 3.0, 0.0}}));
-    REQUIRE(progress_events == 3);
-    REQUIRE(done);
+    REQUIRE(completed_markers == std::vector<std::size_t>{1, 2, 3});
 }
 
 TEST_CASE(

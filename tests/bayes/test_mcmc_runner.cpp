@@ -56,25 +56,13 @@ TEST_CASE(
     auto draws
         = gelex::make_draws(prior, model, path.string(), runner.draw_count());
     std::vector<std::size_t> completed_iterations;
-    bool done = false;
-    gelex::MCMCObserver observer = [&](const gelex::MCMCProgressEvent& progress)
-    {
-        REQUIRE(progress.total == static_cast<std::size_t>(iterations));
-        if (progress.done)
-        {
-            done = true;
-        }
-        else
-        {
-            completed_iterations.push_back(progress.current);
-        }
-    };
+    const auto observer
+        = [&](std::size_t current) { completed_iterations.push_back(current); };
 
     static_assert(std::is_void_v<decltype(runner.run(model, prior, draws))>);
     runner.run(model, prior, draws, 123, observer);
 
     REQUIRE(completed_iterations == std::vector<std::size_t>{1, 2, 3, 4});
-    REQUIRE(done);
 }
 
 TEST_CASE(

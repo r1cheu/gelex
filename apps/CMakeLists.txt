@@ -50,6 +50,7 @@ if(GELEX_CLI_BUILD_TESTS OR GELEX_BUILD_TESTS)
     tests/test_mcmc_data.cpp
     tests/test_mcmc_recipe.cpp
     tests/test_random_design_data.cpp
+    tests/test_summary.cpp
     cli/color_formatter.cpp
     cli/theme.cpp
     cli/completion/completion_generator.cpp
@@ -59,11 +60,12 @@ if(GELEX_CLI_BUILD_TESTS OR GELEX_BUILD_TESTS)
     cli/mcmc/command.cpp
     cli/mcmc/config.cpp
     cli/mcmc/data.cpp
-    cli/mcmc/reporter.cpp
+    cli/mcmc/progress.cpp
     cli/progress.cpp
     cli/random_design_data.cpp
     cli/reml_data.cpp
     cli/report_printer.cpp
+    cli/summary.cpp
     cli/table.cpp
     cli/predict/compute.cpp
     cli/predict/io.cpp
