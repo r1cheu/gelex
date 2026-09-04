@@ -20,6 +20,8 @@
 #include <algorithm>
 #include <cstddef>
 #include <fmt/format.h>
+#include <fmt/ranges.h>
+#include <ranges>
 #include <string>
 #include <utility>
 #include <vector>
@@ -41,14 +43,32 @@
 #include "gelex/freq/reml/operators.h"
 #include "gelex/freq/reml/summary.h"
 
+#include "cli/assoc/progress.h"
 #include "cli/common_data.h"
 #include "cli/formatter.h"
-#include "cli/progress.h"
 #include "cli/reml_data.h"
 #include "cli/reml_reporter.h"
 #include "cli/report_printer.h"
 #include "cli/runtime.h"
-#include "reporter.h"
+#include "cli/summary.h"
+
+namespace
+{
+
+auto make_scan_summary(std::size_t total_snps, int chunk_size, bool loco)
+    -> cli::Summary
+{
+    cli::Summary summary{"Association Scan"};
+    summary.field("Variants", "{}", total_snps)
+        .field("Chunk size", "{}", chunk_size);
+    if (loco)
+    {
+        summary.field("Mode", "LOCO");
+    }
+    return summary;
+}
+
+}  // namespace
 
 class AssocDataHandler
 {
@@ -125,7 +145,21 @@ auto assoc_execute(const cli::AssocConfig& config) -> int
         std::move(data.fixed_design),
         std::move(random_designs));
 
-    cli::AssocReporter::show_dataset_summary(model, bed.num_snps());
+    cli::Summary{"Dataset Summary"}
+        .field("Trait", "{}", data.pheno_name)
+        .field("Samples", "{}", model.num_individuals())
+        .field("Variants", "{}", bed.num_snps())
+        .show();
+
+    const auto random_effect_names
+        = model.random()
+          | std::views::transform([](const auto& design)
+                                  { return design.name; });
+    cli::Summary{"Model Summary"}
+        .field("Fixed terms", "{}", model.fixed().column_names().size())
+        .field("Random effects", "{}", fmt::join(random_effect_names, ", "))
+        .show();
+
     gelex::FreqState state(model);
 
     auto tester = gelex::AssocTester::make(test_type, mode, geno_method);
@@ -133,14 +167,13 @@ auto assoc_execute(const cli::AssocConfig& config) -> int
     gelex::GwasWriter writer(config.out, bim, test_type);
 
     const auto total_snps = static_cast<std::size_t>(bim.rows());
-    std::size_t progress = 0;
+    std::size_t scanned_snps = 0;
 
     const auto scan_range = [&](const gelex::MarkerRange& range,
                                 const gelex::GwasOperators& ops,
-                                cli::AssocReporter& reporter)
+                                cli::AssocProgress& progress)
     {
         const auto n_samples = ops.n_samples();
-        auto estimate_rate = cli::make_rate(progress);
 
         for (auto start = range.start; start < range.end;
              start += static_cast<Eigen::Index>(config.chunk_size))
@@ -154,8 +187,8 @@ auto assoc_execute(const cli::AssocConfig& config) -> int
             auto results = tester->run(encoder, start, ops);
             writer.write(static_cast<std::size_t>(start), results);
 
-            progress += static_cast<std::size_t>(current_chunk_size);
-            reporter.update_scan_progress(progress, estimate_rate(progress));
+            scanned_snps += static_cast<std::size_t>(current_chunk_size);
+            progress(scanned_snps);
         }
     };
 
@@ -169,15 +202,14 @@ auto assoc_execute(const cli::AssocConfig& config) -> int
         auto fit = estimator.fit(model, state);
         reml_reporter.show_result(model, fit.summary, config.max_iter);
 
-        cli::AssocReporter::show_scan_header(
-            total_snps, config.chunk_size, false);
-        cli::AssocReporter reporter{total_snps};
+        make_scan_summary(total_snps, config.chunk_size, false).show();
+        cli::AssocProgress progress{total_snps};
 
         scan_range(
             {"all", 0, static_cast<Eigen::Index>(bim.rows())},
             fit.operators,
-            reporter);
-        reporter.finish_scan();
+            progress);
+        progress.finish();
     }
     else
     {
@@ -202,16 +234,15 @@ auto assoc_execute(const cli::AssocConfig& config) -> int
 
         auto ranges = gelex::chromosome_ranges(bim);
 
-        cli::AssocReporter::show_scan_header(
-            total_snps, config.chunk_size, true);
-        cli::AssocReporter reporter{total_snps};
+        make_scan_summary(total_snps, config.chunk_size, true).show();
+        cli::AssocProgress progress{total_snps};
 
         std::vector<gelex::LocoRemlResult> loco_results;
 
         gelex::Estimator estimator(config.max_iter, config.tolerance);
         for (const auto& range : ranges)
         {
-            reporter.show_loco_phase("REML");
+            progress.start_reml();
 
             for (std::size_t i = 0; i < loco_builders.size(); ++i)
             {
@@ -229,12 +260,13 @@ auto assoc_execute(const cli::AssocConfig& config) -> int
 
             loco_results.push_back({range.label, std::move(fit.summary)});
 
-            reporter.show_loco_phase("SCAN");
+            progress.start_scan();
 
-            scan_range(range, fit.operators, reporter);
+            scan_range(range, fit.operators, progress);
         }
 
-        reporter.show_loco_reml_summary(loco_results);
+        progress.finish();
+        cli::print_loco_reml_summary(loco_results);
     }
 
     cli::printer().block(cli::results_saved(config.out, ".gwas.tsv, .log"));

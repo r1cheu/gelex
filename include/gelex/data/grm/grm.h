@@ -18,6 +18,7 @@
 #define GELEX_DATA_GRM_GRM_H_
 
 #include <Eigen/Core>
+#include <cstddef>
 #include <functional>
 #include <span>
 #include <string>
@@ -25,7 +26,6 @@
 #include <vector>
 
 #include "gelex/data/genotype_method.h"
-#include "gelex/data/grm/progress.h"
 #include "gelex/data/marker_range.h"
 #include "gelex/genetic_mode.h"
 
@@ -55,7 +55,7 @@ class GrmBuilder
         GeneticModeSet modes,
         GenotypeMethod method,
         Eigen::Index chunk_size,
-        GrmObserver observer = {});
+        std::function<void(std::size_t)> observer = {});
 
     auto build(std::span<const MarkerRange> ranges, const Sink& sink) -> void;
 
@@ -69,9 +69,8 @@ class GrmBuilder
     GeneticModeSet modes_;
     GenotypeMethod method_;
     Eigen::Index chunk_size_;
-    GrmObserver observer_;
+    std::function<void(std::size_t)> observer_;
     Eigen::Index processed_ = 0;
-    Eigen::Index total_ = 0;
 };
 
 }  // namespace gelex

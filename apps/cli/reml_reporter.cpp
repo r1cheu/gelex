@@ -21,7 +21,6 @@
 #include <cstddef>
 #include <fmt/format.h>
 #include <string>
-#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -36,19 +35,6 @@
 
 namespace cli
 {
-
-auto RemlReporter::show_dataset_summary(
-    const gelex::FreqModel& model,
-    std::string_view pheno_name) const -> void
-{
-    auto& p = cli::printer();
-    p.block(cli::section("Dataset Summary:"));
-    p.line(cli::field("Trait", "{}", pheno_name));
-    p.line(cli::field("Analyzed Samples", "{}", model.num_individuals()));
-    p.line(cli::field("Covariates", "{}", model.fixed().X().cols()));
-
-    p.line(cli::field("Random effects", "{}", model.random().size()));
-}
 
 auto RemlReporter::on_event(const gelex::RemlIterationEvent& e) -> void
 {

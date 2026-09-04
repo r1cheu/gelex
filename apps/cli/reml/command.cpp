@@ -16,6 +16,8 @@
 
 #include "command.h"
 
+#include <fmt/ranges.h>
+#include <ranges>
 #include <utility>
 
 #include "gelex/exception.h"
@@ -30,6 +32,7 @@
 #include "cli/reml_reporter.h"
 #include "cli/report_printer.h"
 #include "cli/runtime.h"
+#include "cli/summary.h"
 
 auto reml_execute(const cli::RemlConfig& config) -> int
 {
@@ -51,8 +54,21 @@ auto reml_execute(const cli::RemlConfig& config) -> int
         std::move(data.fixed_design),
         std::move(random_designs));
 
+    cli::Summary{"Dataset Summary"}
+        .field("Trait", "{}", data.pheno_name)
+        .field("Samples", "{}", model.num_individuals())
+        .show();
+
+    const auto random_effect_names
+        = model.random()
+          | std::views::transform([](const auto& design)
+                                  { return design.name; });
+    cli::Summary{"Model Summary"}
+        .field("Fixed terms", "{}", model.fixed().column_names().size())
+        .field("Random effects", "{}", fmt::join(random_effect_names, ", "))
+        .show();
+
     cli::RemlReporter reml_reporter;
-    reml_reporter.show_dataset_summary(model, data.pheno_name);
 
     gelex::FreqState state(model);
     gelex::Estimator estimator(

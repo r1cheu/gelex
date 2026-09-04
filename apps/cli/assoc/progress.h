@@ -14,38 +14,31 @@
  * limitations under the License.
  */
 
-#ifndef APPS_CLI_PREDICT_REPORTER_H_
-#define APPS_CLI_PREDICT_REPORTER_H_
+#ifndef APPS_CLI_ASSOC_PROGRESS_H_
+#define APPS_CLI_ASSOC_PROGRESS_H_
 
 #include <cstddef>
-#include <string>
-#include <utility>
-#include <vector>
 
-#include "gelex/data/dataframe/encode.h"
-
-namespace gelex
-{
-struct AlignmentPlan;
-}
+#include "cli/progress.h"
 
 namespace cli
 {
 
-class PredictReporter
+class AssocProgress
 {
    public:
-    auto show_snp_selection(const gelex::AlignmentPlan& alignment) const
-        -> void;
-    auto show_covariate_level_mismatches(
-        const std::vector<std::pair<std::string, gelex::LevelMismatch>>&
-            mismatches) const -> void;
-    auto show_data_loaded(
-        size_t num_samples,
-        size_t num_snps,
-        size_t num_covar_terms) const -> void;
+    explicit AssocProgress(std::size_t total_snps);
+    auto operator()(std::size_t current) -> void;
+    auto start_reml() -> void;
+    auto start_scan() -> void;
+    auto finish() -> void;
+
+   private:
+    cli::Progress progress_;
+    decltype(cli::make_rate()) estimate_rate_;
+    decltype(cli::make_eta(std::size_t{})) estimate_eta_;
 };
 
 }  // namespace cli
 
-#endif  // APPS_CLI_PREDICT_REPORTER_H_
+#endif  // APPS_CLI_ASSOC_PROGRESS_H_
