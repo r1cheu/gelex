@@ -96,5 +96,4 @@ Distributed under the [Apache-2.0 License](LICENSE).
 
 Gelex builds on [Eigen](https://eigen.tuxfamily.org/),
 [CLI11](https://github.com/CLIUtils/CLI11),
-[mio](https://github.com/mandreyel/mio), and
-[barkeep](https://github.com/proclab/barkeep).
+[mio](https://github.com/mandreyel/mio).
