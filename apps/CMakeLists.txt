@@ -64,6 +64,7 @@ if(GELEX_CLI_BUILD_TESTS OR GELEX_BUILD_TESTS)
     cli/mcmc/config.cpp
     cli/mcmc/data.cpp
     cli/mcmc/reporter.cpp
+    cli/progress.cpp
     cli/progress_bar.cpp
     cli/random_design_data.cpp
     cli/reml_data.cpp
