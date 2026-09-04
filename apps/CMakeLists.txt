@@ -26,10 +26,6 @@ set_target_properties(gelex_cli PROPERTIES OUTPUT_NAME "gelex")
 
 target_include_directories(gelex_cli PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
                                              ${CMAKE_CURRENT_BINARY_DIR})
-target_include_directories(gelex_cli SYSTEM
-                           PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/ext/barkeep)
-
-target_compile_definitions(gelex_cli PRIVATE BARKEEP_ENABLE_FMT_FORMAT)
 
 target_link_libraries(gelex_cli PRIVATE gelex::gelex fmt::fmt CLI11::CLI11
                                         spdlog::spdlog)
@@ -65,12 +61,10 @@ if(GELEX_CLI_BUILD_TESTS OR GELEX_BUILD_TESTS)
     cli/mcmc/data.cpp
     cli/mcmc/reporter.cpp
     cli/progress.cpp
-    cli/progress_bar.cpp
     cli/random_design_data.cpp
     cli/reml_data.cpp
     cli/report_printer.cpp
     cli/table.cpp
-    cli/timer.cpp
     cli/predict/compute.cpp
     cli/predict/io.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../tests/bed_fixture.cpp
@@ -78,9 +72,6 @@ if(GELEX_CLI_BUILD_TESTS OR GELEX_BUILD_TESTS)
   target_include_directories(
     gelex_cli_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
                             ${CMAKE_CURRENT_SOURCE_DIR}/../tests)
-  target_include_directories(gelex_cli_tests SYSTEM
-                             PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/ext/barkeep)
-  target_compile_definitions(gelex_cli_tests PRIVATE BARKEEP_ENABLE_FMT_FORMAT)
   target_link_libraries(
     gelex_cli_tests PRIVATE gelex::gelex fmt::fmt CLI11::CLI11 spdlog::spdlog
                             Catch2::Catch2WithMain)
