@@ -19,6 +19,7 @@
 #include <Eigen/Core>
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <span>
 
 #include "gelex/data/encode/encoder.h"
@@ -29,7 +30,7 @@ namespace gelex::bayes
 
 CompactGenotype::CompactGenotype(
     const gelex::Bed& bed,
-    const gelex::GenoObserver& observer)
+    const std::function<void(std::size_t)>& observer)
     : raw_codes_(bed.num_samples(), bed.num_snps()),
       locus_stats_(static_cast<std::size_t>(bed.num_snps())),
       a1_frequency_(bed.num_snps())
@@ -62,19 +63,8 @@ CompactGenotype::CompactGenotype(
             }
         }
         a1_frequency_[marker] = stats.has_nonmissing() ? stats.A1freq() : 0.0;
-        notify(
-            observer,
-            gelex::GenotypeProgressEvent{
-                static_cast<std::size_t>(marker + 1),
-                static_cast<std::size_t>(cols()),
-                false});
+        notify(observer, static_cast<std::size_t>(marker + 1));
     }
-    notify(
-        observer,
-        gelex::GenotypeProgressEvent{
-            static_cast<std::size_t>(cols()),
-            static_cast<std::size_t>(cols()),
-            true});
 }
 
 auto CompactGenotype::rows() const noexcept -> Eigen::Index

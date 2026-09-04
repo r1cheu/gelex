@@ -19,6 +19,8 @@
 
 #include <Eigen/Core>
 #include <array>
+#include <cstddef>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <ranges>
@@ -26,7 +28,6 @@
 #include <string>
 #include <vector>
 
-#include "gelex/bayes/genotype/progress.h"
 #include "gelex/bayes/genotype/projection.h"
 #include "gelex/bayes/marker_covariate.h"
 #include "gelex/data/bed.h"
@@ -47,12 +48,12 @@ class GeneticDesign
         GeneticModeSet modes,
         GenotypeMethod geno_method,
         std::optional<MarkerCovariate> marker_covariate = std::nullopt,
-        const gelex::GenoObserver& observer = {});
+        const std::function<void(std::size_t)>& observer = {});
 
     explicit GeneticDesign(
         gelex::Bed bed,
         std::optional<MarkerCovariate> marker_covariate = std::nullopt,
-        const gelex::GenoObserver& observer = {});
+        const std::function<void(std::size_t)>& observer = {});
 
     GeneticDesign(const GeneticDesign&) = delete;
     auto operator=(const GeneticDesign&) -> GeneticDesign& = delete;

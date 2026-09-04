@@ -19,11 +19,11 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <random>
 
 #include "gelex/bayes/draws.h"
 #include "gelex/bayes/kernel.h"
-#include "gelex/bayes/mcmc_progress.h"
 #include "gelex/bayes/model.h"
 #include "gelex/bayes/prior.h"
 #include "gelex/bayes/state.h"
@@ -48,7 +48,7 @@ class MCMCRunner
         const BayesPrior<GeneticPrior>& prior,
         BayesDraws<GeneticPrior>& draws,
         int seed = 42,
-        const MCMCObserver& observer = {}) -> void
+        const std::function<void(std::size_t)>& observer = {}) -> void
     {
         auto state = make_state(prior, model);
         auto kernel = make_kernel(prior);
@@ -63,19 +63,8 @@ class MCMCRunner
             {
                 draws.append(state);
             }
-            notify(
-                observer,
-                MCMCProgressEvent{
-                    .current = static_cast<std::size_t>(iteration + 1),
-                    .total = static_cast<std::size_t>(iterations_)});
+            notify(observer, static_cast<std::size_t>(iteration + 1));
         }
-
-        notify(
-            observer,
-            MCMCProgressEvent{
-                .current = static_cast<std::size_t>(iterations_),
-                .total = static_cast<std::size_t>(iterations_),
-                .done = true});
     }
 
    private:

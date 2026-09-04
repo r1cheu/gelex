@@ -20,6 +20,7 @@
 #include <array>
 #include <cstddef>
 #include <fmt/format.h>
+#include <functional>
 #include <iterator>
 #include <memory>
 #include <optional>
@@ -86,7 +87,7 @@ GeneticDesign::GeneticDesign(
     GeneticModeSet modes,
     GenotypeMethod geno_method,
     std::optional<MarkerCovariate> marker_covariate,
-    const gelex::GenoObserver& observer)
+    const std::function<void(std::size_t)>& observer)
     : genotype_{std::make_unique<CompactGenotype>(bed, observer)},
       marker_metadata_{std::move(bed).bim()},
       marker_covariate_{std::move(marker_covariate)}
@@ -113,7 +114,7 @@ GeneticDesign::GeneticDesign(
 GeneticDesign::GeneticDesign(
     gelex::Bed bed,
     std::optional<MarkerCovariate> marker_covariate,
-    const gelex::GenoObserver& observer)
+    const std::function<void(std::size_t)>& observer)
     : genotype_{std::make_unique<CompactGenotype>(bed, observer)},
       marker_metadata_{std::move(bed).bim()},
       marker_covariate_{std::move(marker_covariate)}

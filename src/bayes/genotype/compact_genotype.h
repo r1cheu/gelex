@@ -20,10 +20,10 @@
 #include <Eigen/Core>
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <span>
 #include <vector>
 
-#include "gelex/bayes/genotype/progress.h"
 #include "gelex/data/bed.h"
 #include "gelex/data/encode/stats.h"
 
@@ -38,7 +38,7 @@ class CompactGenotype
    public:
     explicit CompactGenotype(
         const gelex::Bed& bed,
-        const gelex::GenoObserver& observer = {});
+        const std::function<void(std::size_t)>& observer = {});
 
     CompactGenotype(const CompactGenotype&) = delete;
     auto operator=(const CompactGenotype&) -> CompactGenotype& = delete;
