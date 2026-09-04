@@ -19,6 +19,7 @@
 #include <Eigen/Core>
 #include <cstddef>
 #include <fmt/format.h>
+#include <fmt/ranges.h>
 #include <optional>
 #include <ranges>
 #include <string>
@@ -36,14 +37,12 @@
 
 #include "cli/formatter.h"
 #include "cli/report_printer.h"
+#include "cli/summary.h"
 #include "compute.h"
 #include "io.h"
-#include "reporter.h"
 
 auto predict_execute(const cli::PredictConfig& config) -> int
 {
-    cli::PredictReporter reporter;
-
     const auto& bfile_prefix = config.bfile;
     const auto& gfile_prefix = config.gfile;
 
@@ -119,21 +118,54 @@ auto predict_execute(const cli::PredictConfig& config) -> int
         qcovar_df,
         dcovar_df,
         static_cast<Eigen::Index>(common_index.size()));
-    reporter.show_covariate_level_mismatches(level_mismatches);
+    for (const auto& [column_name, mismatch] : level_mismatches)
+    {
+        if (!mismatch.missing_in_levels.empty())
+        {
+            cli::printer().warn(
+                "Covariate '{}': level(s) [{}] in the data have no fitted "
+                "coefficient; affected samples are treated as the reference "
+                "level (zero contribution).",
+                column_name,
+                fmt::join(mismatch.missing_in_levels, ", "));
+        }
+        if (!mismatch.missing_in_data.empty())
+        {
+            cli::printer().warn(
+                "Covariate '{}': fitted level(s) [{}] are absent from the "
+                "data; their columns are zero for all samples.",
+                column_name,
+                fmt::join(mismatch.missing_in_data, ", "));
+        }
+    }
 
-    const auto n_snps = static_cast<std::size_t>(snp_effects.rows());
-    reporter.show_data_loaded(
-        static_cast<std::size_t>(common_index.size()),
-        n_snps,
-        term_names.size());
+    const auto model_snps = static_cast<std::size_t>(snp_effects.rows());
+    cli::Summary{"Dataset Summary"}
+        .field("Samples", "{}", common_index.size())
+        .field("Variants", "{}", bed.num_snps())
+        .show();
+    cli::Summary{"Model Summary"}
+        .field("Fixed terms", "{}", term_names.size())
+        .field("Variants", "{}", model_snps)
+        .show();
 
     // Align SNPs to the model, then expand each mode with its training codes.
     auto alignment = gelex::build_snp_alignment(snp_effects, bed.bim());
-    reporter.show_snp_selection(alignment);
+    const auto matched_snps
+        = static_cast<std::size_t>(alignment.num_same + alignment.num_flip);
+    cli::Summary{"SNP Alignment"}
+        .field(
+            "Matched",
+            "{}/{}",
+            matched_snps,
+            static_cast<std::size_t>(alignment.train_count))
+        .field("Missing", "{}", alignment.num_absent)
+        .field("Mismatched", "{}", alignment.num_incompatible)
+        .show();
 
     const double missing_ratio
         = static_cast<double>(alignment.missing_pos.size())
-          / static_cast<double>(n_snps);
+          / static_cast<double>(model_snps);
     if (missing_ratio > gelex::max_snp_missing_ratio)
     {
         throw gelex::GelexException(
@@ -143,7 +175,7 @@ auto predict_execute(const cli::PredictConfig& config) -> int
                 gfile_prefix,
                 bfile_prefix,
                 alignment.missing_pos.size(),
-                n_snps,
+                model_snps,
                 missing_ratio * 100.0,
                 gelex::max_snp_missing_ratio * 100.0));
     }

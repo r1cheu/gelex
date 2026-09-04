@@ -14,24 +14,34 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_DATA_GRM_PROGRESS_H_
-#define GELEX_DATA_GRM_PROGRESS_H_
+#include "progress.h"
 
 #include <cstddef>
-#include <functional>
 
-namespace gelex
+#include "cli/report_printer.h"
+
+namespace cli
 {
 
-struct GrmProgressEvent
+GrmProgress::GrmProgress(std::size_t total)
+    : progress_{"", total, "SNP"},
+      estimate_rate_{cli::make_rate()},
+      estimate_eta_{cli::make_eta(total)}
 {
-    size_t current;
-    size_t total;
-    bool done;
-};
+}
 
-using GrmObserver = std::function<void(const GrmProgressEvent&)>;
+auto GrmProgress::operator()(std::size_t current) -> void
+{
+    progress_.update(
+        {.current = current,
+         .rate = estimate_rate_(current),
+         .eta = estimate_eta_(current)});
+}
 
-}  // namespace gelex
+auto GrmProgress::finish() -> void
+{
+    progress_.finish();
+    cli::printer().on_progress_finished();
+}
 
-#endif  // GELEX_DATA_GRM_PROGRESS_H_
+}  // namespace cli

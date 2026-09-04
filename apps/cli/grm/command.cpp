@@ -19,6 +19,7 @@
 #include <Eigen/Core>
 #include <cstddef>
 #include <fmt/format.h>
+#include <functional>
 #include <string>
 #include <vector>
 
@@ -29,9 +30,10 @@
 #include "gelex/genetic_mode.h"
 
 #include "cli/formatter.h"
+#include "cli/grm/progress.h"
 #include "cli/report_printer.h"
 #include "cli/runtime.h"
-#include "reporter.h"
+#include "cli/summary.h"
 
 auto grm_execute(const cli::GrmConfig& config) -> int
 {
@@ -45,7 +47,10 @@ auto grm_execute(const cli::GrmConfig& config) -> int
     const auto sample_ids = bed.sample_index().keys();
     const auto total_snps = static_cast<std::size_t>(bed.num_snps());
 
-    cli::GrmReporter::show_data_loaded(sample_ids.size(), total_snps);
+    cli::Summary{"Dataset Summary"}
+        .field("Samples", "{}", sample_ids.size())
+        .field("Variants", "{}", total_snps)
+        .show();
 
     std::vector<gelex::MarkerRange> ranges;
     if (config.loco)
@@ -58,9 +63,9 @@ auto grm_execute(const cli::GrmConfig& config) -> int
     }
 
     cli::printer().block(cli::section("GRM Computation:"));
-    cli::GrmReporter reporter{total_snps};
+    cli::GrmProgress progress{total_snps};
     gelex::GrmBuilder builder(
-        bed, modes, method, chunk_size, reporter.as_observer());
+        bed, modes, method, chunk_size, std::ref(progress));
     builder.build(
         ranges,
         [&](const gelex::GrmMatrix& matrix)
@@ -74,6 +79,7 @@ auto grm_execute(const cli::GrmConfig& config) -> int
             gelex::write_grm(
                 fmt::format("{}.{}", config.out, name), matrix.grm, sample_ids);
         });
+    progress.finish();
 
     const std::string task_pattern
         = modes.size() == 1 ? fmt::format(

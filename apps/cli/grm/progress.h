@@ -14,30 +14,22 @@
  * limitations under the License.
  */
 
-#ifndef APPS_CLI_GRM_REPORTER_H_
-#define APPS_CLI_GRM_REPORTER_H_
+#ifndef APPS_CLI_GRM_PROGRESS_H_
+#define APPS_CLI_GRM_PROGRESS_H_
 
 #include <cstddef>
-
-#include "gelex/data/grm/progress.h"
 
 #include "cli/progress.h"
 
 namespace cli
 {
 
-class GrmReporter
+class GrmProgress
 {
    public:
-    explicit GrmReporter(std::size_t total);
-
-    static auto show_data_loaded(size_t num_samples, size_t num_snps) -> void;
-    auto on_event(const gelex::GrmProgressEvent& event) -> void;
-
-    auto as_observer() -> gelex::GrmObserver
-    {
-        return [this](const gelex::GrmProgressEvent& e) { this->on_event(e); };
-    }
+    explicit GrmProgress(std::size_t total);
+    auto operator()(std::size_t current) -> void;
+    auto finish() -> void;
 
    private:
     cli::Progress progress_;
@@ -47,4 +39,4 @@ class GrmReporter
 
 }  // namespace cli
 
-#endif  // APPS_CLI_GRM_REPORTER_H_
+#endif  // APPS_CLI_GRM_PROGRESS_H_

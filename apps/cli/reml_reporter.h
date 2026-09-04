@@ -18,7 +18,6 @@
 #define APPS_CLI_REML_REPORTER_H_
 
 #include <cstddef>
-#include <string_view>
 #include <variant>
 #include <vector>
 
@@ -38,9 +37,6 @@ namespace cli
 class RemlReporter
 {
    public:
-    auto show_dataset_summary(
-        const gelex::FreqModel& model,
-        std::string_view pheno_name) const -> void;
     auto on_event(const gelex::RemlIterationEvent& e) -> void;
     auto on_event(const gelex::RemlConstrainedEvent& e) -> void;
     auto show_result(

@@ -19,6 +19,7 @@
 #include <Eigen/Core>
 #include <algorithm>
 #include <cstddef>
+#include <functional>
 #include <span>
 #include <string>
 #include <string_view>
@@ -42,7 +43,7 @@ GrmBuilder::GrmBuilder(
     GeneticModeSet modes,
     GenotypeMethod method,
     Index chunk_size,
-    GrmObserver observer)
+    std::function<void(std::size_t)> observer)
     : bed_(bed),
       modes_(modes),
       method_(method),
@@ -93,12 +94,7 @@ auto GrmBuilder::accumulate(std::string_view label, Index start, Index end)
         }
 
         processed_ += cols;
-        notify(
-            observer_,
-            GrmProgressEvent{
-                static_cast<size_t>(processed_),
-                static_cast<size_t>(total_),
-                false});
+        notify(observer_, static_cast<std::size_t>(processed_));
     }
 
     std::vector<GrmMatrix> results;
@@ -117,11 +113,6 @@ auto GrmBuilder::accumulate(std::string_view label, Index start, Index end)
 auto GrmBuilder::build(std::span<const MarkerRange> ranges, const Sink& sink)
     -> void
 {
-    total_ = 0;
-    for (const auto& range : ranges)
-    {
-        total_ += (range.end - range.start);
-    }
     processed_ = 0;
 
     for (const auto& range : ranges)
@@ -132,13 +123,6 @@ auto GrmBuilder::build(std::span<const MarkerRange> ranges, const Sink& sink)
             sink(matrix);
         }
     }
-
-    notify(
-        observer_,
-        GrmProgressEvent{
-            static_cast<size_t>(processed_),
-            static_cast<size_t>(total_),
-            true});
 }
 
 }  // namespace gelex
