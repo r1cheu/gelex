@@ -16,6 +16,7 @@
 
 #include "command.h"
 
+#include <cstddef>
 #include <optional>
 #include <string>
 #include <utility>
@@ -51,17 +52,18 @@ struct LoadedMcmcModel
     std::string phenotype_name;
 };
 
-auto load_mcmc_model(const cli::McmcConfig& config, cli::GenoReporter& reporter)
-    -> LoadedMcmcModel
+auto load_mcmc_model(const cli::McmcConfig& config) -> LoadedMcmcModel
 {
     auto bed = gelex::open_bed(config.bfile);
+    const auto total_snps = static_cast<std::size_t>(bed.num_snps());
     cli::printer().block(cli::section("Genotype Processing:"));
-    reporter.show_total(bed.num_snps());
+    cli::GenoReporter::show_total(bed.num_snps());
 
     cli::McmcDataLoader loader(std::move(bed), config.random);
     auto base_data = cli::load_base_data(loader, config.base_data);
     auto design_data = std::move(loader).results();
 
+    cli::GenoReporter reporter{total_snps};
     const gelex::GenoObserver observer
         = [&reporter](const gelex::GenotypeProgressEvent& event)
     { reporter.on_event(event); };
@@ -84,25 +86,25 @@ auto load_mcmc_model(const cli::McmcConfig& config, cli::GenoReporter& reporter)
 }
 
 template <typename Recipe>
-auto run_mcmc(
-    const cli::McmcConfig& config,
-    const Recipe& recipe,
-    cli::GenoReporter& geno_reporter,
-    cli::McmcReporter& mcmc_reporter) -> int
+auto run_mcmc(const cli::McmcConfig& config, const Recipe& recipe) -> int
 {
     gelex::MCMCRunner runner{config.iters, config.burn_in, config.thin};
-    auto loaded = load_mcmc_model(config, geno_reporter);
+    auto loaded = load_mcmc_model(config);
     auto& model = loaded.model;
-    mcmc_reporter.show_dataset_summary(model, loaded.phenotype_name);
+    cli::McmcReporter::show_dataset_summary(model, loaded.phenotype_name);
 
     const auto prior = gelex::make_prior(recipe, model);
-    const gelex::MCMCObserver observer
-        = [&mcmc_reporter](const gelex::MCMCProgressEvent& event)
-    { mcmc_reporter.on_event(event); };
     const auto result = [&]()
     {
         auto draws = gelex::make_draws(
             prior, model, config.out + ".draws", runner.draw_count());
+        cli::McmcReporter::show_sampling_header();
+        cli::McmcReporter reporter{
+            static_cast<std::size_t>(config.iters),
+            static_cast<std::size_t>(config.burn_in)};
+        const gelex::MCMCObserver observer
+            = [&reporter](const gelex::MCMCProgressEvent& event)
+        { reporter.on_event(event); };
         runner.run(model, prior, draws, config.seed, observer);
         return gelex::make_result(model, draws);
     }();
@@ -129,10 +131,6 @@ auto run_mcmc(
 auto mcmc_execute(const cli::McmcConfig& config) -> int
 {
     cli::setup_parallelization(config.threads);
-    cli::GenoReporter geno_reporter;
-    cli::McmcReporter mcmc_reporter;
     return cli::dispatch_mcmc_recipe(
-        config,
-        [&](const auto& recipe)
-        { return run_mcmc(config, recipe, geno_reporter, mcmc_reporter); });
+        config, [&](const auto& recipe) { return run_mcmc(config, recipe); });
 }

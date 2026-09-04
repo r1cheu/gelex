@@ -18,6 +18,7 @@
 
 #include <Eigen/Core>
 #include <cstdint>
+#include <fmt/color.h>
 #include <fmt/format.h>
 #include <string>
 #include <string_view>
@@ -29,15 +30,31 @@
 #include "gelex/genetic_mode.h"
 
 #include "cli/formatter.h"
-#include "cli/progress_bar.h"
 #include "cli/report_printer.h"
+#include "cli/theme.h"
 
 namespace cli
 {
+namespace
+{
 
-GenoReporter::GenoReporter() : eta_(1) {}
+auto phase_prefix(std::string_view phase, ColorRole color) -> std::string
+{
+    return fmt::format(
+        "[{}]",
+        colorize(style_for(color) | fmt::emphasis::bold, std::string{phase}));
+}
 
-auto GenoReporter::show_total(int64_t num_variants) const -> void
+}  // namespace
+
+GenoReporter::GenoReporter(std::size_t total)
+    : progress_{"", total, "SNP"},
+      estimate_rate_{cli::make_rate()},
+      estimate_eta_{cli::make_eta(total)}
+{
+}
+
+auto GenoReporter::show_total(int64_t num_variants) -> void
 {
     cli::printer().line(
         "{}", cli::field("Variants", "{}", cli::AbbrNumber(num_variants)));
@@ -82,38 +99,15 @@ auto GenoReporter::on_event(const gelex::GenotypeProgressEvent& event) -> void
 {
     if (event.done)
     {
-        if (bar_active_)
-        {
-            bar_.display->done();
-            bar_active_ = false;
-            cli::clear_finished_line();
-            cli::printer().on_progress_finished();
-        }
+        progress_.finish();
+        cli::printer().on_progress_finished();
         return;
     }
 
-    if (!bar_active_)
-    {
-        total_ = event.total;
-        progress_ = 0;
-        eta_.reset(total_);
-        bar_ = cli::create_progress_bar(progress_, total_);
-        bar_.display->show();
-        bar_active_ = true;
-    }
-
-    progress_ = event.current;
-    if (bar_.after_bar)
-    {
-        bar_.after_bar->message(
-            fmt::format(
-                "{:.1f}% ({}/{} SNPs) | ETA: {}",
-                static_cast<double>(progress_) / static_cast<double>(total_)
-                    * 100.0,
-                cli::AbbrNumber(progress_),
-                cli::AbbrNumber(total_),
-                eta_.get_eta(progress_)));
-    }
+    progress_.update(
+        {.current = event.current,
+         .rate = estimate_rate_(event.current),
+         .eta = estimate_eta_(event.current)});
 }
 
 auto McmcReporter::show_dataset_summary(
@@ -127,26 +121,41 @@ auto McmcReporter::show_dataset_summary(
     p.line(cli::field("Covariates", "{}", model.fixed().X().cols()));
 }
 
+auto McmcReporter::show_sampling_header() -> void
+{
+    cli::printer().block(cli::section("MCMC Sampling:"));
+}
+
+McmcReporter::McmcReporter(std::size_t total, std::size_t burn_in)
+    : burn_in_{burn_in},
+      progress_{
+          burn_in == 0 ? phase_prefix("SAMPLE", ColorRole::success)
+                       : phase_prefix("BURN-IN", ColorRole::warning),
+          total,
+          "iter"},
+      estimate_rate_{cli::make_rate()},
+      estimate_eta_{cli::make_eta(total)}
+{
+}
+
 auto McmcReporter::on_event(const gelex::MCMCProgressEvent& event) -> void
 {
-    if (!init_progress_)
-    {
-        init_progress_ = true;
-        cli::printer().block(cli::section("MCMC Sampling:"));
-        bar_ = cli::create_progress_bar(
-            iter_, event.total, "{bar} {value}/{total} [{speed:.1f}/s]");
-        bar_.display->show();
-    }
-
     if (event.done)
     {
-        bar_.display->done();
+        progress_.finish();
         cli::printer().on_progress_finished();
         return;
     }
 
-    iter_ = event.current;
-    bar_.before_bar->message("");
+    progress_.update(
+        {.current = event.current,
+         .rate = estimate_rate_(event.current),
+         .eta = estimate_eta_(event.current)});
+
+    if (event.current == burn_in_)
+    {
+        progress_.set_prefix(phase_prefix("SAMPLE", ColorRole::success));
+    }
 }
 
 }  // namespace cli

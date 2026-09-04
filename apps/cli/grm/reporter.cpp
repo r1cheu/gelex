@@ -17,18 +17,21 @@
 #include "reporter.h"
 
 #include <cstddef>
-#include <fmt/format.h>
 
 #include "gelex/data/grm/progress.h"
 
 #include "cli/formatter.h"
-#include "cli/progress_bar.h"
 #include "cli/report_printer.h"
 
 namespace cli
 {
 
-GrmReporter::GrmReporter() : eta_(1) {}
+GrmReporter::GrmReporter(std::size_t total)
+    : progress_{"", total, "SNP"},
+      estimate_rate_{cli::make_rate()},
+      estimate_eta_{cli::make_eta(total)}
+{
+}
 
 auto GrmReporter::show_data_loaded(size_t num_samples, size_t num_snps) -> void
 {
@@ -42,43 +45,15 @@ auto GrmReporter::on_event(const gelex::GrmProgressEvent& event) -> void
 {
     if (event.done)
     {
-        finish_progress();
+        progress_.finish();
+        cli::printer().on_progress_finished();
         return;
     }
 
-    if (!bar_active_)
-    {
-        global_total_ = event.total;
-        progress_ = 0;
-        eta_.reset(global_total_);
-        bar_ = cli::create_progress_bar(progress_, global_total_);
-        bar_.display->show();
-        bar_active_ = true;
-    }
-
-    progress_ = event.current;
-    if (bar_.after_bar)
-    {
-        bar_.after_bar->message(
-            fmt::format(
-                "{:.1f}% ({}/{}) | ETA: {}",
-                static_cast<double>(progress_)
-                    / static_cast<double>(global_total_) * 100.0,
-                cli::AbbrNumber(progress_),
-                cli::AbbrNumber(global_total_),
-                eta_.get_eta(progress_)));
-    }
-}
-
-auto GrmReporter::finish_progress() -> void
-{
-    if (!bar_active_)
-    {
-        return;
-    }
-    bar_.display->done();
-    bar_active_ = false;
-    cli::printer().on_progress_finished();
+    progress_.update(
+        {.current = event.current,
+         .rate = estimate_rate_(event.current),
+         .eta = estimate_eta_(event.current)});
 }
 
 }  // namespace cli
