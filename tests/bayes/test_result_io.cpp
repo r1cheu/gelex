@@ -27,6 +27,7 @@
 
 #include "gelex/bayes/draws.h"
 #include "gelex/bayes/genetic/gaussian.h"
+#include "gelex/bayes/genetic/joint_spike_slab.h"
 #include "gelex/bayes/genetic/scaled_mixture.h"
 #include "gelex/bayes/genetic/spike_slab.h"
 #include "gelex/bayes/genetic_family.h"

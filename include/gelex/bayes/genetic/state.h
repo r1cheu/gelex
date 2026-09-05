@@ -18,46 +18,9 @@
 #define GELEX_BAYES_GENETIC_STATE_H_
 
 #include <Eigen/Core>
-#include <array>
-#include <cstddef>
-#include <cstdint>
 
 namespace gelex
 {
-
-struct HalfNormalState
-{
-    double variance{};
-    Eigen::Vector2d probit_coefficients = Eigen::Vector2d::Zero();
-    Eigen::VectorXd fitted_values;  // total
-};
-
-// Classes are NULL, A-only, D-only and AD; fitted_values holds one column per
-// (mode, class) cell in which that mode is active, so every column carries a
-// single mode and the two columns of a mode sum to that mode's total.
-template <std::size_t ClassCount>
-    requires(ClassCount == 4)
-struct JointSpikeSlabState
-{
-    static constexpr std::size_t class_count = ClassCount;
-    static constexpr std::size_t component_count = 4;
-    static constexpr int no_component = -1;
-    static constexpr std::array<int, class_count> additive_components{
-        no_component,
-        0,
-        no_component,
-        1};
-    static constexpr std::array<int, class_count> dominance_components{
-        no_component,
-        no_component,
-        2,
-        3};
-
-    Eigen::VectorX<std::uint8_t> assignment;
-    std::array<double, class_count> probabilities{};
-    Eigen::Matrix<double, Eigen::Dynamic, static_cast<int>(component_count)>
-        fitted_values;
-};
 
 template <typename FamilyState>
 struct GeneticModeState
@@ -65,12 +28,6 @@ struct GeneticModeState
     Eigen::VectorXd coefficients;
     FamilyState family_state;
 };
-
-[[nodiscard]] inline auto genetic_value(const HalfNormalState& state)
-    -> const Eigen::VectorXd&
-{
-    return state.fitted_values;
-}
 
 template <typename FamilyState>
 [[nodiscard]] auto genetic_value(const GeneticModeState<FamilyState>& state)

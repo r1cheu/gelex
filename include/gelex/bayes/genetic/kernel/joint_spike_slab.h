@@ -26,17 +26,18 @@
 #include <random>
 #include <span>
 
+#include "gelex/bayes/basic_state.h"
 #include "gelex/bayes/detail/normal_variance_conjugate_updater.h"
 #include "gelex/bayes/detail/state_factory.h"
 #include "gelex/bayes/genetic/detail/coefficient_likelihood.h"
 #include "gelex/bayes/genetic/detail/dirichlet_conjugate_updater.h"
 #include "gelex/bayes/genetic/detail/probit_updater.h"
 #include "gelex/bayes/genetic/gaussian.h"
-#include "gelex/bayes/genetic/prior.h"
+#include "gelex/bayes/genetic/joint_spike_slab.h"
 #include "gelex/bayes/genetic/state.h"
+#include "gelex/bayes/genetic_family.h"
 #include "gelex/bayes/genotype/design.h"
 #include "gelex/bayes/mode_values.h"
-#include "gelex/bayes/state.h"
 #include "gelex/bayes/stats/half_quadratic_log_kernel.h"
 #include "gelex/bayes/stats/log_categorical_distribution.h"
 #include "gelex/bayes/stats/multi_quadratic_log_kernel.h"
@@ -394,6 +395,18 @@ class JointSpikeSlabKernel
     LogCategoricalDistribution<class_count> allocation_distribution_;
     LogCategoricalDistribution<2> sign_distribution_;
 };
+
+template <std::size_t ClassCount, MixtureWeightUpdate WeightUpdate>
+[[nodiscard]] auto make_kernel(
+    const JointModeValues<
+        ModeValues<
+            GeneticMode::A | GeneticMode::D,
+            GaussianPrior<VarianceLayout::Pooled>,
+            HalfNormalPrior>,
+        JointSpikeSlabPrior<ClassCount, WeightUpdate>>& prior)
+{
+    return JointSpikeSlabKernel<ClassCount, WeightUpdate>{prior};
+}
 
 }  // namespace gelex::detail
 

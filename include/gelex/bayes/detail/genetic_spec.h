@@ -17,9 +17,6 @@
 #ifndef GELEX_BAYES_DETAIL_GENETIC_SPEC_H_
 #define GELEX_BAYES_DETAIL_GENETIC_SPEC_H_
 
-#include "gelex/bayes/genetic_family.h"
-#include "gelex/bayes/mode_values.h"
-#include "gelex/bayes/spec.h"
 #include "gelex/genetic_mode.h"
 
 namespace gelex::detail
@@ -27,16 +24,6 @@ namespace gelex::detail
 
 template <GeneticModeSet Modes, typename Family>
 struct GeneticSpecFor;
-
-template <MixtureWeightUpdate WeightUpdate>
-struct GeneticSpecFor<
-    GeneticMode::A | GeneticMode::D,
-    JointSpikeSlabFamily<WeightUpdate>>
-{
-    using type = JointModeValues<
-        ModeValues<GeneticMode::A | GeneticMode::D, Gaussian, HalfNormal>,
-        JointSpikeSlab>;
-};
 
 template <GeneticModeSet Modes, typename Family>
 using genetic_spec_t = typename GeneticSpecFor<Modes, Family>::type;

@@ -19,25 +19,17 @@
 
 #include <cmath>
 #include <fmt/format.h>
-#include <utility>
 #include <vector>
 
-#include "gelex/bayes/detail/genetic_spec.h"
-#include "gelex/bayes/genetic/detail/prior_support.h"
 #include "gelex/bayes/genetic/gaussian.h"
-#include "gelex/bayes/genetic/prior.h"
+#include "gelex/bayes/genetic/joint_spike_slab.h"
 #include "gelex/bayes/genetic/scaled_mixture.h"
 #include "gelex/bayes/genetic/spike_slab.h"
-#include "gelex/bayes/genetic_family.h"
-#include "gelex/bayes/mode_values.h"
 #include "gelex/bayes/model.h"
 #include "gelex/bayes/parameter.h"
-#include "gelex/bayes/spec.h"
-#include "gelex/bayes/stats/dirichlet_log_kernel.h"
 #include "gelex/bayes/variance/budget.h"
 #include "gelex/bayes/variance/detail/calibration.h"
 #include "gelex/exception.h"
-#include "gelex/genetic_mode.h"
 #include "gelex/infra/var.h"
 
 namespace gelex
@@ -45,57 +37,6 @@ namespace gelex
 
 namespace detail
 {
-
-template <GeneticMode Mode>
-    requires(Mode == GeneticMode::A || Mode == GeneticMode::D)
-constexpr auto initial_activity(const JointSpikeSlab& spec) -> double
-{
-    const auto& probabilities = spec.probabilities();
-    if constexpr (Mode == GeneticMode::A)
-    {
-        return probabilities.at(1) + probabilities.at(3);
-    }
-    else
-    {
-        return probabilities.at(2) + probabilities.at(3);
-    }
-}
-
-template <GeneticModeSet Modes, MixtureWeightUpdate WeightUpdate>
-    requires(Modes == (GeneticMode::A | GeneticMode::D))
-auto make_prior(
-    JointSpikeSlabFamily<WeightUpdate> /*family*/,
-    const genetic_spec_t<Modes, JointSpikeSlabFamily<WeightUpdate>>&
-        genetic_spec,
-    const MarkerVarianceCalibrator& calibrator)
-{
-    const auto& joint_spec = genetic_spec.joint();
-    auto mode_priors = transform_mode_values(
-        genetic_spec.mode_values(),
-        [&]<GeneticMode Mode>(const auto&)
-        {
-            auto variance = calibrator.calibrate(
-                Mode, initial_activity<Mode>(joint_spec));
-            if constexpr (Mode == GeneticMode::A)
-            {
-                return GaussianPrior<VarianceLayout::Pooled>{
-                    .variance = std::move(variance)};
-            }
-            else
-            {
-                return HalfNormalPrior{.variance = std::move(variance)};
-            }
-        });
-
-    using JointPrior
-        = JointSpikeSlabPrior<JointSpikeSlab::class_count, WeightUpdate>;
-    return JointModeValues{
-        std::move(mode_priors),
-        JointPrior{
-            .probabilities = make_parameter<WeightUpdate>(
-                joint_spec.probabilities(),
-                make_uniform_dirichlet_prior<JointPrior::class_count>())}};
-}
 
 inline auto random_projection_variance(const bayes::RandomDesign& design)
     -> double

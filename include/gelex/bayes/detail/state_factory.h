@@ -18,16 +18,14 @@
 #define GELEX_BAYES_DETAIL_STATE_FACTORY_H_
 
 #include <Eigen/Core>
-#include <cstdint>
 #include <utility>
 
 #include "gelex/bayes/genetic/detail/state_support.h"
 #include "gelex/bayes/genetic/gaussian.h"
-#include "gelex/bayes/genetic/prior.h"
+#include "gelex/bayes/genetic/joint_spike_slab.h"
 #include "gelex/bayes/genetic/scaled_mixture.h"
 #include "gelex/bayes/genetic/spike_slab.h"
 #include "gelex/bayes/genetic/state.h"
-#include "gelex/bayes/genetic_family.h"
 #include "gelex/bayes/genotype/design.h"
 #include "gelex/bayes/mode_values.h"
 #include "gelex/exception.h"
@@ -35,33 +33,6 @@
 
 namespace gelex::detail
 {
-
-inline auto make_state(
-    const HalfNormalPrior& prior,
-    GeneticStateDimensions dimensions) -> HalfNormalState
-{
-    return {
-        .variance = prior.variance.initial,
-        .probit_coefficients = Eigen::Vector2d::Zero(),
-        .fitted_values = Eigen::VectorXd::Zero(dimensions.individual_count)};
-}
-
-template <std::size_t ClassCount, MixtureWeightUpdate WeightUpdate>
-auto make_state(
-    const JointSpikeSlabPrior<ClassCount, WeightUpdate>& prior,
-    GeneticStateDimensions dimensions) -> JointSpikeSlabState<ClassCount>
-{
-    auto state = JointSpikeSlabState<ClassCount>{
-        .assignment
-        = Eigen::VectorX<std::uint8_t>::Zero(dimensions.marker_count),
-        .probabilities = prior.probabilities.initial,
-        .fitted_values = {},
-    };
-    state.fitted_values.setZero(
-        dimensions.individual_count,
-        static_cast<Eigen::Index>(state.component_count));
-    return state;
-}
 
 template <GeneticModeSet Modes>
 auto validate_state_design(const bayes::GeneticDesign& design) -> void

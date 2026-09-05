@@ -18,7 +18,6 @@
 #define GELEX_BAYES_DETAIL_RESULT_FACTORY_H_
 
 #include <Eigen/Core>
-#include <cstddef>
 #include <utility>
 
 #include "gelex/bayes/basic_result.h"
@@ -26,34 +25,16 @@
 #include "gelex/bayes/genetic/detail/result_support.h"
 #include "gelex/bayes/genetic/draws.h"
 #include "gelex/bayes/genetic/gaussian.h"
+#include "gelex/bayes/genetic/joint_spike_slab.h"
 #include "gelex/bayes/genetic/result.h"
 #include "gelex/bayes/genetic/scaled_mixture.h"
 #include "gelex/bayes/genetic/spike_slab.h"
-#include "gelex/bayes/genetic_family.h"
 #include "gelex/bayes/mode_values.h"
 #include "gelex/bayes/model.h"
 #include "gelex/genetic_mode.h"
 
 namespace gelex::detail
 {
-
-inline auto make_result(const HalfNormalDraws& draws)
-    -> HalfNormalPosteriorResult
-{
-    return {
-        .variance = make_result(draws.variance),
-        .probit_coefficients = make_result(draws.probit_coefficients)};
-}
-
-template <std::size_t ClassCount, MixtureWeightUpdate WeightUpdate>
-auto make_result(const JointSpikeSlabDraws<ClassCount, WeightUpdate>& draws)
-    -> JointSpikeSlabPosteriorResult<ClassCount, WeightUpdate>
-{
-    return {
-        .probabilities = make_result(draws.probabilities),
-        .component_explained_variance
-        = make_result(draws.component_explained_variance)};
-}
 
 template <typename CoefficientDraws, typename ModeFamilyDraws>
 auto make_genetic_parameters(
