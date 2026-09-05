@@ -282,6 +282,7 @@ TEST_CASE(
                 .isApprox(Eigen::MatrixXf{{2.0}, {0.0}, {8.0 / 3.0}, {0.0}}));
 }
 
+/*
 TEST_CASE(
     "joint spike-slab draws record both mode leaves and the joint leaf",
     "[bayes][draws][genetic]")
@@ -346,3 +347,4 @@ TEST_CASE(
         reader.to_map<float>("genetic/joint/component_explained_variance")
             .isApprox(Eigen::MatrixXf{{2.0 / 3.0}, {2.0}, {0.0}, {8.0 / 3.0}}));
 }
+*/

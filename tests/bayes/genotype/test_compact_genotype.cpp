@@ -133,6 +133,9 @@ TEST_CASE(
                 Eigen::VectorXd expanded = Eigen::VectorXd::Zero(4);
                 projection.axpy(marker, 1.0, expanded);
                 CHECK(expanded.isApprox(dense.col(marker)));
+                Eigen::VectorXd product(4);
+                projection.multiply(marker, -0.25, product);
+                CHECK(product.isApprox((-0.25) * dense.col(marker)));
                 CHECK(
                     projection.dot(marker, probe)
                     == Catch::Approx(dense.col(marker).dot(probe)));

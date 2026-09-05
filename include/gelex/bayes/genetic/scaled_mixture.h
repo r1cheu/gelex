@@ -23,6 +23,7 @@
 #include <cstdint>
 #include <limits>
 #include <ranges>
+#include <variant>
 
 #include "gelex/bayes/basic_draw.h"
 #include "gelex/bayes/basic_result.h"
@@ -37,6 +38,7 @@
 #include "gelex/bayes/genetic/result.h"
 #include "gelex/bayes/genetic/traits.h"
 #include "gelex/bayes/genetic_family.h"
+#include "gelex/bayes/genotype/operations.h"
 #include "gelex/bayes/mode_values.h"
 #include "gelex/bayes/parameter.h"
 #include "gelex/bayes/spec.h"
@@ -73,22 +75,154 @@ template <std::size_t ClassCount>
         && ClassCount <= static_cast<std::size_t>(
                              std::numeric_limits<std::uint8_t>::max())
                              + 1)
-struct ScaledMixtureState
+class ScaledMixtureState;
+
+namespace detail
 {
+template <std::size_t ClassCount, MixtureWeightUpdate WeightUpdate>
+auto make_state(
+    const ScaledMixturePrior<ClassCount, WeightUpdate>& prior,
+    GeneticStateDimensions dimensions) -> ScaledMixtureState<ClassCount>;
+}  // namespace detail
+
+template <std::size_t ClassCount>
+    requires(
+        ClassCount > 1
+        && ClassCount <= static_cast<std::size_t>(
+                             std::numeric_limits<std::uint8_t>::max())
+                             + 1)
+class ScaledMixtureState
+{
+   public:
     static constexpr std::size_t class_count = ClassCount;
     static constexpr std::size_t component_count = class_count - 1;
 
-    double variance{};
-    Eigen::VectorX<std::uint8_t> assignment;
-    std::array<double, class_count> probabilities{};
+    auto coefficients() const -> const Eigen::VectorXd&
+    {
+        return coefficients_;
+    }
+    auto assignments() const -> const Eigen::VectorX<std::uint8_t>&
+    {
+        return assignments_;
+    }
+    auto class_counts() const -> const std::array<std::size_t, class_count>&
+    {
+        return class_counts_;
+    }
+    auto fitted_values() const -> const Eigen::
+        Matrix<double, Eigen::Dynamic, static_cast<int>(component_count)>&
+    {
+        return fitted_values_;
+    }
+    auto variance() const -> double { return variance_; }
+    auto variance() -> double& { return variance_; }
+    auto probabilities() const -> const std::array<double, class_count>&
+    {
+        return probabilities_;
+    }
+    auto probabilities() -> std::array<double, class_count>&
+    {
+        return probabilities_;
+    }
+
+    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
+    [[nodiscard]] auto transition(
+        Eigen::Index marker_index,
+        double coefficient,
+        std::uint8_t assignment)
+        -> std::variant<
+            std::monostate,
+            bayes::AxpyTarget,
+            std::array<bayes::AxpyTarget, 2>>
+    // NOLINTEND(bugprone-easily-swappable-parameters)
+    {
+        const double old_value = coefficients_(marker_index);
+        const std::uint8_t old_assignment = assignments_(marker_index);
+        const double new_value = assignment == 0 ? 0.0 : coefficient;
+        const auto make_target
+            = [&](std::uint8_t component_assignment, double delta)
+        {
+            const auto component_index
+                = static_cast<Eigen::Index>(component_assignment - 1);
+            return bayes::AxpyTarget{
+                delta, fitted_values_.col(component_index)};
+        };
+
+        if (old_assignment != assignment)
+        {
+            --class_counts_[old_assignment];
+            ++class_counts_[assignment];
+        }
+        coefficients_(marker_index) = new_value;
+        assignments_(marker_index) = assignment;
+
+        if (old_assignment == assignment)
+        {
+            const double delta = new_value - old_value;
+            if (assignment == 0 || delta == 0.0)
+            {
+                return std::monostate{};
+            }
+            return make_target(assignment, delta);
+        }
+
+        const bool remove_old = old_assignment != 0 && old_value != 0.0;
+        const bool add_new = assignment != 0 && new_value != 0.0;
+        if (remove_old && add_new)
+        {
+            return std::array{
+                make_target(old_assignment, -old_value),
+                make_target(assignment, new_value)};
+        }
+        if (remove_old)
+        {
+            return make_target(old_assignment, -old_value);
+        }
+        if (add_new)
+        {
+            return make_target(assignment, new_value);
+        }
+        return std::monostate{};
+    }
+
+   private:
+    template <std::size_t Count, MixtureWeightUpdate WeightUpdate>
+    friend auto detail::make_state(
+        const ScaledMixturePrior<Count, WeightUpdate>& prior,
+        detail::GeneticStateDimensions dimensions) -> ScaledMixtureState<Count>;
+
+    ScaledMixtureState(
+        double variance,
+        std::array<double, class_count> probabilities,
+        Eigen::Index num_markers,
+        Eigen::Index num_individuals)
+        : coefficients_(Eigen::VectorXd::Zero(num_markers)),
+          assignments_(Eigen::VectorX<std::uint8_t>::Zero(num_markers)),
+          class_counts_{static_cast<std::size_t>(num_markers)},
+          fitted_values_(
+              Eigen::Matrix<
+                  double,
+                  Eigen::Dynamic,
+                  static_cast<int>(component_count)>::
+                  Zero(num_individuals, component_count)),
+          variance_(variance),
+          probabilities_(probabilities)
+    {
+    }
+
+    Eigen::VectorXd coefficients_;
+    Eigen::VectorX<std::uint8_t> assignments_;
+    std::array<std::size_t, class_count> class_counts_;
     Eigen::Matrix<double, Eigen::Dynamic, static_cast<int>(component_count)>
-        fitted_values;
+        fitted_values_;
+    double variance_;
+    std::array<double, class_count> probabilities_;
 };
 
 template <std::size_t ClassCount>
 [[nodiscard]] auto genetic_value(const ScaledMixtureState<ClassCount>& state)
 {
-    return state.fitted_values.rowwise().sum();
+    return state.fitted_values().rowwise().sum();
 }
 
 template <std::size_t ClassCount, MixtureWeightUpdate WeightUpdate>
@@ -101,11 +235,11 @@ struct ScaledMixtureDraws
 
     auto append(const ScaledMixtureState<ClassCount>& state) -> void
     {
-        variance.append(state.variance);
-        assignment.append(state.assignment);
-        probabilities.append(state.probabilities);
+        variance.append(state.variance());
+        assignment.append(state.assignments());
+        probabilities.append(state.probabilities());
         component_explained_variance.append(
-            matvar<0>(state.fitted_values, VarNormType::Population));
+            matvar<0>(state.fitted_values(), VarNormType::Population));
     }
 };
 
@@ -165,16 +299,11 @@ auto make_state(
     const ScaledMixturePrior<ClassCount, WeightUpdate>& prior,
     GeneticStateDimensions dimensions) -> ScaledMixtureState<ClassCount>
 {
-    auto state = ScaledMixtureState<ClassCount>{
-        .variance = prior.variance.initial,
-        .assignment
-        = Eigen::VectorX<std::uint8_t>::Zero(dimensions.marker_count),
-        .probabilities = prior.probabilities.initial,
-    };
-    state.fitted_values.setZero(
-        dimensions.individual_count,
-        static_cast<Eigen::Index>(state.component_count));
-    return state;
+    return {
+        prior.variance.initial,
+        prior.probabilities.initial,
+        dimensions.marker_count,
+        dimensions.individual_count};
 }
 
 template <std::size_t ClassCount, MixtureWeightUpdate WeightUpdate>

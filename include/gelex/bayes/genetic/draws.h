@@ -46,7 +46,7 @@ class GeneticCoefficientDraws
     {
         draws_.for_each(
             [&]<GeneticMode Mode>(auto& draw)
-            { draw.append(state.template get<Mode>().coefficients); });
+            { draw.append(state.template get<Mode>().coefficients()); });
     }
 
     template <GeneticMode Mode>
@@ -75,9 +75,9 @@ class GeneticCoefficientDraws<(GeneticMode::A | GeneticMode::D)>
     auto append(const GeneticState& state) -> void
     {
         const auto& additive
-            = state.template get<GeneticMode::A>().coefficients;
+            = state.template get<GeneticMode::A>().coefficients();
         const auto& dominance
-            = state.template get<GeneticMode::D>().coefficients;
+            = state.template get<GeneticMode::D>().coefficients();
 
         draws_.template get<GeneticMode::A>().append(additive);
         draws_.template get<GeneticMode::D>().append(dominance);
@@ -130,9 +130,8 @@ class IndependentGeneticDraws
     auto append(const GeneticState& state) -> void
     {
         coefficients_.append(state);
-        families_.for_each(
-            [&]<GeneticMode Mode>(auto& family)
-            { family.append(state.template get<Mode>().family_state); });
+        families_.for_each([&]<GeneticMode Mode>(auto& family)
+                           { family.append(state.template get<Mode>()); });
     }
 
     [[nodiscard]] auto coefficients() const noexcept -> const CoefficientDraws&
@@ -172,12 +171,8 @@ class JointGeneticDraws
     auto append(const GeneticState& state) -> void
     {
         coefficients_.append(state);
-        families_.for_each(
-            [&]<GeneticMode Mode>(auto& family)
-            {
-                family.append(
-                    state.mode_values().template get<Mode>().family_state);
-            });
+        families_.for_each([&]<GeneticMode Mode>(auto& family)
+                           { family.append(state.template get<Mode>()); });
         joint_family_.append(state.joint());
     }
 

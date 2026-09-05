@@ -24,7 +24,10 @@
 #include <utility>
 #include <vector>
 
-#include "gelex/bayes/genetic/state.h"
+#include "gelex/bayes/genetic/gaussian.h"
+#include "gelex/bayes/genetic/joint_spike_slab.h"
+#include "gelex/bayes/genetic/scaled_mixture.h"
+#include "gelex/bayes/genetic/spike_slab.h"
 #include "gelex/bayes/mode_values.h"
 #include "gelex/bayes/state.h"
 #include "gelex/exception.h"
