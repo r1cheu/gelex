@@ -35,11 +35,6 @@ enum class MixtureWeightUpdate : std::uint8_t
 };
 
 template <MixtureWeightUpdate WeightUpdate = MixtureWeightUpdate::Enabled>
-struct ScaledMixtureFamily
-{
-};
-
-template <MixtureWeightUpdate WeightUpdate = MixtureWeightUpdate::Enabled>
 struct JointSpikeSlabFamily
 {
 };

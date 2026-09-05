@@ -22,6 +22,7 @@
 #include "gelex/bayes/genetic/detail/summary_support.h"
 #include "gelex/bayes/genetic/gaussian.h"
 #include "gelex/bayes/genetic/result.h"
+#include "gelex/bayes/genetic/scaled_mixture.h"
 #include "gelex/bayes/genetic/spike_slab.h"
 #include "gelex/bayes/genetic_family.h"
 #include "gelex/bayes/mode_values.h"
@@ -37,17 +38,6 @@ inline auto write_family_summary_rows(
 {
     write_summary_rows(writer, result.variance);
     write_summary_rows(writer, result.probit_coefficients);
-}
-
-template <std::size_t ClassCount, MixtureWeightUpdate WeightUpdate>
-auto write_family_summary_rows(
-    TextWriter& writer,
-    const ScaledMixturePosteriorResult<ClassCount, WeightUpdate>& result)
-    -> void
-{
-    write_summary_rows(writer, result.variance);
-    write_summary_rows(writer, result.probabilities);
-    write_summary_rows(writer, result.component_explained_variance);
 }
 
 template <std::size_t ClassCount, MixtureWeightUpdate WeightUpdate>

@@ -27,6 +27,7 @@
 #include "gelex/bayes/genetic/draws.h"
 #include "gelex/bayes/genetic/gaussian.h"
 #include "gelex/bayes/genetic/result.h"
+#include "gelex/bayes/genetic/scaled_mixture.h"
 #include "gelex/bayes/genetic/spike_slab.h"
 #include "gelex/bayes/genetic_family.h"
 #include "gelex/bayes/mode_values.h"
@@ -42,17 +43,6 @@ inline auto make_result(const HalfNormalDraws& draws)
     return {
         .variance = make_result(draws.variance),
         .probit_coefficients = make_result(draws.probit_coefficients)};
-}
-
-template <std::size_t ClassCount, MixtureWeightUpdate WeightUpdate>
-auto make_result(const ScaledMixtureDraws<ClassCount, WeightUpdate>& draws)
-    -> ScaledMixturePosteriorResult<ClassCount, WeightUpdate>
-{
-    return {
-        .variance = make_result(draws.variance),
-        .probabilities = make_result(draws.probabilities),
-        .component_explained_variance
-        = make_result(draws.component_explained_variance)};
 }
 
 template <std::size_t ClassCount, MixtureWeightUpdate WeightUpdate>

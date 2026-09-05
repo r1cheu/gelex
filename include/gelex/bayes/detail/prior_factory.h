@@ -19,7 +19,6 @@
 
 #include <cmath>
 #include <fmt/format.h>
-#include <ranges>
 #include <utility>
 #include <vector>
 
@@ -27,6 +26,7 @@
 #include "gelex/bayes/genetic/detail/prior_support.h"
 #include "gelex/bayes/genetic/gaussian.h"
 #include "gelex/bayes/genetic/prior.h"
+#include "gelex/bayes/genetic/scaled_mixture.h"
 #include "gelex/bayes/genetic/spike_slab.h"
 #include "gelex/bayes/genetic_family.h"
 #include "gelex/bayes/mode_values.h"
@@ -46,17 +46,6 @@ namespace gelex
 namespace detail
 {
 
-constexpr auto initial_activity(const ScaledMixture& spec) -> double
-{
-    auto activity = 0.0;
-    for (const auto [probability, scale] :
-         std::views::zip(spec.probabilities(), spec.scales()))
-    {
-        activity += probability * scale;
-    }
-    return activity;
-}
-
 template <GeneticMode Mode>
     requires(Mode == GeneticMode::A || Mode == GeneticMode::D)
 constexpr auto initial_activity(const JointSpikeSlab& spec) -> double
@@ -70,27 +59,6 @@ constexpr auto initial_activity(const JointSpikeSlab& spec) -> double
     {
         return probabilities.at(2) + probabilities.at(3);
     }
-}
-
-template <GeneticModeSet Modes, MixtureWeightUpdate WeightUpdate>
-auto make_prior(
-    ScaledMixtureFamily<WeightUpdate> /*family*/,
-    const genetic_spec_t<Modes, ScaledMixtureFamily<WeightUpdate>>&
-        genetic_spec,
-    const MarkerVarianceCalibrator& calibrator)
-{
-    return transform_mode_values(
-        genetic_spec,
-        [&]<GeneticMode Mode>(const ScaledMixture& spec)
-            -> ScaledMixturePrior<ScaledMixture::class_count, WeightUpdate>
-        {
-            return {
-                .variance = calibrator.calibrate(Mode, initial_activity(spec)),
-                .probabilities = make_parameter<WeightUpdate>(
-                    spec.probabilities(),
-                    make_uniform_dirichlet_prior<ScaledMixture::class_count>()),
-                .scales = spec.scales()};
-        });
 }
 
 template <GeneticModeSet Modes, MixtureWeightUpdate WeightUpdate>

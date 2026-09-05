@@ -24,6 +24,7 @@
 #include "gelex/bayes/genetic/detail/state_support.h"
 #include "gelex/bayes/genetic/gaussian.h"
 #include "gelex/bayes/genetic/prior.h"
+#include "gelex/bayes/genetic/scaled_mixture.h"
 #include "gelex/bayes/genetic/spike_slab.h"
 #include "gelex/bayes/genetic/state.h"
 #include "gelex/bayes/genetic_family.h"
@@ -43,23 +44,6 @@ inline auto make_state(
         .variance = prior.variance.initial,
         .probit_coefficients = Eigen::Vector2d::Zero(),
         .fitted_values = Eigen::VectorXd::Zero(dimensions.individual_count)};
-}
-
-template <std::size_t ClassCount, MixtureWeightUpdate WeightUpdate>
-auto make_state(
-    const ScaledMixturePrior<ClassCount, WeightUpdate>& prior,
-    GeneticStateDimensions dimensions) -> ScaledMixtureState<ClassCount>
-{
-    auto state = ScaledMixtureState<ClassCount>{
-        .variance = prior.variance.initial,
-        .assignment
-        = Eigen::VectorX<std::uint8_t>::Zero(dimensions.marker_count),
-        .probabilities = prior.probabilities.initial,
-    };
-    state.fitted_values.setZero(
-        dimensions.individual_count,
-        static_cast<Eigen::Index>(state.component_count));
-    return state;
 }
 
 template <std::size_t ClassCount, MixtureWeightUpdate WeightUpdate>

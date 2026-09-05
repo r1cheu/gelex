@@ -24,13 +24,14 @@
 #include <random>
 #include <span>
 
+#include "gelex/bayes/basic_state.h"
 #include "gelex/bayes/detail/normal_variance_conjugate_updater.h"
 #include "gelex/bayes/genetic/detail/coefficient_likelihood.h"
 #include "gelex/bayes/genetic/detail/dirichlet_conjugate_updater.h"
-#include "gelex/bayes/genetic/prior.h"
+#include "gelex/bayes/genetic/scaled_mixture.h"
 #include "gelex/bayes/genetic/state.h"
+#include "gelex/bayes/genetic_family.h"
 #include "gelex/bayes/genotype/design.h"
-#include "gelex/bayes/state.h"
 #include "gelex/bayes/stats/log_categorical_distribution.h"
 #include "gelex/bayes/stats/quadratic_log_kernel.h"
 #include "gelex/genetic_mode.h"
@@ -200,6 +201,13 @@ class ScaledMixtureKernel
     LogCategoricalDistribution<ClassCount> allocation_distribution_;
     std::array<double, ClassCount> scales_;
 };
+
+template <std::size_t ClassCount, MixtureWeightUpdate WeightUpdate>
+[[nodiscard]] auto make_kernel(
+    const ScaledMixturePrior<ClassCount, WeightUpdate>& prior)
+{
+    return ScaledMixtureKernel<ClassCount, WeightUpdate>{prior};
+}
 
 }  // namespace gelex::detail
 

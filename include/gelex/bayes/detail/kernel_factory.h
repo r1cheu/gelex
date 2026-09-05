@@ -34,13 +34,6 @@
 namespace gelex::detail
 {
 
-template <std::size_t ClassCount, MixtureWeightUpdate WeightUpdate>
-[[nodiscard]] auto make_kernel(
-    const ScaledMixturePrior<ClassCount, WeightUpdate>& prior)
-{
-    return ScaledMixtureKernel<ClassCount, WeightUpdate>{prior};
-}
-
 template <GeneticModeSet Modes, typename... ModePriors>
 [[nodiscard]] auto make_kernel(const ModeValues<Modes, ModePriors...>& prior)
 {
