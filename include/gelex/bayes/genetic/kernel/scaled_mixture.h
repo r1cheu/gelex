@@ -25,8 +25,8 @@
 #include <span>
 
 #include "gelex/bayes/detail/normal_variance_conjugate_updater.h"
-#include "gelex/bayes/genetic/kernel/coefficient_likelihood.h"
-#include "gelex/bayes/genetic/kernel/dirichlet_conjugate_updater.h"
+#include "gelex/bayes/genetic/detail/coefficient_likelihood.h"
+#include "gelex/bayes/genetic/detail/dirichlet_conjugate_updater.h"
 #include "gelex/bayes/genetic/prior.h"
 #include "gelex/bayes/genetic/state.h"
 #include "gelex/bayes/genotype/design.h"

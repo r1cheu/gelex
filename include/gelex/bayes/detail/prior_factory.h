@@ -24,6 +24,7 @@
 #include <vector>
 
 #include "gelex/bayes/detail/genetic_spec.h"
+#include "gelex/bayes/genetic/detail/prior_support.h"
 #include "gelex/bayes/genetic/prior.h"
 #include "gelex/bayes/genetic_family.h"
 #include "gelex/bayes/mode_values.h"
@@ -42,20 +43,6 @@ namespace gelex
 
 namespace detail
 {
-
-template <MixtureWeightUpdate Update, typename T, typename Prior>
-auto make_parameter(T initial, Prior prior)
-{
-    if constexpr (Update == MixtureWeightUpdate::Disabled)
-    {
-        return FixedParameter<T>{.initial = std::move(initial)};
-    }
-    else
-    {
-        return Parameter<T, Prior>{
-            .initial = std::move(initial), .prior = std::move(prior)};
-    }
-}
 
 constexpr auto initial_activity(const ScaledMixture& spec) -> double
 {

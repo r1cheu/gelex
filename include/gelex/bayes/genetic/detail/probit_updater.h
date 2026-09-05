@@ -11,8 +11,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef GELEX_BAYES_GENETIC_KERNEL_PROBIT_UPDATER_H_
-#define GELEX_BAYES_GENETIC_KERNEL_PROBIT_UPDATER_H_
+#ifndef GELEX_BAYES_GENETIC_DETAIL_PROBIT_UPDATER_H_
+#define GELEX_BAYES_GENETIC_DETAIL_PROBIT_UPDATER_H_
 
 #include <Eigen/Cholesky>
 #include <Eigen/Core>
@@ -60,4 +60,4 @@ class ProbitUpdater
 
 }  // namespace gelex::detail
 
-#endif  // GELEX_BAYES_GENETIC_KERNEL_PROBIT_UPDATER_H_
+#endif  // GELEX_BAYES_GENETIC_DETAIL_PROBIT_UPDATER_H_

@@ -21,20 +21,16 @@
 #include <utility>
 
 #include "gelex/bayes/basic_result.h"
+#include "gelex/bayes/genetic/detail/pip_support.h"
 #include "gelex/bayes/genetic/draws.h"
 #include "gelex/bayes/genetic/result.h"
 #include "gelex/bayes/genetic/state.h"
+#include "gelex/bayes/genetic_family.h"
 #include "gelex/bayes/mode_values.h"
 #include "gelex/genetic_mode.h"
 
 namespace gelex::detail
 {
-
-[[nodiscard]] constexpr auto is_non_null_category(std::size_t category) noexcept
-    -> bool
-{
-    return category != 0;
-}
 
 template <VarianceLayout Kind>
 [[nodiscard]] auto make_pip(const GaussianDraws<Kind>& /*draws*/)
