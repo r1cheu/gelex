@@ -24,6 +24,7 @@
 #include "gelex/bayes/genetic/draws.h"
 #include "gelex/bayes/genetic/gaussian.h"
 #include "gelex/bayes/genetic/result.h"
+#include "gelex/bayes/genetic/spike_slab.h"
 #include "gelex/bayes/genetic/state.h"
 #include "gelex/bayes/genetic_family.h"
 #include "gelex/bayes/mode_values.h"
@@ -31,14 +32,6 @@
 
 namespace gelex::detail
 {
-
-template <VarianceLayout Kind, MixtureWeightUpdate WeightUpdate>
-[[nodiscard]] auto make_pip(const SpikeSlabDraws<Kind, WeightUpdate>& draws)
-    -> MarkerPipResult
-{
-    return MarkerPipResult{
-        draws.assignment.probability_of(is_non_null_category)};
-}
 
 template <std::size_t ClassCount, MixtureWeightUpdate WeightUpdate>
 [[nodiscard]] auto make_pip(

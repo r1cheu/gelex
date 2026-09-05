@@ -46,21 +46,6 @@ struct HalfNormalDraws
     }
 };
 
-template <VarianceLayout Kind, MixtureWeightUpdate WeightUpdate>
-struct SpikeSlabDraws
-{
-    detail::marker_variance_draw_t<Kind> variance;
-    CategoryDraw<2> assignment;
-    detail::weight_draw_t<WeightUpdate, ScalarDraw> probability;
-
-    auto append(const SpikeSlabState<Kind>& state) -> void
-    {
-        variance.append(state.variance);
-        assignment.append(state.assignment);
-        probability.append(state.probability);
-    }
-};
-
 template <std::size_t ClassCount, MixtureWeightUpdate WeightUpdate>
 struct ScaledMixtureDraws
 {

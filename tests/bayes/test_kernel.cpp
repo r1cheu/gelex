@@ -26,6 +26,7 @@
 #include <vector>
 
 #include "gelex/bayes/genetic/gaussian.h"
+#include "gelex/bayes/genetic/spike_slab.h"
 #include "gelex/bayes/genetic_family.h"
 #include "gelex/bayes/kernel.h"
 #include "gelex/bayes/mode_values.h"

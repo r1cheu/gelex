@@ -23,9 +23,6 @@
 #include <cstdint>
 #include <limits>
 
-#include "gelex/bayes/genetic/traits.h"
-#include "gelex/bayes/genetic_family.h"
-
 namespace gelex
 {
 
@@ -33,15 +30,6 @@ struct HalfNormalState
 {
     double variance{};
     Eigen::Vector2d probit_coefficients = Eigen::Vector2d::Zero();
-    Eigen::VectorXd fitted_values;  // total
-};
-
-template <VarianceLayout Kind>
-struct SpikeSlabState
-{
-    detail::marker_variance_state_t<Kind> variance{};
-    Eigen::VectorX<std::uint8_t> assignment;
-    double probability{};
     Eigen::VectorXd fitted_values;  // total
 };
 
@@ -98,13 +86,6 @@ struct GeneticModeState
 };
 
 [[nodiscard]] inline auto genetic_value(const HalfNormalState& state)
-    -> const Eigen::VectorXd&
-{
-    return state.fitted_values;
-}
-
-template <VarianceLayout Kind>
-[[nodiscard]] auto genetic_value(const SpikeSlabState<Kind>& state)
     -> const Eigen::VectorXd&
 {
     return state.fitted_values;

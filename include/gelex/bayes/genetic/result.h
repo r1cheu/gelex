@@ -143,13 +143,6 @@ struct HalfNormalPosteriorResult
     VectorPosteriorResult probit_coefficients;
 };
 
-template <VarianceLayout Kind, MixtureWeightUpdate WeightUpdate>
-struct SpikeSlabPosteriorResult
-{
-    detail::marker_variance_result_t<Kind> variance;
-    detail::weight_result_t<WeightUpdate, ScalarPosteriorResult> probability;
-};
-
 template <std::size_t ClassCount, MixtureWeightUpdate WeightUpdate>
 struct ScaledMixturePosteriorResult
 {

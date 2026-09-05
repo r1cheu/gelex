@@ -24,6 +24,7 @@
 #include "gelex/bayes/genetic/detail/state_support.h"
 #include "gelex/bayes/genetic/gaussian.h"
 #include "gelex/bayes/genetic/prior.h"
+#include "gelex/bayes/genetic/spike_slab.h"
 #include "gelex/bayes/genetic/state.h"
 #include "gelex/bayes/genetic_family.h"
 #include "gelex/bayes/genotype/design.h"
@@ -41,20 +42,6 @@ inline auto make_state(
     return {
         .variance = prior.variance.initial,
         .probit_coefficients = Eigen::Vector2d::Zero(),
-        .fitted_values = Eigen::VectorXd::Zero(dimensions.individual_count)};
-}
-
-template <VarianceLayout Kind, MixtureWeightUpdate WeightUpdate>
-auto make_state(
-    const SpikeSlabPrior<Kind, WeightUpdate>& prior,
-    GeneticStateDimensions dimensions) -> SpikeSlabState<Kind>
-{
-    return {
-        .variance = initial_marker_variance<Kind>(
-            prior.variance, dimensions.marker_count),
-        .assignment
-        = Eigen::VectorX<std::uint8_t>::Zero(dimensions.marker_count),
-        .probability = prior.probability.initial,
         .fitted_values = Eigen::VectorXd::Zero(dimensions.individual_count)};
 }
 

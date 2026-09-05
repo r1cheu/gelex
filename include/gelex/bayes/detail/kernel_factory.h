@@ -34,12 +34,6 @@
 namespace gelex::detail
 {
 
-template <VarianceLayout Kind, MixtureWeightUpdate WeightUpdate>
-[[nodiscard]] auto make_kernel(const SpikeSlabPrior<Kind, WeightUpdate>& prior)
-{
-    return SpikeSlabKernel<Kind, WeightUpdate>{prior};
-}
-
 template <std::size_t ClassCount, MixtureWeightUpdate WeightUpdate>
 [[nodiscard]] auto make_kernel(
     const ScaledMixturePrior<ClassCount, WeightUpdate>& prior)
