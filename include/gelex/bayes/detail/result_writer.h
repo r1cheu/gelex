@@ -20,6 +20,7 @@
 #include <cstddef>
 
 #include "gelex/bayes/genetic/detail/summary_support.h"
+#include "gelex/bayes/genetic/gaussian.h"
 #include "gelex/bayes/genetic/result.h"
 #include "gelex/bayes/genetic_family.h"
 #include "gelex/bayes/mode_values.h"
@@ -28,14 +29,6 @@
 
 namespace gelex::detail
 {
-
-template <VarianceLayout Kind>
-auto write_family_summary_rows(
-    TextWriter& writer,
-    const GaussianPosteriorResult<Kind>& result) -> void
-{
-    write_summary_rows(writer, result.variance);
-}
 
 inline auto write_family_summary_rows(
     TextWriter& writer,

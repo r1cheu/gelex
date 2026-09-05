@@ -29,13 +29,6 @@
 namespace gelex
 {
 
-template <VarianceLayout Kind>
-struct GaussianState
-{
-    detail::marker_variance_state_t<Kind> variance{};
-    Eigen::VectorXd fitted_values;  // total
-};
-
 struct HalfNormalState
 {
     double variance{};
@@ -103,13 +96,6 @@ struct GeneticModeState
     Eigen::VectorXd coefficients;
     FamilyState family_state;
 };
-
-template <VarianceLayout Kind>
-[[nodiscard]] auto genetic_value(const GaussianState<Kind>& state)
-    -> const Eigen::VectorXd&
-{
-    return state.fitted_values;
-}
 
 [[nodiscard]] inline auto genetic_value(const HalfNormalState& state)
     -> const Eigen::VectorXd&

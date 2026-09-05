@@ -34,12 +34,6 @@
 namespace gelex::detail
 {
 
-template <VarianceLayout Kind>
-[[nodiscard]] auto make_kernel(const GaussianPrior<Kind>& prior)
-{
-    return GaussianKernel<Kind>{prior};
-}
-
 template <VarianceLayout Kind, MixtureWeightUpdate WeightUpdate>
 [[nodiscard]] auto make_kernel(const SpikeSlabPrior<Kind, WeightUpdate>& prior)
 {

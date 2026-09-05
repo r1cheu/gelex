@@ -137,12 +137,6 @@ class JointMarkerEffectResult
     PipResult pip_;
 };
 
-template <VarianceLayout Kind>
-struct GaussianPosteriorResult
-{
-    detail::marker_variance_result_t<Kind> variance;
-};
-
 struct HalfNormalPosteriorResult
 {
     ScalarPosteriorResult variance;

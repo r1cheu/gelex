@@ -26,6 +26,7 @@
 #include <vector>
 
 #include "gelex/bayes/detail/state_factory.h"
+#include "gelex/bayes/genetic/gaussian.h"
 #include "gelex/bayes/genetic/prior.h"
 #include "gelex/bayes/genetic/state.h"
 #include "gelex/bayes/genetic_family.h"

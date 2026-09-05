@@ -26,6 +26,7 @@
 #include <vector>
 
 #include "gelex/bayes/draws.h"
+#include "gelex/bayes/genetic/gaussian.h"
 #include "gelex/bayes/genetic_family.h"
 #include "gelex/bayes/genotype/design.h"
 #include "gelex/bayes/model.h"

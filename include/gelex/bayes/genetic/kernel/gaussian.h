@@ -20,13 +20,14 @@
 #include <Eigen/Core>
 #include <random>
 
+#include "gelex/bayes/basic_state.h"
 #include "gelex/bayes/detail/normal_variance_conjugate_updater.h"
 #include "gelex/bayes/genetic/detail/coefficient_likelihood.h"
 #include "gelex/bayes/genetic/detail/normal_prior_provider.h"
-#include "gelex/bayes/genetic/prior.h"
+#include "gelex/bayes/genetic/gaussian.h"
 #include "gelex/bayes/genetic/state.h"
+#include "gelex/bayes/genetic_family.h"
 #include "gelex/bayes/genotype/design.h"
-#include "gelex/bayes/state.h"
 #include "gelex/genetic_mode.h"
 
 namespace gelex::detail
@@ -102,6 +103,12 @@ class GaussianKernel
     NormalVarianceConjugateUpdater variance_updater_;
     Eigen::VectorXd previous_adjusted_response_;
 };
+
+template <VarianceLayout Kind>
+[[nodiscard]] auto make_kernel(const GaussianPrior<Kind>& prior)
+{
+    return GaussianKernel<Kind>{prior};
+}
 
 }  // namespace gelex::detail
 

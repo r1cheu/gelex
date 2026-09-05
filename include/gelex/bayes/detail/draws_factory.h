@@ -25,6 +25,7 @@
 
 #include "gelex/bayes/genetic/detail/draws_support.h"
 #include "gelex/bayes/genetic/draws.h"
+#include "gelex/bayes/genetic/gaussian.h"
 #include "gelex/bayes/genetic/prior.h"
 #include "gelex/bayes/genetic/state.h"
 #include "gelex/bayes/genetic_family.h"
@@ -35,14 +36,6 @@
 
 namespace gelex::detail
 {
-
-template <VarianceLayout Kind>
-[[nodiscard]] auto make_draws(
-    const GaussianPrior<Kind>& /*prior*/,
-    GeneticDrawsBuilder& builder) -> GaussianDraws<Kind>
-{
-    return {.variance = make_marker_variance_draw<Kind>(builder)};
-}
 
 [[nodiscard]] inline auto make_draws(
     const HalfNormalPrior& /*prior*/,

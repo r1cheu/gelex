@@ -25,6 +25,7 @@
 #include "gelex/bayes/detail/pip_factory.h"
 #include "gelex/bayes/genetic/detail/result_support.h"
 #include "gelex/bayes/genetic/draws.h"
+#include "gelex/bayes/genetic/gaussian.h"
 #include "gelex/bayes/genetic/result.h"
 #include "gelex/bayes/genetic_family.h"
 #include "gelex/bayes/mode_values.h"
@@ -33,13 +34,6 @@
 
 namespace gelex::detail
 {
-
-template <VarianceLayout Kind>
-auto make_result(const GaussianDraws<Kind>& draws)
-    -> GaussianPosteriorResult<Kind>
-{
-    return {.variance = make_marker_variance_result<Kind>(draws.variance)};
-}
 
 inline auto make_result(const HalfNormalDraws& draws)
     -> HalfNormalPosteriorResult
