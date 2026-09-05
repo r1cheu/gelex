@@ -21,7 +21,6 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
-#include <limits>
 
 namespace gelex
 {
@@ -31,24 +30,6 @@ struct HalfNormalState
     double variance{};
     Eigen::Vector2d probit_coefficients = Eigen::Vector2d::Zero();
     Eigen::VectorXd fitted_values;  // total
-};
-
-template <std::size_t ClassCount>
-    requires(
-        ClassCount > 1
-        && ClassCount <= static_cast<std::size_t>(
-                             std::numeric_limits<std::uint8_t>::max())
-                             + 1)
-struct ScaledMixtureState
-{
-    static constexpr std::size_t class_count = ClassCount;
-    static constexpr std::size_t component_count = class_count - 1;
-
-    double variance{};
-    Eigen::VectorX<std::uint8_t> assignment;
-    std::array<double, class_count> probabilities{};
-    Eigen::Matrix<double, Eigen::Dynamic, static_cast<int>(component_count)>
-        fitted_values;
 };
 
 // Classes are NULL, A-only, D-only and AD; fitted_values holds one column per
@@ -89,12 +70,6 @@ struct GeneticModeState
     -> const Eigen::VectorXd&
 {
     return state.fitted_values;
-}
-
-template <std::size_t ClassCount>
-[[nodiscard]] auto genetic_value(const ScaledMixtureState<ClassCount>& state)
-{
-    return state.fitted_values.rowwise().sum();
 }
 
 template <typename FamilyState>

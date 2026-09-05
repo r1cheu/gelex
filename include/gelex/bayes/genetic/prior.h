@@ -17,7 +17,6 @@
 #ifndef GELEX_BAYES_GENETIC_PRIOR_H_
 #define GELEX_BAYES_GENETIC_PRIOR_H_
 
-#include <array>
 #include <cstddef>
 
 #include "gelex/bayes/genetic/parameter.h"
@@ -31,19 +30,6 @@ namespace gelex
 struct HalfNormalPrior
 {
     VarianceParameter variance;
-};
-
-template <
-    std::size_t ClassCount,
-    MixtureWeightUpdate WeightUpdate = MixtureWeightUpdate::Enabled>
-// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init,hicpp-member-init)
-struct ScaledMixturePrior
-{
-    static constexpr std::size_t class_count = ClassCount;
-
-    VarianceParameter variance;
-    SimplexParameter<class_count, WeightUpdate> probabilities;
-    std::array<double, class_count> scales{};
 };
 
 template <

@@ -144,14 +144,6 @@ struct HalfNormalPosteriorResult
 };
 
 template <std::size_t ClassCount, MixtureWeightUpdate WeightUpdate>
-struct ScaledMixturePosteriorResult
-{
-    ScalarPosteriorResult variance;
-    detail::weight_result_t<WeightUpdate, VectorPosteriorResult> probabilities;
-    VectorPosteriorResult component_explained_variance;
-};
-
-template <std::size_t ClassCount, MixtureWeightUpdate WeightUpdate>
 struct JointSpikeSlabPosteriorResult
 {
     detail::weight_result_t<WeightUpdate, VectorPosteriorResult> probabilities;

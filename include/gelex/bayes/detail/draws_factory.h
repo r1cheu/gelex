@@ -27,6 +27,7 @@
 #include "gelex/bayes/genetic/draws.h"
 #include "gelex/bayes/genetic/gaussian.h"
 #include "gelex/bayes/genetic/prior.h"
+#include "gelex/bayes/genetic/scaled_mixture.h"
 #include "gelex/bayes/genetic/spike_slab.h"
 #include "gelex/bayes/genetic/state.h"
 #include "gelex/bayes/genetic_family.h"
@@ -45,22 +46,6 @@ namespace gelex::detail
     return {
         .variance = builder.scalar("variance"),
         .probit_coefficients = builder.vector("probit_coefficients", 2)};
-}
-
-template <std::size_t ClassCount, MixtureWeightUpdate WeightUpdate>
-[[nodiscard]] auto make_draws(
-    const ScaledMixturePrior<ClassCount, WeightUpdate>& /*prior*/,
-    GeneticDrawsBuilder& builder)
-    -> ScaledMixtureDraws<ClassCount, WeightUpdate>
-{
-    return {
-        .variance = builder.scalar("variance"),
-        .assignment
-        = builder.category<ClassCount>("assignment", builder.marker_count()),
-        .probabilities
-        = make_probabilities_draw<WeightUpdate, ClassCount>(builder),
-        .component_explained_variance = make_component_explained_variance_draw<
-            ScaledMixtureState<ClassCount>::component_count>(builder)};
 }
 
 // Rows follow the fitted column layout of JointSpikeSlabState: A in A-only,

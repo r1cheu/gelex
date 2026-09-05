@@ -28,12 +28,6 @@ namespace gelex::detail
 template <GeneticModeSet Modes, typename Family>
 struct GeneticSpecFor;
 
-template <GeneticModeSet Modes, MixtureWeightUpdate WeightUpdate>
-struct GeneticSpecFor<Modes, ScaledMixtureFamily<WeightUpdate>>
-{
-    using type = HomogeneousModeValues<Modes, ScaledMixture>;
-};
-
 template <MixtureWeightUpdate WeightUpdate>
 struct GeneticSpecFor<
     GeneticMode::A | GeneticMode::D,

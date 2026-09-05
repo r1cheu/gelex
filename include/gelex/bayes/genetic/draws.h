@@ -47,24 +47,6 @@ struct HalfNormalDraws
 };
 
 template <std::size_t ClassCount, MixtureWeightUpdate WeightUpdate>
-struct ScaledMixtureDraws
-{
-    ScalarDraw variance;
-    CategoryDraw<ClassCount> assignment;
-    detail::weight_draw_t<WeightUpdate, VectorDraw> probabilities;
-    VectorDraw component_explained_variance;
-
-    auto append(const ScaledMixtureState<ClassCount>& state) -> void
-    {
-        variance.append(state.variance);
-        assignment.append(state.assignment);
-        probabilities.append(state.probabilities);
-        component_explained_variance.append(
-            matvar<0>(state.fitted_values, VarNormType::Population));
-    }
-};
-
-template <std::size_t ClassCount, MixtureWeightUpdate WeightUpdate>
 struct JointSpikeSlabDraws
 {
     CategoryDraw<ClassCount> assignment;
