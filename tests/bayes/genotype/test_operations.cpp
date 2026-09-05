@@ -44,13 +44,9 @@ auto adapt_raw_impl(RawDotImpl impl)
     return [impl](
                std::span<const std::uint8_t> genotype_column,
                const Eigen::Ref<const Eigen::Array4d>& lut,
-               std::span<const double> residual) noexcept -> double
+               std::span<const double> rhs) noexcept -> double
     {
-        return impl(
-            genotype_column.data(),
-            lut.data(),
-            residual.data(),
-            residual.size());
+        return impl(genotype_column.data(), lut.data(), rhs.data(), rhs.size());
     };
 }
 
@@ -60,14 +56,14 @@ auto adapt_raw_impl(RawAxpyImpl impl)
                std::span<const std::uint8_t> genotype_column,
                const Eigen::Ref<const Eigen::Array4d>& lut,
                double scale,
-               std::span<double> residual) noexcept -> void
+               std::span<double> target) noexcept -> void
     {
         impl(
             genotype_column.data(),
             lut.data(),
             scale,
-            residual.data(),
-            residual.size());
+            target.data(),
+            target.size());
     };
 }
 
@@ -98,19 +94,19 @@ auto check_dot_impl(Dot impl) -> void
     {
         INFO("size = " << size);
         std::vector<std::uint8_t> genotype_column(size);
-        Eigen::VectorXd residual(static_cast<Eigen::Index>(size));
+        Eigen::VectorXd rhs(static_cast<Eigen::Index>(size));
         Eigen::VectorXd decoded(static_cast<Eigen::Index>(size));
         for (std::size_t index = 0; index < size; ++index)
         {
             const auto code = static_cast<std::uint8_t>(index % 4);
             genotype_column[index] = code;
-            residual[static_cast<Eigen::Index>(index)]
+            rhs[static_cast<Eigen::Index>(index)]
                 = normal_distribution(random_engine);
             decoded[static_cast<Eigen::Index>(index)] = lut[code];
         }
 
-        const double expected = decoded.dot(residual);
-        const double actual = impl(genotype_column, lut, residual);
+        const double expected = decoded.dot(rhs);
+        const double actual = impl(genotype_column, lut, rhs);
 
         REQUIRE(actual == Catch::Approx(expected).epsilon(1e-12).margin(1e-12));
     }
@@ -132,13 +128,13 @@ auto check_axpy_impl(Axpy impl) -> void
         {
             INFO("size = " << size);
             std::vector<std::uint8_t> genotype_column(size);
-            Eigen::VectorXd initial_residual(static_cast<Eigen::Index>(size));
+            Eigen::VectorXd initial_target(static_cast<Eigen::Index>(size));
             Eigen::VectorXd decoded(static_cast<Eigen::Index>(size));
             for (std::size_t index = 0; index < size; ++index)
             {
                 const auto code = static_cast<std::uint8_t>(index % 4);
                 genotype_column[index] = code;
-                initial_residual[static_cast<Eigen::Index>(index)]
+                initial_target[static_cast<Eigen::Index>(index)]
                     = normal_distribution(random_engine);
                 decoded[static_cast<Eigen::Index>(index)] = lut[code];
             }
@@ -146,9 +142,9 @@ auto check_axpy_impl(Axpy impl) -> void
             for (const double scale : test_scales)
             {
                 INFO("scale = " << scale);
-                Eigen::VectorXd expected = initial_residual;
+                Eigen::VectorXd expected = initial_target;
                 expected.array() += scale * decoded.array();
-                Eigen::VectorXd actual = initial_residual;
+                Eigen::VectorXd actual = initial_target;
                 impl(genotype_column, lut, scale, actual);
 
                 REQUIRE(actual.isApprox(expected, 1e-13));
@@ -217,8 +213,8 @@ TEST_CASE(
     check_dot_impl(
         [](std::span<const std::uint8_t> genotype_column,
            const Eigen::Ref<const Eigen::Array4d>& lut,
-           std::span<const double> residual) noexcept -> double
-        { return gelex::bayes::dot(genotype_column, lut, residual); });
+           std::span<const double> rhs) noexcept -> double
+        { return gelex::bayes::dot(genotype_column, lut, rhs); });
 }
 
 TEST_CASE(
@@ -229,12 +225,12 @@ TEST_CASE(
     luts.col(0) = Eigen::Array4d{{1.5, -0.75, 0.25, 2.0}};
     const auto& const_luts = luts;
     const std::array<std::uint8_t, 4> genotype_column{0, 1, 2, 3};
-    const Eigen::Vector4d residual{{0.5, -1.0, 2.0, -0.25}};
+    const Eigen::Vector4d rhs{{0.5, -1.0, 2.0, -0.25}};
     const Eigen::Vector4d decoded = const_luts.col(0).matrix();
 
-    const double expected = decoded.dot(residual);
+    const double expected = decoded.dot(rhs);
     const double actual
-        = gelex::bayes::dot(genotype_column, const_luts.col(0), residual);
+        = gelex::bayes::dot(genotype_column, const_luts.col(0), rhs);
 
     REQUIRE(actual == Catch::Approx(expected).epsilon(1e-12).margin(1e-12));
 }
@@ -247,8 +243,8 @@ TEST_CASE(
         [](std::span<const std::uint8_t> genotype_column,
            const Eigen::Ref<const Eigen::Array4d>& lut,
            double scale,
-           std::span<double> residual) noexcept -> void
-        { gelex::bayes::axpy(genotype_column, lut, scale, residual); });
+           std::span<double> target) noexcept -> void
+        { gelex::bayes::axpy(genotype_column, lut, scale, target); });
 }
 
 TEST_CASE(
@@ -259,11 +255,11 @@ TEST_CASE(
     luts.col(0) = Eigen::Array4d{{1.5, -0.75, 0.25, 2.0}};
     const auto& const_luts = luts;
     const std::array<std::uint8_t, 4> genotype_column{0, 1, 2, 3};
-    const Eigen::Vector4d initial_residual{{0.5, -1.0, 2.0, -0.25}};
+    const Eigen::Vector4d initial_target{{0.5, -1.0, 2.0, -0.25}};
     const Eigen::Vector4d decoded = const_luts.col(0).matrix();
-    Eigen::Vector4d expected = initial_residual;
+    Eigen::Vector4d expected = initial_target;
     expected.array() += 0.25 * decoded.array();
-    Eigen::Vector4d actual = initial_residual;
+    Eigen::Vector4d actual = initial_target;
 
     gelex::bayes::axpy(genotype_column, const_luts.col(0), 0.25, actual);
 
