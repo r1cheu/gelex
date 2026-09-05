@@ -21,7 +21,7 @@
 #include <random>
 #include <type_traits>
 
-#include "gelex/bayes/genetic/kernel/dirichlet_conjugate_updater.h"
+#include "gelex/bayes/genetic/detail/dirichlet_conjugate_updater.h"
 #include "gelex/bayes/genetic_family.h"
 #include "gelex/bayes/parameter.h"
 #include "gelex/bayes/stats/dirichlet_distribution.h"

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_BAYES_GENETIC_KERNEL_INDEPENDENT_SWEEP_H_
-#define GELEX_BAYES_GENETIC_KERNEL_INDEPENDENT_SWEEP_H_
+#ifndef GELEX_BAYES_GENETIC_DETAIL_INDEPENDENT_SWEEP_H_
+#define GELEX_BAYES_GENETIC_DETAIL_INDEPENDENT_SWEEP_H_
 
 #include <cstddef>
 #include <random>
@@ -66,4 +66,4 @@ class IndependentSweep
 
 }  // namespace gelex::detail
 
-#endif  // GELEX_BAYES_GENETIC_KERNEL_INDEPENDENT_SWEEP_H_
+#endif  // GELEX_BAYES_GENETIC_DETAIL_INDEPENDENT_SWEEP_H_

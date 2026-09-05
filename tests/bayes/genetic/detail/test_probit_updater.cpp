@@ -16,7 +16,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <random>
 
-#include "gelex/bayes/genetic/kernel/probit_updater.h"
+#include "gelex/bayes/genetic/detail/probit_updater.h"
 #include "gelex/bayes/stats/multi_quadratic_log_kernel.h"
 
 TEST_CASE(

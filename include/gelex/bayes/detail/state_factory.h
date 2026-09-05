@@ -21,9 +21,10 @@
 #include <cstdint>
 #include <utility>
 
+#include "gelex/bayes/genetic/detail/state_support.h"
 #include "gelex/bayes/genetic/prior.h"
 #include "gelex/bayes/genetic/state.h"
-#include "gelex/bayes/genetic/traits.h"
+#include "gelex/bayes/genetic_family.h"
 #include "gelex/bayes/genotype/design.h"
 #include "gelex/bayes/mode_values.h"
 #include "gelex/exception.h"
@@ -31,27 +32,6 @@
 
 namespace gelex::detail
 {
-
-struct GeneticStateDimensions
-{
-    Eigen::Index marker_count;
-    Eigen::Index individual_count;
-};
-
-template <VarianceLayout Kind>
-auto initial_marker_variance(
-    const VarianceParameter& parameter,
-    Eigen::Index marker_count) -> marker_variance_state_t<Kind>
-{
-    if constexpr (Kind == VarianceLayout::Pooled)
-    {
-        return parameter.initial;
-    }
-    else
-    {
-        return Eigen::VectorXd::Constant(marker_count, parameter.initial);
-    }
-}
 
 template <VarianceLayout Kind>
 auto make_state(
