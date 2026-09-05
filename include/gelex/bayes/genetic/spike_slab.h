@@ -93,10 +93,10 @@ struct SpikeSlabDraws
 };
 
 template <VarianceLayout Kind, MixtureWeightUpdate WeightUpdate>
-struct SpikeSlabPosteriorResult
+struct SpikeSlabResult
 {
     detail::marker_variance_result_t<Kind> variance;
-    detail::weight_result_t<WeightUpdate, ScalarPosteriorResult> probability;
+    detail::weight_result_t<WeightUpdate, ScalarResult> probability;
 };
 
 }  // namespace gelex
@@ -163,7 +163,7 @@ template <VarianceLayout Kind, MixtureWeightUpdate WeightUpdate>
 
 template <VarianceLayout Kind, MixtureWeightUpdate WeightUpdate>
 auto make_result(const SpikeSlabDraws<Kind, WeightUpdate>& draws)
-    -> SpikeSlabPosteriorResult<Kind, WeightUpdate>
+    -> SpikeSlabResult<Kind, WeightUpdate>
 {
     return {
         .variance = make_marker_variance_result<Kind>(draws.variance),
@@ -181,7 +181,7 @@ template <VarianceLayout Kind, MixtureWeightUpdate WeightUpdate>
 template <VarianceLayout Kind, MixtureWeightUpdate WeightUpdate>
 auto write_family_summary_rows(
     TextWriter& writer,
-    const SpikeSlabPosteriorResult<Kind, WeightUpdate>& result) -> void
+    const SpikeSlabResult<Kind, WeightUpdate>& result) -> void
 {
     write_summary_rows(writer, result.variance);
     write_summary_rows(writer, result.probability);

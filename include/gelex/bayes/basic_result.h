@@ -30,16 +30,14 @@
 namespace gelex
 {
 
-struct EmptyPosteriorResult
+struct EmptyResult
 {
 };
 
-class ScalarPosteriorResult
+class ScalarResult
 {
    public:
-    ScalarPosteriorResult(
-        std::string identifier,
-        ScalarRunningStatsResult statistics)
+    ScalarResult(std::string identifier, ScalarRunningStatsResult statistics)
         : identifier_{std::move(identifier)}, statistics_{statistics}
     {
         if (identifier_.empty())
@@ -64,12 +62,10 @@ class ScalarPosteriorResult
     ScalarRunningStatsResult statistics_;
 };
 
-class VectorPosteriorResult
+class VectorResult
 {
    public:
-    VectorPosteriorResult(
-        std::string identifier,
-        VectorRunningStatsResult statistics)
+    VectorResult(std::string identifier, VectorRunningStatsResult statistics)
         : identifier_{std::move(identifier)}, statistics_{std::move(statistics)}
     {
         if (identifier_.empty())
@@ -103,11 +99,11 @@ class VectorPosteriorResult
     VectorRunningStatsResult statistics_;
 };
 
-class CoefficientPosteriorResult
+class CoefficientResult
 {
    public:
-    CoefficientPosteriorResult(
-        VectorPosteriorResult posterior,
+    CoefficientResult(
+        VectorResult posterior,
         std::vector<std::string> column_names)
         : posterior_{std::move(posterior)},
           column_names_{std::move(column_names)}
@@ -142,7 +138,7 @@ class CoefficientPosteriorResult
     }
 
    private:
-    VectorPosteriorResult posterior_;
+    VectorResult posterior_;
     std::vector<std::string> column_names_;
 };
 

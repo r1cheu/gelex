@@ -29,26 +29,26 @@
 namespace gelex::detail
 {
 
-inline auto make_result(const EmptyDraw& /*draw*/) -> EmptyPosteriorResult
+inline auto make_result(const EmptyDraw& /*draw*/) -> EmptyResult
 {
     return {};
 }
 
-inline auto make_result(const ScalarDraw& draw) -> ScalarPosteriorResult
+inline auto make_result(const ScalarDraw& draw) -> ScalarResult
 {
-    return ScalarPosteriorResult{std::string{draw.identifier()}, draw.result()};
+    return ScalarResult{std::string{draw.identifier()}, draw.result()};
 }
 
-inline auto make_result(const VectorDraw& draw) -> VectorPosteriorResult
+inline auto make_result(const VectorDraw& draw) -> VectorResult
 {
-    return VectorPosteriorResult{std::string{draw.identifier()}, draw.result()};
+    return VectorResult{std::string{draw.identifier()}, draw.result()};
 }
 
 inline auto make_result(
     const VectorDraw& draw,
-    std::span<const std::string> column_names) -> CoefficientPosteriorResult
+    std::span<const std::string> column_names) -> CoefficientResult
 {
-    return CoefficientPosteriorResult{
+    return CoefficientResult{
         make_result(draw),
         std::vector<std::string>{column_names.begin(), column_names.end()}};
 }

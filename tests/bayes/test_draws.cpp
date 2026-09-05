@@ -411,7 +411,7 @@ TEST_CASE(
         STATIC_REQUIRE(
             std::same_as<
                 std::remove_cvref_t<decltype(marker_effects.joint().pip())>,
-                gelex::EmptyPosteriorResult>);
+                gelex::EmptyResult>);
         const auto& additive_projection
             = model.genetic().projection(gelex::GeneticMode::A);
         const auto& dominance_projection

@@ -85,7 +85,7 @@ class MarkerEffectResult
 {
    public:
     MarkerEffectResult(
-        VectorPosteriorResult coefficients,
+        VectorResult coefficients,
         MarkerPveResult pve,
         PipResult pip)
         : coefficients_{std::move(coefficients)},
@@ -94,8 +94,7 @@ class MarkerEffectResult
     {
     }
 
-    [[nodiscard]] auto coefficients() const noexcept
-        -> const VectorPosteriorResult&
+    [[nodiscard]] auto coefficients() const noexcept -> const VectorResult&
     {
         return coefficients_;
     }
@@ -108,7 +107,7 @@ class MarkerEffectResult
     [[nodiscard]] auto pip() const noexcept -> const PipResult& { return pip_; }
 
    private:
-    VectorPosteriorResult coefficients_;
+    VectorResult coefficients_;
     MarkerPveResult pve_;
     PipResult pip_;
 };

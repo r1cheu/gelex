@@ -39,36 +39,35 @@ class RandomEffectResult
 {
    public:
     RandomEffectResult(
-        CoefficientPosteriorResult coefficients,
-        ScalarPosteriorResult variance,
-        ScalarPosteriorResult explained_variance)
+        CoefficientResult coefficients,
+        ScalarResult variance,
+        ScalarResult explained_variance)
         : coefficients_{std::move(coefficients)},
           variance_{std::move(variance)},
           explained_variance_{std::move(explained_variance)}
     {
     }
 
-    [[nodiscard]] auto coefficients() const noexcept
-        -> const CoefficientPosteriorResult&
+    [[nodiscard]] auto coefficients() const noexcept -> const CoefficientResult&
     {
         return coefficients_;
     }
 
-    [[nodiscard]] auto variance() const noexcept -> const ScalarPosteriorResult&
+    [[nodiscard]] auto variance() const noexcept -> const ScalarResult&
     {
         return variance_;
     }
 
     [[nodiscard]] auto explained_variance() const noexcept
-        -> const ScalarPosteriorResult&
+        -> const ScalarResult&
     {
         return explained_variance_;
     }
 
    private:
-    CoefficientPosteriorResult coefficients_;
-    ScalarPosteriorResult variance_;
-    ScalarPosteriorResult explained_variance_;
+    CoefficientResult coefficients_;
+    ScalarResult variance_;
+    ScalarResult explained_variance_;
 };
 
 template <typename GeneticPrior>
@@ -95,8 +94,7 @@ class BayesResult
 
     static constexpr GeneticModeSet modes = GeneticPrior::modes;
 
-    [[nodiscard]] auto fixed() const noexcept
-        -> const CoefficientPosteriorResult&
+    [[nodiscard]] auto fixed() const noexcept -> const CoefficientResult&
     {
         return fixed_;
     }
@@ -119,7 +117,7 @@ class BayesResult
         return marker_effects_;
     }
 
-    [[nodiscard]] auto residual() const noexcept -> const ScalarPosteriorResult&
+    [[nodiscard]] auto residual() const noexcept -> const ScalarResult&
     {
         return residual_;
     }
@@ -132,11 +130,11 @@ class BayesResult
 
    private:
     BayesResult(
-        CoefficientPosteriorResult fixed,
+        CoefficientResult fixed,
         std::vector<RandomEffectResult> random,
         genetic_parameter_result_type genetic_parameters,
         marker_effect_result_type marker_effects,
-        ScalarPosteriorResult residual,
+        ScalarResult residual,
         VarianceSummaryResult<modes> variance_summary)
         : fixed_{std::move(fixed)},
           random_{std::move(random)},
@@ -151,11 +149,11 @@ class BayesResult
     friend auto make_result(const BayesModel& model, const BayesDraws<T>& draws)
         -> BayesResult<T>;
 
-    CoefficientPosteriorResult fixed_;
+    CoefficientResult fixed_;
     std::vector<RandomEffectResult> random_;
     genetic_parameter_result_type genetic_parameters_;
     marker_effect_result_type marker_effects_;
-    ScalarPosteriorResult residual_;
+    ScalarResult residual_;
     VarianceSummaryResult<modes> variance_summary_;
 };
 

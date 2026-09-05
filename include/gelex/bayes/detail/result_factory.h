@@ -98,7 +98,7 @@ auto make_marker_effects(const BayesModel& model, const GeneticDraws& draws)
             }
             else
             {
-                return EmptyPosteriorResult{};
+                return EmptyResult{};
             }
         }();
         return JointModeValues{

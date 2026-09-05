@@ -136,17 +136,17 @@ struct JointSpikeSlabDraws
     }
 };
 
-struct HalfNormalPosteriorResult
+struct HalfNormalResult
 {
-    ScalarPosteriorResult variance;
-    VectorPosteriorResult probit_coefficients;
+    ScalarResult variance;
+    VectorResult probit_coefficients;
 };
 
 template <std::size_t ClassCount, MixtureWeightUpdate WeightUpdate>
-struct JointSpikeSlabPosteriorResult
+struct JointSpikeSlabResult
 {
-    detail::weight_result_t<WeightUpdate, VectorPosteriorResult> probabilities;
-    VectorPosteriorResult component_explained_variance;
+    detail::weight_result_t<WeightUpdate, VectorResult> probabilities;
+    VectorResult component_explained_variance;
 };
 
 }  // namespace gelex
@@ -268,8 +268,7 @@ template <std::size_t ClassCount, MixtureWeightUpdate WeightUpdate>
             JointSpikeSlabState<ClassCount>::component_count>(builder)};
 }
 
-inline auto make_result(const HalfNormalDraws& draws)
-    -> HalfNormalPosteriorResult
+inline auto make_result(const HalfNormalDraws& draws) -> HalfNormalResult
 {
     return {
         .variance = make_result(draws.variance),
@@ -278,7 +277,7 @@ inline auto make_result(const HalfNormalDraws& draws)
 
 template <std::size_t ClassCount, MixtureWeightUpdate WeightUpdate>
 auto make_result(const JointSpikeSlabDraws<ClassCount, WeightUpdate>& draws)
-    -> JointSpikeSlabPosteriorResult<ClassCount, WeightUpdate>
+    -> JointSpikeSlabResult<ClassCount, WeightUpdate>
 {
     return {
         .probabilities = make_result(draws.probabilities),
@@ -288,7 +287,7 @@ auto make_result(const JointSpikeSlabDraws<ClassCount, WeightUpdate>& draws)
 
 inline auto write_family_summary_rows(
     TextWriter& writer,
-    const HalfNormalPosteriorResult& result) -> void
+    const HalfNormalResult& result) -> void
 {
     write_summary_rows(writer, result.variance);
     write_summary_rows(writer, result.probit_coefficients);
@@ -297,8 +296,7 @@ inline auto write_family_summary_rows(
 template <std::size_t ClassCount, MixtureWeightUpdate WeightUpdate>
 auto write_family_summary_rows(
     TextWriter& writer,
-    const JointSpikeSlabPosteriorResult<ClassCount, WeightUpdate>& result)
-    -> void
+    const JointSpikeSlabResult<ClassCount, WeightUpdate>& result) -> void
 {
     write_summary_rows(writer, result.probabilities);
     write_summary_rows(writer, result.component_explained_variance);

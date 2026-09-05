@@ -74,7 +74,7 @@ struct GaussianDraws
 };
 
 template <VarianceLayout Kind>
-struct GaussianPosteriorResult
+struct GaussianResult
 {
     detail::marker_variance_result_t<Kind> variance;
 };
@@ -121,15 +121,13 @@ template <VarianceLayout Kind>
 }
 
 template <VarianceLayout Kind>
-auto make_result(const GaussianDraws<Kind>& draws)
-    -> GaussianPosteriorResult<Kind>
+auto make_result(const GaussianDraws<Kind>& draws) -> GaussianResult<Kind>
 {
     return {.variance = make_marker_variance_result<Kind>(draws.variance)};
 }
 
 template <VarianceLayout Kind>
-[[nodiscard]] auto make_pip(const GaussianDraws<Kind>& /*draws*/)
-    -> EmptyPosteriorResult
+[[nodiscard]] auto make_pip(const GaussianDraws<Kind>& /*draws*/) -> EmptyResult
 {
     return {};
 }
@@ -137,7 +135,7 @@ template <VarianceLayout Kind>
 template <VarianceLayout Kind>
 auto write_family_summary_rows(
     TextWriter& writer,
-    const GaussianPosteriorResult<Kind>& result) -> void
+    const GaussianResult<Kind>& result) -> void
 {
     write_summary_rows(writer, result.variance);
 }
