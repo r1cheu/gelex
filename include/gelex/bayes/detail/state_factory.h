@@ -23,6 +23,7 @@
 
 #include "gelex/bayes/genetic/prior.h"
 #include "gelex/bayes/genetic/state.h"
+#include "gelex/bayes/genetic/traits.h"
 #include "gelex/bayes/genotype/design.h"
 #include "gelex/bayes/mode_values.h"
 #include "gelex/exception.h"

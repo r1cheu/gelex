@@ -29,6 +29,7 @@
 #include "gelex/bayes/genetic/draws.h"
 #include "gelex/bayes/genetic/prior.h"
 #include "gelex/bayes/genetic/state.h"
+#include "gelex/bayes/genetic/traits.h"
 #include "gelex/bayes/genetic_family.h"
 #include "gelex/bayes/genotype/design.h"
 #include "gelex/bayes/mode_values.h"

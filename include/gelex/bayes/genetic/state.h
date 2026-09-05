@@ -23,18 +23,11 @@
 #include <cstdint>
 #include <limits>
 
+#include "gelex/bayes/genetic/traits.h"
 #include "gelex/bayes/genetic_family.h"
 
 namespace gelex
 {
-
-namespace detail
-{
-template <VarianceLayout Kind>
-using marker_variance_state_t = std::
-    conditional_t<Kind == VarianceLayout::Pooled, double, Eigen::VectorXd>;
-
-}  // namespace detail
 
 template <VarianceLayout Kind>
 struct GaussianState

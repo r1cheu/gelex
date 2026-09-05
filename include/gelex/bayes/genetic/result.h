@@ -19,10 +19,10 @@
 
 #include <Eigen/Core>
 #include <cstddef>
-#include <type_traits>
 #include <utility>
 
 #include "gelex/bayes/basic_result.h"
+#include "gelex/bayes/genetic/traits.h"
 #include "gelex/bayes/genetic_family.h"
 #include "gelex/exception.h"
 
@@ -136,23 +136,6 @@ class JointMarkerEffectResult
     MarkerPveResult pve_;
     PipResult pip_;
 };
-
-namespace detail
-{
-
-template <VarianceLayout Kind>
-using marker_variance_result_t = std::conditional_t<
-    Kind == VarianceLayout::Pooled,
-    ScalarPosteriorResult,
-    EmptyPosteriorResult>;
-
-template <MixtureWeightUpdate Update, typename Result>
-using weight_result_t = std::conditional_t<
-    Update == MixtureWeightUpdate::Enabled,
-    Result,
-    EmptyPosteriorResult>;
-
-}  // namespace detail
 
 template <VarianceLayout Kind>
 struct GaussianPosteriorResult
