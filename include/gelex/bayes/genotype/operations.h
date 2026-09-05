@@ -28,25 +28,25 @@ struct AxpyTarget
 {
     AxpyTarget() = default;
 
-    AxpyTarget(double scale, Eigen::Ref<Eigen::VectorXd> values) noexcept
-        : scale{scale}, values{values}
+    AxpyTarget(double scale, Eigen::Ref<Eigen::VectorXd> target) noexcept
+        : scale{scale}, target{target}
     {
     }
 
     double scale{};
-    std::span<double> values;
+    std::span<double> target;
 };
 
 [[nodiscard]] auto dot(
     std::span<const std::uint8_t> genotype_column,
     const Eigen::Ref<const Eigen::Array4d>& lut,
-    std::span<const double> residual) noexcept -> double;
+    std::span<const double> rhs) noexcept -> double;
 
 auto axpy(
     std::span<const std::uint8_t> genotype_column,
     const Eigen::Ref<const Eigen::Array4d>& lut,
     double scale,
-    std::span<double> residual) noexcept -> void;
+    std::span<double> target) noexcept -> void;
 
 auto axpy(
     std::span<const std::uint8_t> genotype_column,

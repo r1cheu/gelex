@@ -193,7 +193,7 @@ struct CompactGenotypeFixture
 GELEX_NOINLINE auto dot_bed_scalar(
     const std::uint8_t* packed,
     const double* lut,
-    const double* residual,
+    const double* rhs,
     Eigen::Index size) noexcept -> double
 {
     double sum = 0.0;
@@ -201,7 +201,7 @@ GELEX_NOINLINE auto dot_bed_scalar(
     {
         const auto byte = packed[static_cast<std::size_t>(i / 4)];
         const auto shift = static_cast<unsigned>(2 * (i % 4));
-        sum += lut[(byte >> shift) & 0x03U] * residual[i];
+        sum += lut[(byte >> shift) & 0x03U] * rhs[i];
     }
     return sum;
 }
@@ -210,21 +210,21 @@ GELEX_NOINLINE auto axpy_bed_scalar(
     const std::uint8_t* packed,
     const double* lut,
     double scale,
-    double* residual,
+    double* target,
     Eigen::Index size) noexcept -> void
 {
     for (Eigen::Index i = 0; i < size; ++i)
     {
         const auto byte = packed[static_cast<std::size_t>(i / 4)];
         const auto shift = static_cast<unsigned>(2 * (i % 4));
-        residual[i] += scale * lut[(byte >> shift) & 0x03U];
+        target[i] += scale * lut[(byte >> shift) & 0x03U];
     }
 }
 
 GELEX_NOINLINE auto materialize_dot_uint8_scalar(
     const std::uint8_t* codes,
     const double* lut,
-    const double* residual,
+    const double* rhs,
     double* scratch,
     Eigen::Index size) noexcept -> double
 {
@@ -233,7 +233,7 @@ GELEX_NOINLINE auto materialize_dot_uint8_scalar(
     {
         const double value = lut[codes[i]];
         scratch[i] = value;
-        sum += value * residual[i];
+        sum += value * rhs[i];
     }
     return sum;
 }
@@ -241,7 +241,7 @@ GELEX_NOINLINE auto materialize_dot_uint8_scalar(
 GELEX_NOINLINE auto materialize_dot_bed_scalar(
     const std::uint8_t* packed,
     const double* lut,
-    const double* residual,
+    const double* rhs,
     double* scratch,
     Eigen::Index size) noexcept -> double
 {
@@ -252,7 +252,7 @@ GELEX_NOINLINE auto materialize_dot_bed_scalar(
         const auto shift = static_cast<unsigned>(2 * (i % 4));
         const double value = lut[(byte >> shift) & 0x03U];
         scratch[i] = value;
-        sum += value * residual[i];
+        sum += value * rhs[i];
     }
     return sum;
 }
@@ -311,7 +311,7 @@ GELEX_AVX2_TARGET inline auto horizontal_sum(__m256d values) noexcept -> double
 GELEX_AVX2_TARGET GELEX_NOINLINE auto dot_bed_avx2(
     const std::uint8_t* packed,
     const double* lut,
-    const double* residual,
+    const double* rhs,
     Eigen::Index size) noexcept -> double
 {
     __m256d sum0 = _mm256_setzero_pd();
@@ -326,19 +326,19 @@ GELEX_AVX2_TARGET GELEX_NOINLINE auto dot_bed_avx2(
         const std::uint64_t codes1 = unpack_bed8(packed + byte + 2);
         sum0 = _mm256_fmadd_pd(
             lookup4(static_cast<std::uint32_t>(codes0), lut),
-            _mm256_loadu_pd(residual + i),
+            _mm256_loadu_pd(rhs + i),
             sum0);
         sum1 = _mm256_fmadd_pd(
             lookup4(static_cast<std::uint32_t>(codes0 >> 32U), lut),
-            _mm256_loadu_pd(residual + i + 4),
+            _mm256_loadu_pd(rhs + i + 4),
             sum1);
         sum2 = _mm256_fmadd_pd(
             lookup4(static_cast<std::uint32_t>(codes1), lut),
-            _mm256_loadu_pd(residual + i + 8),
+            _mm256_loadu_pd(rhs + i + 8),
             sum2);
         sum3 = _mm256_fmadd_pd(
             lookup4(static_cast<std::uint32_t>(codes1 >> 32U), lut),
-            _mm256_loadu_pd(residual + i + 12),
+            _mm256_loadu_pd(rhs + i + 12),
             sum3);
     }
     __m256d sum
@@ -346,16 +346,14 @@ GELEX_AVX2_TARGET GELEX_NOINLINE auto dot_bed_avx2(
     for (; i + 4 <= size; i += 4, ++byte)
     {
         sum = _mm256_fmadd_pd(
-            load_bed_values(packed[byte], lut),
-            _mm256_loadu_pd(residual + i),
-            sum);
+            load_bed_values(packed[byte], lut), _mm256_loadu_pd(rhs + i), sum);
     }
     double result = horizontal_sum(sum);
     for (; i < size; ++i)
     {
         const auto packed_byte = packed[static_cast<std::size_t>(i / 4)];
         const auto shift = static_cast<unsigned>(2 * (i % 4));
-        result += lut[(packed_byte >> shift) & 0x03U] * residual[i];
+        result += lut[(packed_byte >> shift) & 0x03U] * rhs[i];
     }
     return result;
 }
@@ -364,7 +362,7 @@ GELEX_AVX2_TARGET GELEX_NOINLINE auto axpy_bed_avx2(
     const std::uint8_t* packed,
     const double* lut,
     double scale,
-    double* residual,
+    double* target,
     Eigen::Index size) noexcept -> void
 {
     const __m256d scale4 = _mm256_set1_pd(scale);
@@ -376,34 +374,34 @@ GELEX_AVX2_TARGET GELEX_NOINLINE auto axpy_bed_avx2(
         const __m256d updated0 = _mm256_fmadd_pd(
             scale4,
             lookup4(static_cast<std::uint32_t>(codes), lut),
-            _mm256_loadu_pd(residual + i));
+            _mm256_loadu_pd(target + i));
         const __m256d updated1 = _mm256_fmadd_pd(
             scale4,
             lookup4(static_cast<std::uint32_t>(codes >> 32U), lut),
-            _mm256_loadu_pd(residual + i + 4));
-        _mm256_storeu_pd(residual + i, updated0);
-        _mm256_storeu_pd(residual + i + 4, updated1);
+            _mm256_loadu_pd(target + i + 4));
+        _mm256_storeu_pd(target + i, updated0);
+        _mm256_storeu_pd(target + i + 4, updated1);
     }
     for (; i + 4 <= size; i += 4, ++byte)
     {
         const __m256d updated = _mm256_fmadd_pd(
             scale4,
             load_bed_values(packed[byte], lut),
-            _mm256_loadu_pd(residual + i));
-        _mm256_storeu_pd(residual + i, updated);
+            _mm256_loadu_pd(target + i));
+        _mm256_storeu_pd(target + i, updated);
     }
     for (; i < size; ++i)
     {
         const auto packed_byte = packed[static_cast<std::size_t>(i / 4)];
         const auto shift = static_cast<unsigned>(2 * (i % 4));
-        residual[i] += scale * lut[(packed_byte >> shift) & 0x03U];
+        target[i] += scale * lut[(packed_byte >> shift) & 0x03U];
     }
 }
 
 GELEX_AVX2_TARGET GELEX_NOINLINE auto materialize_dot_uint8_avx2(
     const std::uint8_t* codes,
     const double* lut,
-    const double* residual,
+    const double* rhs,
     double* scratch,
     Eigen::Index size) noexcept -> double
 {
@@ -422,11 +420,10 @@ GELEX_AVX2_TARGET GELEX_NOINLINE auto materialize_dot_uint8_avx2(
         _mm256_storeu_pd(scratch + i + 4, value1);
         _mm256_storeu_pd(scratch + i + 8, value2);
         _mm256_storeu_pd(scratch + i + 12, value3);
-        sum0 = _mm256_fmadd_pd(value0, _mm256_loadu_pd(residual + i), sum0);
-        sum1 = _mm256_fmadd_pd(value1, _mm256_loadu_pd(residual + i + 4), sum1);
-        sum2 = _mm256_fmadd_pd(value2, _mm256_loadu_pd(residual + i + 8), sum2);
-        sum3
-            = _mm256_fmadd_pd(value3, _mm256_loadu_pd(residual + i + 12), sum3);
+        sum0 = _mm256_fmadd_pd(value0, _mm256_loadu_pd(rhs + i), sum0);
+        sum1 = _mm256_fmadd_pd(value1, _mm256_loadu_pd(rhs + i + 4), sum1);
+        sum2 = _mm256_fmadd_pd(value2, _mm256_loadu_pd(rhs + i + 8), sum2);
+        sum3 = _mm256_fmadd_pd(value3, _mm256_loadu_pd(rhs + i + 12), sum3);
     }
     __m256d sum
         = _mm256_add_pd(_mm256_add_pd(sum0, sum1), _mm256_add_pd(sum2, sum3));
@@ -434,14 +431,14 @@ GELEX_AVX2_TARGET GELEX_NOINLINE auto materialize_dot_uint8_avx2(
     {
         const __m256d values = load_uint8_values(codes + i, lut);
         _mm256_storeu_pd(scratch + i, values);
-        sum = _mm256_fmadd_pd(values, _mm256_loadu_pd(residual + i), sum);
+        sum = _mm256_fmadd_pd(values, _mm256_loadu_pd(rhs + i), sum);
     }
     double result = horizontal_sum(sum);
     for (; i < size; ++i)
     {
         const double value = lut[codes[i]];
         scratch[i] = value;
-        result += value * residual[i];
+        result += value * rhs[i];
     }
     return result;
 }
@@ -449,7 +446,7 @@ GELEX_AVX2_TARGET GELEX_NOINLINE auto materialize_dot_uint8_avx2(
 GELEX_AVX2_TARGET GELEX_NOINLINE auto materialize_dot_bed_avx2(
     const std::uint8_t* packed,
     const double* lut,
-    const double* residual,
+    const double* rhs,
     double* scratch,
     Eigen::Index size) noexcept -> double
 {
@@ -473,11 +470,10 @@ GELEX_AVX2_TARGET GELEX_NOINLINE auto materialize_dot_bed_avx2(
         _mm256_storeu_pd(scratch + i + 4, value1);
         _mm256_storeu_pd(scratch + i + 8, value2);
         _mm256_storeu_pd(scratch + i + 12, value3);
-        sum0 = _mm256_fmadd_pd(value0, _mm256_loadu_pd(residual + i), sum0);
-        sum1 = _mm256_fmadd_pd(value1, _mm256_loadu_pd(residual + i + 4), sum1);
-        sum2 = _mm256_fmadd_pd(value2, _mm256_loadu_pd(residual + i + 8), sum2);
-        sum3
-            = _mm256_fmadd_pd(value3, _mm256_loadu_pd(residual + i + 12), sum3);
+        sum0 = _mm256_fmadd_pd(value0, _mm256_loadu_pd(rhs + i), sum0);
+        sum1 = _mm256_fmadd_pd(value1, _mm256_loadu_pd(rhs + i + 4), sum1);
+        sum2 = _mm256_fmadd_pd(value2, _mm256_loadu_pd(rhs + i + 8), sum2);
+        sum3 = _mm256_fmadd_pd(value3, _mm256_loadu_pd(rhs + i + 12), sum3);
     }
     __m256d sum
         = _mm256_add_pd(_mm256_add_pd(sum0, sum1), _mm256_add_pd(sum2, sum3));
@@ -485,7 +481,7 @@ GELEX_AVX2_TARGET GELEX_NOINLINE auto materialize_dot_bed_avx2(
     {
         const __m256d values = load_bed_values(packed[byte], lut);
         _mm256_storeu_pd(scratch + i, values);
-        sum = _mm256_fmadd_pd(values, _mm256_loadu_pd(residual + i), sum);
+        sum = _mm256_fmadd_pd(values, _mm256_loadu_pd(rhs + i), sum);
     }
     double result = horizontal_sum(sum);
     for (; i < size; ++i)
@@ -494,7 +490,7 @@ GELEX_AVX2_TARGET GELEX_NOINLINE auto materialize_dot_bed_avx2(
         const auto shift = static_cast<unsigned>(2 * (i % 4));
         const double value = lut[(packed_byte >> shift) & 0x03U];
         scratch[i] = value;
-        result += value * residual[i];
+        result += value * rhs[i];
     }
     return result;
 }
@@ -505,16 +501,16 @@ struct DenseOps
 {
     const CompactGenotypeFixture& fixture;
 
-    [[nodiscard]] auto dot(Eigen::Index marker, const double* residual) const
+    [[nodiscard]] auto dot(Eigen::Index marker, const double* rhs) const
         -> double
     {
         return fixture.dense.col(marker).dot(
-            Eigen::Map<const Eigen::VectorXd>(residual, fixture.samples));
+            Eigen::Map<const Eigen::VectorXd>(rhs, fixture.samples));
     }
 
-    auto axpy(Eigen::Index marker, double scale, double* residual) const -> void
+    auto axpy(Eigen::Index marker, double scale, double* target) const -> void
     {
-        Eigen::Map<Eigen::VectorXd>(residual, fixture.samples).noalias()
+        Eigen::Map<Eigen::VectorXd>(target, fixture.samples).noalias()
             += scale * fixture.dense.col(marker);
     }
 };
@@ -523,25 +519,25 @@ struct BlasDenseOps
 {
     const CompactGenotypeFixture& fixture;
 
-    [[nodiscard]] auto dot(Eigen::Index marker, const double* residual) const
+    [[nodiscard]] auto dot(Eigen::Index marker, const double* rhs) const
         -> double
     {
         return cblas_ddot(
             static_cast<blasint>(fixture.samples),
             fixture.dense.col(marker).data(),
             1,
-            residual,
+            rhs,
             1);
     }
 
-    auto axpy(Eigen::Index marker, double scale, double* residual) const -> void
+    auto axpy(Eigen::Index marker, double scale, double* target) const -> void
     {
         cblas_daxpy(
             static_cast<blasint>(fixture.samples),
             scale,
             fixture.dense.col(marker).data(),
             1,
-            residual,
+            target,
             1);
     }
 };
@@ -550,23 +546,23 @@ struct Uint8ScalarOps
 {
     const CompactGenotypeFixture& fixture;
 
-    [[nodiscard]] auto dot(Eigen::Index marker, const double* residual) const
+    [[nodiscard]] auto dot(Eigen::Index marker, const double* rhs) const
         -> double
     {
         return gelex::bayes::detail::dot_scalar(
             fixture.uint8_column(marker),
             fixture.luts[static_cast<std::size_t>(marker)].data(),
-            residual,
+            rhs,
             static_cast<std::size_t>(fixture.samples));
     }
 
-    auto axpy(Eigen::Index marker, double scale, double* residual) const -> void
+    auto axpy(Eigen::Index marker, double scale, double* target) const -> void
     {
         gelex::bayes::detail::axpy_scalar(
             fixture.uint8_column(marker),
             fixture.luts[static_cast<std::size_t>(marker)].data(),
             scale,
-            residual,
+            target,
             static_cast<std::size_t>(fixture.samples));
     }
 };
@@ -575,23 +571,23 @@ struct BedScalarOps
 {
     const CompactGenotypeFixture& fixture;
 
-    [[nodiscard]] auto dot(Eigen::Index marker, const double* residual) const
+    [[nodiscard]] auto dot(Eigen::Index marker, const double* rhs) const
         -> double
     {
         return dot_bed_scalar(
             fixture.bed_column(marker),
             fixture.luts[static_cast<std::size_t>(marker)].data(),
-            residual,
+            rhs,
             fixture.samples);
     }
 
-    auto axpy(Eigen::Index marker, double scale, double* residual) const -> void
+    auto axpy(Eigen::Index marker, double scale, double* target) const -> void
     {
         axpy_bed_scalar(
             fixture.bed_column(marker),
             fixture.luts[static_cast<std::size_t>(marker)].data(),
             scale,
-            residual,
+            target,
             fixture.samples);
     }
 };
@@ -602,23 +598,23 @@ struct Uint8Avx2Ops
 {
     const CompactGenotypeFixture& fixture;
 
-    [[nodiscard]] auto dot(Eigen::Index marker, const double* residual) const
+    [[nodiscard]] auto dot(Eigen::Index marker, const double* rhs) const
         -> double
     {
         return gelex::bayes::detail::dot_avx2(
             fixture.uint8_column(marker),
             fixture.luts[static_cast<std::size_t>(marker)].data(),
-            residual,
+            rhs,
             static_cast<std::size_t>(fixture.samples));
     }
 
-    auto axpy(Eigen::Index marker, double scale, double* residual) const -> void
+    auto axpy(Eigen::Index marker, double scale, double* target) const -> void
     {
         gelex::bayes::detail::axpy_avx2(
             fixture.uint8_column(marker),
             fixture.luts[static_cast<std::size_t>(marker)].data(),
             scale,
-            residual,
+            target,
             static_cast<std::size_t>(fixture.samples));
     }
 };
@@ -627,23 +623,23 @@ struct Uint8Avx512Ops
 {
     const CompactGenotypeFixture& fixture;
 
-    [[nodiscard]] auto dot(Eigen::Index marker, const double* residual) const
+    [[nodiscard]] auto dot(Eigen::Index marker, const double* rhs) const
         -> double
     {
         return gelex::bayes::detail::dot_avx512(
             fixture.uint8_column(marker),
             fixture.luts[static_cast<std::size_t>(marker)].data(),
-            residual,
+            rhs,
             static_cast<std::size_t>(fixture.samples));
     }
 
-    auto axpy(Eigen::Index marker, double scale, double* residual) const -> void
+    auto axpy(Eigen::Index marker, double scale, double* target) const -> void
     {
         gelex::bayes::detail::axpy_avx512(
             fixture.uint8_column(marker),
             fixture.luts[static_cast<std::size_t>(marker)].data(),
             scale,
-            residual,
+            target,
             static_cast<std::size_t>(fixture.samples));
     }
 };
@@ -652,23 +648,23 @@ struct BedAvx2Ops
 {
     const CompactGenotypeFixture& fixture;
 
-    [[nodiscard]] auto dot(Eigen::Index marker, const double* residual) const
+    [[nodiscard]] auto dot(Eigen::Index marker, const double* rhs) const
         -> double
     {
         return dot_bed_avx2(
             fixture.bed_column(marker),
             fixture.luts[static_cast<std::size_t>(marker)].data(),
-            residual,
+            rhs,
             fixture.samples);
     }
 
-    auto axpy(Eigen::Index marker, double scale, double* residual) const -> void
+    auto axpy(Eigen::Index marker, double scale, double* target) const -> void
     {
         axpy_bed_avx2(
             fixture.bed_column(marker),
             fixture.luts[static_cast<std::size_t>(marker)].data(),
             scale,
-            residual,
+            target,
             fixture.samples);
     }
 };

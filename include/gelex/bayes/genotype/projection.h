@@ -66,13 +66,12 @@ class GeneticProjection
 
     [[nodiscard]] auto dot(
         Eigen::Index marker,
-        const Eigen::Ref<const Eigen::VectorXd>& values) const noexcept
-        -> double;
+        const Eigen::Ref<const Eigen::VectorXd>& rhs) const noexcept -> double;
 
     auto axpy(
         Eigen::Index marker,
         double scale,
-        Eigen::Ref<Eigen::VectorXd> values) const noexcept -> void;
+        Eigen::Ref<Eigen::VectorXd> target) const noexcept -> void;
 
     auto axpy(Eigen::Index marker, std::span<const AxpyTarget> targets)
         const noexcept -> void;
