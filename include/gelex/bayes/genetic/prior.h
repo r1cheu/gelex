@@ -27,12 +27,6 @@
 namespace gelex
 {
 
-template <VarianceLayout Kind>
-struct GaussianPrior
-{
-    VarianceParameter variance;
-};
-
 // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init,hicpp-member-init)
 struct HalfNormalPrior
 {

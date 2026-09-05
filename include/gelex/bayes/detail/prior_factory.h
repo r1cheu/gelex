@@ -25,6 +25,7 @@
 
 #include "gelex/bayes/detail/genetic_spec.h"
 #include "gelex/bayes/genetic/detail/prior_support.h"
+#include "gelex/bayes/genetic/gaussian.h"
 #include "gelex/bayes/genetic/prior.h"
 #include "gelex/bayes/genetic_family.h"
 #include "gelex/bayes/mode_values.h"
@@ -68,17 +69,6 @@ constexpr auto initial_activity(const JointSpikeSlab& spec) -> double
     {
         return probabilities.at(2) + probabilities.at(3);
     }
-}
-
-template <GeneticModeSet Modes, VarianceLayout Kind>
-auto make_prior(
-    GaussianFamily<Kind> /*family*/,
-    const Gaussian& /*genetic_spec*/,
-    const MarkerVarianceCalibrator& calibrator)
-{
-    return generate_mode_values<Modes>(
-        [&]<GeneticMode Mode>() -> GaussianPrior<Kind>
-        { return {.variance = calibrator.calibrate(Mode, 1.0)}; });
 }
 
 template <

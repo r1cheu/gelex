@@ -20,9 +20,9 @@
 #include <cstddef>
 #include <utility>
 
-#include "gelex/bayes/basic_result.h"
 #include "gelex/bayes/genetic/detail/pip_support.h"
 #include "gelex/bayes/genetic/draws.h"
+#include "gelex/bayes/genetic/gaussian.h"
 #include "gelex/bayes/genetic/result.h"
 #include "gelex/bayes/genetic/state.h"
 #include "gelex/bayes/genetic_family.h"
@@ -31,13 +31,6 @@
 
 namespace gelex::detail
 {
-
-template <VarianceLayout Kind>
-[[nodiscard]] auto make_pip(const GaussianDraws<Kind>& /*draws*/)
-    -> EmptyPosteriorResult
-{
-    return {};
-}
 
 template <VarianceLayout Kind, MixtureWeightUpdate WeightUpdate>
 [[nodiscard]] auto make_pip(const SpikeSlabDraws<Kind, WeightUpdate>& draws)

@@ -28,12 +28,6 @@ namespace gelex::detail
 template <GeneticModeSet Modes, typename Family>
 struct GeneticSpecFor;
 
-template <GeneticModeSet Modes, VarianceLayout Kind>
-struct GeneticSpecFor<Modes, GaussianFamily<Kind>>
-{
-    using type = Gaussian;
-};
-
 template <
     GeneticModeSet Modes,
     VarianceLayout Kind,

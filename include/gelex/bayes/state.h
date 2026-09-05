@@ -24,6 +24,7 @@
 #include <utility>
 #include <vector>
 
+#include "gelex/bayes/basic_state.h"
 #include "gelex/bayes/detail/state_factory.h"
 #include "gelex/bayes/model.h"
 #include "gelex/bayes/prior.h"
@@ -31,24 +32,6 @@
 
 namespace gelex
 {
-
-struct FixedEffectState
-{
-    Eigen::VectorXd coefficients;
-};
-
-struct RandomEffectState
-{
-    Eigen::VectorXd coefficients;
-    Eigen::VectorXd fitted_values;
-    double variance{};
-};
-
-struct ResidualState
-{
-    Eigen::VectorXd adjusted_response;
-    double variance{};
-};
 
 template <typename GeneticPrior>
 class BayesState;

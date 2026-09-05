@@ -22,6 +22,7 @@
 #include <utility>
 
 #include "gelex/bayes/genetic/detail/state_support.h"
+#include "gelex/bayes/genetic/gaussian.h"
 #include "gelex/bayes/genetic/prior.h"
 #include "gelex/bayes/genetic/state.h"
 #include "gelex/bayes/genetic_family.h"
@@ -32,17 +33,6 @@
 
 namespace gelex::detail
 {
-
-template <VarianceLayout Kind>
-auto make_state(
-    const GaussianPrior<Kind>& prior,
-    GeneticStateDimensions dimensions) -> GaussianState<Kind>
-{
-    return {
-        .variance = initial_marker_variance<Kind>(
-            prior.variance, dimensions.marker_count),
-        .fitted_values = Eigen::VectorXd::Zero(dimensions.individual_count)};
-}
 
 inline auto make_state(
     const HalfNormalPrior& prior,

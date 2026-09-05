@@ -34,17 +34,6 @@
 namespace gelex
 {
 
-template <VarianceLayout Kind>
-struct GaussianDraws
-{
-    detail::marker_variance_draw_t<Kind> variance;
-
-    auto append(const GaussianState<Kind>& state) -> void
-    {
-        variance.append(state.variance);
-    }
-};
-
 struct HalfNormalDraws
 {
     ScalarDraw variance;

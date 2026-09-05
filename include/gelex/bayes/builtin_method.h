@@ -22,6 +22,7 @@
 #include <string_view>
 #include <utility>
 
+#include "gelex/bayes/genetic/gaussian.h"
 #include "gelex/bayes/genetic_family.h"
 #include "gelex/bayes/recipe.h"
 #include "gelex/genetic_mode.h"

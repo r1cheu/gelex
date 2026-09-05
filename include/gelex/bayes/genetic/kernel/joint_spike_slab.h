@@ -31,6 +31,7 @@
 #include "gelex/bayes/genetic/detail/coefficient_likelihood.h"
 #include "gelex/bayes/genetic/detail/dirichlet_conjugate_updater.h"
 #include "gelex/bayes/genetic/detail/probit_updater.h"
+#include "gelex/bayes/genetic/gaussian.h"
 #include "gelex/bayes/genetic/prior.h"
 #include "gelex/bayes/genetic/state.h"
 #include "gelex/bayes/genotype/design.h"
