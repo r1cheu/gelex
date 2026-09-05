@@ -37,7 +37,7 @@ inline auto format_result_value(double value) -> std::string
 
 inline auto write_parameter_rows(
     TextWriter& writer,
-    const CoefficientPosteriorResult& result) -> void
+    const CoefficientResult& result) -> void
 {
     const auto& statistics = result.statistics();
     for (const auto [index, column_name] :
@@ -75,22 +75,20 @@ inline auto write_summary_row(
 // one row per scalar term, not one per marker.
 inline auto write_summary_rows(
     TextWriter& /*writer*/,
-    const EmptyPosteriorResult& /*result*/) -> void
+    const EmptyResult& /*result*/) -> void
 {
 }
 
-inline auto write_summary_rows(
-    TextWriter& writer,
-    const ScalarPosteriorResult& result) -> void
+inline auto write_summary_rows(TextWriter& writer, const ScalarResult& result)
+    -> void
 {
     const auto& statistics = result.statistics();
     write_summary_row(
         writer, result.identifier(), 0, statistics.mean, statistics.stddev);
 }
 
-inline auto write_summary_rows(
-    TextWriter& writer,
-    const VectorPosteriorResult& result) -> void
+inline auto write_summary_rows(TextWriter& writer, const VectorResult& result)
+    -> void
 {
     const auto& statistics = result.statistics();
     for (const auto [index, mean] : statistics.mean | std::views::enumerate)

@@ -81,21 +81,21 @@ template <typename T>
 concept EmptyVariance = requires(T value) {
     requires std::same_as<
         std::remove_cvref_t<decltype(value.variance)>,
-        gelex::EmptyPosteriorResult>;
+        gelex::EmptyResult>;
 };
 
 template <typename T>
 concept EmptyProbability = requires(T value) {
     requires std::same_as<
         std::remove_cvref_t<decltype(value.probability)>,
-        gelex::EmptyPosteriorResult>;
+        gelex::EmptyResult>;
 };
 
 template <typename T>
 concept EmptyProbabilities = requires(T value) {
     requires std::same_as<
         std::remove_cvref_t<decltype(value.probabilities)>,
-        gelex::EmptyPosteriorResult>;
+        gelex::EmptyResult>;
 };
 
 }  // namespace
@@ -104,25 +104,23 @@ TEST_CASE(
     "Posterior result constructors validate stored invariants",
     "[bayes][result]")
 {
+    REQUIRE_THROWS_AS((gelex::ScalarResult{"", {}}), gelex::GelexException);
+    REQUIRE_THROWS_AS((gelex::VectorResult{"", {}}), gelex::GelexException);
     REQUIRE_THROWS_AS(
-        (gelex::ScalarPosteriorResult{"", {}}), gelex::GelexException);
-    REQUIRE_THROWS_AS(
-        (gelex::VectorPosteriorResult{"", {}}), gelex::GelexException);
-    REQUIRE_THROWS_AS(
-        (gelex::VectorPosteriorResult{
+        (gelex::VectorResult{
             "posterior/vector",
             gelex::VectorRunningStatsResult{
                 .mean = Eigen::VectorXd{{1.0, 2.0}},
                 .stddev = Eigen::VectorXd{{0.1}}}}),
         gelex::GelexException);
 
-    auto posterior = gelex::VectorPosteriorResult{
+    auto posterior = gelex::VectorResult{
         "fixed/coefficients",
         gelex::VectorRunningStatsResult{
             .mean = Eigen::VectorXd{{1.0, 2.0}},
             .stddev = Eigen::VectorXd{{0.1, 0.2}}}};
     REQUIRE_THROWS_AS(
-        (gelex::CoefficientPosteriorResult{
+        (gelex::CoefficientResult{
             std::move(posterior), {std::string{gelex::intercept_name}}}),
         gelex::GelexException);
     REQUIRE_THROWS_AS(
@@ -215,7 +213,7 @@ TEST_CASE(
     STATIC_REQUIRE(
         std::same_as<
             std::remove_cvref_t<decltype(marker_effect.pip())>,
-            gelex::EmptyPosteriorResult>);
+            gelex::EmptyResult>);
     REQUIRE(marker_effect.pve().values().isApprox(
         Eigen::VectorXd{{36.0, 49.0 / 3.0}}));
     REQUIRE(result.residual().identifier() == "residual/variance");

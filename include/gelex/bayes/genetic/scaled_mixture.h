@@ -110,11 +110,11 @@ struct ScaledMixtureDraws
 };
 
 template <std::size_t ClassCount, MixtureWeightUpdate WeightUpdate>
-struct ScaledMixturePosteriorResult
+struct ScaledMixtureResult
 {
-    ScalarPosteriorResult variance;
-    detail::weight_result_t<WeightUpdate, VectorPosteriorResult> probabilities;
-    VectorPosteriorResult component_explained_variance;
+    ScalarResult variance;
+    detail::weight_result_t<WeightUpdate, VectorResult> probabilities;
+    VectorResult component_explained_variance;
 };
 
 }  // namespace gelex
@@ -195,7 +195,7 @@ template <std::size_t ClassCount, MixtureWeightUpdate WeightUpdate>
 
 template <std::size_t ClassCount, MixtureWeightUpdate WeightUpdate>
 auto make_result(const ScaledMixtureDraws<ClassCount, WeightUpdate>& draws)
-    -> ScaledMixturePosteriorResult<ClassCount, WeightUpdate>
+    -> ScaledMixtureResult<ClassCount, WeightUpdate>
 {
     return {
         .variance = make_result(draws.variance),
@@ -216,8 +216,7 @@ template <std::size_t ClassCount, MixtureWeightUpdate WeightUpdate>
 template <std::size_t ClassCount, MixtureWeightUpdate WeightUpdate>
 auto write_family_summary_rows(
     TextWriter& writer,
-    const ScaledMixturePosteriorResult<ClassCount, WeightUpdate>& result)
-    -> void
+    const ScaledMixtureResult<ClassCount, WeightUpdate>& result) -> void
 {
     write_summary_rows(writer, result.variance);
     write_summary_rows(writer, result.probabilities);

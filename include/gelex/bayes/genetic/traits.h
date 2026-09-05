@@ -36,20 +36,16 @@ using marker_variance_draw_t = std::
     conditional_t<Kind == VarianceLayout::Pooled, ScalarDraw, VectorDraw>;
 
 template <VarianceLayout Kind>
-using marker_variance_result_t = std::conditional_t<
-    Kind == VarianceLayout::Pooled,
-    ScalarPosteriorResult,
-    EmptyPosteriorResult>;
+using marker_variance_result_t = std::
+    conditional_t<Kind == VarianceLayout::Pooled, ScalarResult, EmptyResult>;
 
 template <MixtureWeightUpdate Update, typename Draw>
 using weight_draw_t = std::
     conditional_t<Update == MixtureWeightUpdate::Enabled, Draw, EmptyDraw>;
 
 template <MixtureWeightUpdate Update, typename Result>
-using weight_result_t = std::conditional_t<
-    Update == MixtureWeightUpdate::Enabled,
-    Result,
-    EmptyPosteriorResult>;
+using weight_result_t = std::
+    conditional_t<Update == MixtureWeightUpdate::Enabled, Result, EmptyResult>;
 
 }  // namespace gelex::detail
 

@@ -33,10 +33,10 @@ class VarianceSummaryResult
 {
    public:
     VarianceSummaryResult(
-        HomogeneousModeValues<Modes, ScalarPosteriorResult> explained_variance,
-        HomogeneousModeValues<Modes, ScalarPosteriorResult> heritability,
-        ScalarPosteriorResult total_explained_variance,
-        ScalarPosteriorResult total_heritability)
+        HomogeneousModeValues<Modes, ScalarResult> explained_variance,
+        HomogeneousModeValues<Modes, ScalarResult> heritability,
+        ScalarResult total_explained_variance,
+        ScalarResult total_heritability)
         : explained_variance_{std::move(explained_variance)},
           heritability_{std::move(heritability)},
           total_explained_variance_{std::move(total_explained_variance)},
@@ -46,47 +46,46 @@ class VarianceSummaryResult
 
     template <GeneticMode Mode>
     [[nodiscard]] auto explained_variance() const noexcept
-        -> const ScalarPosteriorResult&
+        -> const ScalarResult&
     {
         return explained_variance_.template get<Mode>();
     }
 
     template <GeneticMode Mode>
-    [[nodiscard]] auto heritability() const noexcept
-        -> const ScalarPosteriorResult&
+    [[nodiscard]] auto heritability() const noexcept -> const ScalarResult&
     {
         return heritability_.template get<Mode>();
     }
 
     [[nodiscard]] auto explained_variances() const noexcept
-        -> const HomogeneousModeValues<Modes, ScalarPosteriorResult>&
+        -> const HomogeneousModeValues<Modes, ScalarResult>&
     {
         return explained_variance_;
     }
 
     [[nodiscard]] auto heritabilities() const noexcept
-        -> const HomogeneousModeValues<Modes, ScalarPosteriorResult>&
+        -> const HomogeneousModeValues<Modes, ScalarResult>&
     {
         return heritability_;
     }
 
     [[nodiscard]] auto total_explained_variance() const noexcept
-        -> const ScalarPosteriorResult&
+        -> const ScalarResult&
     {
         return total_explained_variance_;
     }
 
     [[nodiscard]] auto total_heritability() const noexcept
-        -> const ScalarPosteriorResult&
+        -> const ScalarResult&
     {
         return total_heritability_;
     }
 
    private:
-    HomogeneousModeValues<Modes, ScalarPosteriorResult> explained_variance_;
-    HomogeneousModeValues<Modes, ScalarPosteriorResult> heritability_;
-    ScalarPosteriorResult total_explained_variance_;
-    ScalarPosteriorResult total_heritability_;
+    HomogeneousModeValues<Modes, ScalarResult> explained_variance_;
+    HomogeneousModeValues<Modes, ScalarResult> heritability_;
+    ScalarResult total_explained_variance_;
+    ScalarResult total_heritability_;
 };
 
 namespace detail
