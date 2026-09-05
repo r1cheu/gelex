@@ -21,11 +21,11 @@
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
-#include <type_traits>
 #include <utility>
 
 #include "gelex/bayes/basic_draw.h"
 #include "gelex/bayes/genetic/state.h"
+#include "gelex/bayes/genetic/traits.h"
 #include "gelex/bayes/genetic_family.h"
 #include "gelex/bayes/mode_values.h"
 #include "gelex/genetic_mode.h"
@@ -33,33 +33,6 @@
 
 namespace gelex
 {
-
-namespace detail
-{
-
-template <VarianceLayout Kind>
-struct MarkerVarianceDrawType;
-
-template <>
-struct MarkerVarianceDrawType<VarianceLayout::Pooled>
-{
-    using type = ScalarDraw;
-};
-
-template <>
-struct MarkerVarianceDrawType<VarianceLayout::Unpooled>
-{
-    using type = VectorDraw;
-};
-
-template <VarianceLayout Kind>
-using marker_variance_draw_t = typename MarkerVarianceDrawType<Kind>::type;
-
-template <MixtureWeightUpdate Update, typename Draw>
-using weight_draw_t = std::
-    conditional_t<Update == MixtureWeightUpdate::Enabled, Draw, EmptyDraw>;
-
-}  // namespace detail
 
 template <VarianceLayout Kind>
 struct GaussianDraws
