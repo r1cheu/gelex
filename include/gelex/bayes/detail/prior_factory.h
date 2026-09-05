@@ -27,6 +27,7 @@
 #include "gelex/bayes/genetic/detail/prior_support.h"
 #include "gelex/bayes/genetic/gaussian.h"
 #include "gelex/bayes/genetic/prior.h"
+#include "gelex/bayes/genetic/spike_slab.h"
 #include "gelex/bayes/genetic_family.h"
 #include "gelex/bayes/mode_values.h"
 #include "gelex/bayes/model.h"
@@ -69,28 +70,6 @@ constexpr auto initial_activity(const JointSpikeSlab& spec) -> double
     {
         return probabilities.at(2) + probabilities.at(3);
     }
-}
-
-template <
-    GeneticModeSet Modes,
-    VarianceLayout Kind,
-    MixtureWeightUpdate WeightUpdate>
-auto make_prior(
-    SpikeSlabFamily<Kind, WeightUpdate> /*family*/,
-    const genetic_spec_t<Modes, SpikeSlabFamily<Kind, WeightUpdate>>&
-        genetic_spec,
-    const MarkerVarianceCalibrator& calibrator)
-{
-    return transform_mode_values(
-        genetic_spec,
-        [&]<GeneticMode Mode>(
-            const SpikeSlab& spec) -> SpikeSlabPrior<Kind, WeightUpdate>
-        {
-            return {
-                .variance = calibrator.calibrate(Mode, spec.probability()),
-                .probability = make_parameter<WeightUpdate>(
-                    spec.probability(), make_beta_prior(1.0, 1.0))};
-        });
 }
 
 template <GeneticModeSet Modes, MixtureWeightUpdate WeightUpdate>

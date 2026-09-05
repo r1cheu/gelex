@@ -34,16 +34,6 @@ struct HalfNormalPrior
 };
 
 template <
-    VarianceLayout Kind,
-    MixtureWeightUpdate WeightUpdate = MixtureWeightUpdate::Enabled>
-// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init,hicpp-member-init)
-struct SpikeSlabPrior
-{
-    VarianceParameter variance;
-    ProbabilityParameter<WeightUpdate> probability;
-};
-
-template <
     std::size_t ClassCount,
     MixtureWeightUpdate WeightUpdate = MixtureWeightUpdate::Enabled>
 // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init,hicpp-member-init)

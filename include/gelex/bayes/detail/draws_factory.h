@@ -27,6 +27,7 @@
 #include "gelex/bayes/genetic/draws.h"
 #include "gelex/bayes/genetic/gaussian.h"
 #include "gelex/bayes/genetic/prior.h"
+#include "gelex/bayes/genetic/spike_slab.h"
 #include "gelex/bayes/genetic/state.h"
 #include "gelex/bayes/genetic_family.h"
 #include "gelex/bayes/genotype/design.h"
@@ -44,18 +45,6 @@ namespace gelex::detail
     return {
         .variance = builder.scalar("variance"),
         .probit_coefficients = builder.vector("probit_coefficients", 2)};
-}
-
-template <VarianceLayout Kind, MixtureWeightUpdate WeightUpdate>
-[[nodiscard]] auto make_draws(
-    const SpikeSlabPrior<Kind, WeightUpdate>& /*prior*/,
-    GeneticDrawsBuilder& builder) -> SpikeSlabDraws<Kind, WeightUpdate>
-{
-    return {
-        .variance = make_marker_variance_draw<Kind>(builder),
-        .assignment = builder.category<2>("assignment", builder.marker_count()),
-        .probability
-        = make_probability_draw<WeightUpdate>(builder, "probability")};
 }
 
 template <std::size_t ClassCount, MixtureWeightUpdate WeightUpdate>

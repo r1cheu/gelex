@@ -34,13 +34,6 @@ enum class MixtureWeightUpdate : std::uint8_t
     Enabled,
 };
 
-template <
-    VarianceLayout Kind,
-    MixtureWeightUpdate WeightUpdate = MixtureWeightUpdate::Enabled>
-struct SpikeSlabFamily
-{
-};
-
 template <MixtureWeightUpdate WeightUpdate = MixtureWeightUpdate::Enabled>
 struct ScaledMixtureFamily
 {

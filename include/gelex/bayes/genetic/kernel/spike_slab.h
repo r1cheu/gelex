@@ -23,14 +23,15 @@
 #include <cstdint>
 #include <random>
 
+#include "gelex/bayes/basic_state.h"
 #include "gelex/bayes/detail/normal_variance_conjugate_updater.h"
 #include "gelex/bayes/genetic/detail/coefficient_likelihood.h"
 #include "gelex/bayes/genetic/detail/dirichlet_conjugate_updater.h"
 #include "gelex/bayes/genetic/detail/normal_prior_provider.h"
-#include "gelex/bayes/genetic/prior.h"
+#include "gelex/bayes/genetic/spike_slab.h"
 #include "gelex/bayes/genetic/state.h"
+#include "gelex/bayes/genetic_family.h"
 #include "gelex/bayes/genotype/design.h"
-#include "gelex/bayes/state.h"
 #include "gelex/bayes/stats/log_categorical_distribution.h"
 #include "gelex/genetic_mode.h"
 
@@ -142,6 +143,12 @@ class SpikeSlabKernel
     LogCategoricalDistribution<2> allocation_distribution_;
     Eigen::VectorXd previous_adjusted_response_;
 };
+
+template <VarianceLayout Kind, MixtureWeightUpdate WeightUpdate>
+[[nodiscard]] auto make_kernel(const SpikeSlabPrior<Kind, WeightUpdate>& prior)
+{
+    return SpikeSlabKernel<Kind, WeightUpdate>{prior};
+}
 
 }  // namespace gelex::detail
 
