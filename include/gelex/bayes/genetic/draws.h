@@ -19,48 +19,15 @@
 
 #include <Eigen/Core>
 #include <cassert>
-#include <cstddef>
 #include <cstdint>
 #include <utility>
 
 #include "gelex/bayes/basic_draw.h"
-#include "gelex/bayes/genetic/state.h"
-#include "gelex/bayes/genetic/traits.h"
-#include "gelex/bayes/genetic_family.h"
 #include "gelex/bayes/mode_values.h"
 #include "gelex/genetic_mode.h"
-#include "gelex/infra/var.h"
 
 namespace gelex
 {
-
-struct HalfNormalDraws
-{
-    ScalarDraw variance;
-    VectorDraw probit_coefficients;
-
-    auto append(const HalfNormalState& state) -> void
-    {
-        variance.append(state.variance);
-        probit_coefficients.append(state.probit_coefficients);
-    }
-};
-
-template <std::size_t ClassCount, MixtureWeightUpdate WeightUpdate>
-struct JointSpikeSlabDraws
-{
-    CategoryDraw<ClassCount> assignment;
-    detail::weight_draw_t<WeightUpdate, VectorDraw> probabilities;
-    VectorDraw component_explained_variance;
-
-    auto append(const JointSpikeSlabState<ClassCount>& state) -> void
-    {
-        assignment.append(state.assignment);
-        probabilities.append(state.probabilities);
-        component_explained_variance.append(
-            matvar<0>(state.fitted_values, VarNormType::Population));
-    }
-};
 
 template <GeneticModeSet Modes>
 class GeneticCoefficientDraws

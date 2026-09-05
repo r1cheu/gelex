@@ -17,7 +17,6 @@
 #ifndef GELEX_BAYES_DETAIL_DRAWS_FACTORY_H_
 #define GELEX_BAYES_DETAIL_DRAWS_FACTORY_H_
 
-#include <cstddef>
 #include <cstdint>
 #include <fmt/format.h>
 #include <string>
@@ -26,11 +25,9 @@
 #include "gelex/bayes/genetic/detail/draws_support.h"
 #include "gelex/bayes/genetic/draws.h"
 #include "gelex/bayes/genetic/gaussian.h"
-#include "gelex/bayes/genetic/prior.h"
+#include "gelex/bayes/genetic/joint_spike_slab.h"
 #include "gelex/bayes/genetic/scaled_mixture.h"
 #include "gelex/bayes/genetic/spike_slab.h"
-#include "gelex/bayes/genetic/state.h"
-#include "gelex/bayes/genetic_family.h"
 #include "gelex/bayes/genotype/design.h"
 #include "gelex/bayes/mode_values.h"
 #include "gelex/genetic_mode.h"
@@ -38,32 +35,6 @@
 
 namespace gelex::detail
 {
-
-[[nodiscard]] inline auto make_draws(
-    const HalfNormalPrior& /*prior*/,
-    GeneticDrawsBuilder& builder) -> HalfNormalDraws
-{
-    return {
-        .variance = builder.scalar("variance"),
-        .probit_coefficients = builder.vector("probit_coefficients", 2)};
-}
-
-// Rows follow the fitted column layout of JointSpikeSlabState: A in A-only,
-// A in AD, D in D-only, D in AD.
-template <std::size_t ClassCount, MixtureWeightUpdate WeightUpdate>
-[[nodiscard]] auto make_draws(
-    const JointSpikeSlabPrior<ClassCount, WeightUpdate>& /*prior*/,
-    GeneticDrawsBuilder& builder)
-    -> JointSpikeSlabDraws<ClassCount, WeightUpdate>
-{
-    return {
-        .assignment
-        = builder.category<ClassCount>("assignment", builder.marker_count()),
-        .probabilities
-        = make_probabilities_draw<WeightUpdate, ClassCount>(builder),
-        .component_explained_variance = make_component_explained_variance_draw<
-            JointSpikeSlabState<ClassCount>::component_count>(builder)};
-}
 
 template <typename Prior>
 [[nodiscard]] auto make_family_draws(

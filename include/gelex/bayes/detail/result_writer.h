@@ -17,38 +17,16 @@
 #ifndef GELEX_BAYES_DETAIL_RESULT_WRITER_H_
 #define GELEX_BAYES_DETAIL_RESULT_WRITER_H_
 
-#include <cstddef>
-
-#include "gelex/bayes/genetic/detail/summary_support.h"
 #include "gelex/bayes/genetic/gaussian.h"
-#include "gelex/bayes/genetic/result.h"
+#include "gelex/bayes/genetic/joint_spike_slab.h"
 #include "gelex/bayes/genetic/scaled_mixture.h"
 #include "gelex/bayes/genetic/spike_slab.h"
-#include "gelex/bayes/genetic_family.h"
 #include "gelex/bayes/mode_values.h"
 #include "gelex/genetic_mode.h"
 #include "gelex/io/detail/text_writer.h"
 
 namespace gelex::detail
 {
-
-inline auto write_family_summary_rows(
-    TextWriter& writer,
-    const HalfNormalPosteriorResult& result) -> void
-{
-    write_summary_rows(writer, result.variance);
-    write_summary_rows(writer, result.probit_coefficients);
-}
-
-template <std::size_t ClassCount, MixtureWeightUpdate WeightUpdate>
-auto write_family_summary_rows(
-    TextWriter& writer,
-    const JointSpikeSlabPosteriorResult<ClassCount, WeightUpdate>& result)
-    -> void
-{
-    write_summary_rows(writer, result.probabilities);
-    write_summary_rows(writer, result.component_explained_variance);
-}
 
 template <GeneticModeSet Modes, typename... Results>
 auto write_genetic_summary_rows(

@@ -34,11 +34,6 @@ enum class MixtureWeightUpdate : std::uint8_t
     Enabled,
 };
 
-template <MixtureWeightUpdate WeightUpdate = MixtureWeightUpdate::Enabled>
-struct JointSpikeSlabFamily
-{
-};
-
 }  // namespace gelex
 
 #endif  // GELEX_BAYES_GENETIC_FAMILY_H_

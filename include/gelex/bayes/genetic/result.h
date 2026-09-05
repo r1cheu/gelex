@@ -18,12 +18,9 @@
 #define GELEX_BAYES_GENETIC_RESULT_H_
 
 #include <Eigen/Core>
-#include <cstddef>
 #include <utility>
 
 #include "gelex/bayes/basic_result.h"
-#include "gelex/bayes/genetic/traits.h"
-#include "gelex/bayes/genetic_family.h"
 #include "gelex/exception.h"
 
 namespace gelex
@@ -135,19 +132,6 @@ class JointMarkerEffectResult
    private:
     MarkerPveResult pve_;
     PipResult pip_;
-};
-
-struct HalfNormalPosteriorResult
-{
-    ScalarPosteriorResult variance;
-    VectorPosteriorResult probit_coefficients;
-};
-
-template <std::size_t ClassCount, MixtureWeightUpdate WeightUpdate>
-struct JointSpikeSlabPosteriorResult
-{
-    detail::weight_result_t<WeightUpdate, VectorPosteriorResult> probabilities;
-    VectorPosteriorResult component_explained_variance;
 };
 
 }  // namespace gelex

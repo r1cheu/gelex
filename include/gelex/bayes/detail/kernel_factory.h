@@ -17,7 +17,6 @@
 #ifndef GELEX_BAYES_DETAIL_KERNEL_FACTORY_H_
 #define GELEX_BAYES_DETAIL_KERNEL_FACTORY_H_
 
-#include <cstddef>
 #include <type_traits>
 #include <utility>
 
@@ -27,7 +26,6 @@
 #include "gelex/bayes/genetic/kernel/joint_spike_slab.h"
 #include "gelex/bayes/genetic/kernel/scaled_mixture.h"
 #include "gelex/bayes/genetic/kernel/spike_slab.h"
-#include "gelex/bayes/genetic/prior.h"
 #include "gelex/bayes/mode_values.h"
 #include "gelex/genetic_mode.h"
 
@@ -46,18 +44,6 @@ template <GeneticModeSet Modes, typename... ModePriors>
     using GeneticState = genetic_state_t<GeneticPrior>;
     using Sweep = IndependentSweep<Modes, GeneticState, decltype(mode_kernels)>;
     return Sweep{std::move(mode_kernels)};
-}
-
-template <std::size_t ClassCount, MixtureWeightUpdate WeightUpdate>
-[[nodiscard]] auto make_kernel(
-    const JointModeValues<
-        ModeValues<
-            GeneticMode::A | GeneticMode::D,
-            GaussianPrior<VarianceLayout::Pooled>,
-            HalfNormalPrior>,
-        JointSpikeSlabPrior<ClassCount, WeightUpdate>>& prior)
-{
-    return JointSpikeSlabKernel<ClassCount, WeightUpdate>{prior};
 }
 
 template <typename GeneticPrior>
