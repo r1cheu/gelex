@@ -68,6 +68,11 @@ class GeneticProjection
         Eigen::Index marker,
         const Eigen::Ref<const Eigen::VectorXd>& rhs) const noexcept -> double;
 
+    auto multiply(
+        Eigen::Index marker,
+        double scale,
+        Eigen::Ref<Eigen::VectorXd> target) const noexcept -> void;
+
     auto axpy(
         Eigen::Index marker,
         double scale,

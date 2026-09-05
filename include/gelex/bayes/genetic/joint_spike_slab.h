@@ -22,6 +22,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <utility>
+#include <variant>
 
 #include "gelex/bayes/basic_draw.h"
 #include "gelex/bayes/basic_result.h"
@@ -35,6 +36,7 @@
 #include "gelex/bayes/genetic/parameter.h"
 #include "gelex/bayes/genetic/traits.h"
 #include "gelex/bayes/genetic_family.h"
+#include "gelex/bayes/genotype/operations.h"
 #include "gelex/bayes/mode_values.h"
 #include "gelex/bayes/parameter.h"
 #include "gelex/bayes/spec.h"
@@ -68,11 +70,75 @@ struct JointSpikeSlabPrior
     SimplexParameter<class_count, WeightUpdate> probabilities;
 };
 
-struct HalfNormalState
+class HalfNormalState;
+
+template <std::size_t ClassCount>
+    requires(ClassCount == 4)
+class JointSpikeSlabState;
+
+namespace detail
 {
-    double variance{};
-    Eigen::Vector2d probit_coefficients = Eigen::Vector2d::Zero();
-    Eigen::VectorXd fitted_values;  // total
+inline auto make_state(
+    const HalfNormalPrior& prior,
+    GeneticStateDimensions dimensions) -> HalfNormalState;
+
+template <std::size_t ClassCount, MixtureWeightUpdate WeightUpdate>
+auto make_state(
+    const JointSpikeSlabPrior<ClassCount, WeightUpdate>& prior,
+    GeneticStateDimensions dimensions) -> JointSpikeSlabState<ClassCount>;
+}  // namespace detail
+
+class HalfNormalState
+{
+   public:
+    auto coefficients() const -> const Eigen::VectorXd&
+    {
+        return coefficients_;
+    }
+    auto fitted_values() const -> const Eigen::VectorXd&
+    {
+        return fitted_values_;
+    }
+    auto variance() const -> double { return variance_; }
+    auto variance() -> double& { return variance_; }
+    auto probit_coefficients() const -> const Eigen::Vector2d&
+    {
+        return probit_coefficients_;
+    }
+    auto probit_coefficients() -> Eigen::Vector2d&
+    {
+        return probit_coefficients_;
+    }
+
+    auto transition(Eigen::Index marker, double coefficient) -> void
+    {
+        coefficients_(marker) = coefficient;
+    }
+    auto transition(const Eigen::Ref<const Eigen::VectorXd>& delta) -> void
+    {
+        fitted_values_.noalias() += delta;
+    }
+
+   private:
+    friend auto detail::make_state(
+        const HalfNormalPrior& prior,
+        detail::GeneticStateDimensions dimensions) -> HalfNormalState;
+
+    HalfNormalState(
+        double variance,
+        Eigen::Index num_markers,
+        Eigen::Index num_individuals)
+        : coefficients_(Eigen::VectorXd::Zero(num_markers)),
+          fitted_values_(Eigen::VectorXd::Zero(num_individuals)),
+          variance_(variance),
+          probit_coefficients_(Eigen::Vector2d::Zero())
+    {
+    }
+
+    Eigen::VectorXd coefficients_;
+    Eigen::VectorXd fitted_values_;
+    double variance_;
+    Eigen::Vector2d probit_coefficients_;
 };
 
 // Classes are NULL, A-only, D-only and AD; fitted_values holds one column per
@@ -80,8 +146,9 @@ struct HalfNormalState
 // single mode and the two columns of a mode sum to that mode's total.
 template <std::size_t ClassCount>
     requires(ClassCount == 4)
-struct JointSpikeSlabState
+class JointSpikeSlabState
 {
+   public:
     static constexpr std::size_t class_count = ClassCount;
     static constexpr std::size_t component_count = 4;
     static constexpr int no_component = -1;
@@ -96,16 +163,142 @@ struct JointSpikeSlabState
         2,
         3};
 
-    Eigen::VectorX<std::uint8_t> assignment;
-    std::array<double, class_count> probabilities{};
+    using ModeCoefficients
+        = HomogeneousModeValues<GeneticMode::A | GeneticMode::D, double>;
+
+    auto assignments() const -> const Eigen::VectorX<std::uint8_t>&
+    {
+        return assignments_;
+    }
+    auto class_counts() const -> const std::array<std::size_t, class_count>&
+    {
+        return class_counts_;
+    }
+    auto probabilities() const -> const std::array<double, class_count>&
+    {
+        return probabilities_;
+    }
+    auto probabilities() -> std::array<double, class_count>&
+    {
+        return probabilities_;
+    }
+    auto fitted_values() const -> const Eigen::
+        Matrix<double, Eigen::Dynamic, static_cast<int>(component_count)>&
+    {
+        return fitted_values_;
+    }
+
+    template <GeneticMode Mode>
+        requires(Mode == GeneticMode::A || Mode == GeneticMode::D)
+    [[nodiscard]] static constexpr auto fitted_component_index(
+        std::size_t class_index) noexcept -> int
+    {
+        if (class_index >= class_count)
+            return no_component;
+        if constexpr (Mode == GeneticMode::A)
+            return additive_components[class_index];
+        else
+            return dominance_components[class_index];
+    }
+
+    [[nodiscard]] auto transition(
+        Eigen::Index marker,
+        std::uint8_t assignment,
+        const ModeCoefficients& old_coefficients,
+        const ModeCoefficients& new_coefficients)
+    {
+        const auto old_assignment = assignments_(marker);
+        auto updates = generate_mode_values<GeneticMode::A | GeneticMode::D>(
+            [&]<GeneticMode Mode>()
+            {
+                return make_fitted_update<Mode>(
+                    old_assignment,
+                    assignment,
+                    old_coefficients.template get<Mode>(),
+                    new_coefficients.template get<Mode>());
+            });
+        if (old_assignment != assignment)
+        {
+            --class_counts_[old_assignment];
+            ++class_counts_[assignment];
+        }
+        assignments_(marker) = assignment;
+        return updates;
+    }
+
+   private:
+    template <std::size_t Count, MixtureWeightUpdate WeightUpdate>
+    friend auto detail::make_state(
+        const JointSpikeSlabPrior<Count, WeightUpdate>& prior,
+        detail::GeneticStateDimensions dimensions)
+        -> JointSpikeSlabState<Count>;
+
+    JointSpikeSlabState(
+        std::array<double, class_count> probabilities,
+        Eigen::Index num_markers,
+        Eigen::Index num_individuals)
+        : assignments_(Eigen::VectorX<std::uint8_t>::Zero(num_markers)),
+          class_counts_{static_cast<std::size_t>(num_markers)},
+          probabilities_(probabilities),
+          fitted_values_(
+              Eigen::Matrix<
+                  double,
+                  Eigen::Dynamic,
+                  static_cast<int>(
+                      component_count)>::Zero(num_individuals, component_count))
+    {
+    }
+
+    template <GeneticMode Mode>
+    auto make_fitted_update(
+        std::uint8_t old_assignment,
+        std::uint8_t new_assignment,
+        double old_coefficient,
+        double new_coefficient)
+        -> std::variant<
+            std::monostate,
+            bayes::AxpyTarget,
+            std::array<bayes::AxpyTarget, 2>>
+    {
+        const int old_component = fitted_component_index<Mode>(old_assignment);
+        const int new_component = fitted_component_index<Mode>(new_assignment);
+        const auto make_target = [&](int component, double delta)
+        { return bayes::AxpyTarget{delta, fitted_values_.col(component)}; };
+        if (old_component == new_component)
+        {
+            const double delta = new_coefficient - old_coefficient;
+            if (old_component == no_component || delta == 0.0)
+                return std::monostate{};
+            return make_target(old_component, delta);
+        }
+        const bool remove_old
+            = old_component != no_component && old_coefficient != 0.0;
+        const bool add_new
+            = new_component != no_component && new_coefficient != 0.0;
+        if (remove_old && add_new)
+        {
+            return std::array{
+                make_target(old_component, -old_coefficient),
+                make_target(new_component, new_coefficient)};
+        }
+        if (remove_old)
+            return make_target(old_component, -old_coefficient);
+        if (add_new)
+            return make_target(new_component, new_coefficient);
+        return std::monostate{};
+    }
+
+    Eigen::VectorX<std::uint8_t> assignments_;
+    std::array<std::size_t, class_count> class_counts_;
+    std::array<double, class_count> probabilities_;
     Eigen::Matrix<double, Eigen::Dynamic, static_cast<int>(component_count)>
-        fitted_values;
+        fitted_values_;
 };
 
 [[nodiscard]] inline auto genetic_value(const HalfNormalState& state)
     -> const Eigen::VectorXd&
 {
-    return state.fitted_values;
+    return state.fitted_values();
 }
 
 struct HalfNormalDraws
@@ -115,8 +308,8 @@ struct HalfNormalDraws
 
     auto append(const HalfNormalState& state) -> void
     {
-        variance.append(state.variance);
-        probit_coefficients.append(state.probit_coefficients);
+        variance.append(state.variance());
+        probit_coefficients.append(state.probit_coefficients());
     }
 };
 
@@ -129,10 +322,10 @@ struct JointSpikeSlabDraws
 
     auto append(const JointSpikeSlabState<ClassCount>& state) -> void
     {
-        assignment.append(state.assignment);
-        probabilities.append(state.probabilities);
+        assignment.append(state.assignments());
+        probabilities.append(state.probabilities());
         component_explained_variance.append(
-            matvar<0>(state.fitted_values, VarNormType::Population));
+            matvar<0>(state.fitted_values(), VarNormType::Population));
     }
 };
 
@@ -220,9 +413,9 @@ inline auto make_state(
     GeneticStateDimensions dimensions) -> HalfNormalState
 {
     return {
-        .variance = prior.variance.initial,
-        .probit_coefficients = Eigen::Vector2d::Zero(),
-        .fitted_values = Eigen::VectorXd::Zero(dimensions.individual_count)};
+        prior.variance.initial,
+        dimensions.marker_count,
+        dimensions.individual_count};
 }
 
 template <std::size_t ClassCount, MixtureWeightUpdate WeightUpdate>
@@ -230,16 +423,10 @@ auto make_state(
     const JointSpikeSlabPrior<ClassCount, WeightUpdate>& prior,
     GeneticStateDimensions dimensions) -> JointSpikeSlabState<ClassCount>
 {
-    auto state = JointSpikeSlabState<ClassCount>{
-        .assignment
-        = Eigen::VectorX<std::uint8_t>::Zero(dimensions.marker_count),
-        .probabilities = prior.probabilities.initial,
-        .fitted_values = {},
-    };
-    state.fitted_values.setZero(
-        dimensions.individual_count,
-        static_cast<Eigen::Index>(state.component_count));
-    return state;
+    return {
+        prior.probabilities.initial,
+        dimensions.marker_count,
+        dimensions.individual_count};
 }
 
 [[nodiscard]] inline auto make_draws(

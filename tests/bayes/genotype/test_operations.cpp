@@ -32,6 +32,7 @@ namespace
 {
 
 using RawDotImpl = gelex::bayes::detail::DotImpl;
+using RawMultiplyImpl = gelex::bayes::detail::MultiplyImpl;
 using RawAxpyImpl = gelex::bayes::detail::AxpyImpl;
 using RawMultiTargetAxpyImpl = gelex::bayes::detail::MultiTargetAxpyImpl;
 
@@ -47,6 +48,23 @@ auto adapt_raw_impl(RawDotImpl impl)
                std::span<const double> rhs) noexcept -> double
     {
         return impl(genotype_column.data(), lut.data(), rhs.data(), rhs.size());
+    };
+}
+
+auto adapt_raw_multiply_impl(RawMultiplyImpl impl)
+{
+    return [impl](
+               std::span<const std::uint8_t> genotype_column,
+               const Eigen::Ref<const Eigen::Array4d>& lut,
+               double scale,
+               std::span<double> target) noexcept -> void
+    {
+        impl(
+            genotype_column.data(),
+            lut.data(),
+            scale,
+            target.data(),
+            genotype_column.size());
     };
 }
 
@@ -153,6 +171,41 @@ auto check_axpy_impl(Axpy impl) -> void
     }
 }
 
+template <typename Multiply>
+auto check_multiply_impl(Multiply impl) -> void
+{
+    const std::array<Eigen::Array4d, 3> luts{
+        Eigen::Array4d{{2.0, 1.0, 1.0, 0.0}},
+        Eigen::Array4d{{-0.5, 0.0, 1.5, -0.5}},
+        Eigen::Array4d{{0.75, -0.125, -1.25, 2.5}}};
+
+    for (const auto& lut : luts)
+    {
+        for (const std::size_t size : TEST_SIZES)
+        {
+            INFO("size = " << size);
+            std::vector<std::uint8_t> genotype_column(size);
+            Eigen::VectorXd decoded(static_cast<Eigen::Index>(size));
+            for (std::size_t index = 0; index < size; ++index)
+            {
+                const auto code = static_cast<std::uint8_t>(index % 4);
+                genotype_column[index] = code;
+                decoded[static_cast<Eigen::Index>(index)] = lut[code];
+            }
+
+            for (const double scale : test_scales)
+            {
+                INFO("scale = " << scale);
+                const Eigen::VectorXd expected = scale * decoded;
+                Eigen::VectorXd actual(static_cast<Eigen::Index>(size));
+                impl(genotype_column, lut, scale, actual);
+
+                REQUIRE(actual.isApprox(expected, 1e-13));
+            }
+        }
+    }
+}
+
 template <typename Axpy>
 auto check_multi_target_axpy_impl(Axpy impl) -> void
 {
@@ -248,6 +301,35 @@ TEST_CASE(
 }
 
 TEST_CASE(
+    "genotype multiply dispatch agrees with Eigen",
+    "[bayes][genotype_operations][multiply]")
+{
+    check_multiply_impl(
+        [](std::span<const std::uint8_t> genotype_column,
+           const Eigen::Ref<const Eigen::Array4d>& lut,
+           double scale,
+           std::span<double> target) noexcept -> void
+        { gelex::bayes::multiply(genotype_column, lut, scale, target); });
+}
+
+TEST_CASE(
+    "genotype multiply accepts a const LUT column",
+    "[bayes][genotype_operations][multiply]")
+{
+    Eigen::Array<double, 4, Eigen::Dynamic> luts(4, 1);
+    luts.col(0) = Eigen::Array4d{{1.5, -0.75, 0.25, 2.0}};
+    const auto& const_luts = luts;
+    const std::array<std::uint8_t, 4> genotype_column{0, 1, 2, 3};
+    const Eigen::Vector4d decoded = const_luts.col(0).matrix();
+    const Eigen::Vector4d expected = -0.25 * decoded;
+    Eigen::Vector4d actual;
+
+    gelex::bayes::multiply(genotype_column, const_luts.col(0), -0.25, actual);
+
+    REQUIRE(actual.isApprox(expected));
+}
+
+TEST_CASE(
     "genotype axpy accepts a const LUT column",
     "[bayes][genotype_operations][axpy]")
 {
@@ -292,6 +374,14 @@ TEST_CASE(
 }
 
 TEST_CASE(
+    "scalar genotype multiply agrees with Eigen",
+    "[bayes][genotype_operations][multiply]")
+{
+    check_multiply_impl(
+        adapt_raw_multiply_impl(gelex::bayes::detail::multiply_scalar));
+}
+
+TEST_CASE(
     "scalar genotype multi-target axpy agrees with Eigen",
     "[bayes][genotype_operations][axpy]")
 {
@@ -319,6 +409,18 @@ TEST_CASE(
         SKIP("AVX2 and FMA are required");
     }
     check_axpy_impl(adapt_raw_impl(gelex::bayes::detail::axpy_avx2));
+}
+
+TEST_CASE(
+    "AVX2 genotype multiply agrees with Eigen",
+    "[bayes][genotype_operations][multiply]")
+{
+    if (!gelex::bayes::detail::supports_avx2())
+    {
+        SKIP("AVX2 and FMA are required");
+    }
+    check_multiply_impl(
+        adapt_raw_multiply_impl(gelex::bayes::detail::multiply_avx2));
 }
 
 TEST_CASE(
@@ -353,6 +455,18 @@ TEST_CASE(
         SKIP("AVX-512F and AVX-512BW are required");
     }
     check_axpy_impl(adapt_raw_impl(gelex::bayes::detail::axpy_avx512));
+}
+
+TEST_CASE(
+    "AVX-512 genotype multiply agrees with Eigen",
+    "[bayes][genotype_operations][multiply]")
+{
+    if (!gelex::bayes::detail::supports_avx512())
+    {
+        SKIP("AVX-512F and AVX-512BW are required");
+    }
+    check_multiply_impl(
+        adapt_raw_multiply_impl(gelex::bayes::detail::multiply_avx512));
 }
 
 TEST_CASE(

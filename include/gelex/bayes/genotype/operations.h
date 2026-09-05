@@ -42,6 +42,12 @@ struct AxpyTarget
     const Eigen::Ref<const Eigen::Array4d>& lut,
     std::span<const double> rhs) noexcept -> double;
 
+auto multiply(
+    std::span<const std::uint8_t> genotype_column,
+    const Eigen::Ref<const Eigen::Array4d>& lut,
+    double scale,
+    std::span<double> target) noexcept -> void;
+
 auto axpy(
     std::span<const std::uint8_t> genotype_column,
     const Eigen::Ref<const Eigen::Array4d>& lut,

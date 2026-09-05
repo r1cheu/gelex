@@ -47,19 +47,73 @@ struct GaussianPrior
 {
     VarianceParameter variance;
 };
+template <VarianceLayout Kind>
+class GaussianState;
+
+namespace detail
+{
+template <VarianceLayout Kind>
+auto make_state(
+    const GaussianPrior<Kind>& prior,
+    GeneticStateDimensions dimensions) -> GaussianState<Kind>;
+
+}  // namespace detail
 
 template <VarianceLayout Kind>
-struct GaussianState
+class GaussianState
 {
-    detail::marker_variance_state_t<Kind> variance{};
-    Eigen::VectorXd fitted_values;  // total
+   public:
+    auto coefficients() const -> const Eigen::VectorXd&
+    {
+        return coefficients_;
+    }
+    auto fitted_values() const -> const Eigen::VectorXd&
+    {
+        return fitted_values_;
+    }
+    auto variance() const -> const detail::marker_variance_state_t<Kind>&
+    {
+        return variance_;
+    }
+    auto variance() -> detail::marker_variance_state_t<Kind>&
+    {
+        return variance_;
+    }
+
+    auto transition(Eigen::Index marker_index, double coefficient) -> void
+    {
+        coefficients_(marker_index) = coefficient;
+    }
+    auto transition(const Eigen::Ref<const Eigen::VectorXd>& delta) -> void
+    {
+        fitted_values_.noalias() += delta;
+    }
+
+   private:
+    friend auto detail::make_state<Kind>(
+        const GaussianPrior<Kind>& prior,
+        detail::GeneticStateDimensions dimensions) -> GaussianState<Kind>;
+
+    GaussianState(
+        detail::marker_variance_state_t<Kind> variance,
+        Eigen::Index num_markers,
+        Eigen::Index num_individuals)
+        : coefficients_(Eigen::VectorXd::Zero(num_markers)),
+          fitted_values_(Eigen::VectorXd::Zero(num_individuals)),
+          variance_(variance)
+
+    {
+    }
+    Eigen::VectorXd coefficients_;
+    Eigen::VectorXd fitted_values_;
+    detail::marker_variance_state_t<Kind> variance_;
 };
 
 template <VarianceLayout Kind>
 [[nodiscard]] auto genetic_value(const GaussianState<Kind>& state)
     -> const Eigen::VectorXd&
 {
-    return state.fitted_values;
+    return state.fitted_values();
 }
 
 template <VarianceLayout Kind>
@@ -69,7 +123,7 @@ struct GaussianDraws
 
     auto append(const GaussianState<Kind>& state) -> void
     {
-        variance.append(state.variance);
+        variance.append(state.variance());
     }
 };
 
@@ -107,9 +161,9 @@ auto make_state(
     GeneticStateDimensions dimensions) -> GaussianState<Kind>
 {
     return {
-        .variance = initial_marker_variance<Kind>(
-            prior.variance, dimensions.marker_count),
-        .fitted_values = Eigen::VectorXd::Zero(dimensions.individual_count)};
+        initial_marker_variance<Kind>(prior.variance, dimensions.marker_count),
+        dimensions.marker_count,
+        dimensions.individual_count};
 }
 
 template <VarianceLayout Kind>

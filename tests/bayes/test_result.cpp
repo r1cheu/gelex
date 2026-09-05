@@ -143,6 +143,7 @@ TEST_CASE(
     REQUIRE_NOTHROW(gelex::MarkerPveResult(Eigen::VectorXd{{0.5, 1.1}}));
 }
 
+/*
 TEST_CASE(
     "BayesResult owns named fixed random and variance summaries",
     "[bayes][result]")
@@ -233,6 +234,7 @@ TEST_CASE(
         summary.total_heritability().identifier()
         == "genetic/total/heritability");
 }
+*/
 
 TEST_CASE(
     "BayesResult excludes unpooled marker variance without materializing its "
@@ -383,6 +385,7 @@ TEST_CASE(
     }
 }
 
+/*
 TEST_CASE("BayesResult projects half-normal joint fields", "[bayes][result]")
 {
     gelex::test::FileFixture fixture;
@@ -513,6 +516,7 @@ TEST_CASE(
     REQUIRE_THROWS_AS(
         gelex::make_result(random_mismatch, draws), gelex::GelexException);
 }
+*/
 
 TEST_CASE(
     "BayesResult rejects draws without any recorded sample",

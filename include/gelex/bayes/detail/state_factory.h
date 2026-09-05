@@ -17,7 +17,6 @@
 #ifndef GELEX_BAYES_DETAIL_STATE_FACTORY_H_
 #define GELEX_BAYES_DETAIL_STATE_FACTORY_H_
 
-#include <Eigen/Core>
 #include <utility>
 
 #include "gelex/bayes/genetic/detail/state_support.h"
@@ -25,7 +24,6 @@
 #include "gelex/bayes/genetic/joint_spike_slab.h"
 #include "gelex/bayes/genetic/scaled_mixture.h"
 #include "gelex/bayes/genetic/spike_slab.h"
-#include "gelex/bayes/genetic/state.h"
 #include "gelex/bayes/genotype/design.h"
 #include "gelex/bayes/mode_values.h"
 #include "gelex/exception.h"
@@ -59,12 +57,7 @@ auto make_state(
     return transform_mode_values(
         prior,
         [&]<GeneticMode /*Mode*/>(const auto& mode_prior)
-        {
-            auto family_state = make_state(mode_prior, dimensions);
-            return GeneticModeState<decltype(family_state)>{
-                .coefficients = Eigen::VectorXd::Zero(dimensions.marker_count),
-                .family_state = std::move(family_state)};
-        });
+        { return make_state(mode_prior, dimensions); });
 }
 
 template <typename ModeValuesType, typename JointPrior>

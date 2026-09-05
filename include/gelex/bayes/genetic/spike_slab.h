@@ -18,7 +18,10 @@
 #define GELEX_BAYES_GENETIC_SPIKE_SLAB_H_
 
 #include <Eigen/Core>
+#include <array>
+#include <cstddef>
 #include <cstdint>
+#include <utility>
 
 #include "gelex/bayes/basic_draw.h"
 #include "gelex/bayes/basic_result.h"
@@ -62,19 +65,99 @@ struct SpikeSlabPrior
 };
 
 template <VarianceLayout Kind>
-struct SpikeSlabState
+class SpikeSlabState;
+
+namespace detail
 {
-    detail::marker_variance_state_t<Kind> variance{};
-    Eigen::VectorX<std::uint8_t> assignment;
-    double probability{};
-    Eigen::VectorXd fitted_values;  // total
+template <VarianceLayout Kind, MixtureWeightUpdate WeightUpdate>
+auto make_state(
+    const SpikeSlabPrior<Kind, WeightUpdate>& prior,
+    GeneticStateDimensions dimensions) -> SpikeSlabState<Kind>;
+}  // namespace detail
+
+template <VarianceLayout Kind>
+class SpikeSlabState
+{
+   public:
+    auto coefficients() const -> const Eigen::VectorXd&
+    {
+        return coefficients_;
+    }
+    auto assignments() const -> const Eigen::VectorX<std::uint8_t>&
+    {
+        return assignments_;
+    }
+    auto class_counts() const -> const std::array<std::size_t, 2>&
+    {
+        return class_counts_;
+    }
+    auto fitted_values() const -> const Eigen::VectorXd&
+    {
+        return fitted_values_;
+    }
+    auto variance() const -> const detail::marker_variance_state_t<Kind>&
+    {
+        return variance_;
+    }
+    auto variance() -> detail::marker_variance_state_t<Kind>&
+    {
+        return variance_;
+    }
+    auto probability() const -> double { return probability_; }
+    auto probability() -> double& { return probability_; }
+
+    auto transition(Eigen::Index marker, double coefficient, bool active)
+        -> void
+    {
+        const auto old_assignment = assignments_(marker);
+        const auto new_assignment = static_cast<std::uint8_t>(active);
+        if (old_assignment != new_assignment)
+        {
+            --class_counts_[old_assignment];
+            ++class_counts_[new_assignment];
+        }
+        assignments_(marker) = new_assignment;
+        coefficients_(marker) = active ? coefficient : 0.0;
+    }
+
+    auto transition(const Eigen::Ref<const Eigen::VectorXd>& delta) -> void
+    {
+        fitted_values_.noalias() += delta;
+    }
+
+   private:
+    template <VarianceLayout Layout, MixtureWeightUpdate WeightUpdate>
+    friend auto detail::make_state(
+        const SpikeSlabPrior<Layout, WeightUpdate>& prior,
+        detail::GeneticStateDimensions dimensions) -> SpikeSlabState<Layout>;
+
+    SpikeSlabState(
+        detail::marker_variance_state_t<Kind> variance,
+        double probability,
+        Eigen::Index num_markers,
+        Eigen::Index num_individuals)
+        : coefficients_(Eigen::VectorXd::Zero(num_markers)),
+          assignments_(Eigen::VectorX<std::uint8_t>::Zero(num_markers)),
+          class_counts_{static_cast<std::size_t>(num_markers), 0},
+          fitted_values_(Eigen::VectorXd::Zero(num_individuals)),
+          variance_(std::move(variance)),
+          probability_(probability)
+    {
+    }
+
+    Eigen::VectorXd coefficients_;
+    Eigen::VectorX<std::uint8_t> assignments_;
+    std::array<std::size_t, 2> class_counts_;
+    Eigen::VectorXd fitted_values_;
+    detail::marker_variance_state_t<Kind> variance_;
+    double probability_;
 };
 
 template <VarianceLayout Kind>
 [[nodiscard]] auto genetic_value(const SpikeSlabState<Kind>& state)
     -> const Eigen::VectorXd&
 {
-    return state.fitted_values;
+    return state.fitted_values();
 }
 
 template <VarianceLayout Kind, MixtureWeightUpdate WeightUpdate>
@@ -86,9 +169,9 @@ struct SpikeSlabDraws
 
     auto append(const SpikeSlabState<Kind>& state) -> void
     {
-        variance.append(state.variance);
-        assignment.append(state.assignment);
-        probability.append(state.probability);
+        variance.append(state.variance());
+        assignment.append(state.assignments());
+        probability.append(state.probability());
     }
 };
 
@@ -141,12 +224,10 @@ auto make_state(
     GeneticStateDimensions dimensions) -> SpikeSlabState<Kind>
 {
     return {
-        .variance = initial_marker_variance<Kind>(
-            prior.variance, dimensions.marker_count),
-        .assignment
-        = Eigen::VectorX<std::uint8_t>::Zero(dimensions.marker_count),
-        .probability = prior.probability.initial,
-        .fitted_values = Eigen::VectorXd::Zero(dimensions.individual_count)};
+        initial_marker_variance<Kind>(prior.variance, dimensions.marker_count),
+        prior.probability.initial,
+        dimensions.marker_count,
+        dimensions.individual_count};
 }
 
 template <VarianceLayout Kind, MixtureWeightUpdate WeightUpdate>

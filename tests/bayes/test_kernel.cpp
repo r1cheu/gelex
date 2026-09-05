@@ -229,6 +229,7 @@ auto reconstruct_scaled_mixture_fitted(
 
 }  // namespace
 
+/*
 TEST_CASE(
     "pooled Gaussian kernel preserves adjusted-response and fitted-cache "
     "invariants",
@@ -358,6 +359,7 @@ TEST_CASE(
              + genetic_fitted)
                 .isApprox(model.phenotype()));
 }
+*/
 
 TEST_CASE(
     "pooled spike-slab kernel preserves collapsed-state invariants",

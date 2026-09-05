@@ -23,15 +23,17 @@
 #include <cstdint>
 #include <random>
 #include <span>
+#include <type_traits>
+#include <variant>
 
 #include "gelex/bayes/basic_state.h"
 #include "gelex/bayes/detail/normal_variance_conjugate_updater.h"
 #include "gelex/bayes/genetic/detail/coefficient_likelihood.h"
 #include "gelex/bayes/genetic/detail/dirichlet_conjugate_updater.h"
 #include "gelex/bayes/genetic/scaled_mixture.h"
-#include "gelex/bayes/genetic/state.h"
 #include "gelex/bayes/genetic_family.h"
 #include "gelex/bayes/genotype/design.h"
+#include "gelex/bayes/genotype/operations.h"
 #include "gelex/bayes/stats/log_categorical_distribution.h"
 #include "gelex/bayes/stats/quadratic_log_kernel.h"
 #include "gelex/genetic_mode.h"
@@ -43,7 +45,7 @@ template <std::size_t ClassCount, MixtureWeightUpdate WeightUpdate>
 class ScaledMixtureKernel
 {
     using Prior = ScaledMixturePrior<ClassCount, WeightUpdate>;
-    using State = GeneticModeState<ScaledMixtureState<ClassCount>>;
+    using State = ScaledMixtureState<ClassCount>;
     using CoefficientParameters = std::normal_distribution<double>::param_type;
 
     struct ComponentSample
@@ -70,95 +72,77 @@ class ScaledMixtureKernel
     {
         const auto& projection = design.projection(Mode);
         const auto valid_indices = projection.valid_indices();
-        auto& coefficients = state.coefficients;
-        auto& family_state = state.family_state;
+        const auto& coefficients = state.coefficients();
 
         std::normal_distribution<double> normal_distribution;
-        const auto log_probabilities
-            = make_log_weights(family_state.probabilities);
-        std::array<std::size_t, ClassCount> allocation_counts{};
+        const auto log_probabilities = make_log_weights(state.probabilities());
 
-        std::size_t active_count = 0;
         double scaled_sum_squares = 0.0;
         for (const Eigen::Index marker : valid_indices)
         {
             const double old_value = coefficients(marker);
-            const auto old_class_index
-                = static_cast<std::size_t>(family_state.assignment(marker));
             const auto likelihood = make_coefficient_likelihood(
                 projection, marker, old_value, residual);
             const auto sample = draw_component(
-                likelihood, family_state.variance, log_probabilities, rng);
-            if constexpr (WeightUpdate == MixtureWeightUpdate::Enabled)
-            {
-                // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
-                ++allocation_counts[sample.class_index];
-            }
+                likelihood, state.variance(), log_probabilities, rng);
             const double new_value
                 = sample.class_index == 0
                       ? 0.0
                       : normal_distribution(rng, sample.coefficient_parameters);
 
-            coefficients(marker) = new_value;
-            family_state.assignment(marker)
-                = static_cast<std::uint8_t>(sample.class_index);
-
-            std::array<bayes::AxpyTarget, 3> fitted_targets{};
-            std::size_t fitted_target_count = 0;
-            const double coefficient_delta = new_value - old_value;
-            if (coefficient_delta != 0.0)
+            std::array<bayes::AxpyTarget, 3> targets{};
+            std::size_t target_count = 0;
+            const double delta = new_value - old_value;
+            if (delta != 0.0)
             {
-                // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
-                fitted_targets[fitted_target_count++] = bayes::AxpyTarget{
-                    -coefficient_delta, residual.adjusted_response};
+                targets[target_count++] = {-delta, residual.adjusted_response};
             }
-
-            const auto append_component_target
-                = [&](std::size_t class_index, double delta)
-            {
-                if (class_index == 0 || delta == 0.0)
+            std::visit(
+                [&](const auto& update)
                 {
-                    return;
-                }
-
-                const auto component_index
-                    = static_cast<Eigen::Index>(class_index - 1);
-                // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
-                fitted_targets[fitted_target_count++] = bayes::AxpyTarget{
-                    delta, family_state.fitted_values.col(component_index)};
-            };
-
-            if (old_class_index == sample.class_index)
-            {
-                append_component_target(old_class_index, coefficient_delta);
-            }
-            else
-            {
-                append_component_target(old_class_index, -old_value);
-                append_component_target(sample.class_index, new_value);
-            }
-
-            if (fitted_target_count != 0)
+                    using Update = std::remove_cvref_t<decltype(update)>;
+                    if constexpr (std::is_same_v<Update, bayes::AxpyTarget>)
+                    {
+                        targets[target_count++] = update;
+                    }
+                    else if constexpr (!std::is_same_v<Update, std::monostate>)
+                    {
+                        for (const auto& target : update)
+                        {
+                            targets[target_count++] = target;
+                        }
+                    }
+                },
+                state.transition(
+                    marker,
+                    new_value,
+                    static_cast<std::uint8_t>(sample.class_index)));
+            if (target_count != 0)
             {
                 projection.axpy(
                     marker,
                     std::span<const bayes::AxpyTarget>{
-                        fitted_targets.data(), fitted_target_count});
+                        targets.data(), target_count});
             }
 
             if (sample.class_index != 0)
             {
-                ++active_count;
                 // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
                 scaled_sum_squares
                     += (new_value * new_value) / scales_[sample.class_index];
             }
         }
 
+        const auto active_count = static_cast<std::size_t>(coefficients.size())
+                                  - state.class_counts()[0];
         variance_updater_.update(
-            family_state.variance, active_count, scaled_sum_squares, rng);
+            state.variance(), active_count, scaled_sum_squares, rng);
+        auto allocation_counts = state.class_counts();
+        // Skipped markers remain NULL but do not contribute to the posterior.
+        allocation_counts[0] -= static_cast<std::size_t>(coefficients.size())
+                                - valid_indices.size();
         probability_updater_.update(
-            family_state.probabilities, allocation_counts, rng);
+            state.probabilities(), allocation_counts, rng);
     }
 
    private:

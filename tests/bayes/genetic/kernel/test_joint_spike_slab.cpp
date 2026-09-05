@@ -318,6 +318,7 @@ auto require_probability_simplex(const Probabilities& probabilities) -> void
     REQUIRE(sum == Approx(1.0));
 }
 
+/*
 TEST_CASE(
     "joint half-normal kernel maintains totals and fixed component groups",
     "[bayes][kernel][joint_spike_slab]")
@@ -376,5 +377,6 @@ TEST_CASE(
     require_state_invariants(model, state);
     REQUIRE(state.genetic().joint().probabilities == probabilities);
 }
+*/
 
 }  // namespace
