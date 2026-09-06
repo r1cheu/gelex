@@ -60,20 +60,16 @@ struct HalfNormalPrior
     VarianceParameter variance;
 };
 
-template <
-    std::size_t ClassCount,
-    MixtureWeightUpdate WeightUpdate = MixtureWeightUpdate::Enabled>
+template <MixtureWeightUpdate WeightUpdate = MixtureWeightUpdate::Enabled>
 struct JointSpikeSlabPrior
 {
-    static constexpr std::size_t class_count = ClassCount;
+    static constexpr std::size_t class_count = JointSpikeSlab::class_count;
 
     SimplexParameter<class_count, WeightUpdate> probabilities;
 };
 
 class HalfNormalState;
 
-template <std::size_t ClassCount>
-    requires(ClassCount == 4)
 class JointSpikeSlabState;
 
 namespace detail
@@ -82,10 +78,10 @@ inline auto make_state(
     const HalfNormalPrior& prior,
     GeneticStateDimensions dimensions) -> HalfNormalState;
 
-template <std::size_t ClassCount, MixtureWeightUpdate WeightUpdate>
+template <MixtureWeightUpdate WeightUpdate>
 auto make_state(
-    const JointSpikeSlabPrior<ClassCount, WeightUpdate>& prior,
-    GeneticStateDimensions dimensions) -> JointSpikeSlabState<ClassCount>;
+    const JointSpikeSlabPrior<WeightUpdate>& prior,
+    GeneticStateDimensions dimensions) -> JointSpikeSlabState;
 }  // namespace detail
 
 class HalfNormalState
@@ -144,12 +140,10 @@ class HalfNormalState
 // Classes are NULL, A-only, D-only and AD; fitted_values holds one column per
 // (mode, class) cell in which that mode is active, so every column carries a
 // single mode and the two columns of a mode sum to that mode's total.
-template <std::size_t ClassCount>
-    requires(ClassCount == 4)
 class JointSpikeSlabState
 {
    public:
-    static constexpr std::size_t class_count = ClassCount;
+    static constexpr std::size_t class_count = JointSpikeSlab::class_count;
     static constexpr std::size_t component_count = 4;
     static constexpr int no_component = -1;
     static constexpr std::array<int, class_count> additive_components{
@@ -227,11 +221,10 @@ class JointSpikeSlabState
     }
 
    private:
-    template <std::size_t Count, MixtureWeightUpdate WeightUpdate>
+    template <MixtureWeightUpdate WeightUpdate>
     friend auto detail::make_state(
-        const JointSpikeSlabPrior<Count, WeightUpdate>& prior,
-        detail::GeneticStateDimensions dimensions)
-        -> JointSpikeSlabState<Count>;
+        const JointSpikeSlabPrior<WeightUpdate>& prior,
+        detail::GeneticStateDimensions dimensions) -> JointSpikeSlabState;
 
     JointSpikeSlabState(
         std::array<double, class_count> probabilities,
@@ -268,14 +261,14 @@ struct HalfNormalDraws
     }
 };
 
-template <std::size_t ClassCount, MixtureWeightUpdate WeightUpdate>
+template <MixtureWeightUpdate WeightUpdate>
 struct JointSpikeSlabDraws
 {
-    CategoryDraw<ClassCount> assignment;
+    CategoryDraw<JointSpikeSlab::class_count> assignment;
     detail::weight_draw_t<WeightUpdate, VectorDraw> probabilities;
     VectorDraw component_explained_variance;
 
-    auto append(const JointSpikeSlabState<ClassCount>& state) -> void
+    auto append(const JointSpikeSlabState& state) -> void
     {
         assignment.append(state.assignments());
         probabilities.append(state.probabilities());
@@ -290,7 +283,7 @@ struct HalfNormalResult
     VectorResult probit_coefficients;
 };
 
-template <std::size_t ClassCount, MixtureWeightUpdate WeightUpdate>
+template <MixtureWeightUpdate WeightUpdate>
 struct JointSpikeSlabResult
 {
     detail::weight_result_t<WeightUpdate, VectorResult> probabilities;
@@ -353,8 +346,7 @@ auto make_prior(
             }
         });
 
-    using JointPrior
-        = JointSpikeSlabPrior<JointSpikeSlab::class_count, WeightUpdate>;
+    using JointPrior = JointSpikeSlabPrior<WeightUpdate>;
     return JointModeValues{
         std::move(mode_priors),
         JointPrior{
@@ -373,10 +365,10 @@ inline auto make_state(
         dimensions.individual_count};
 }
 
-template <std::size_t ClassCount, MixtureWeightUpdate WeightUpdate>
+template <MixtureWeightUpdate WeightUpdate>
 auto make_state(
-    const JointSpikeSlabPrior<ClassCount, WeightUpdate>& prior,
-    GeneticStateDimensions dimensions) -> JointSpikeSlabState<ClassCount>
+    const JointSpikeSlabPrior<WeightUpdate>& prior,
+    GeneticStateDimensions dimensions) -> JointSpikeSlabState
 {
     return {
         prior.probabilities.initial,
@@ -395,19 +387,19 @@ auto make_state(
 
 // Rows follow the fitted column layout of JointSpikeSlabState: A in A-only,
 // A in AD, D in D-only, D in AD.
-template <std::size_t ClassCount, MixtureWeightUpdate WeightUpdate>
+template <MixtureWeightUpdate WeightUpdate>
 [[nodiscard]] auto make_draws(
-    const JointSpikeSlabPrior<ClassCount, WeightUpdate>& /*prior*/,
-    GeneticDrawsBuilder& builder)
-    -> JointSpikeSlabDraws<ClassCount, WeightUpdate>
+    const JointSpikeSlabPrior<WeightUpdate>& /*prior*/,
+    GeneticDrawsBuilder& builder) -> JointSpikeSlabDraws<WeightUpdate>
 {
     return {
-        .assignment
-        = builder.category<ClassCount>("assignment", builder.marker_count()),
+        .assignment = builder.category<JointSpikeSlab::class_count>(
+            "assignment", builder.marker_count()),
         .probabilities
-        = make_probabilities_draw<WeightUpdate, ClassCount>(builder),
+        = make_probabilities_draw<WeightUpdate, JointSpikeSlab::class_count>(
+            builder),
         .component_explained_variance = make_component_explained_variance_draw<
-            JointSpikeSlabState<ClassCount>::component_count>(builder)};
+            JointSpikeSlabState::component_count>(builder)};
 }
 
 inline auto make_result(const HalfNormalDraws& draws) -> HalfNormalResult
@@ -417,9 +409,9 @@ inline auto make_result(const HalfNormalDraws& draws) -> HalfNormalResult
         .probit_coefficients = make_result(draws.probit_coefficients)};
 }
 
-template <std::size_t ClassCount, MixtureWeightUpdate WeightUpdate>
-auto make_result(const JointSpikeSlabDraws<ClassCount, WeightUpdate>& draws)
-    -> JointSpikeSlabResult<ClassCount, WeightUpdate>
+template <MixtureWeightUpdate WeightUpdate>
+auto make_result(const JointSpikeSlabDraws<WeightUpdate>& draws)
+    -> JointSpikeSlabResult<WeightUpdate>
 {
     return {
         .probabilities = make_result(draws.probabilities),
@@ -435,10 +427,10 @@ inline auto write_family_summary_rows(
     write_summary_rows(writer, result.probit_coefficients);
 }
 
-template <std::size_t ClassCount, MixtureWeightUpdate WeightUpdate>
+template <MixtureWeightUpdate WeightUpdate>
 auto write_family_summary_rows(
     TextWriter& writer,
-    const JointSpikeSlabResult<ClassCount, WeightUpdate>& result) -> void
+    const JointSpikeSlabResult<WeightUpdate>& result) -> void
 {
     write_summary_rows(writer, result.probabilities);
     write_summary_rows(writer, result.component_explained_variance);

@@ -67,9 +67,8 @@ using JointModePriors = gelex::ModeValues<
     gelex::HalfNormalPrior>;
 
 template <gelex::MixtureWeightUpdate Update>
-using JointGeneticPrior = gelex::JointModeValues<
-    JointModePriors,
-    gelex::JointSpikeSlabPrior<gelex::JointSpikeSlab::class_count, Update>>;
+using JointGeneticPrior = gelex::
+    JointModeValues<JointModePriors, gelex::JointSpikeSlabPrior<Update>>;
 
 using SampledPrior = JointGeneticPrior<gelex::MixtureWeightUpdate::Enabled>;
 using FixedPrior = JointGeneticPrior<gelex::MixtureWeightUpdate::Disabled>;
@@ -165,8 +164,7 @@ auto reconstruct_joint_fitted_values(
     const JointCoefficients& coefficients,
     const Eigen::VectorX<std::uint8_t>& assignment) -> Eigen::MatrixXd
 {
-    using JointState
-        = gelex::JointSpikeSlabState<gelex::JointSpikeSlab::class_count>;
+    using JointState = gelex::JointSpikeSlabState;
     Eigen::MatrixXd fitted_values = Eigen::MatrixXd::Zero(
         design.rows(), static_cast<Eigen::Index>(JointState::component_count));
     constexpr auto additive_component = JointState::additive_components;

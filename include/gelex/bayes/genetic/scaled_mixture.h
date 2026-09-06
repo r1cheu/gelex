@@ -21,7 +21,6 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
-#include <limits>
 #include <ranges>
 #include <variant>
 
@@ -57,45 +56,31 @@ struct ScaledMixtureFamily
 {
 };
 
-template <
-    std::size_t ClassCount,
-    MixtureWeightUpdate WeightUpdate = MixtureWeightUpdate::Enabled>
+template <MixtureWeightUpdate WeightUpdate = MixtureWeightUpdate::Enabled>
 // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init,hicpp-member-init)
 struct ScaledMixturePrior
 {
-    static constexpr std::size_t class_count = ClassCount;
+    static constexpr std::size_t class_count = ScaledMixture::class_count;
 
     VarianceParameter variance;
     SimplexParameter<class_count, WeightUpdate> probabilities;
     std::array<double, class_count> scales{};
 };
 
-template <std::size_t ClassCount>
-    requires(
-        ClassCount > 1
-        && ClassCount <= static_cast<std::size_t>(
-                             std::numeric_limits<std::uint8_t>::max())
-                             + 1)
 class ScaledMixtureState;
 
 namespace detail
 {
-template <std::size_t ClassCount, MixtureWeightUpdate WeightUpdate>
+template <MixtureWeightUpdate WeightUpdate>
 auto make_state(
-    const ScaledMixturePrior<ClassCount, WeightUpdate>& prior,
-    GeneticStateDimensions dimensions) -> ScaledMixtureState<ClassCount>;
+    const ScaledMixturePrior<WeightUpdate>& prior,
+    GeneticStateDimensions dimensions) -> ScaledMixtureState;
 }  // namespace detail
 
-template <std::size_t ClassCount>
-    requires(
-        ClassCount > 1
-        && ClassCount <= static_cast<std::size_t>(
-                             std::numeric_limits<std::uint8_t>::max())
-                             + 1)
 class ScaledMixtureState
 {
    public:
-    static constexpr std::size_t class_count = ClassCount;
+    static constexpr std::size_t class_count = ScaledMixture::class_count;
     static constexpr std::size_t component_count = class_count - 1;
 
     auto coefficients() const -> const Eigen::VectorXd&
@@ -157,10 +142,10 @@ class ScaledMixtureState
     }
 
    private:
-    template <std::size_t Count, MixtureWeightUpdate WeightUpdate>
+    template <MixtureWeightUpdate WeightUpdate>
     friend auto detail::make_state(
-        const ScaledMixturePrior<Count, WeightUpdate>& prior,
-        detail::GeneticStateDimensions dimensions) -> ScaledMixtureState<Count>;
+        const ScaledMixturePrior<WeightUpdate>& prior,
+        detail::GeneticStateDimensions dimensions) -> ScaledMixtureState;
 
     ScaledMixtureState(
         double variance,
@@ -190,15 +175,15 @@ class ScaledMixtureState
     std::array<double, class_count> probabilities_;
 };
 
-template <std::size_t ClassCount, MixtureWeightUpdate WeightUpdate>
+template <MixtureWeightUpdate WeightUpdate>
 struct ScaledMixtureDraws
 {
     ScalarDraw variance;
-    CategoryDraw<ClassCount> assignment;
+    CategoryDraw<ScaledMixture::class_count> assignment;
     detail::weight_draw_t<WeightUpdate, VectorDraw> probabilities;
     VectorDraw component_explained_variance;
 
-    auto append(const ScaledMixtureState<ClassCount>& state) -> void
+    auto append(const ScaledMixtureState& state) -> void
     {
         variance.append(state.variance());
         assignment.append(state.assignments());
@@ -208,7 +193,7 @@ struct ScaledMixtureDraws
     }
 };
 
-template <std::size_t ClassCount, MixtureWeightUpdate WeightUpdate>
+template <MixtureWeightUpdate WeightUpdate>
 struct ScaledMixtureResult
 {
     ScalarResult variance;
@@ -247,8 +232,8 @@ auto make_prior(
 {
     return transform_mode_values(
         genetic_spec,
-        [&]<GeneticMode Mode>(const ScaledMixture& spec)
-            -> ScaledMixturePrior<ScaledMixture::class_count, WeightUpdate>
+        [&]<GeneticMode Mode>(
+            const ScaledMixture& spec) -> ScaledMixturePrior<WeightUpdate>
         {
             return {
                 .variance = calibrator.calibrate(Mode, initial_activity(spec)),
@@ -259,10 +244,10 @@ auto make_prior(
         });
 }
 
-template <std::size_t ClassCount, MixtureWeightUpdate WeightUpdate>
+template <MixtureWeightUpdate WeightUpdate>
 auto make_state(
-    const ScaledMixturePrior<ClassCount, WeightUpdate>& prior,
-    GeneticStateDimensions dimensions) -> ScaledMixtureState<ClassCount>
+    const ScaledMixturePrior<WeightUpdate>& prior,
+    GeneticStateDimensions dimensions) -> ScaledMixtureState
 {
     return {
         prior.variance.initial,
@@ -271,25 +256,25 @@ auto make_state(
         dimensions.individual_count};
 }
 
-template <std::size_t ClassCount, MixtureWeightUpdate WeightUpdate>
+template <MixtureWeightUpdate WeightUpdate>
 [[nodiscard]] auto make_draws(
-    const ScaledMixturePrior<ClassCount, WeightUpdate>& /*prior*/,
-    GeneticDrawsBuilder& builder)
-    -> ScaledMixtureDraws<ClassCount, WeightUpdate>
+    const ScaledMixturePrior<WeightUpdate>& /*prior*/,
+    GeneticDrawsBuilder& builder) -> ScaledMixtureDraws<WeightUpdate>
 {
     return {
         .variance = builder.scalar("variance"),
-        .assignment
-        = builder.category<ClassCount>("assignment", builder.marker_count()),
+        .assignment = builder.category<ScaledMixture::class_count>(
+            "assignment", builder.marker_count()),
         .probabilities
-        = make_probabilities_draw<WeightUpdate, ClassCount>(builder),
+        = make_probabilities_draw<WeightUpdate, ScaledMixture::class_count>(
+            builder),
         .component_explained_variance = make_component_explained_variance_draw<
-            ScaledMixtureState<ClassCount>::component_count>(builder)};
+            ScaledMixtureState::component_count>(builder)};
 }
 
-template <std::size_t ClassCount, MixtureWeightUpdate WeightUpdate>
-auto make_result(const ScaledMixtureDraws<ClassCount, WeightUpdate>& draws)
-    -> ScaledMixtureResult<ClassCount, WeightUpdate>
+template <MixtureWeightUpdate WeightUpdate>
+auto make_result(const ScaledMixtureDraws<WeightUpdate>& draws)
+    -> ScaledMixtureResult<WeightUpdate>
 {
     return {
         .variance = make_result(draws.variance),
@@ -298,19 +283,18 @@ auto make_result(const ScaledMixtureDraws<ClassCount, WeightUpdate>& draws)
         = make_result(draws.component_explained_variance)};
 }
 
-template <std::size_t ClassCount, MixtureWeightUpdate WeightUpdate>
-[[nodiscard]] auto make_pip(
-    const ScaledMixtureDraws<ClassCount, WeightUpdate>& draws)
+template <MixtureWeightUpdate WeightUpdate>
+[[nodiscard]] auto make_pip(const ScaledMixtureDraws<WeightUpdate>& draws)
     -> MarkerPipResult
 {
     return MarkerPipResult{
         draws.assignment.probability_of(is_non_null_category)};
 }
 
-template <std::size_t ClassCount, MixtureWeightUpdate WeightUpdate>
+template <MixtureWeightUpdate WeightUpdate>
 auto write_family_summary_rows(
     TextWriter& writer,
-    const ScaledMixtureResult<ClassCount, WeightUpdate>& result) -> void
+    const ScaledMixtureResult<WeightUpdate>& result) -> void
 {
     write_summary_rows(writer, result.variance);
     write_summary_rows(writer, result.probabilities);

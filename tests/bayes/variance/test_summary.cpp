@@ -72,7 +72,7 @@ TEST_CASE(
     "genetic_value reduces a per-class decomposition to the mode total",
     "[bayes][variance_summary]")
 {
-    gelex::ScaledMixtureState<3> state;
+    gelex::ScaledMixtureState state;
     state.fitted_values = Eigen::MatrixXd{{1.0, 2.0}, {3.0, 4.0}};
 
     REQUIRE(gelex::genetic_value(state).isApprox(Eigen::VectorXd{{3.0, 7.0}}));

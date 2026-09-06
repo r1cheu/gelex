@@ -46,16 +46,13 @@ template <typename CoefficientDraws, typename ModeFamilyDraws>
 template <
     typename CoefficientDraws,
     typename ModeFamilyDraws,
-    std::size_t ClassCount,
     MixtureWeightUpdate WeightUpdate>
 [[nodiscard]] auto make_pip(
     const JointGeneticDraws<
         CoefficientDraws,
         ModeFamilyDraws,
-        JointSpikeSlabDraws<ClassCount, WeightUpdate>>& draws)
+        JointSpikeSlabDraws<WeightUpdate>>& draws)
 {
-    static_assert(ClassCount == 4);
-
     const auto& assignment = draws.joint_family().assignment;
     auto mode_pip = generate_mode_values<GeneticMode::A | GeneticMode::D>(
         [&]<GeneticMode Mode>()
@@ -63,7 +60,7 @@ template <
             return MarkerPipResult{assignment.probability_of(
                 [](std::size_t category)
                 {
-                    using State = JointSpikeSlabState<ClassCount>;
+                    using State = JointSpikeSlabState;
                     if constexpr (Mode == GeneticMode::A)
                     {
                         return State::additive_components.at(category)

@@ -91,7 +91,7 @@ using FixedUnpooledSpikeSlabPriorA = ModeValues<
     SpikeSlabPrior<VarianceLayout::Unpooled, MixtureWeightUpdate::Disabled>>;
 using JointPrior = JointModeValues<
     ModeValues<mode_ad, GaussianPrior<VarianceLayout::Pooled>, HalfNormalPrior>,
-    JointSpikeSlabPrior<JointSpikeSlab::class_count>>;
+    JointSpikeSlabPrior<>>;
 
 using UnpooledSpikeSlabFamily = SpikeSlabFamily<VarianceLayout::Unpooled>;
 using FixedPooledSpikeSlabFamily
@@ -122,9 +122,7 @@ static_assert(std::same_as<
                       mode_ad,
                       GaussianDraws<VarianceLayout::Pooled>,
                       HalfNormalDraws>,
-                  JointSpikeSlabDraws<
-                      JointSpikeSlab::class_count,
-                      MixtureWeightUpdate::Enabled>>>);
+                  JointSpikeSlabDraws<MixtureWeightUpdate::Enabled>>>);
 
 // Unlike state, the draws tree does distinguish fixed from sampled parameters:
 // a fixed parameter maps to EmptyDraw and reserves no payload.
@@ -146,7 +144,6 @@ static_assert(std::same_as<
               EmptyDraw>);
 static_assert(std::same_as<
               decltype(ScaledMixtureDraws<
-                       ScaledMixture::class_count,
                        MixtureWeightUpdate::Disabled>::probabilities),
               EmptyDraw>);
 

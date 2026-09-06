@@ -40,11 +40,11 @@
 namespace gelex::detail
 {
 
-template <std::size_t ClassCount, MixtureWeightUpdate WeightUpdate>
+template <MixtureWeightUpdate WeightUpdate>
 class ScaledMixtureKernel
 {
-    using Prior = ScaledMixturePrior<ClassCount, WeightUpdate>;
-    using State = ScaledMixtureState<ClassCount>;
+    using Prior = ScaledMixturePrior<WeightUpdate>;
+    using State = ScaledMixtureState;
     using CoefficientParameters = std::normal_distribution<double>::param_type;
 
     struct ComponentSample
@@ -56,8 +56,9 @@ class ScaledMixtureKernel
    public:
     explicit ScaledMixtureKernel(const Prior& prior)
         : variance_updater_{prior.variance.prior},
-          probability_updater_{make_dirichlet_conjugate_updater<ClassCount>(
-              prior.probabilities)},
+          probability_updater_{
+              make_dirichlet_conjugate_updater<ScaledMixture::class_count>(
+                  prior.probabilities)},
           scales_{prior.scales}
     {
     }
@@ -124,12 +125,15 @@ class ScaledMixtureKernel
     auto draw_component(
         const QuadraticLogKernel& likelihood,
         double variance,
-        const std::array<double, ClassCount>& log_probabilities,
+        const std::array<double, ScaledMixture::class_count>& log_probabilities,
         std::mt19937_64& rng) -> ComponentSample
     {
-        std::array<CoefficientParameters, ClassCount> coefficient_parameters{};
-        std::array<double, ClassCount> component_log_integrals{};
-        for (std::size_t class_index = 1; class_index < ClassCount;
+        std::array<CoefficientParameters, ScaledMixture::class_count>
+            coefficient_parameters{};
+        std::array<double, ScaledMixture::class_count>
+            component_log_integrals{};
+        for (std::size_t class_index = 1;
+             class_index < ScaledMixture::class_count;
              ++class_index)
         {
             // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
@@ -155,17 +159,18 @@ class ScaledMixtureKernel
     }
 
     NormalVarianceConjugateUpdater variance_updater_;
-    [[no_unique_address]] DirichletConjugateUpdater<ClassCount, WeightUpdate>
-        probability_updater_;
-    LogCategoricalDistribution<ClassCount> allocation_distribution_;
-    std::array<double, ClassCount> scales_;
+    [[no_unique_address]] DirichletConjugateUpdater<
+        ScaledMixture::class_count,
+        WeightUpdate> probability_updater_;
+    LogCategoricalDistribution<ScaledMixture::class_count>
+        allocation_distribution_;
+    std::array<double, ScaledMixture::class_count> scales_;
 };
 
-template <std::size_t ClassCount, MixtureWeightUpdate WeightUpdate>
-[[nodiscard]] auto make_kernel(
-    const ScaledMixturePrior<ClassCount, WeightUpdate>& prior)
+template <MixtureWeightUpdate WeightUpdate>
+[[nodiscard]] auto make_kernel(const ScaledMixturePrior<WeightUpdate>& prior)
 {
-    return ScaledMixtureKernel<ClassCount, WeightUpdate>{prior};
+    return ScaledMixtureKernel<WeightUpdate>{prior};
 }
 
 }  // namespace gelex::detail

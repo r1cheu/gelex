@@ -51,24 +51,22 @@
 namespace gelex::detail
 {
 
-template <std::size_t ClassCount, MixtureWeightUpdate WeightUpdate>
+template <MixtureWeightUpdate WeightUpdate>
 class JointSpikeSlabKernel
 {
-    static_assert(ClassCount == 4);
-
     using AdditivePrior = GaussianPrior<VarianceLayout::Pooled>;
     using DominancePrior = HalfNormalPrior;
     using ModePriors = ModeValues<
         GeneticMode::A | GeneticMode::D,
         AdditivePrior,
         DominancePrior>;
-    using JointPrior = JointSpikeSlabPrior<ClassCount, WeightUpdate>;
+    using JointPrior = JointSpikeSlabPrior<WeightUpdate>;
     using GeneticPrior = JointModeValues<ModePriors, JointPrior>;
     using GeneticState = genetic_state_t<GeneticPrior>;
-    using JointState = JointSpikeSlabState<ClassCount>;
+    using JointState = JointSpikeSlabState;
     using SignParameters = LogCategoricalDistribution<2>::param_type;
 
-    static constexpr std::size_t class_count = ClassCount;
+    static constexpr std::size_t class_count = JointSpikeSlab::class_count;
     static constexpr std::size_t negative_index = 0;
     static constexpr std::size_t positive_index = 1;
 
@@ -301,16 +299,16 @@ class JointSpikeSlabKernel
     LogCategoricalDistribution<2> sign_distribution_;
 };
 
-template <std::size_t ClassCount, MixtureWeightUpdate WeightUpdate>
+template <MixtureWeightUpdate WeightUpdate>
 [[nodiscard]] auto make_kernel(
     const JointModeValues<
         ModeValues<
             GeneticMode::A | GeneticMode::D,
             GaussianPrior<VarianceLayout::Pooled>,
             HalfNormalPrior>,
-        JointSpikeSlabPrior<ClassCount, WeightUpdate>>& prior)
+        JointSpikeSlabPrior<WeightUpdate>>& prior)
 {
-    return JointSpikeSlabKernel<ClassCount, WeightUpdate>{prior};
+    return JointSpikeSlabKernel<WeightUpdate>{prior};
 }
 
 }  // namespace gelex::detail
