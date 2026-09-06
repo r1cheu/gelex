@@ -61,22 +61,29 @@ struct ScaledMixturePrior
     std::array<double, class_count> scales{};
 };
 
-class ScaledMixtureState;
-
-namespace detail
-{
-template <MixtureWeightUpdate WeightUpdate>
-auto make_state(
-    const ScaledMixturePrior<WeightUpdate>& prior,
-    GeneticStateDimensions dimensions) -> ScaledMixtureState;
-}  // namespace detail
-
 class ScaledMixtureState
 {
    public:
     static constexpr std::size_t class_count = ScaledMixtureSpec<>::class_count;
     static constexpr std::size_t component_count = class_count - 1;
-
+    ScaledMixtureState(
+        double variance,
+        std::array<double, class_count> probabilities,
+        Eigen::Index num_markers,
+        Eigen::Index num_individuals)
+        : coefficients_(Eigen::VectorXd::Zero(num_markers)),
+          assignments_(Eigen::VectorX<std::uint8_t>::Zero(num_markers)),
+          class_counts_{static_cast<std::size_t>(num_markers)},
+          fitted_values_(
+              Eigen::Matrix<
+                  double,
+                  Eigen::Dynamic,
+                  static_cast<int>(component_count)>::
+                  Zero(num_individuals, component_count)),
+          variance_(variance),
+          probabilities_(probabilities)
+    {
+    }
     auto coefficients() const -> const Eigen::VectorXd&
     {
         return coefficients_;
@@ -136,30 +143,6 @@ class ScaledMixtureState
     }
 
    private:
-    template <MixtureWeightUpdate WeightUpdate>
-    friend auto detail::make_state(
-        const ScaledMixturePrior<WeightUpdate>& prior,
-        detail::GeneticStateDimensions dimensions) -> ScaledMixtureState;
-
-    ScaledMixtureState(
-        double variance,
-        std::array<double, class_count> probabilities,
-        Eigen::Index num_markers,
-        Eigen::Index num_individuals)
-        : coefficients_(Eigen::VectorXd::Zero(num_markers)),
-          assignments_(Eigen::VectorX<std::uint8_t>::Zero(num_markers)),
-          class_counts_{static_cast<std::size_t>(num_markers)},
-          fitted_values_(
-              Eigen::Matrix<
-                  double,
-                  Eigen::Dynamic,
-                  static_cast<int>(component_count)>::
-                  Zero(num_individuals, component_count)),
-          variance_(variance),
-          probabilities_(probabilities)
-    {
-    }
-
     Eigen::VectorXd coefficients_;
     Eigen::VectorX<std::uint8_t> assignments_;
     std::array<std::size_t, class_count> class_counts_;
@@ -217,8 +200,9 @@ template <GeneticMode Mode, MixtureWeightUpdate WeightUpdate>
 auto make_mode_prior(
     const ScaledMixtureSpec<WeightUpdate>& spec,
     const MarkerVarianceCalibrator& calibrator)
+    -> ScaledMixturePrior<WeightUpdate>
 {
-    return ScaledMixturePrior<WeightUpdate>{
+    return {
         .variance = calibrator.calibrate(Mode, initial_activity(spec)),
         .probabilities = make_parameter<WeightUpdate>(
             spec.probabilities(),

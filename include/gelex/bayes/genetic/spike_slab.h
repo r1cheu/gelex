@@ -35,7 +35,6 @@
 #include "gelex/bayes/genetic/result.h"
 #include "gelex/bayes/genetic/traits.h"
 #include "gelex/bayes/genetic_policy.h"
-#include "gelex/bayes/mode_values.h"
 #include "gelex/bayes/parameter.h"
 #include "gelex/bayes/spec.h"
 #include "gelex/bayes/stats/dirichlet_log_kernel.h"
@@ -57,20 +56,22 @@ struct SpikeSlabPrior
 };
 
 template <VarianceLayout Kind>
-class SpikeSlabState;
-
-namespace detail
-{
-template <VarianceLayout Kind, MixtureWeightUpdate WeightUpdate>
-auto make_state(
-    const SpikeSlabPrior<Kind, WeightUpdate>& prior,
-    GeneticStateDimensions dimensions) -> SpikeSlabState<Kind>;
-}  // namespace detail
-
-template <VarianceLayout Kind>
 class SpikeSlabState
 {
    public:
+    SpikeSlabState(
+        detail::marker_variance_state_t<Kind> variance,
+        double probability,
+        Eigen::Index num_markers,
+        Eigen::Index num_individuals)
+        : coefficients_(Eigen::VectorXd::Zero(num_markers)),
+          assignments_(Eigen::VectorX<std::uint8_t>::Zero(num_markers)),
+          class_counts_{static_cast<std::size_t>(num_markers), 0},
+          fitted_values_(Eigen::VectorXd::Zero(num_individuals)),
+          variance_(std::move(variance)),
+          probability_(probability)
+    {
+    }
     auto coefficients() const -> const Eigen::VectorXd&
     {
         return coefficients_;
@@ -118,25 +119,6 @@ class SpikeSlabState
     }
 
    private:
-    template <VarianceLayout Layout, MixtureWeightUpdate WeightUpdate>
-    friend auto detail::make_state(
-        const SpikeSlabPrior<Layout, WeightUpdate>& prior,
-        detail::GeneticStateDimensions dimensions) -> SpikeSlabState<Layout>;
-
-    SpikeSlabState(
-        detail::marker_variance_state_t<Kind> variance,
-        double probability,
-        Eigen::Index num_markers,
-        Eigen::Index num_individuals)
-        : coefficients_(Eigen::VectorXd::Zero(num_markers)),
-          assignments_(Eigen::VectorX<std::uint8_t>::Zero(num_markers)),
-          class_counts_{static_cast<std::size_t>(num_markers), 0},
-          fitted_values_(Eigen::VectorXd::Zero(num_individuals)),
-          variance_(std::move(variance)),
-          probability_(probability)
-    {
-    }
-
     Eigen::VectorXd coefficients_;
     Eigen::VectorX<std::uint8_t> assignments_;
     std::array<std::size_t, 2> class_counts_;
@@ -179,8 +161,9 @@ template <
 auto make_mode_prior(
     const SpikeSlabSpec<Kind, WeightUpdate>& spec,
     const MarkerVarianceCalibrator& calibrator)
+    -> SpikeSlabPrior<Kind, WeightUpdate>
 {
-    return SpikeSlabPrior<Kind, WeightUpdate>{
+    return {
         .variance = calibrator.calibrate(Mode, spec.probability()),
         .probability = make_parameter<WeightUpdate>(
             spec.probability(), make_beta_prior(1.0, 1.0))};
