@@ -24,11 +24,12 @@
 #include <utility>
 #include <vector>
 
+#include "gelex/bayes/basic_draw.h"
 #include "gelex/bayes/stats/result.h"
 #include "gelex/exception.h"
+#include "gelex/namespace.h"
 
-namespace gelex
-{
+GELEX_NAMESPACE_BEGIN(gelex)
 
 struct EmptyResult
 {
@@ -142,6 +143,32 @@ class CoefficientResult
     std::vector<std::string> column_names_;
 };
 
-}  // namespace gelex
+GELEX_NAMESPACE_BEGIN(detail)
+inline auto make_result(const EmptyDraw& /*draw*/) -> EmptyResult
+{
+    return {};
+}
+
+inline auto make_result(const ScalarDraw& draw) -> ScalarResult
+{
+    return ScalarResult{std::string{draw.identifier()}, draw.result()};
+}
+
+inline auto make_result(const VectorDraw& draw) -> VectorResult
+{
+    return VectorResult{std::string{draw.identifier()}, draw.result()};
+}
+
+inline auto make_result(
+    const VectorDraw& draw,
+    std::span<const std::string> column_names) -> CoefficientResult
+{
+    return CoefficientResult{
+        make_result(draw),
+        std::vector<std::string>{column_names.begin(), column_names.end()}};
+}
+GELEX_NAMESPACE_END(detail)
+
+GELEX_NAMESPACE_END(gelex)
 
 #endif  // GELEX_BAYES_BASIC_RESULT_H_

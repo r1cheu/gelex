@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_BAYES_GENETIC_DETAIL_SUMMARY_SUPPORT_H_
-#define GELEX_BAYES_GENETIC_DETAIL_SUMMARY_SUPPORT_H_
+#ifndef GELEX_BAYES_BASIC_RESULT_IO_H_
+#define GELEX_BAYES_BASIC_RESULT_IO_H_
 
 #include <Eigen/Core>
 #include <cstddef>
@@ -105,4 +105,4 @@ inline auto write_summary_rows(TextWriter& writer, const VectorResult& result)
 
 }  // namespace gelex::detail
 
-#endif  // GELEX_BAYES_GENETIC_DETAIL_SUMMARY_SUPPORT_H_
+#endif  // GELEX_BAYES_BASIC_RESULT_IO_H_

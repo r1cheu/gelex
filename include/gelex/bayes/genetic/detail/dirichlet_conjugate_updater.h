@@ -22,7 +22,7 @@
 #include <random>
 #include <utility>
 
-#include "gelex/bayes/genetic_policy.h"
+#include "gelex/bayes/genetic/policy.h"
 #include "gelex/bayes/parameter.h"
 #include "gelex/bayes/stats/dirichlet_distribution.h"
 #include "gelex/bayes/stats/dirichlet_log_kernel.h"

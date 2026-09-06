@@ -20,12 +20,11 @@
 #include <Eigen/Core>
 
 #include "gelex/bayes/basic_result.h"
-#include "gelex/bayes/genetic/detail/draws_support.h"
-#include "gelex/bayes/genetic/detail/result_support.h"
-#include "gelex/bayes/genetic/detail/state_support.h"
-#include "gelex/bayes/genetic/detail/summary_support.h"
-#include "gelex/bayes/genetic/traits.h"
-#include "gelex/bayes/genetic_policy.h"
+#include "gelex/bayes/basic_result_io.h"
+#include "gelex/bayes/genetic/draws.h"
+#include "gelex/bayes/genetic/policy.h"
+#include "gelex/bayes/genetic/result.h"
+#include "gelex/bayes/genetic/state.h"
 #include "gelex/bayes/mode_values.h"
 #include "gelex/bayes/parameter.h"
 #include "gelex/bayes/spec.h"

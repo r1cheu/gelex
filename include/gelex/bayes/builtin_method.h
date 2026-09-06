@@ -22,7 +22,7 @@
 #include <string_view>
 #include <utility>
 
-#include "gelex/bayes/genetic_policy.h"
+#include "gelex/bayes/genetic/policy.h"
 #include "gelex/bayes/mode_values.h"
 #include "gelex/bayes/recipe.h"
 #include "gelex/bayes/spec.h"

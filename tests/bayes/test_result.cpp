@@ -29,13 +29,13 @@
 #include <variant>
 #include <vector>
 
-#include "gelex/bayes/detail/result_factory.h"
 #include "gelex/bayes/draws.h"
+#include "gelex/bayes/genetic/family.h"
 #include "gelex/bayes/genetic/gaussian.h"
 #include "gelex/bayes/genetic/joint_spike_slab.h"
+#include "gelex/bayes/genetic/policy.h"
 #include "gelex/bayes/genetic/scaled_mixture.h"
 #include "gelex/bayes/genetic/spike_slab.h"
-#include "gelex/bayes/genetic_policy.h"
 #include "gelex/bayes/genotype/operations.h"
 #include "gelex/bayes/mode_values.h"
 #include "gelex/bayes/model.h"
@@ -98,7 +98,7 @@ auto collect_result(const std::filesystem::path& path, Configure configure)
     auto state = gelex::make_state(prior, model);
     configure(state);
 
-    auto draws = gelex::make_draws(prior, model, path.string(), 1);
+    auto draws = gelex::BayesDraws{prior, model, path.string(), 1};
     draws.append(state);
     return gelex::make_result(model, draws);
 }
@@ -196,7 +196,7 @@ gelex::GaussianSpec<gelex::VarianceLayout::Pooled>>{
             = 0.5;
         state.residual().variance = 4.0;
 
-        auto draws = gelex::make_draws(prior, model, path.string(), 1);
+        auto draws = gelex::BayesDraws{prior, model, path.string(), 1};
         draws.append(state);
         static_assert(std::same_as<
                       decltype(gelex::make_result(model, draws)),
@@ -480,11 +480,11 @@ gelex::GaussianSpec<gelex::VarianceLayout::Pooled>>{
             gelex::VarianceBudget{{.additive = 0.4, .random = 0.2}}},
         source_model);
     auto state = gelex::make_state(prior, source_model);
-    auto draws = gelex::make_draws(
+    auto draws = gelex::BayesDraws{
         prior,
         source_model,
         (fixture.get_test_dir() / "mismatched.draws").string(),
-        1);
+        1};
     draws.append(state);
 
     auto no_random_model = gelex::test::make_compact_model(
@@ -535,8 +535,8 @@ TEST_CASE(
             gelex::GaussianSpec<gelex::VarianceLayout::Pooled>>{
             gelex::VarianceBudget{{.additive = 0.4, .random = 0.2}}},
         model);
-    auto draws = gelex::make_draws(
-        prior, model, (fixture.get_test_dir() / "empty.draws").string(), 1);
+    auto draws = gelex::BayesDraws{
+        prior, model, (fixture.get_test_dir() / "empty.draws").string(), 1};
 
     REQUIRE_THROWS_AS(gelex::make_result(model, draws), gelex::GelexException);
 }

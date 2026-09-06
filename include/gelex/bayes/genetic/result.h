@@ -18,13 +18,16 @@
 #define GELEX_BAYES_GENETIC_RESULT_H_
 
 #include <Eigen/Core>
+#include <type_traits>
 #include <utility>
 
 #include "gelex/bayes/basic_result.h"
+#include "gelex/bayes/genetic/draws.h"
+#include "gelex/bayes/genetic/policy.h"
 #include "gelex/exception.h"
+#include "gelex/namespace.h"
 
-namespace gelex
-{
+GELEX_NAMESPACE_BEGIN(gelex)
 
 class MarkerPipResult
 {
@@ -133,6 +136,31 @@ class JointMarkerEffectResult
     PipResult pip_;
 };
 
-}  // namespace gelex
+GELEX_NAMESPACE_BEGIN(detail)
+template <VarianceLayout Kind>
+using marker_variance_result_t = std::
+    conditional_t<Kind == VarianceLayout::Pooled, ScalarResult, EmptyResult>;
+
+template <MixtureWeightUpdate Update, typename Result>
+using weight_result_t = std::
+    conditional_t<Update == MixtureWeightUpdate::Enabled, Result, EmptyResult>;
+
+template <VarianceLayout Kind>
+auto make_marker_variance_result(const marker_variance_draw_t<Kind>& draw)
+    -> marker_variance_result_t<Kind>
+{
+    if constexpr (Kind == VarianceLayout::Pooled)
+    {
+        return make_result(draw);
+    }
+    else
+    {
+        static_cast<void>(draw);
+        return {};
+    }
+}
+GELEX_NAMESPACE_END(detail)
+
+GELEX_NAMESPACE_END(gelex)
 
 #endif  // GELEX_BAYES_GENETIC_RESULT_H_
