@@ -14,39 +14,43 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_BAYES_GENETIC_TRAITS_H_
-#define GELEX_BAYES_GENETIC_TRAITS_H_
+#ifndef GELEX_BAYES_GENETIC_STATE_H_
+#define GELEX_BAYES_GENETIC_STATE_H_
 
 #include <Eigen/Core>
 #include <type_traits>
 
-#include "gelex/bayes/basic_draw.h"
-#include "gelex/bayes/basic_result.h"
-#include "gelex/bayes/genetic_policy.h"
+#include "gelex/bayes/genetic/policy.h"
+#include "gelex/bayes/parameter.h"
 
 namespace gelex::detail
 {
+
+struct GeneticStateDimensions
+{
+    Eigen::Index marker_count;
+    Eigen::Index individual_count;
+};
 
 template <VarianceLayout Kind>
 using marker_variance_state_t = std::
     conditional_t<Kind == VarianceLayout::Pooled, double, Eigen::VectorXd>;
 
 template <VarianceLayout Kind>
-using marker_variance_draw_t = std::
-    conditional_t<Kind == VarianceLayout::Pooled, ScalarDraw, VectorDraw>;
-
-template <VarianceLayout Kind>
-using marker_variance_result_t = std::
-    conditional_t<Kind == VarianceLayout::Pooled, ScalarResult, EmptyResult>;
-
-template <MixtureWeightUpdate Update, typename Draw>
-using weight_draw_t = std::
-    conditional_t<Update == MixtureWeightUpdate::Enabled, Draw, EmptyDraw>;
-
-template <MixtureWeightUpdate Update, typename Result>
-using weight_result_t = std::
-    conditional_t<Update == MixtureWeightUpdate::Enabled, Result, EmptyResult>;
+auto initial_marker_variance(
+    const VarianceParameter& parameter,
+    Eigen::Index marker_count) -> marker_variance_state_t<Kind>
+{
+    if constexpr (Kind == VarianceLayout::Pooled)
+    {
+        return parameter.initial;
+    }
+    else
+    {
+        return Eigen::VectorXd::Constant(marker_count, parameter.initial);
+    }
+}
 
 }  // namespace gelex::detail
 
-#endif  // GELEX_BAYES_GENETIC_TRAITS_H_
+#endif  // GELEX_BAYES_GENETIC_STATE_H_

@@ -25,7 +25,7 @@
 #include <vector>
 
 #include "gelex/bayes/basic_state.h"
-#include "gelex/bayes/detail/state_factory.h"
+#include "gelex/bayes/genetic/family.h"
 #include "gelex/bayes/model.h"
 #include "gelex/bayes/prior.h"
 #include "gelex/exception.h"

@@ -168,8 +168,8 @@ auto run_mcmc(const cli::McmcConfig& config, const Recipe& recipe) -> int
     const auto prior = gelex::make_prior(recipe, model);
     const auto result = [&]()
     {
-        auto draws = gelex::make_draws(
-            prior, model, config.out + ".draws", runner.draw_count());
+        auto draws = gelex::BayesDraws{
+            prior, model, config.out + ".draws", runner.draw_count()};
         cli::printer().block(cli::section("MCMC Sampling:"));
         const auto total_iterations = static_cast<std::size_t>(config.iters);
         cli::McmcProgress progress{total_iterations, config.burn_in};

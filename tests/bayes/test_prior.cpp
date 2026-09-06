@@ -25,9 +25,9 @@
 
 #include "gelex/bayes/genetic/gaussian.h"
 #include "gelex/bayes/genetic/joint_spike_slab.h"
+#include "gelex/bayes/genetic/policy.h"
 #include "gelex/bayes/genetic/scaled_mixture.h"
 #include "gelex/bayes/genetic/spike_slab.h"
-#include "gelex/bayes/genetic_policy.h"
 #include "gelex/bayes/mode_values.h"
 #include "gelex/bayes/model.h"
 #include "gelex/bayes/prior.h"

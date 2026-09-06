@@ -20,13 +20,14 @@
 #include <array>
 #include <cstddef>
 #include <type_traits>
+#include <utility>
 
-#include "gelex/bayes/genetic_policy.h"
+#include "gelex/bayes/genetic/policy.h"
 #include "gelex/bayes/parameter.h"
 #include "gelex/bayes/stats/dirichlet_log_kernel.h"
+#include "gelex/namespace.h"
 
-namespace gelex
-{
+GELEX_NAMESPACE_BEGIN(gelex)
 
 template <MixtureWeightUpdate Update>
 using ProbabilityParameter = std::conditional_t<
@@ -40,6 +41,22 @@ using SimplexParameter = std::conditional_t<
     FixedParameter<std::array<double, ClassCount>>,
     Parameter<std::array<double, ClassCount>, DirichletLogKernel<ClassCount>>>;
 
-}  // namespace gelex
+GELEX_NAMESPACE_BEGIN(detail)
+template <MixtureWeightUpdate Update, typename T, typename Prior>
+auto make_parameter(T initial, Prior prior)
+{
+    if constexpr (Update == MixtureWeightUpdate::Disabled)
+    {
+        return FixedParameter<T>{.initial = std::move(initial)};
+    }
+    else
+    {
+        return Parameter<T, Prior>{
+            .initial = std::move(initial), .prior = std::move(prior)};
+    }
+}
+GELEX_NAMESPACE_END(detail)
+
+GELEX_NAMESPACE_END(gelex)
 
 #endif  // GELEX_BAYES_GENETIC_PARAMETER_H_
