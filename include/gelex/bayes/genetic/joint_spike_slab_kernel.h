@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_BAYES_GENETIC_KERNEL_JOINT_SPIKE_SLAB_H_
-#define GELEX_BAYES_GENETIC_KERNEL_JOINT_SPIKE_SLAB_H_
+#ifndef GELEX_BAYES_GENETIC_JOINT_SPIKE_SLAB_KERNEL_H_
+#define GELEX_BAYES_GENETIC_JOINT_SPIKE_SLAB_KERNEL_H_
 
 #include <Eigen/Core>
 #include <algorithm>
@@ -314,4 +314,4 @@ template <MixtureWeightUpdate WeightUpdate>
 
 }  // namespace gelex::detail
 
-#endif  // GELEX_BAYES_GENETIC_KERNEL_JOINT_SPIKE_SLAB_H_
+#endif  // GELEX_BAYES_GENETIC_JOINT_SPIKE_SLAB_KERNEL_H_
