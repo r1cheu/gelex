@@ -32,15 +32,27 @@
 #include "gelex/bayes/variance/detail/calibration.h"
 #include "gelex/genetic_mode.h"
 #include "gelex/io/detail/text_writer.h"
+#include "gelex/namespace.h"
 
-namespace gelex
-{
+GELEX_NAMESPACE_BEGIN(gelex)
 
 template <VarianceLayout Kind>
 struct GaussianPrior
 {
     VarianceParameter variance;
 };
+
+GELEX_NAMESPACE_BEGIN(detail)
+template <GeneticModeSet Modes, VarianceLayout Kind>
+auto make_prior(
+    const GaussianSpec<Kind>& /*genetic_spec*/,
+    const MarkerVarianceCalibrator& calibrator)
+{
+    return generate_mode_values<Modes>(
+        [&]<GeneticMode Mode>() -> GaussianPrior<Kind>
+        { return {.variance = calibrator.calibrate(Mode, 1.0)}; });
+}
+GELEX_NAMESPACE_END(detail)
 
 template <VarianceLayout Kind>
 class GaussianState
@@ -53,9 +65,9 @@ class GaussianState
         : coefficients_(Eigen::VectorXd::Zero(num_markers)),
           fitted_values_(Eigen::VectorXd::Zero(num_individuals)),
           variance_(variance)
-
     {
     }
+
     auto coefficients() const -> const Eigen::VectorXd&
     {
         return coefficients_;
@@ -88,6 +100,19 @@ class GaussianState
     detail::marker_variance_state_t<Kind> variance_;
 };
 
+GELEX_NAMESPACE_BEGIN(detail)
+template <VarianceLayout Kind>
+auto make_state(
+    const GaussianPrior<Kind>& prior,
+    GeneticStateDimensions dimensions) -> GaussianState<Kind>
+{
+    return {
+        initial_marker_variance<Kind>(prior.variance, dimensions.marker_count),
+        dimensions.marker_count,
+        dimensions.individual_count};
+}
+GELEX_NAMESPACE_END(detail)
+
 template <VarianceLayout Kind>
 struct GaussianDraws
 {
@@ -99,38 +124,7 @@ struct GaussianDraws
     }
 };
 
-template <VarianceLayout Kind>
-struct GaussianResult
-{
-    detail::marker_variance_result_t<Kind> variance;
-};
-
-}  // namespace gelex
-
-namespace gelex::detail
-{
-
-template <GeneticModeSet Modes, VarianceLayout Kind>
-auto make_prior(
-    const GaussianSpec<Kind>& /*genetic_spec*/,
-    const MarkerVarianceCalibrator& calibrator)
-{
-    return generate_mode_values<Modes>(
-        [&]<GeneticMode Mode>() -> GaussianPrior<Kind>
-        { return {.variance = calibrator.calibrate(Mode, 1.0)}; });
-}
-
-template <VarianceLayout Kind>
-auto make_state(
-    const GaussianPrior<Kind>& prior,
-    GeneticStateDimensions dimensions) -> GaussianState<Kind>
-{
-    return {
-        initial_marker_variance<Kind>(prior.variance, dimensions.marker_count),
-        dimensions.marker_count,
-        dimensions.individual_count};
-}
-
+GELEX_NAMESPACE_BEGIN(detail)
 template <VarianceLayout Kind>
 [[nodiscard]] auto make_draws(
     const GaussianPrior<Kind>& /*prior*/,
@@ -138,7 +132,15 @@ template <VarianceLayout Kind>
 {
     return {.variance = make_marker_variance_draw<Kind>(builder)};
 }
+GELEX_NAMESPACE_END(detail)
 
+template <VarianceLayout Kind>
+struct GaussianResult
+{
+    detail::marker_variance_result_t<Kind> variance;
+};
+
+GELEX_NAMESPACE_BEGIN(detail)
 template <VarianceLayout Kind>
 auto make_result(const GaussianDraws<Kind>& draws) -> GaussianResult<Kind>
 {
@@ -158,7 +160,8 @@ auto write_family_summary_rows(
 {
     write_summary_rows(writer, result.variance);
 }
+GELEX_NAMESPACE_END(detail)
 
-}  // namespace gelex::detail
+GELEX_NAMESPACE_END(gelex)
 
 #endif  // GELEX_BAYES_GENETIC_GAUSSIAN_H_

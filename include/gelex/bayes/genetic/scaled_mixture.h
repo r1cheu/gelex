@@ -38,7 +38,6 @@
 #include "gelex/bayes/genetic/traits.h"
 #include "gelex/bayes/genetic_policy.h"
 #include "gelex/bayes/genotype/operations.h"
-#include "gelex/bayes/mode_values.h"
 #include "gelex/bayes/parameter.h"
 #include "gelex/bayes/spec.h"
 #include "gelex/bayes/stats/dirichlet_log_kernel.h"
@@ -46,9 +45,9 @@
 #include "gelex/genetic_mode.h"
 #include "gelex/infra/var.h"
 #include "gelex/io/detail/text_writer.h"
+#include "gelex/namespace.h"
 
-namespace gelex
-{
+GELEX_NAMESPACE_BEGIN(gelex)
 
 template <MixtureWeightUpdate WeightUpdate = MixtureWeightUpdate::Enabled>
 // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init,hicpp-member-init)
@@ -61,11 +60,44 @@ struct ScaledMixturePrior
     std::array<double, class_count> scales{};
 };
 
+GELEX_NAMESPACE_BEGIN(detail)
+template <MixtureWeightUpdate WeightUpdate>
+constexpr auto initial_activity(const ScaledMixtureSpec<WeightUpdate>& spec)
+    -> double
+{
+    auto activity = 0.0;
+    for (const auto [probability, scale] :
+         std::views::zip(spec.probabilities(), spec.scales()))
+    {
+        activity += probability * scale;
+    }
+    return activity;
+}
+
+template <GeneticMode Mode, MixtureWeightUpdate WeightUpdate>
+auto make_mode_prior(
+    const ScaledMixtureSpec<WeightUpdate>& spec,
+    const MarkerVarianceCalibrator& calibrator)
+    -> ScaledMixturePrior<WeightUpdate>
+{
+    return {
+        .variance = calibrator.calibrate(Mode, initial_activity(spec)),
+        .probabilities = make_parameter<WeightUpdate>(
+            spec.probabilities(),
+            make_uniform_dirichlet_prior<ScaledMixtureSpec<>::class_count>()),
+        .scales = spec.scales()};
+}
+GELEX_NAMESPACE_END(detail)
+
 class ScaledMixtureState
 {
    public:
     static constexpr std::size_t class_count = ScaledMixtureSpec<>::class_count;
     static constexpr std::size_t component_count = class_count - 1;
+
+    using FittedValues = Eigen::
+        Matrix<double, Eigen::Dynamic, static_cast<int>(component_count)>;
+
     ScaledMixtureState(
         double variance,
         std::array<double, class_count> probabilities,
@@ -74,16 +106,12 @@ class ScaledMixtureState
         : coefficients_(Eigen::VectorXd::Zero(num_markers)),
           assignments_(Eigen::VectorX<std::uint8_t>::Zero(num_markers)),
           class_counts_{static_cast<std::size_t>(num_markers)},
-          fitted_values_(
-              Eigen::Matrix<
-                  double,
-                  Eigen::Dynamic,
-                  static_cast<int>(component_count)>::
-                  Zero(num_individuals, component_count)),
+          fitted_values_(FittedValues::Zero(num_individuals, component_count)),
           variance_(variance),
           probabilities_(probabilities)
     {
     }
+
     auto coefficients() const -> const Eigen::VectorXd&
     {
         return coefficients_;
@@ -96,11 +124,7 @@ class ScaledMixtureState
     {
         return class_counts_;
     }
-    auto fitted_values() const -> const Eigen::
-        Matrix<double, Eigen::Dynamic, static_cast<int>(component_count)>&
-    {
-        return fitted_values_;
-    }
+    auto fitted_values() const -> const FittedValues& { return fitted_values_; }
     auto variance() const -> double { return variance_; }
     auto variance() -> double& { return variance_; }
     auto probabilities() const -> const std::array<double, class_count>&
@@ -146,11 +170,24 @@ class ScaledMixtureState
     Eigen::VectorXd coefficients_;
     Eigen::VectorX<std::uint8_t> assignments_;
     std::array<std::size_t, class_count> class_counts_;
-    Eigen::Matrix<double, Eigen::Dynamic, static_cast<int>(component_count)>
-        fitted_values_;
+    FittedValues fitted_values_;
     double variance_;
     std::array<double, class_count> probabilities_;
 };
+
+GELEX_NAMESPACE_BEGIN(detail)
+template <MixtureWeightUpdate WeightUpdate>
+auto make_state(
+    const ScaledMixturePrior<WeightUpdate>& prior,
+    GeneticStateDimensions dimensions) -> ScaledMixtureState
+{
+    return {
+        prior.variance.initial,
+        prior.probabilities.initial,
+        dimensions.marker_count,
+        dimensions.individual_count};
+}
+GELEX_NAMESPACE_END(detail)
 
 template <MixtureWeightUpdate WeightUpdate>
 struct ScaledMixtureDraws
@@ -170,58 +207,7 @@ struct ScaledMixtureDraws
     }
 };
 
-template <MixtureWeightUpdate WeightUpdate>
-struct ScaledMixtureResult
-{
-    ScalarResult variance;
-    detail::weight_result_t<WeightUpdate, VectorResult> probabilities;
-    VectorResult component_explained_variance;
-};
-
-}  // namespace gelex
-
-namespace gelex::detail
-{
-
-template <MixtureWeightUpdate WeightUpdate>
-constexpr auto initial_activity(const ScaledMixtureSpec<WeightUpdate>& spec)
-    -> double
-{
-    auto activity = 0.0;
-    for (const auto [probability, scale] :
-         std::views::zip(spec.probabilities(), spec.scales()))
-    {
-        activity += probability * scale;
-    }
-    return activity;
-}
-
-template <GeneticMode Mode, MixtureWeightUpdate WeightUpdate>
-auto make_mode_prior(
-    const ScaledMixtureSpec<WeightUpdate>& spec,
-    const MarkerVarianceCalibrator& calibrator)
-    -> ScaledMixturePrior<WeightUpdate>
-{
-    return {
-        .variance = calibrator.calibrate(Mode, initial_activity(spec)),
-        .probabilities = make_parameter<WeightUpdate>(
-            spec.probabilities(),
-            make_uniform_dirichlet_prior<ScaledMixtureSpec<>::class_count>()),
-        .scales = spec.scales()};
-}
-
-template <MixtureWeightUpdate WeightUpdate>
-auto make_state(
-    const ScaledMixturePrior<WeightUpdate>& prior,
-    GeneticStateDimensions dimensions) -> ScaledMixtureState
-{
-    return {
-        prior.variance.initial,
-        prior.probabilities.initial,
-        dimensions.marker_count,
-        dimensions.individual_count};
-}
-
+GELEX_NAMESPACE_BEGIN(detail)
 template <MixtureWeightUpdate WeightUpdate>
 [[nodiscard]] auto make_draws(
     const ScaledMixturePrior<WeightUpdate>& /*prior*/,
@@ -237,7 +223,17 @@ template <MixtureWeightUpdate WeightUpdate>
         .component_explained_variance = make_component_explained_variance_draw<
             ScaledMixtureState::component_count>(builder)};
 }
+GELEX_NAMESPACE_END(detail)
 
+template <MixtureWeightUpdate WeightUpdate>
+struct ScaledMixtureResult
+{
+    ScalarResult variance;
+    detail::weight_result_t<WeightUpdate, VectorResult> probabilities;
+    VectorResult component_explained_variance;
+};
+
+GELEX_NAMESPACE_BEGIN(detail)
 template <MixtureWeightUpdate WeightUpdate>
 auto make_result(const ScaledMixtureDraws<WeightUpdate>& draws)
     -> ScaledMixtureResult<WeightUpdate>
@@ -266,7 +262,8 @@ auto write_family_summary_rows(
     write_summary_rows(writer, result.probabilities);
     write_summary_rows(writer, result.component_explained_variance);
 }
+GELEX_NAMESPACE_END(detail)
 
-}  // namespace gelex::detail
+GELEX_NAMESPACE_END(gelex)
 
 #endif  // GELEX_BAYES_GENETIC_SCALED_MIXTURE_H_

@@ -22,10 +22,10 @@
 
 #include "gelex/bayes/detail/state_factory.h"
 #include "gelex/bayes/genetic/detail/independent_sweep.h"
-#include "gelex/bayes/genetic/kernel/gaussian.h"
-#include "gelex/bayes/genetic/kernel/joint_spike_slab.h"
-#include "gelex/bayes/genetic/kernel/scaled_mixture.h"
-#include "gelex/bayes/genetic/kernel/spike_slab.h"
+#include "gelex/bayes/genetic/gaussian_kernel.h"
+#include "gelex/bayes/genetic/joint_spike_slab_kernel.h"
+#include "gelex/bayes/genetic/scaled_mixture_kernel.h"
+#include "gelex/bayes/genetic/spike_slab_kernel.h"
 #include "gelex/bayes/mode_values.h"
 #include "gelex/genetic_mode.h"
 

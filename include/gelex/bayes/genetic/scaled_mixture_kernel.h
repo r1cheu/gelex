@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_BAYES_GENETIC_KERNEL_SCALED_MIXTURE_H_
-#define GELEX_BAYES_GENETIC_KERNEL_SCALED_MIXTURE_H_
+#ifndef GELEX_BAYES_GENETIC_SCALED_MIXTURE_KERNEL_H_
+#define GELEX_BAYES_GENETIC_SCALED_MIXTURE_KERNEL_H_
 
 #include <Eigen/Core>
 #include <array>
@@ -47,6 +47,8 @@ class ScaledMixtureKernel
     using State = ScaledMixtureState;
     using CoefficientParameters = std::normal_distribution<double>::param_type;
 
+    static constexpr std::size_t class_count = State::class_count;
+
     struct ComponentSample
     {
         std::size_t class_index{};
@@ -56,8 +58,8 @@ class ScaledMixtureKernel
    public:
     explicit ScaledMixtureKernel(const Prior& prior)
         : variance_updater_{prior.variance.prior},
-          probability_updater_{make_dirichlet_conjugate_updater<
-              ScaledMixtureSpec<>::class_count>(prior.probabilities)},
+          probability_updater_{make_dirichlet_conjugate_updater<class_count>(
+              prior.probabilities)},
           scales_{prior.scales}
     {
     }
@@ -124,16 +126,12 @@ class ScaledMixtureKernel
     auto draw_component(
         const QuadraticLogKernel& likelihood,
         double variance,
-        const std::array<double, ScaledMixtureSpec<>::class_count>&
-            log_probabilities,
+        const std::array<double, class_count>& log_probabilities,
         std::mt19937_64& rng) -> ComponentSample
     {
-        std::array<CoefficientParameters, ScaledMixtureSpec<>::class_count>
-            coefficient_parameters{};
-        std::array<double, ScaledMixtureSpec<>::class_count>
-            component_log_integrals{};
-        for (std::size_t class_index = 1;
-             class_index < ScaledMixtureSpec<>::class_count;
+        std::array<CoefficientParameters, class_count> coefficient_parameters{};
+        std::array<double, class_count> component_log_integrals{};
+        for (std::size_t class_index = 1; class_index < class_count;
              ++class_index)
         {
             // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
@@ -159,12 +157,10 @@ class ScaledMixtureKernel
     }
 
     NormalVarianceConjugateUpdater variance_updater_;
-    [[no_unique_address]] DirichletConjugateUpdater<
-        ScaledMixtureSpec<>::class_count,
-        WeightUpdate> probability_updater_;
-    LogCategoricalDistribution<ScaledMixtureSpec<>::class_count>
-        allocation_distribution_;
-    std::array<double, ScaledMixtureSpec<>::class_count> scales_;
+    [[no_unique_address]] DirichletConjugateUpdater<class_count, WeightUpdate>
+        probability_updater_;
+    LogCategoricalDistribution<class_count> allocation_distribution_;
+    std::array<double, class_count> scales_;
 };
 
 template <MixtureWeightUpdate WeightUpdate>
@@ -175,4 +171,4 @@ template <MixtureWeightUpdate WeightUpdate>
 
 }  // namespace gelex::detail
 
-#endif  // GELEX_BAYES_GENETIC_KERNEL_SCALED_MIXTURE_H_
+#endif  // GELEX_BAYES_GENETIC_SCALED_MIXTURE_KERNEL_H_

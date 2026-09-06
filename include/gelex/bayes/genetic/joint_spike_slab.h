@@ -44,9 +44,9 @@
 #include "gelex/genetic_mode.h"
 #include "gelex/infra/var.h"
 #include "gelex/io/detail/text_writer.h"
+#include "gelex/namespace.h"
 
-namespace gelex
-{
+GELEX_NAMESPACE_BEGIN(gelex)
 
 // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init,hicpp-member-init)
 struct HalfNormalPrior
@@ -63,6 +63,59 @@ struct JointSpikeSlabPrior
     SimplexParameter<class_count, WeightUpdate> probabilities;
 };
 
+GELEX_NAMESPACE_BEGIN(detail)
+template <GeneticMode Mode, MixtureWeightUpdate WeightUpdate>
+    requires(Mode == GeneticMode::A || Mode == GeneticMode::D)
+constexpr auto initial_activity(const JointSpikeSlabSpec<WeightUpdate>& spec)
+    -> double
+{
+    const auto& probabilities = spec.probabilities();
+    if constexpr (Mode == GeneticMode::A)
+    {
+        return probabilities.at(1) + probabilities.at(3);
+    }
+    else
+    {
+        return probabilities.at(2) + probabilities.at(3);
+    }
+}
+
+template <GeneticModeSet Modes, MixtureWeightUpdate WeightUpdate>
+    requires(Modes == (GeneticMode::A | GeneticMode::D))
+auto make_prior(
+    const JointModeValues<
+        ModeValues<Modes, GaussianSpec<>, HalfNormalSpec>,
+        JointSpikeSlabSpec<WeightUpdate>>& genetic_spec,
+    const MarkerVarianceCalibrator& calibrator)
+{
+    const auto& joint_spec = genetic_spec.joint();
+    auto mode_priors = transform_mode_values(
+        genetic_spec.mode_values(),
+        [&]<GeneticMode Mode>(const auto&)
+        {
+            auto variance = calibrator.calibrate(
+                Mode, initial_activity<Mode>(joint_spec));
+            if constexpr (Mode == GeneticMode::A)
+            {
+                return GaussianPrior<VarianceLayout::Pooled>{
+                    .variance = std::move(variance)};
+            }
+            else
+            {
+                return HalfNormalPrior{.variance = std::move(variance)};
+            }
+        });
+
+    using JointPrior = JointSpikeSlabPrior<WeightUpdate>;
+    return JointModeValues{
+        std::move(mode_priors),
+        JointPrior{
+            .probabilities = make_parameter<WeightUpdate>(
+                joint_spec.probabilities(),
+                make_uniform_dirichlet_prior<JointPrior::class_count>())}};
+}
+GELEX_NAMESPACE_END(detail)
+
 class HalfNormalState
 {
    public:
@@ -76,6 +129,7 @@ class HalfNormalState
           probit_coefficients_(Eigen::Vector2d::Zero())
     {
     }
+
     auto coefficients() const -> const Eigen::VectorXd&
     {
         return coefficients_;
@@ -132,6 +186,11 @@ class JointSpikeSlabState
         2,
         3};
 
+    using FittedValues = Eigen::
+        Matrix<double, Eigen::Dynamic, static_cast<int>(component_count)>;
+    using ModeCoefficients
+        = HomogeneousModeValues<GeneticMode::A | GeneticMode::D, double>;
+
     JointSpikeSlabState(
         std::array<double, class_count> probabilities,
         Eigen::Index num_markers,
@@ -139,17 +198,9 @@ class JointSpikeSlabState
         : assignments_(Eigen::VectorX<std::uint8_t>::Zero(num_markers)),
           class_counts_{static_cast<std::size_t>(num_markers)},
           probabilities_(probabilities),
-          fitted_values_(
-              Eigen::Matrix<
-                  double,
-                  Eigen::Dynamic,
-                  static_cast<int>(
-                      component_count)>::Zero(num_individuals, component_count))
+          fitted_values_(FittedValues::Zero(num_individuals, component_count))
     {
     }
-
-    using ModeCoefficients
-        = HomogeneousModeValues<GeneticMode::A | GeneticMode::D, double>;
 
     auto assignments() const -> const Eigen::VectorX<std::uint8_t>&
     {
@@ -167,11 +218,7 @@ class JointSpikeSlabState
     {
         return probabilities_;
     }
-    auto fitted_values() const -> const Eigen::
-        Matrix<double, Eigen::Dynamic, static_cast<int>(component_count)>&
-    {
-        return fitted_values_;
-    }
+    auto fitted_values() const -> const FittedValues& { return fitted_values_; }
 
     template <GeneticMode Mode>
         requires(Mode == GeneticMode::A || Mode == GeneticMode::D)
@@ -219,9 +266,31 @@ class JointSpikeSlabState
     Eigen::VectorX<std::uint8_t> assignments_;
     std::array<std::size_t, class_count> class_counts_;
     std::array<double, class_count> probabilities_;
-    Eigen::Matrix<double, Eigen::Dynamic, static_cast<int>(component_count)>
-        fitted_values_;
+    FittedValues fitted_values_;
 };
+
+GELEX_NAMESPACE_BEGIN(detail)
+inline auto make_state(
+    const HalfNormalPrior& prior,
+    GeneticStateDimensions dimensions) -> HalfNormalState
+{
+    return {
+        prior.variance.initial,
+        dimensions.marker_count,
+        dimensions.individual_count};
+}
+
+template <MixtureWeightUpdate WeightUpdate>
+auto make_state(
+    const JointSpikeSlabPrior<WeightUpdate>& prior,
+    GeneticStateDimensions dimensions) -> JointSpikeSlabState
+{
+    return {
+        prior.probabilities.initial,
+        dimensions.marker_count,
+        dimensions.individual_count};
+}
+GELEX_NAMESPACE_END(detail)
 
 struct HalfNormalDraws
 {
@@ -251,96 +320,7 @@ struct JointSpikeSlabDraws
     }
 };
 
-struct HalfNormalResult
-{
-    ScalarResult variance;
-    VectorResult probit_coefficients;
-};
-
-template <MixtureWeightUpdate WeightUpdate>
-struct JointSpikeSlabResult
-{
-    detail::weight_result_t<WeightUpdate, VectorResult> probabilities;
-    VectorResult component_explained_variance;
-};
-
-}  // namespace gelex
-
-namespace gelex::detail
-{
-
-template <GeneticMode Mode, MixtureWeightUpdate WeightUpdate>
-    requires(Mode == GeneticMode::A || Mode == GeneticMode::D)
-constexpr auto initial_activity(const JointSpikeSlabSpec<WeightUpdate>& spec)
-    -> double
-{
-    const auto& probabilities = spec.probabilities();
-    if constexpr (Mode == GeneticMode::A)
-    {
-        return probabilities.at(1) + probabilities.at(3);
-    }
-    else
-    {
-        return probabilities.at(2) + probabilities.at(3);
-    }
-}
-
-template <GeneticModeSet Modes, MixtureWeightUpdate WeightUpdate>
-    requires(Modes == (GeneticMode::A | GeneticMode::D))
-auto make_prior(
-    const JointModeValues<
-        ModeValues<Modes, GaussianSpec<>, HalfNormalSpec>,
-        JointSpikeSlabSpec<WeightUpdate>>& genetic_spec,
-    const MarkerVarianceCalibrator& calibrator)
-{
-    const auto& joint_spec = genetic_spec.joint();
-    auto mode_priors = transform_mode_values(
-        genetic_spec.mode_values(),
-        [&]<GeneticMode Mode>(const auto&)
-        {
-            auto variance = calibrator.calibrate(
-                Mode, initial_activity<Mode>(joint_spec));
-            if constexpr (Mode == GeneticMode::A)
-            {
-                return GaussianPrior<VarianceLayout::Pooled>{
-                    .variance = std::move(variance)};
-            }
-            else
-            {
-                return HalfNormalPrior{.variance = std::move(variance)};
-            }
-        });
-
-    using JointPrior = JointSpikeSlabPrior<WeightUpdate>;
-    return JointModeValues{
-        std::move(mode_priors),
-        JointPrior{
-            .probabilities = make_parameter<WeightUpdate>(
-                joint_spec.probabilities(),
-                make_uniform_dirichlet_prior<JointPrior::class_count>())}};
-}
-
-inline auto make_state(
-    const HalfNormalPrior& prior,
-    GeneticStateDimensions dimensions) -> HalfNormalState
-{
-    return {
-        prior.variance.initial,
-        dimensions.marker_count,
-        dimensions.individual_count};
-}
-
-template <MixtureWeightUpdate WeightUpdate>
-auto make_state(
-    const JointSpikeSlabPrior<WeightUpdate>& prior,
-    GeneticStateDimensions dimensions) -> JointSpikeSlabState
-{
-    return {
-        prior.probabilities.initial,
-        dimensions.marker_count,
-        dimensions.individual_count};
-}
-
+GELEX_NAMESPACE_BEGIN(detail)
 [[nodiscard]] inline auto make_draws(
     const HalfNormalPrior& /*prior*/,
     GeneticDrawsBuilder& builder) -> HalfNormalDraws
@@ -366,7 +346,22 @@ template <MixtureWeightUpdate WeightUpdate>
         .component_explained_variance = make_component_explained_variance_draw<
             JointSpikeSlabState::component_count>(builder)};
 }
+GELEX_NAMESPACE_END(detail)
 
+struct HalfNormalResult
+{
+    ScalarResult variance;
+    VectorResult probit_coefficients;
+};
+
+template <MixtureWeightUpdate WeightUpdate>
+struct JointSpikeSlabResult
+{
+    detail::weight_result_t<WeightUpdate, VectorResult> probabilities;
+    VectorResult component_explained_variance;
+};
+
+GELEX_NAMESPACE_BEGIN(detail)
 inline auto make_result(const HalfNormalDraws& draws) -> HalfNormalResult
 {
     return {
@@ -400,7 +395,8 @@ auto write_family_summary_rows(
     write_summary_rows(writer, result.probabilities);
     write_summary_rows(writer, result.component_explained_variance);
 }
+GELEX_NAMESPACE_END(detail)
 
-}  // namespace gelex::detail
+GELEX_NAMESPACE_END(gelex)
 
 #endif  // GELEX_BAYES_GENETIC_JOINT_SPIKE_SLAB_H_

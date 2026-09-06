@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_BAYES_GENETIC_KERNEL_GAUSSIAN_H_
-#define GELEX_BAYES_GENETIC_KERNEL_GAUSSIAN_H_
+#ifndef GELEX_BAYES_GENETIC_GAUSSIAN_KERNEL_H_
+#define GELEX_BAYES_GENETIC_GAUSSIAN_KERNEL_H_
 
 #include <Eigen/Core>
 #include <random>
@@ -111,4 +111,4 @@ template <VarianceLayout Kind>
 
 }  // namespace gelex::detail
 
-#endif  // GELEX_BAYES_GENETIC_KERNEL_GAUSSIAN_H_
+#endif  // GELEX_BAYES_GENETIC_GAUSSIAN_KERNEL_H_
