@@ -41,22 +41,21 @@ struct GaussianPrior
 {
     VarianceParameter variance;
 };
-template <VarianceLayout Kind>
-class GaussianState;
-
-namespace detail
-{
-template <VarianceLayout Kind>
-auto make_state(
-    const GaussianPrior<Kind>& prior,
-    GeneticStateDimensions dimensions) -> GaussianState<Kind>;
-
-}  // namespace detail
 
 template <VarianceLayout Kind>
 class GaussianState
 {
    public:
+    GaussianState(
+        detail::marker_variance_state_t<Kind> variance,
+        Eigen::Index num_markers,
+        Eigen::Index num_individuals)
+        : coefficients_(Eigen::VectorXd::Zero(num_markers)),
+          fitted_values_(Eigen::VectorXd::Zero(num_individuals)),
+          variance_(variance)
+
+    {
+    }
     auto coefficients() const -> const Eigen::VectorXd&
     {
         return coefficients_;
@@ -84,20 +83,6 @@ class GaussianState
     }
 
    private:
-    friend auto detail::make_state<Kind>(
-        const GaussianPrior<Kind>& prior,
-        detail::GeneticStateDimensions dimensions) -> GaussianState<Kind>;
-
-    GaussianState(
-        detail::marker_variance_state_t<Kind> variance,
-        Eigen::Index num_markers,
-        Eigen::Index num_individuals)
-        : coefficients_(Eigen::VectorXd::Zero(num_markers)),
-          fitted_values_(Eigen::VectorXd::Zero(num_individuals)),
-          variance_(variance)
-
-    {
-    }
     Eigen::VectorXd coefficients_;
     Eigen::VectorXd fitted_values_;
     detail::marker_variance_state_t<Kind> variance_;
