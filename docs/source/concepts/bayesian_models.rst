@@ -53,7 +53,8 @@ Choosing a Method
    * - ``CD``
      - BayesCD
      - Couples additive and dominance marker allocation in a joint mixture.
-       Requires ``--mode AD``; more parameters and longer runtime.
+       Requires ``--mode AD`` and a marker annotation file via ``--manno``;
+       more parameters and longer runtime.
 
 .. tip::
    If you are unsure, start with **BayesR** (``--method R``). It adapts to a wide

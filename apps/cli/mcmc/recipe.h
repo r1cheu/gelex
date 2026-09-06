@@ -205,8 +205,16 @@ decltype(auto) dispatch_mcmc_method(
                 std::forward<Function>(function),
                 make_mcmc_recipe<Modes, gelex::BayesMethod::R>(config));
         case gelex::BayesMethod::CD:
-            throw gelex::GelexException(
-                "--method CD is not supported currently");
+            if constexpr (Modes == additive_dominance_mode)
+            {
+                return std::invoke(
+                    std::forward<Function>(function),
+                    make_mcmc_recipe<Modes, gelex::BayesMethod::CD>(config));
+            }
+            else
+            {
+                throw gelex::GelexException("--method CD requires --mode AD");
+            }
     }
     throw gelex::GelexException("unsupported Bayesian method");
 }

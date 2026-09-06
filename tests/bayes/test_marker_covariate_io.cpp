@@ -14,16 +14,19 @@
 #include <Eigen/Core>
 #include <catch2/catch_test_macros.hpp>
 #include <string>
+#include <utility>
 #include <vector>
 
+#include "gelex/bayes/marker_covariate.h"
 #include "gelex/bayes/marker_covariate_io.h"
+#include "gelex/data/dataframe/dataframe.h"
 #include "gelex/data/reader.h"
 #include "gelex/exception.h"
 
 #include "file_fixture.h"
 
 TEST_CASE(
-    "read_marker_covariate reads the strict annotation format",
+    "read_marker_annotation reads the strict annotation format",
     "[bayes][marker_covariate][io]")
 {
     gelex::test::FileFixture files;
@@ -36,8 +39,13 @@ TEST_CASE(
         ".anno");
     const auto marker_metadata = gelex::read_bim(bim_path);
 
-    const auto marker_covariate
-        = gelex::bayes::read_marker_covariate(annotation_path, marker_metadata);
+    auto annotation = gelex::bayes::read_marker_annotation(annotation_path);
+    REQUIRE(annotation.rows() == 2);
+    REQUIRE(annotation.index().keys()[0] == "rs2");
+    REQUIRE(annotation["FrequencyDifference"].as<double>()[0] == 0.75);
+
+    const auto marker_covariate = gelex::bayes::make_marker_covariate(
+        std::move(annotation), marker_metadata);
 
     const std::vector<std::string> expected_names{
         "Intercept", "FrequencyDifference"};
@@ -51,53 +59,47 @@ TEST_CASE(
 }
 
 TEST_CASE(
-    "read_marker_covariate requires the fixed metadata header",
+    "read_marker_annotation requires the fixed metadata header",
     "[bayes][marker_covariate][io]")
 {
     gelex::test::FileFixture files;
-    const auto bim_path = files.create_text_file("1 rs1 0 100 A G\n", ".bim");
     const auto annotation_path = files.create_text_file(
-        "CHR\tID\tBP\tA1\tA2\tAnnotation\n"
+        "CHROM\tSNP\tBP\tA1\tA2\tAnnotation\n"
         "1\trs1\t100\tA\tG\t0.5\n",
         ".anno");
-    const auto marker_metadata = gelex::read_bim(bim_path);
 
     REQUIRE_THROWS_AS(
-        gelex::bayes::read_marker_covariate(annotation_path, marker_metadata),
+        gelex::bayes::read_marker_annotation(annotation_path),
         gelex::GelexException);
 }
 
 TEST_CASE(
-    "read_marker_covariate rejects duplicate SNPs",
+    "read_marker_annotation rejects duplicate SNPs",
     "[bayes][marker_covariate][io]")
 {
     gelex::test::FileFixture files;
-    const auto bim_path = files.create_text_file("1 rs1 0 100 A G\n", ".bim");
     const auto annotation_path = files.create_text_file(
         "CHR\tSNP\tBP\tA1\tA2\tAnnotation\n"
         "1\trs1\t100\tA\tG\t0.5\n"
         "1\trs1\t100\tA\tG\t0.6\n",
         ".anno");
-    const auto marker_metadata = gelex::read_bim(bim_path);
 
     REQUIRE_THROWS_AS(
-        gelex::bayes::read_marker_covariate(annotation_path, marker_metadata),
+        gelex::bayes::read_marker_annotation(annotation_path),
         gelex::GelexException);
 }
 
 TEST_CASE(
-    "read_marker_covariate rejects non-numeric annotation values",
+    "read_marker_annotation rejects non-numeric annotation values",
     "[bayes][marker_covariate][io]")
 {
     gelex::test::FileFixture files;
-    const auto bim_path = files.create_text_file("1 rs1 0 100 A G\n", ".bim");
     const auto annotation_path = files.create_text_file(
         "CHR\tSNP\tBP\tA1\tA2\tAnnotation\n"
         "1\trs1\t100\tA\tG\tnot-a-number\n",
         ".anno");
-    const auto marker_metadata = gelex::read_bim(bim_path);
 
     REQUIRE_THROWS_AS(
-        gelex::bayes::read_marker_covariate(annotation_path, marker_metadata),
+        gelex::bayes::read_marker_annotation(annotation_path),
         gelex::GelexException);
 }
