@@ -25,7 +25,7 @@
 #include "gelex/bayes/genetic/detail/coefficient_likelihood.h"
 #include "gelex/bayes/genetic/detail/normal_prior_provider.h"
 #include "gelex/bayes/genetic/gaussian.h"
-#include "gelex/bayes/genetic_family.h"
+#include "gelex/bayes/genetic_policy.h"
 #include "gelex/bayes/genotype/design.h"
 #include "gelex/genetic_mode.h"
 

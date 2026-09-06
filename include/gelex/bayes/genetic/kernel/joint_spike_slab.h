@@ -36,7 +36,7 @@
 #include "gelex/bayes/genetic/detail/probit_updater.h"
 #include "gelex/bayes/genetic/gaussian.h"
 #include "gelex/bayes/genetic/joint_spike_slab.h"
-#include "gelex/bayes/genetic_family.h"
+#include "gelex/bayes/genetic_policy.h"
 #include "gelex/bayes/genotype/design.h"
 #include "gelex/bayes/genotype/operations.h"
 #include "gelex/bayes/mode_values.h"
@@ -66,7 +66,8 @@ class JointSpikeSlabKernel
     using JointState = JointSpikeSlabState;
     using SignParameters = LogCategoricalDistribution<2>::param_type;
 
-    static constexpr std::size_t class_count = JointSpikeSlab::class_count;
+    static constexpr std::size_t class_count
+        = JointSpikeSlabSpec<>::class_count;
     static constexpr std::size_t negative_index = 0;
     static constexpr std::size_t positive_index = 1;
 

@@ -74,8 +74,8 @@ TEST_CASE(
         std::move(config),
         [](const auto& recipe)
         {
-            REQUIRE(recipe.variance().share(gelex::GeneticMode::A) == 0.3);
-            REQUIRE(recipe.variance().share(gelex::GeneticMode::D) == 0.1);
+            REQUIRE(recipe.variance().genetic(gelex::GeneticMode::A) == 0.3);
+            REQUIRE(recipe.variance().genetic(gelex::GeneticMode::D) == 0.1);
             REQUIRE(recipe.variance().residual() == 0.6);
             REQUIRE(
                 recipe.genetic_spec()

@@ -35,12 +35,14 @@
 #include "gelex/bayes/genetic/joint_spike_slab.h"
 #include "gelex/bayes/genetic/scaled_mixture.h"
 #include "gelex/bayes/genetic/spike_slab.h"
-#include "gelex/bayes/genetic_family.h"
+#include "gelex/bayes/genetic_policy.h"
 #include "gelex/bayes/genotype/operations.h"
+#include "gelex/bayes/mode_values.h"
 #include "gelex/bayes/model.h"
 #include "gelex/bayes/prior.h"
 #include "gelex/bayes/recipe.h"
 #include "gelex/bayes/result.h"
+#include "gelex/bayes/spec.h"
 #include "gelex/bayes/state.h"
 #include "gelex/bayes/variance/budget.h"
 #include "gelex/data/covariates.h"
@@ -62,15 +64,37 @@ namespace
 constexpr auto mode_a = gelex::GeneticModeSet{gelex::GeneticMode::A};
 constexpr auto mode_ad = gelex::GeneticMode::A | gelex::GeneticMode::D;
 
-template <gelex::GeneticModeSet Modes, typename Family, typename Configure>
+using UnpooledSpikeSlabSpecA = gelex::HomogeneousModeValues<
+    mode_a,
+    gelex::SpikeSlabSpec<
+        gelex::VarianceLayout::Unpooled,
+        gelex::MixtureWeightUpdate::Enabled>>;
+using FixedPooledSpikeSlabSpecA = gelex::HomogeneousModeValues<
+    mode_a,
+    gelex::SpikeSlabSpec<
+        gelex::VarianceLayout::Pooled,
+        gelex::MixtureWeightUpdate::Disabled>>;
+using ScaledMixtureSpecA
+    = gelex::HomogeneousModeValues<mode_a, gelex::ScaledMixtureSpec<>>;
+using FixedScaledMixtureSpecA = gelex::HomogeneousModeValues<
+    mode_a,
+    gelex::ScaledMixtureSpec<gelex::MixtureWeightUpdate::Disabled>>;
+using JointSpikeSlabSpecAD = gelex::JointModeValues<
+    gelex::ModeValues<mode_ad, gelex::GaussianSpec<>, gelex::HalfNormalSpec>,
+    gelex::JointSpikeSlabSpec<>>;
+using FixedJointSpikeSlabSpecAD = gelex::JointModeValues<
+    gelex::ModeValues<mode_ad, gelex::GaussianSpec<>, gelex::HalfNormalSpec>,
+    gelex::JointSpikeSlabSpec<gelex::MixtureWeightUpdate::Disabled>>;
+
+template <gelex::GeneticModeSet Modes, typename Spec, typename Configure>
 auto collect_result(const std::filesystem::path& path, Configure configure)
 {
     auto model = gelex::test::make_compact_model(
         Eigen::MatrixXd{{0.0, 1.0}, {1.0, 0.0}, {2.0, 1.0}},
         Eigen::VectorXd{{1.0, 2.0, 3.0}},
         Modes);
-    const auto prior = gelex::make_prior(
-        gelex::BayesRecipe<Modes, Family>::defaults(), model);
+    const auto prior
+        = gelex::make_prior(gelex::BayesRecipe<Modes, Spec>::defaults(), model);
     auto state = gelex::make_state(prior, model);
     configure(state);
 
@@ -150,7 +174,6 @@ TEST_CASE(
     "BayesResult owns named fixed random and variance summaries",
     "[bayes][result]")
 {
-    using Family = gelex::GaussianFamily<gelex::VarianceLayout::Pooled>;
 
     gelex::test::FileFixture fixture;
     const auto path = fixture.get_test_dir() / "owned_result.draws";
@@ -158,7 +181,8 @@ TEST_CASE(
     {
         auto model = gelex::test::make_random_effect_model(mode_a);
         const auto prior = gelex::make_prior(
-            gelex::BayesRecipe<mode_a, Family>{
+            gelex::BayesRecipe<mode_a,
+gelex::GaussianSpec<gelex::VarianceLayout::Pooled>>{
                 gelex::VarianceBudget{{.additive = 0.4, .random = 0.2}}},
             model);
         auto state = gelex::make_state(prior, model);
@@ -263,10 +287,7 @@ TEST_CASE(
 
     SECTION("sampled unpooled")
     {
-        using Family = gelex::SpikeSlabFamily<
-            gelex::VarianceLayout::Unpooled,
-            gelex::MixtureWeightUpdate::Enabled>;
-        const auto result = collect_result<mode_a, Family>(
+        const auto result = collect_result<mode_a, UnpooledSpikeSlabSpecA>(
             fixture.get_test_dir() / "sampled_unpooled.draws",
             [](auto& state)
             {
@@ -291,10 +312,7 @@ TEST_CASE(
 
     SECTION("fixed pooled")
     {
-        using Family = gelex::SpikeSlabFamily<
-            gelex::VarianceLayout::Pooled,
-            gelex::MixtureWeightUpdate::Disabled>;
-        const auto result = collect_result<mode_a, Family>(
+        const auto result = collect_result<mode_a, FixedPooledSpikeSlabSpecA>(
             fixture.get_test_dir() / "fixed_pooled.draws",
             [](auto& state)
             {
@@ -326,8 +344,7 @@ TEST_CASE(
 
     SECTION("sampled")
     {
-        using Family = gelex::ScaledMixtureFamily<>;
-        const auto result = collect_result<mode_a, Family>(
+        const auto result = collect_result<mode_a, ScaledMixtureSpecA>(
             fixture.get_test_dir() / "sampled_mixture.draws",
             [](auto& state)
             {
@@ -363,9 +380,7 @@ TEST_CASE(
 
     SECTION("fixed")
     {
-        using Family
-            = gelex::ScaledMixtureFamily<gelex::MixtureWeightUpdate::Disabled>;
-        const auto result = collect_result<mode_a, Family>(
+        const auto result = collect_result<mode_a, FixedScaledMixtureSpecA>(
             fixture.get_test_dir() / "fixed_mixture.draws", [](auto&) {});
         const auto& family
             = result.genetic_parameters().template get<gelex::GeneticMode::A>();
@@ -385,9 +400,8 @@ TEST_CASE("BayesResult projects half-normal joint fields", "[bayes][result]")
 
     SECTION("count")
     {
-        using Family = gelex::JointSpikeSlabFamily<>;
-        const auto result = collect_result<mode_ad, Family>(
-            fixture.get_test_dir() / "count_joint.draws",
+                const auto result = collect_result<mode_ad,
+JointSpikeSlabSpecAD>( fixture.get_test_dir() / "count_joint.draws",
             [](auto& state)
             {
                 auto& dominance = state.genetic()
@@ -439,10 +453,8 @@ TEST_CASE("BayesResult projects half-normal joint fields", "[bayes][result]")
 
     SECTION("fixed joint probabilities")
     {
-        using Family
-            = gelex::JointSpikeSlabFamily<gelex::MixtureWeightUpdate::Disabled>;
-        const auto result = collect_result<mode_ad, Family>(
-            fixture.get_test_dir() / "fixed_joint.draws",
+                const auto result = collect_result<mode_ad,
+FixedJointSpikeSlabSpecAD>( fixture.get_test_dir() / "fixed_joint.draws",
             [](auto& state)
             { state.genetic().joint().fitted_values.setZero(); });
         const auto& joint = result.genetic_parameters().joint();
@@ -459,12 +471,12 @@ TEST_CASE(
     "BayesResult validates model and coefficient draw alignment",
     "[bayes][result]")
 {
-    using Family = gelex::GaussianFamily<gelex::VarianceLayout::Pooled>;
 
     gelex::test::FileFixture fixture;
     auto source_model = gelex::test::make_random_effect_model(mode_a);
     const auto prior = gelex::make_prior(
-        gelex::BayesRecipe<mode_a, Family>{
+        gelex::BayesRecipe<mode_a,
+gelex::GaussianSpec<gelex::VarianceLayout::Pooled>>{
             gelex::VarianceBudget{{.additive = 0.4, .random = 0.2}}},
         source_model);
     auto state = gelex::make_state(prior, source_model);
@@ -515,12 +527,12 @@ TEST_CASE(
     "BayesResult rejects draws without any recorded sample",
     "[bayes][result]")
 {
-    using Family = gelex::GaussianFamily<gelex::VarianceLayout::Pooled>;
-
     gelex::test::FileFixture fixture;
     auto model = gelex::test::make_random_effect_model(mode_a);
     const auto prior = gelex::make_prior(
-        gelex::BayesRecipe<mode_a, Family>{
+        gelex::BayesRecipe<
+            mode_a,
+            gelex::GaussianSpec<gelex::VarianceLayout::Pooled>>{
             gelex::VarianceBudget{{.additive = 0.4, .random = 0.2}}},
         model);
     auto draws = gelex::make_draws(

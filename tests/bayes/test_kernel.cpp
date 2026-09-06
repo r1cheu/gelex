@@ -28,7 +28,7 @@
 #include "gelex/bayes/genetic/gaussian.h"
 #include "gelex/bayes/genetic/scaled_mixture.h"
 #include "gelex/bayes/genetic/spike_slab.h"
-#include "gelex/bayes/genetic_family.h"
+#include "gelex/bayes/genetic_policy.h"
 #include "gelex/bayes/kernel.h"
 #include "gelex/bayes/mode_values.h"
 #include "gelex/bayes/prior.h"
@@ -44,23 +44,30 @@
 
 using Catch::Approx;
 
+using gelex::GaussianSpec;
+
 namespace
 {
 
 constexpr auto mode_a = gelex::GeneticModeSet{gelex::GeneticMode::A};
 constexpr auto mode_ad = gelex::GeneticMode::A | gelex::GeneticMode::D;
-using Family = gelex::GaussianFamily<gelex::VarianceLayout::Pooled>;
-using UnpooledFamily = gelex::GaussianFamily<gelex::VarianceLayout::Unpooled>;
-using PooledSpikeSlabFamily
-    = gelex::SpikeSlabFamily<gelex::VarianceLayout::Pooled>;
-using UnpooledSpikeSlabFamily
-    = gelex::SpikeSlabFamily<gelex::VarianceLayout::Unpooled>;
-using FixedUnpooledSpikeSlabFamily = gelex::SpikeSlabFamily<
-    gelex::VarianceLayout::Unpooled,
-    gelex::MixtureWeightUpdate::Disabled>;
-using SampledScaledMixtureFamily = gelex::ScaledMixtureFamily<>;
-using FixedScaledMixtureFamily
-    = gelex::ScaledMixtureFamily<gelex::MixtureWeightUpdate::Disabled>;
+
+using PooledSpikeSlabSpecA = gelex::HomogeneousModeValues<
+    mode_a,
+    gelex::SpikeSlabSpec<gelex::VarianceLayout::Pooled>>;
+using PooledSpikeSlabSpecAD = gelex::HomogeneousModeValues<
+    mode_ad,
+    gelex::SpikeSlabSpec<gelex::VarianceLayout::Pooled>>;
+using FixedUnpooledSpikeSlabSpecA = gelex::HomogeneousModeValues<
+    mode_a,
+    gelex::SpikeSlabSpec<
+        gelex::VarianceLayout::Unpooled,
+        gelex::MixtureWeightUpdate::Disabled>>;
+using ScaledMixtureSpecA
+    = gelex::HomogeneousModeValues<mode_a, gelex::ScaledMixtureSpec<>>;
+using FixedScaledMixtureSpecA = gelex::HomogeneousModeValues<
+    mode_a,
+    gelex::ScaledMixtureSpec<gelex::MixtureWeightUpdate::Disabled>>;
 using AdditiveGeneticPrior = gelex::
     ModeValues<mode_a, gelex::GaussianPrior<gelex::VarianceLayout::Pooled>>;
 using AdditiveDominanceGeneticPrior = gelex::ModeValues<
@@ -208,7 +215,7 @@ auto reconstruct_scaled_mixture_fitted(
 {
     Eigen::MatrixXd fitted = Eigen::MatrixXd::Zero(
         design.rows(),
-        static_cast<Eigen::Index>(gelex::ScaledMixture::class_count - 1));
+        static_cast<Eigen::Index>(gelex::ScaledMixtureSpec<>::class_count - 1));
     const auto& projection = design.projection(mode);
     for (Eigen::Index marker = 0; marker < coefficients.size(); ++marker)
     {
@@ -234,10 +241,10 @@ TEST_CASE(
 {
     const auto model = make_model();
     const auto prior = gelex::make_prior(
-        gelex::BayesRecipe<mode_a, Family>::defaults(), model);
-    auto state = gelex::make_state(prior, model);
-    auto kernel = gelex::make_kernel(prior);
-    std::mt19937_64 rng{123};
+        gelex::BayesRecipe<mode_a,
+gelex::GaussianSpec<gelex::VarianceLayout::Pooled>>::defaults(), model); auto
+state = gelex::make_state(prior, model); auto kernel =
+gelex::make_kernel(prior); std::mt19937_64 rng{123};
 
     kernel.step(model, state, rng);
 
@@ -262,10 +269,10 @@ TEST_CASE(
 {
     const auto model = make_ad_model();
     const auto prior = gelex::make_prior(
-        gelex::BayesRecipe<mode_ad, Family>::defaults(), model);
-    auto state = gelex::make_state(prior, model);
-    auto kernel = gelex::make_kernel(prior);
-    std::mt19937_64 rng{123};
+        gelex::BayesRecipe<mode_ad,
+gelex::GaussianSpec<gelex::VarianceLayout::Pooled>>::defaults(), model); auto
+state = gelex::make_state(prior, model); auto kernel =
+gelex::make_kernel(prior); std::mt19937_64 rng{123};
 
     kernel.step(model, state, rng);
 
@@ -296,11 +303,11 @@ TEST_CASE(
 {
     const auto model = make_model();
     const auto prior = gelex::make_prior(
-        gelex::BayesRecipe<mode_a, UnpooledFamily>::defaults(), model);
-    auto state = gelex::make_state(prior, model);
-    auto kernel = gelex::make_kernel(prior);
-    const double invalid_marker_variance
-        = state.genetic().get<gelex::GeneticMode::A>().family_state.variance(1);
+        gelex::BayesRecipe<mode_a,
+gelex::GaussianSpec<gelex::VarianceLayout::Unpooled>>::defaults(), model); auto
+state = gelex::make_state(prior, model); auto kernel =
+gelex::make_kernel(prior); const double invalid_marker_variance =
+state.genetic().get<gelex::GeneticMode::A>().family_state.variance(1);
     std::mt19937_64 rng{123};
 
     kernel.step(model, state, rng);
@@ -326,7 +333,8 @@ TEST_CASE(
 {
     const auto model = make_model_with_random();
     const auto prior = gelex::make_prior(
-        gelex::BayesRecipe<mode_a, Family>{
+        gelex::BayesRecipe<mode_a,
+gelex::GaussianSpec<gelex::VarianceLayout::Pooled>>{
             gelex::VarianceBudget{{.additive = 0.4, .random = 0.1}}},
         model);
     auto state = gelex::make_state(prior, model);
@@ -364,8 +372,9 @@ TEST_CASE(
 {
     const auto model = make_model();
     const auto prior = gelex::make_prior(
-        gelex::BayesRecipe<mode_a, PooledSpikeSlabFamily>{
-            gelex::ModeValues<mode_a, gelex::SpikeSlab>{gelex::SpikeSlab{0.5}},
+        gelex::BayesRecipe<mode_a, PooledSpikeSlabSpecA>{
+            PooledSpikeSlabSpecA{
+                gelex::SpikeSlabSpec<gelex::VarianceLayout::Pooled>{0.5}},
             gelex::VarianceBudget{{.additive = 0.4}}},
         model);
     auto state = gelex::make_state(prior, model);
@@ -408,9 +417,10 @@ TEST_CASE(
 {
     const auto model = make_ad_model();
     const auto prior = gelex::make_prior(
-        gelex::BayesRecipe<mode_ad, PooledSpikeSlabFamily>{
-            gelex::ModeValues<mode_ad, gelex::SpikeSlab, gelex::SpikeSlab>{
-                gelex::SpikeSlab{0.5}, gelex::SpikeSlab{0.5}},
+        gelex::BayesRecipe<mode_ad, PooledSpikeSlabSpecAD>{
+            PooledSpikeSlabSpecAD{
+                gelex::SpikeSlabSpec<gelex::VarianceLayout::Pooled>{0.5},
+                gelex::SpikeSlabSpec<gelex::VarianceLayout::Pooled>{0.5}},
             gelex::VarianceBudget{{.additive = 0.4, .dominance = 0.1}}},
         model);
     auto state = gelex::make_state(prior, model);
@@ -454,9 +464,10 @@ TEST_CASE(
     const auto model = make_model();
     constexpr double fixed_probability = 1.0e-12;
     const auto prior = gelex::make_prior(
-        gelex::BayesRecipe<mode_a, FixedUnpooledSpikeSlabFamily>{
-            gelex::ModeValues<mode_a, gelex::SpikeSlab>{
-                gelex::SpikeSlab{fixed_probability}},
+        gelex::BayesRecipe<mode_a, FixedUnpooledSpikeSlabSpecA>{
+            FixedUnpooledSpikeSlabSpecA{gelex::SpikeSlabSpec<
+                gelex::VarianceLayout::Unpooled,
+                gelex::MixtureWeightUpdate::Disabled>{fixed_probability}},
             gelex::VarianceBudget{{.additive = 0.4}}},
         model);
     auto state = gelex::make_state(prior, model);
@@ -490,9 +501,8 @@ TEST_CASE(
     const auto model = make_model();
     constexpr std::array probabilities{0.05, 0.1, 0.15, 0.2, 0.5};
     const auto prior = gelex::make_prior(
-        gelex::BayesRecipe<mode_a, SampledScaledMixtureFamily>{
-            gelex::ModeValues<mode_a, gelex::ScaledMixture>{
-                gelex::ScaledMixture{probabilities}},
+        gelex::BayesRecipe<mode_a, ScaledMixtureSpecA>{
+            ScaledMixtureSpecA{gelex::ScaledMixtureSpec<>{probabilities}},
             gelex::VarianceBudget{{.additive = 0.4}}},
         model);
     auto state = gelex::make_state(prior, model);
@@ -521,7 +531,8 @@ TEST_CASE(
          ++marker)
     {
         REQUIRE(
-            family.assignments()(marker) < gelex::ScaledMixture::class_count);
+            family.assignments()(marker)
+            < gelex::ScaledMixtureSpec<>::class_count);
         if (family.assignments()(marker) == 0)
         {
             REQUIRE(genetic.coefficients()(marker) == 0.0);
@@ -546,9 +557,10 @@ TEST_CASE(
     constexpr std::array probabilities{
         1.0e-12, 1.0e-12, 1.0e-12, 1.0e-12, 1.0 - 4.0e-12};
     const auto prior = gelex::make_prior(
-        gelex::BayesRecipe<mode_a, FixedScaledMixtureFamily>{
-            gelex::ModeValues<mode_a, gelex::ScaledMixture>{
-                gelex::ScaledMixture{probabilities}},
+        gelex::BayesRecipe<mode_a, FixedScaledMixtureSpecA>{
+            FixedScaledMixtureSpecA{
+                gelex::ScaledMixtureSpec<gelex::MixtureWeightUpdate::Disabled>{
+                    probabilities}},
             gelex::VarianceBudget{{.additive = 0.4}}},
         model);
     auto state = gelex::make_state(prior, model);

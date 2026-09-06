@@ -27,7 +27,7 @@
 
 #include "gelex/bayes/basic_draw.h"
 #include "gelex/bayes/genetic/traits.h"
-#include "gelex/bayes/genetic_family.h"
+#include "gelex/bayes/genetic_policy.h"
 #include "gelex/io/binary_format.h"
 #include "gelex/io/binary_writer.h"
 

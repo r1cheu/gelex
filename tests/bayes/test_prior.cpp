@@ -27,7 +27,7 @@
 #include "gelex/bayes/genetic/joint_spike_slab.h"
 #include "gelex/bayes/genetic/scaled_mixture.h"
 #include "gelex/bayes/genetic/spike_slab.h"
-#include "gelex/bayes/genetic_family.h"
+#include "gelex/bayes/genetic_policy.h"
 #include "gelex/bayes/mode_values.h"
 #include "gelex/bayes/model.h"
 #include "gelex/bayes/prior.h"
@@ -45,26 +45,22 @@ using Catch::Approx;
 using gelex::BayesModel;
 using gelex::BayesPrior;
 using gelex::BayesRecipe;
-using gelex::Gaussian;
-using gelex::GaussianFamily;
 using gelex::GaussianPrior;
+using gelex::GaussianSpec;
 using gelex::GeneticMode;
 using gelex::GeneticModeSet;
-using gelex::HalfNormal;
 using gelex::HalfNormalPrior;
+using gelex::HalfNormalSpec;
 using gelex::JointModeValues;
-using gelex::JointSpikeSlab;
-using gelex::JointSpikeSlabFamily;
 using gelex::JointSpikeSlabPrior;
+using gelex::JointSpikeSlabSpec;
 using gelex::make_prior;
 using gelex::MixtureWeightUpdate;
 using gelex::ModeValues;
-using gelex::ScaledMixture;
-using gelex::ScaledMixtureFamily;
 using gelex::ScaledMixturePrior;
-using gelex::SpikeSlab;
-using gelex::SpikeSlabFamily;
+using gelex::ScaledMixtureSpec;
 using gelex::SpikeSlabPrior;
+using gelex::SpikeSlabSpec;
 using gelex::VarianceBudget;
 using gelex::VarianceLayout;
 
@@ -79,56 +75,63 @@ using prior_result_t = decltype(make_prior(
 constexpr auto mode_a = GeneticModeSet{GeneticMode::A};
 constexpr auto mode_ad = GeneticMode::A | GeneticMode::D;
 
-using SpikeSlabAD = gelex::ModeValues<mode_ad, SpikeSlab, SpikeSlab>;
-using ScaledMixtureAD
-    = gelex::ModeValues<mode_ad, ScaledMixture, ScaledMixture>;
-using JointModeSpecs = ModeValues<mode_ad, Gaussian, HalfNormal>;
-using JointSpikeSlabAD = JointModeValues<JointModeSpecs, JointSpikeSlab>;
-using PooledGaussianFamily = GaussianFamily<VarianceLayout::Pooled>;
-using UnpooledGaussianFamily = GaussianFamily<VarianceLayout::Unpooled>;
-using PooledSpikeSlabFamily = SpikeSlabFamily<VarianceLayout::Pooled>;
-using UnpooledSpikeSlabFamily = SpikeSlabFamily<VarianceLayout::Unpooled>;
-using FixedUnpooledSpikeSlabFamily
-    = SpikeSlabFamily<VarianceLayout::Unpooled, MixtureWeightUpdate::Disabled>;
-using DefaultScaledMixtureFamily = ScaledMixtureFamily<>;
-using FixedScaledMixtureFamily
-    = ScaledMixtureFamily<MixtureWeightUpdate::Disabled>;
-using DefaultJointSpikeSlabFamily = JointSpikeSlabFamily<>;
-using FixedJointSpikeSlabFamily
-    = JointSpikeSlabFamily<MixtureWeightUpdate::Disabled>;
+using UnpooledSpikeSlabSpecAD = gelex::
+    HomogeneousModeValues<mode_ad, SpikeSlabSpec<VarianceLayout::Unpooled>>;
+using PooledSpikeSlabSpecAD = gelex::
+    HomogeneousModeValues<mode_ad, SpikeSlabSpec<VarianceLayout::Pooled>>;
+using ScaledMixtureSpecAD
+    = gelex::HomogeneousModeValues<mode_ad, ScaledMixtureSpec<>>;
+using JointSpikeSlabSpecAD = gelex::JointModeValues<
+    gelex::ModeValues<mode_ad, gelex::GaussianSpec<>, gelex::HalfNormalSpec>,
+    JointSpikeSlabSpec<>>;
+using FixedUnpooledSpikeSlabSpecAD = gelex::HomogeneousModeValues<
+    mode_ad,
+    SpikeSlabSpec<VarianceLayout::Unpooled, MixtureWeightUpdate::Disabled>>;
+using ScaledMixtureSpecA
+    = gelex::HomogeneousModeValues<mode_a, ScaledMixtureSpec<>>;
+using FixedScaledMixtureSpecA = gelex::HomogeneousModeValues<
+    mode_a,
+    ScaledMixtureSpec<MixtureWeightUpdate::Disabled>>;
+using FixedJointSpikeSlabSpecAD = gelex::JointModeValues<
+    gelex::ModeValues<mode_ad, gelex::GaussianSpec<>, gelex::HalfNormalSpec>,
+    JointSpikeSlabSpec<MixtureWeightUpdate::Disabled>>;
+
+using JointModeSpecs = ModeValues<mode_ad, GaussianSpec<>, HalfNormalSpec>;
 
 // Each recipe type admits exactly one prior type, and the five independent
 // families differ only in their leaf.
 static_assert(std::same_as<
-              prior_result_t<BayesRecipe<mode_ad, PooledGaussianFamily>>,
+              prior_result_t<
+                  BayesRecipe<mode_ad, GaussianSpec<VarianceLayout::Pooled>>>,
               BayesPrior<ModeValues<
                   mode_ad,
                   GaussianPrior<VarianceLayout::Pooled>,
                   GaussianPrior<VarianceLayout::Pooled>>>>);
 static_assert(
     std::same_as<
-        prior_result_t<BayesRecipe<mode_a, UnpooledGaussianFamily>>,
+        prior_result_t<
+            BayesRecipe<mode_a, GaussianSpec<VarianceLayout::Unpooled>>>,
         BayesPrior<
             ModeValues<mode_a, GaussianPrior<VarianceLayout::Unpooled>>>>);
 static_assert(std::same_as<
-              prior_result_t<BayesRecipe<mode_ad, UnpooledSpikeSlabFamily>>,
+              prior_result_t<BayesRecipe<mode_ad, UnpooledSpikeSlabSpecAD>>,
               BayesPrior<ModeValues<
                   mode_ad,
                   SpikeSlabPrior<VarianceLayout::Unpooled>,
                   SpikeSlabPrior<VarianceLayout::Unpooled>>>>);
 static_assert(std::same_as<
-              prior_result_t<BayesRecipe<mode_ad, PooledSpikeSlabFamily>>,
+              prior_result_t<BayesRecipe<mode_ad, PooledSpikeSlabSpecAD>>,
               BayesPrior<ModeValues<
                   mode_ad,
                   SpikeSlabPrior<VarianceLayout::Pooled>,
                   SpikeSlabPrior<VarianceLayout::Pooled>>>>);
 static_assert(
     std::same_as<
-        prior_result_t<BayesRecipe<mode_ad, DefaultScaledMixtureFamily>>,
+        prior_result_t<BayesRecipe<mode_ad, ScaledMixtureSpecAD>>,
         BayesPrior<
             ModeValues<mode_ad, ScaledMixturePrior<>, ScaledMixturePrior<>>>>);
 static_assert(std::same_as<
-              prior_result_t<BayesRecipe<mode_ad, DefaultJointSpikeSlabFamily>>,
+              prior_result_t<BayesRecipe<mode_ad, JointSpikeSlabSpecAD>>,
               BayesPrior<JointModeValues<
                   ModeValues<
                       mode_ad,
@@ -137,7 +140,7 @@ static_assert(std::same_as<
                   JointSpikeSlabPrior<>>>>);
 static_assert(
     std::same_as<
-        prior_result_t<BayesRecipe<mode_ad, FixedUnpooledSpikeSlabFamily>>,
+        prior_result_t<BayesRecipe<mode_ad, FixedUnpooledSpikeSlabSpecAD>>,
         BayesPrior<ModeValues<
             mode_ad,
             SpikeSlabPrior<
@@ -152,8 +155,9 @@ concept CanMakePrior = requires(const Recipe& recipe, const BayesModel& model) {
     make_prior(recipe, model);
 };
 
-static_assert(CanMakePrior<BayesRecipe<mode_a, PooledGaussianFamily>>);
-static_assert(CanMakePrior<BayesRecipe<mode_ad, DefaultJointSpikeSlabFamily>>);
+static_assert(
+    CanMakePrior<BayesRecipe<mode_a, GaussianSpec<VarianceLayout::Pooled>>>);
+static_assert(CanMakePrior<BayesRecipe<mode_ad, JointSpikeSlabSpecAD>>);
 
 template <typename T>
 concept HasPrior = requires(const T& parameter) { parameter.prior; };
@@ -208,8 +212,9 @@ TEST_CASE(
     "[bayes][prior]")
 {
     const auto model = make_model(mode_ad);
-    const auto recipe = BayesRecipe<mode_ad, PooledGaussianFamily>{
-        VarianceBudget{{.additive = 0.4, .dominance = 0.1}}};
+    const auto recipe
+        = BayesRecipe<mode_ad, GaussianSpec<VarianceLayout::Pooled>>{
+            VarianceBudget{{.additive = 0.4, .dominance = 0.1}}};
 
     const auto prior = make_prior(recipe, model);
 
@@ -225,7 +230,8 @@ TEST_CASE("make_prior calibrates the variance prior mean", "[bayes][prior]")
 {
     const auto model = make_model(mode_a);
     const auto prior = make_prior(
-        BayesRecipe<mode_a, UnpooledGaussianFamily>::defaults(), model);
+        BayesRecipe<mode_a, GaussianSpec<VarianceLayout::Unpooled>>::defaults(),
+        model);
 
     const auto& variance = prior.genetic().get<GeneticMode::A>().variance;
 
@@ -239,10 +245,10 @@ TEST_CASE(
     "[bayes][prior]")
 {
     const auto model = make_model(mode_ad);
-    const auto recipe = BayesRecipe<mode_ad, PooledSpikeSlabFamily>{
-        SpikeSlabAD{
-            SpikeSlab{0.05},
-            SpikeSlab{0.2},
+    const auto recipe = BayesRecipe<mode_ad, PooledSpikeSlabSpecAD>{
+        PooledSpikeSlabSpecAD{
+            SpikeSlabSpec<VarianceLayout::Pooled>{0.05},
+            SpikeSlabSpec<VarianceLayout::Pooled>{0.2},
         },
         VarianceBudget{{.additive = 0.4, .dominance = 0.1}},
     };
@@ -268,17 +274,21 @@ TEST_CASE(
 {
     const auto model = make_model(mode_ad);
     const auto fixed_recipe
-        = BayesRecipe<mode_ad, FixedUnpooledSpikeSlabFamily>{
-            SpikeSlabAD{
-                SpikeSlab{0.01},
-                SpikeSlab{0.02},
+        = BayesRecipe<mode_ad, FixedUnpooledSpikeSlabSpecAD>{
+            FixedUnpooledSpikeSlabSpecAD{
+                SpikeSlabSpec<
+                    VarianceLayout::Unpooled,
+                    MixtureWeightUpdate::Disabled>{0.01},
+                SpikeSlabSpec<
+                    VarianceLayout::Unpooled,
+                    MixtureWeightUpdate::Disabled>{0.02},
             },
             VarianceBudget{{.additive = 0.4, .dominance = 0.1}},
         };
-    const auto sampled_recipe = BayesRecipe<mode_ad, UnpooledSpikeSlabFamily>{
-        SpikeSlabAD{
-            SpikeSlab{0.01},
-            SpikeSlab{0.02},
+    const auto sampled_recipe = BayesRecipe<mode_ad, UnpooledSpikeSlabSpecAD>{
+        UnpooledSpikeSlabSpecAD{
+            SpikeSlabSpec<VarianceLayout::Unpooled>{0.01},
+            SpikeSlabSpec<VarianceLayout::Unpooled>{0.02},
         },
         VarianceBudget{{.additive = 0.4, .dominance = 0.1}},
     };
@@ -303,21 +313,22 @@ TEST_CASE(
     "[bayes][prior]")
 {
     const auto model = make_model(mode_a);
-    const auto recipe = BayesRecipe<mode_a, DefaultScaledMixtureFamily>{
-        gelex::ModeValues<mode_a, ScaledMixture>{ScaledMixture{}},
+    const auto recipe = BayesRecipe<mode_a, ScaledMixtureSpecA>{
+        ScaledMixtureSpecA{ScaledMixtureSpec<>{}},
         VarianceBudget{{.additive = 0.5}},
     };
 
     const auto prior = make_prior(recipe, model);
     const auto fixed_prior = make_prior(
-        BayesRecipe<mode_a, FixedScaledMixtureFamily>{
-            gelex::ModeValues<mode_a, ScaledMixture>{ScaledMixture{}},
+        BayesRecipe<mode_a, FixedScaledMixtureSpecA>{
+            FixedScaledMixtureSpecA{
+                ScaledMixtureSpec<MixtureWeightUpdate::Disabled>{}},
             VarianceBudget{{.additive = 0.5}}},
         model);
     const auto& leaf = prior.genetic().get<GeneticMode::A>();
     const auto& fixed_probabilities
         = fixed_prior.genetic().get<GeneticMode::A>().probabilities;
-    const auto defaults = ScaledMixture{};
+    const auto defaults = ScaledMixtureSpec<>{};
 
     // Default probabilities and scales: 0.005 * 0.001 + 0.003 * 0.01
     // + 0.001 * 0.1 + 0.001 * 1, with the null class contributing nothing.
@@ -338,10 +349,11 @@ TEST_CASE(
 TEST_CASE("make_prior derives joint marginal activity", "[bayes][prior]")
 {
     const auto model = make_model(mode_ad);
-    const auto recipe = BayesRecipe<mode_ad, FixedJointSpikeSlabFamily>{
-        JointSpikeSlabAD{
-            JointModeSpecs{Gaussian{}, HalfNormal{}},
-            JointSpikeSlab{{0.8, 0.1, 0.05, 0.05}}},
+    const auto recipe = BayesRecipe<mode_ad, FixedJointSpikeSlabSpecAD>{
+        FixedJointSpikeSlabSpecAD{
+            JointModeSpecs{GaussianSpec<>{}, HalfNormalSpec{}},
+            JointSpikeSlabSpec<MixtureWeightUpdate::Disabled>{
+                {0.8, 0.1, 0.05, 0.05}}},
         VarianceBudget{{.additive = 0.4, .dominance = 0.1}},
     };
 
@@ -361,8 +373,9 @@ TEST_CASE(
     "[bayes][prior]")
 {
     const auto model = make_model(mode_a);
-    const auto recipe = BayesRecipe<mode_a, PooledGaussianFamily>{
-        VarianceBudget{{.additive = 0.4}}};
+    const auto recipe
+        = BayesRecipe<mode_a, GaussianSpec<VarianceLayout::Pooled>>{
+            VarianceBudget{{.additive = 0.4}}};
 
     const auto prior = make_prior(recipe, model);
 
@@ -389,8 +402,9 @@ TEST_CASE(
              "second",
              std::vector<std::string>{"second"},
              Eigen::MatrixXd{{0.0}, {2.0}, {4.0}})});
-    const auto recipe = BayesRecipe<mode_a, PooledGaussianFamily>{
-        VarianceBudget{{.additive = 0.4, .random = 0.2}}};
+    const auto recipe
+        = BayesRecipe<mode_a, GaussianSpec<VarianceLayout::Pooled>>{
+            VarianceBudget{{.additive = 0.4, .random = 0.2}}};
 
     const auto prior = make_prior(recipe, model);
     const double block_target = model.phenotype_variance() * 0.2 / 2.0;
@@ -415,8 +429,9 @@ TEST_CASE(
     SECTION("a share without a design")
     {
         const auto model = make_model(mode_a);
-        const auto recipe = BayesRecipe<mode_a, PooledGaussianFamily>{
-            VarianceBudget{{.additive = 0.4, .random = 0.1}}};
+        const auto recipe
+            = BayesRecipe<mode_a, GaussianSpec<VarianceLayout::Pooled>>{
+                VarianceBudget{{.additive = 0.4, .random = 0.1}}};
 
         REQUIRE_THROWS_AS(make_prior(recipe, model), gelex::GelexException);
     }
@@ -431,7 +446,9 @@ TEST_CASE(
 
         REQUIRE_THROWS_AS(
             make_prior(
-                BayesRecipe<mode_a, PooledGaussianFamily>::defaults(), model),
+                BayesRecipe<mode_a, GaussianSpec<VarianceLayout::Pooled>>::
+                    defaults(),
+                model),
             gelex::GelexException);
     }
 }
@@ -444,8 +461,9 @@ TEST_CASE(
         "constant",
         std::vector<std::string>{"constant"},
         Eigen::MatrixXd{{1.0}, {1.0}, {1.0}})});
-    const auto recipe = BayesRecipe<mode_a, PooledGaussianFamily>{
-        VarianceBudget{{.additive = 0.4, .random = 0.1}}};
+    const auto recipe
+        = BayesRecipe<mode_a, GaussianSpec<VarianceLayout::Pooled>>{
+            VarianceBudget{{.additive = 0.4, .random = 0.1}}};
 
     REQUIRE_THROWS_AS(make_prior(recipe, model), gelex::GelexException);
 }

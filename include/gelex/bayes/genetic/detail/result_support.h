@@ -24,7 +24,7 @@
 #include "gelex/bayes/basic_draw.h"
 #include "gelex/bayes/basic_result.h"
 #include "gelex/bayes/genetic/traits.h"
-#include "gelex/bayes/genetic_family.h"
+#include "gelex/bayes/genetic_policy.h"
 
 namespace gelex::detail
 {
