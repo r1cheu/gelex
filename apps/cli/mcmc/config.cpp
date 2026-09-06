@@ -144,7 +144,7 @@ auto validate_mcmc_config(const McmcConfig& config) -> void
     }
 
     validate_mode_options(
-        config.genetic_variance_shares,
+        config.genetic_variance_proportion,
         {.additive = "--h2", .dominance = "--d2"},
         config,
         true);

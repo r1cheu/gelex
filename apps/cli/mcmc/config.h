@@ -49,7 +49,7 @@ struct McmcConfig
     gelex::BayesMethod method{gelex::BayesMethod::RR};
     gelex::GeneticModeSet mode{gelex::GeneticMode::A};
     gelex::HomogeneousModeValues<option_modes, std::optional<double>>
-        genetic_variance_shares;
+        genetic_variance_proportion;
     gelex::JointModeValues<
         gelex::HomogeneousModeValues<option_modes, std::vector<double>>,
         std::vector<double>>
