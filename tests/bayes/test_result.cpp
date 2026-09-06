@@ -26,6 +26,7 @@
 #include <string>
 #include <type_traits>
 #include <utility>
+#include <variant>
 #include <vector>
 
 #include "gelex/bayes/detail/result_factory.h"
@@ -35,6 +36,7 @@
 #include "gelex/bayes/genetic/scaled_mixture.h"
 #include "gelex/bayes/genetic/spike_slab.h"
 #include "gelex/bayes/genetic_family.h"
+#include "gelex/bayes/genotype/operations.h"
 #include "gelex/bayes/model.h"
 #include "gelex/bayes/prior.h"
 #include "gelex/bayes/recipe.h"
@@ -268,12 +270,11 @@ TEST_CASE(
             fixture.get_test_dir() / "sampled_unpooled.draws",
             [](auto& state)
             {
-                auto& family = state.genetic()
-                                   .template get<gelex::GeneticMode::A>()
-                                   .family_state;
-                family.variance = Eigen::VectorXd{{0.1, 0.2}};
-                family.assignment = Eigen::VectorX<std::uint8_t>{{0, 1}};
-                family.probability = 0.35;
+                auto& family
+                    = state.genetic().template get<gelex::GeneticMode::A>();
+                family.variance() = Eigen::VectorXd{{0.1, 0.2}};
+                family.transition(1, 0.0, true);
+                family.probability() = 0.35;
             });
         const auto& family
             = result.genetic_parameters().template get<gelex::GeneticMode::A>();
@@ -297,13 +298,11 @@ TEST_CASE(
             fixture.get_test_dir() / "fixed_pooled.draws",
             [](auto& state)
             {
+                state.genetic().template get<gelex::GeneticMode::A>().variance()
+                    = 0.75;
                 state.genetic()
                     .template get<gelex::GeneticMode::A>()
-                    .family_state.variance = 0.75;
-                state.genetic()
-                    .template get<gelex::GeneticMode::A>()
-                    .family_state.assignment
-                    = Eigen::VectorX<std::uint8_t>{{1, 0}};
+                    .transition(0, 0.0, true);
             });
         const auto& family
             = result.genetic_parameters().template get<gelex::GeneticMode::A>();
@@ -332,16 +331,16 @@ TEST_CASE(
             fixture.get_test_dir() / "sampled_mixture.draws",
             [](auto& state)
             {
-                auto& family = state.genetic()
-                                   .template get<gelex::GeneticMode::A>()
-                                   .family_state;
-                family.variance = 0.8;
-                family.assignment = Eigen::VectorX<std::uint8_t>{{0, 4}};
-                family.probabilities = {0.5, 0.2, 0.15, 0.1, 0.05};
-                family.fitted_values = Eigen::MatrixXd{
-                    {0.0, 1.0, 2.0, 0.0},
-                    {3.0, 1.0, 0.0, 0.0},
-                    {0.0, 1.0, 4.0, 0.0}};
+                auto& family
+                    = state.genetic().template get<gelex::GeneticMode::A>();
+                family.variance() = 0.8;
+                auto update = std::get<gelex::bayes::AxpyTarget>(
+                    family.transition(1, 1.0, 4));
+                Eigen::Map<Eigen::VectorXd>(
+                    update.target.data(),
+                    static_cast<Eigen::Index>(update.target.size()))
+                    += update.scale * Eigen::VectorXd{{2.0, 0.0, 4.0}};
+                family.probabilities() = {0.5, 0.2, 0.15, 0.1, 0.05};
             });
         const auto& family
             = result.genetic_parameters().template get<gelex::GeneticMode::A>();
@@ -367,13 +366,7 @@ TEST_CASE(
         using Family
             = gelex::ScaledMixtureFamily<gelex::MixtureWeightUpdate::Disabled>;
         const auto result = collect_result<mode_a, Family>(
-            fixture.get_test_dir() / "fixed_mixture.draws",
-            [](auto& state)
-            {
-                state.genetic()
-                    .template get<gelex::GeneticMode::A>()
-                    .family_state.fitted_values.setZero();
-            });
+            fixture.get_test_dir() / "fixed_mixture.draws", [](auto&) {});
         const auto& family
             = result.genetic_parameters().template get<gelex::GeneticMode::A>();
 

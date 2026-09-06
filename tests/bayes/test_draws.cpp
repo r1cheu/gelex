@@ -23,6 +23,7 @@
 #include <string>
 #include <type_traits>
 #include <utility>
+#include <variant>
 #include <vector>
 
 #include "gelex/bayes/design.h"
@@ -31,6 +32,7 @@
 #include "gelex/bayes/genetic/joint_spike_slab.h"
 #include "gelex/bayes/genetic/scaled_mixture.h"
 #include "gelex/bayes/genetic_family.h"
+#include "gelex/bayes/genotype/operations.h"
 #include "gelex/bayes/model.h"
 #include "gelex/bayes/prior.h"
 #include "gelex/bayes/recipe.h"
@@ -469,25 +471,34 @@ TEST_CASE("BayesDraws decomposes per-class genetic values", "[bayes][draws]")
         auto draws = gelex::make_draws(prior, model, path.string(), 1);
 
         // Each mode's class columns sum row-wise to {0, 3, 0}.
-        const Eigen::MatrixXd classes{
-            {0.0, 0.0, 0.0, 0.0}, {1.0, 1.0, 1.0, 0.0}, {0.0, 0.0, 0.0, 0.0}};
-        state.genetic().get<gelex::GeneticMode::A>().family_state.fitted_values
-            = classes;
-        state.genetic().get<gelex::GeneticMode::D>().family_state.fitted_values
-            = classes;
-        state.random()[0].fitted_values = Eigen::VectorXd{{0.0, 3.0, 0.0}};
+        state.genetic().for_each(
+            []<gelex::GeneticMode Mode>(auto& genetic)
+            {
+                auto first = std::get<gelex::bayes::AxpyTarget>(
+                    genetic.transition(0, 1.0, 1));
+                Eigen::Map<Eigen::VectorXd>(
+                    first.target.data(),
+                    static_cast<Eigen::Index>(first.target.size()))
+                    += first.scale * Eigen::VectorXd{{0.0, 1.0, 0.0}};
+                auto second = std::get<gelex::bayes::AxpyTarget>(
+                    genetic.transition(1, 2.0, 2));
+                Eigen::Map<Eigen::VectorXd>(
+                    second.target.data(),
+                    static_cast<Eigen::Index>(second.target.size()))
+                    += second.scale * Eigen::VectorXd{{0.0, 1.0, 0.0}};
+            });
         state.residual().variance = 2.0;
         draws.append(state);
     }
 
     const gelex::BinaryReader reader(path.string());
-    // Each mode varies by 2; phenotypic variance is 2+2+2+2.
+    // The identical modes have total variance 8; residual variance adds 2.
     REQUIRE(reader.to_map<double>("genetic/A/explained_variance")
                 .isApprox(Eigen::MatrixXd{{2.0}}));
     REQUIRE(reader.to_map<double>("genetic/total/explained_variance")
-                .isApprox(Eigen::MatrixXd{{4.0}}));
+                .isApprox(Eigen::MatrixXd{{8.0}}));
     REQUIRE(reader.to_map<double>("genetic/total/heritability")
-                .isApprox(Eigen::MatrixXd{{0.5}}));
+                .isApprox(Eigen::MatrixXd{{0.8}}));
 }
 
 /*

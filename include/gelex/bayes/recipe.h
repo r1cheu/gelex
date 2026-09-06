@@ -48,17 +48,17 @@ class BayesRecipe
     {
     }
 
-    [[nodiscard]] static auto defaults() -> BayesRecipe
+    static auto defaults() -> BayesRecipe
     {
-        return BayesRecipe{VarianceBudget{default_shares(Modes)}};
+        return BayesRecipe{VarianceBudget{default_proportion(Modes)}};
     }
 
-    [[nodiscard]] auto genetic_spec() const noexcept -> const genetic_spec_type&
+    auto genetic_spec() const noexcept -> const genetic_spec_type&
     {
         return genetic_spec_;
     }
 
-    [[nodiscard]] auto variance() const noexcept -> const VarianceBudget&
+    auto variance() const noexcept -> const VarianceBudget&
     {
         return variance_;
     }
@@ -68,25 +68,25 @@ class BayesRecipe
     {
         for (const auto mode : all_genetic_modes)
         {
-            const double share = variance_.share(mode);
+            const double proportion = variance_.genetic(mode);
             const bool is_present = Modes.contains(mode);
-            if (is_present && share == 0.0)
+            if (is_present && proportion == 0.0)
             {
                 throw GelexException(
                     fmt::format(
-                        "invalid Bayes recipe input: {} variance share must "
-                        "be positive when the mode is present, got {}",
+                        "invalid Bayes recipe input: {} variance proportion "
+                        "must be positive when the mode is present, got {}",
                         mode,
-                        share));
+                        proportion));
             }
-            if (!is_present && share != 0.0)
+            if (!is_present && proportion != 0.0)
             {
                 throw GelexException(
                     fmt::format(
-                        "invalid Bayes recipe input: {} variance share must "
-                        "be zero when the mode is absent, got {}",
+                        "invalid Bayes recipe input: {} variance proportion "
+                        "must be zero when the mode is absent, got {}",
                         mode,
-                        share));
+                        proportion));
             }
         }
     }

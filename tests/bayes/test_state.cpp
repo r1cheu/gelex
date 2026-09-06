@@ -30,7 +30,6 @@
 #include "gelex/bayes/genetic/joint_spike_slab.h"
 #include "gelex/bayes/genetic/scaled_mixture.h"
 #include "gelex/bayes/genetic/spike_slab.h"
-#include "gelex/bayes/genetic/state.h"
 #include "gelex/bayes/genetic_family.h"
 #include "gelex/bayes/mode_values.h"
 #include "gelex/bayes/model.h"
@@ -57,7 +56,6 @@ using gelex::GaussianPrior;
 using gelex::GaussianState;
 using gelex::GeneticMode;
 using gelex::GeneticModeSet;
-using gelex::GeneticModeState;
 using gelex::HalfNormal;
 using gelex::HalfNormalPrior;
 using gelex::HalfNormalState;
@@ -121,41 +119,40 @@ static_assert(ScaledMixtureState::class_count == 5);
 static_assert(JointSpikeSlabState::class_count == 4);
 static_assert(ScaledMixtureState::component_count == 4);
 static_assert(JointSpikeSlabState::component_count == 4);
-static_assert(!ValidJointSpikeSlabState);
-
+static_assert(
+    std::same_as<
+        decltype(std::declval<const SpikeSlabState<VarianceLayout::Pooled>&>()
+                     .assignments()),
+        const Eigen::VectorX<std::uint8_t>&>);
 static_assert(std::same_as<
-              decltype(SpikeSlabState<VarianceLayout::Pooled>::assignment),
-              Eigen::VectorX<std::uint8_t>>);
-static_assert(std::same_as<
-              decltype(ScaledMixtureState::assignment),
-              Eigen::VectorX<std::uint8_t>>);
-static_assert(std::same_as<
-              decltype(JointSpikeSlabState::assignment),
-              Eigen::VectorX<std::uint8_t>>);
+              decltype(std::declval<const ScaledMixtureState&>().assignments()),
+              const Eigen::VectorX<std::uint8_t>&>);
+static_assert(
+    std::same_as<
+        decltype(std::declval<const JointSpikeSlabState&>().assignments()),
+        const Eigen::VectorX<std::uint8_t>&>);
 
 static_assert(std::same_as<
               gelex::detail::genetic_state_t<PooledGaussianPriorAD>,
               ModeValues<
                   mode_ad,
-                  GeneticModeState<GaussianState<VarianceLayout::Pooled>>,
-                  GeneticModeState<GaussianState<VarianceLayout::Pooled>>>>);
+                  GaussianState<VarianceLayout::Pooled>,
+                  GaussianState<VarianceLayout::Pooled>>>);
 static_assert(std::same_as<
               gelex::detail::genetic_state_t<UnpooledGaussianPriorA>,
-              ModeValues<
-                  mode_a,
-                  GeneticModeState<GaussianState<VarianceLayout::Unpooled>>>>);
+              ModeValues<mode_a, GaussianState<VarianceLayout::Unpooled>>>);
 static_assert(std::same_as<
               gelex::detail::genetic_state_t<PooledSpikeSlabPriorAD>,
               ModeValues<
                   mode_ad,
-                  GeneticModeState<SpikeSlabState<VarianceLayout::Pooled>>,
-                  GeneticModeState<SpikeSlabState<VarianceLayout::Pooled>>>>);
+                  SpikeSlabState<VarianceLayout::Pooled>,
+                  SpikeSlabState<VarianceLayout::Pooled>>>);
 static_assert(std::same_as<
               gelex::detail::genetic_state_t<UnpooledSpikeSlabPriorAD>,
               ModeValues<
                   mode_ad,
-                  GeneticModeState<SpikeSlabState<VarianceLayout::Unpooled>>,
-                  GeneticModeState<SpikeSlabState<VarianceLayout::Unpooled>>>>);
+                  SpikeSlabState<VarianceLayout::Unpooled>,
+                  SpikeSlabState<VarianceLayout::Unpooled>>>);
 static_assert(std::same_as<
               gelex::detail::genetic_state_t<UnpooledSpikeSlabPriorAD>,
               gelex::detail::genetic_state_t<FixedUnpooledSpikeSlabPriorAD>>);
@@ -163,21 +160,18 @@ static_assert(std::same_as<
               gelex::detail::genetic_state_t<HeterogeneousPriorAD>,
               ModeValues<
                   mode_ad,
-                  GeneticModeState<GaussianState<VarianceLayout::Pooled>>,
-                  GeneticModeState<SpikeSlabState<VarianceLayout::Unpooled>>>>);
+                  GaussianState<VarianceLayout::Pooled>,
+                  SpikeSlabState<VarianceLayout::Unpooled>>>);
 static_assert(std::same_as<
               gelex::detail::genetic_state_t<ScaledMixturePriorAD>,
-              ModeValues<
-                  mode_ad,
-                  GeneticModeState<ScaledMixtureState>,
-                  GeneticModeState<ScaledMixtureState>>>);
+              ModeValues<mode_ad, ScaledMixtureState, ScaledMixtureState>>);
 static_assert(std::same_as<
               gelex::detail::genetic_state_t<JointPrior>,
               JointModeValues<
                   ModeValues<
                       mode_ad,
-                      GeneticModeState<GaussianState<VarianceLayout::Pooled>>,
-                      GeneticModeState<HalfNormalState>>,
+                      GaussianState<VarianceLayout::Pooled>,
+                      HalfNormalState>,
                   JointSpikeSlabState>>);
 using PooledGaussianFamily = GaussianFamily<VarianceLayout::Pooled>;
 using UnpooledGaussianFamily = GaussianFamily<VarianceLayout::Unpooled>;
@@ -230,18 +224,17 @@ TEST_CASE(
         [&]<GeneticMode Mode>(const auto& mode_state)
         {
             STATIC_REQUIRE(mode_ad.contains(Mode));
-            REQUIRE(mode_state.coefficients.size() == model.genetic().cols());
-            REQUIRE(mode_state.coefficients.isZero());
+            REQUIRE(mode_state.coefficients().size() == model.genetic().cols());
+            REQUIRE(mode_state.coefficients().isZero());
             REQUIRE(
-                mode_state.family_state.fitted_values().size()
-                == model.genetic().rows());
-            REQUIRE(mode_state.family_state.fitted_values().isZero());
+                mode_state.fitted_values().size() == model.genetic().rows());
+            REQUIRE(mode_state.fitted_values().isZero());
         });
     REQUIRE(
-        state.get<GeneticMode::A>().family_state.variance()
+        state.get<GeneticMode::A>().variance()
         == Approx(prior.genetic().get<GeneticMode::A>().variance.initial));
     REQUIRE(
-        state.get<GeneticMode::D>().family_state.variance()
+        state.get<GeneticMode::D>().variance()
         == Approx(prior.genetic().get<GeneticMode::D>().variance.initial));
 }
 
@@ -255,7 +248,7 @@ TEST_CASE(
 
     const auto state
         = gelex::detail::make_state(prior.genetic(), model.genetic());
-    const auto& variance = state.get<GeneticMode::A>().family_state.variance();
+    const auto& variance = state.get<GeneticMode::A>().variance();
 
     REQUIRE(variance.isApprox(
         Eigen::VectorXd::Constant(
@@ -278,14 +271,14 @@ TEST_CASE(
 
     const auto state
         = gelex::detail::make_state(prior.genetic(), model.genetic());
-    const auto& additive = state.get<GeneticMode::A>().family_state;
-    const auto& dominance = state.get<GeneticMode::D>().family_state;
+    const auto& additive = state.get<GeneticMode::A>();
+    const auto& dominance = state.get<GeneticMode::D>();
 
-    REQUIRE(additive.probability == 0.05);
-    REQUIRE(dominance.probability == 0.2);
-    REQUIRE(additive.assignment.size() == model.genetic().cols());
-    REQUIRE(additive.assignment.isZero());
-    REQUIRE(dominance.assignment.isZero());
+    REQUIRE(additive.probability() == 0.05);
+    REQUIRE(dominance.probability() == 0.2);
+    REQUIRE(additive.assignments().size() == model.genetic().cols());
+    REQUIRE(additive.assignments().isZero());
+    REQUIRE(dominance.assignments().isZero());
 }
 
 TEST_CASE(
@@ -299,18 +292,18 @@ TEST_CASE(
     const auto state
         = gelex::detail::make_state(prior.genetic(), model.genetic());
     const auto& mode_state = state.get<GeneticMode::A>();
-    const auto& family_state = mode_state.family_state;
+    const auto& family_state = mode_state;
 
-    REQUIRE(family_state.assignment.size() == model.genetic().cols());
-    REQUIRE(family_state.assignment.isZero());
+    REQUIRE(family_state.assignments().size() == model.genetic().cols());
+    REQUIRE(family_state.assignments().isZero());
     REQUIRE(
-        family_state.probabilities
+        family_state.probabilities()
         == prior.genetic().get<GeneticMode::A>().probabilities.initial);
-    REQUIRE(family_state.fitted_values.rows() == model.genetic().rows());
+    REQUIRE(family_state.fitted_values().rows() == model.genetic().rows());
     REQUIRE(
-        family_state.fitted_values.cols()
+        family_state.fitted_values().cols()
         == static_cast<Eigen::Index>(ScaledMixtureState::component_count));
-    REQUIRE(family_state.fitted_values.isZero());
+    REQUIRE(family_state.fitted_values().isZero());
 }
 
 TEST_CASE(
@@ -330,14 +323,14 @@ TEST_CASE(
     const auto& joint = state.joint();
 
     REQUIRE(
-        joint.probabilities == recipe.genetic_spec().joint().probabilities());
-    REQUIRE(joint.assignment.size() == model.genetic().cols());
-    REQUIRE(joint.assignment.isZero());
-    REQUIRE(joint.fitted_values.rows() == model.genetic().rows());
+        joint.probabilities() == recipe.genetic_spec().joint().probabilities());
+    REQUIRE(joint.assignments().size() == model.genetic().cols());
+    REQUIRE(joint.assignments().isZero());
+    REQUIRE(joint.fitted_values().rows() == model.genetic().rows());
     REQUIRE(
-        joint.fitted_values.cols()
+        joint.fitted_values().cols()
         == static_cast<Eigen::Index>(JointSpikeSlabState::component_count));
-    REQUIRE(joint.fitted_values.isZero());
+    REQUIRE(joint.fitted_values().isZero());
     // state.mode_values().for_each(
     //     [&]<GeneticMode Mode>(const auto& mode_state)
     //     {
@@ -347,11 +340,10 @@ TEST_CASE(
     //             == model.genetic().rows());
     //         REQUIRE(mode_state.family_state.fitted_values().isZero());
     //     });
-    const auto& dominance
-        = state.mode_values().get<GeneticMode::D>().family_state;
-    REQUIRE(dominance.probit_coefficients.isZero());
+    const auto& dominance = state.mode_values().get<GeneticMode::D>();
+    REQUIRE(dominance.probit_coefficients().isZero());
     REQUIRE(
-        state.mode_values().get<GeneticMode::A>().family_state.variance()
+        state.mode_values().get<GeneticMode::A>().variance()
         == Approx(prior.genetic()
                       .mode_values()
                       .get<GeneticMode::A>()
@@ -397,8 +389,8 @@ TEST_CASE(
     REQUIRE(state.residual().variance == Approx(prior.residual().initial));
 
     const auto& genetic = state.genetic().get<GeneticMode::A>();
-    REQUIRE(genetic.coefficients.isZero());
-    REQUIRE(genetic.family_state.fitted_values().isZero());
+    REQUIRE(genetic.coefficients().isZero());
+    REQUIRE(genetic.fitted_values().isZero());
 }
 
 TEST_CASE(

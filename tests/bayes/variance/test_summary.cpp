@@ -24,7 +24,6 @@
 
 #include "gelex/bayes/genetic/gaussian.h"
 #include "gelex/bayes/genetic/scaled_mixture.h"
-#include "gelex/bayes/genetic/state.h"
 #include "gelex/bayes/genetic_family.h"
 #include "gelex/bayes/model.h"
 #include "gelex/bayes/prior.h"

@@ -375,30 +375,31 @@ TEST_CASE(
     kernel.step(model, state, rng);
 
     const auto& genetic = state.genetic().get<gelex::GeneticMode::A>();
-    const auto& family = genetic.family_state;
+    const auto& family = genetic;
     const auto reconstructed = reconstruct_genetic_fitted(
-        model.genetic(), gelex::GeneticMode::A, genetic.coefficients);
+        model.genetic(), gelex::GeneticMode::A, genetic.coefficients());
     const Eigen::VectorXd fixed_fitted
         = model.fixed().X() * state.fixed().coefficients;
 
-    REQUIRE(genetic.family_state.fitted_values.isApprox(reconstructed));
+    REQUIRE(genetic.fitted_values().isApprox(reconstructed));
     REQUIRE((state.residual().adjusted_response + fixed_fitted + reconstructed)
                 .isApprox(model.phenotype()));
-    REQUIRE(family.assignment.size() == model.genetic().cols());
-    for (Eigen::Index marker = 0; marker < family.assignment.size(); ++marker)
+    REQUIRE(family.assignments().size() == model.genetic().cols());
+    for (Eigen::Index marker = 0; marker < family.assignments().size();
+         ++marker)
     {
-        REQUIRE(family.assignment(marker) <= 1);
-        if (family.assignment(marker) == 0)
+        REQUIRE(family.assignments()(marker) <= 1);
+        if (family.assignments()(marker) == 0)
         {
-            REQUIRE(genetic.coefficients(marker) == 0.0);
+            REQUIRE(genetic.coefficients()(marker) == 0.0);
         }
     }
-    REQUIRE(family.assignment(1) == 0);
-    REQUIRE(genetic.coefficients(1) == 0.0);
-    REQUIRE(family.variance > 0.0);
-    REQUIRE(family.probability > 0.0);
-    REQUIRE(family.probability < 1.0);
-    REQUIRE(family.probability != 0.5);
+    REQUIRE(family.assignments()(1) == 0);
+    REQUIRE(genetic.coefficients()(1) == 0.0);
+    REQUIRE(family.variance() > 0.0);
+    REQUIRE(family.probability() > 0.0);
+    REQUIRE(family.probability() < 1.0);
+    REQUIRE(family.probability() != 0.5);
 }
 
 TEST_CASE(
@@ -421,26 +422,26 @@ TEST_CASE(
     const auto& additive = state.genetic().get<gelex::GeneticMode::A>();
     const auto& dominance = state.genetic().get<gelex::GeneticMode::D>();
     const auto additive_fitted = reconstruct_genetic_fitted(
-        model.genetic(), gelex::GeneticMode::A, additive.coefficients);
+        model.genetic(), gelex::GeneticMode::A, additive.coefficients());
     const auto dominance_fitted = reconstruct_genetic_fitted(
-        model.genetic(), gelex::GeneticMode::D, dominance.coefficients);
+        model.genetic(), gelex::GeneticMode::D, dominance.coefficients());
     const Eigen::VectorXd fixed_fitted
         = model.fixed().X() * state.fixed().coefficients;
 
-    REQUIRE(additive.family_state.fitted_values.isApprox(additive_fitted));
-    REQUIRE(dominance.family_state.fitted_values.isApprox(dominance_fitted));
+    REQUIRE(additive.fitted_values().isApprox(additive_fitted));
+    REQUIRE(dominance.fitted_values().isApprox(dominance_fitted));
     REQUIRE((state.residual().adjusted_response + fixed_fitted + additive_fitted
              + dominance_fitted)
                 .isApprox(model.phenotype()));
     for (Eigen::Index marker = 0; marker < model.genetic().cols(); ++marker)
     {
-        if (additive.family_state.assignment(marker) == 0)
+        if (additive.assignments()(marker) == 0)
         {
-            REQUIRE(additive.coefficients(marker) == 0.0);
+            REQUIRE(additive.coefficients()(marker) == 0.0);
         }
-        if (dominance.family_state.assignment(marker) == 0)
+        if (dominance.assignments()(marker) == 0)
         {
-            REQUIRE(dominance.coefficients(marker) == 0.0);
+            REQUIRE(dominance.coefficients()(marker) == 0.0);
         }
     }
 }
@@ -460,27 +461,26 @@ TEST_CASE(
         model);
     auto state = gelex::make_state(prior, model);
     auto kernel = gelex::make_kernel(prior);
-    auto& initial_family
-        = state.genetic().get<gelex::GeneticMode::A>().family_state;
-    const Eigen::VectorXd initial_variance = initial_family.variance;
+    auto& initial_family = state.genetic().get<gelex::GeneticMode::A>();
+    const Eigen::VectorXd initial_variance = initial_family.variance();
     std::mt19937_64 rng{123};
 
     kernel.step(model, state, rng);
 
     const auto& genetic = state.genetic().get<gelex::GeneticMode::A>();
-    const auto& family = genetic.family_state;
+    const auto& family = genetic;
     const Eigen::VectorXd fixed_fitted
         = model.fixed().X() * state.fixed().coefficients;
 
-    REQUIRE(genetic.coefficients.isZero());
-    REQUIRE(family.assignment.isZero());
-    REQUIRE(genetic.family_state.fitted_values.isZero());
+    REQUIRE(genetic.coefficients().isZero());
+    REQUIRE(family.assignments().isZero());
+    REQUIRE(genetic.fitted_values().isZero());
     REQUIRE((state.residual().adjusted_response + fixed_fitted)
                 .isApprox(model.phenotype()));
-    REQUIRE((family.variance.array() > 0.0).all());
-    REQUIRE(family.variance(0) != initial_variance(0));
-    REQUIRE(family.variance(1) == initial_variance(1));
-    REQUIRE(family.probability == fixed_probability);
+    REQUIRE((family.variance().array() > 0.0).all());
+    REQUIRE(family.variance()(0) != initial_variance(0));
+    REQUIRE(family.variance()(1) == initial_variance(1));
+    REQUIRE(family.probability() == fixed_probability);
 }
 
 TEST_CASE(
@@ -502,38 +502,40 @@ TEST_CASE(
     kernel.step(model, state, rng);
 
     const auto& genetic = state.genetic().get<gelex::GeneticMode::A>();
-    const auto& family = genetic.family_state;
+    const auto& family = genetic;
     const auto fitted = reconstruct_genetic_fitted(
-        model.genetic(), gelex::GeneticMode::A, genetic.coefficients);
+        model.genetic(), gelex::GeneticMode::A, genetic.coefficients());
     const auto component_fitted = reconstruct_scaled_mixture_fitted(
         model.genetic(),
         gelex::GeneticMode::A,
-        genetic.coefficients,
-        family.assignment);
+        genetic.coefficients(),
+        family.assignments());
     const Eigen::VectorXd fixed_fitted
         = model.fixed().X() * state.fixed().coefficients;
     REQUIRE((state.residual().adjusted_response + fixed_fitted + fitted)
                 .isApprox(model.phenotype()));
-    REQUIRE(family.fitted_values.isApprox(component_fitted));
-    REQUIRE(family.assignment(1) == 0);
-    REQUIRE(genetic.coefficients(1) == 0.0);
-    for (Eigen::Index marker = 0; marker < family.assignment.size(); ++marker)
+    REQUIRE(family.fitted_values().isApprox(component_fitted));
+    REQUIRE(family.assignments()(1) == 0);
+    REQUIRE(genetic.coefficients()(1) == 0.0);
+    for (Eigen::Index marker = 0; marker < family.assignments().size();
+         ++marker)
     {
-        REQUIRE(family.assignment(marker) < gelex::ScaledMixture::class_count);
-        if (family.assignment(marker) == 0)
+        REQUIRE(
+            family.assignments()(marker) < gelex::ScaledMixture::class_count);
+        if (family.assignments()(marker) == 0)
         {
-            REQUIRE(genetic.coefficients(marker) == 0.0);
+            REQUIRE(genetic.coefficients()(marker) == 0.0);
         }
     }
     double probability_sum = 0.0;
-    for (const double probability : family.probabilities)
+    for (const double probability : family.probabilities())
     {
         REQUIRE(probability > 0.0);
         probability_sum += probability;
     }
     REQUIRE(probability_sum == Approx(1.0));
-    REQUIRE(family.probabilities != probabilities);
-    REQUIRE(family.variance > 0.0);
+    REQUIRE(family.probabilities() != probabilities);
+    REQUIRE(family.variance() > 0.0);
 }
 
 TEST_CASE(
@@ -556,20 +558,20 @@ TEST_CASE(
     kernel.step(model, state, rng);
 
     const auto& genetic = state.genetic().get<gelex::GeneticMode::A>();
-    const auto& family = genetic.family_state;
+    const auto& family = genetic;
     const auto reconstructed = reconstruct_genetic_fitted(
-        model.genetic(), gelex::GeneticMode::A, genetic.coefficients);
+        model.genetic(), gelex::GeneticMode::A, genetic.coefficients());
     const auto component_fitted = reconstruct_scaled_mixture_fitted(
         model.genetic(),
         gelex::GeneticMode::A,
-        genetic.coefficients,
-        family.assignment);
+        genetic.coefficients(),
+        family.assignments());
     const Eigen::VectorXd fixed_fitted
         = model.fixed().X() * state.fixed().coefficients;
 
-    REQUIRE(family.probabilities == probabilities);
-    REQUIRE(family.fitted_values.isApprox(component_fitted));
+    REQUIRE(family.probabilities() == probabilities);
+    REQUIRE(family.fitted_values().isApprox(component_fitted));
     REQUIRE((state.residual().adjusted_response + fixed_fitted + reconstructed)
                 .isApprox(model.phenotype()));
-    REQUIRE(family.variance > 0.0);
+    REQUIRE(family.variance() > 0.0);
 }

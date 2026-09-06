@@ -193,7 +193,7 @@ TEST_CASE("BayesRecipe accepts a well-formed input", "[bayes][recipe]")
         VarianceBudget{{.additive = 0.4, .dominance = 0.05, .random = 0.05}},
     };
 
-    REQUIRE(recipe.variance().share(GeneticMode::A) == 0.4);
+    REQUIRE(recipe.variance().genetic(GeneticMode::A) == 0.4);
     REQUIRE(recipe.variance().random() == 0.05);
     REQUIRE(
         recipe.genetic_spec().get<GeneticMode::D>().scales()
@@ -221,7 +221,7 @@ TEST_CASE(
     "BayesRecipe cross-checks its variance budget against its modes",
     "[bayes][recipe]")
 {
-    SECTION("a present mode needs a positive share")
+    SECTION("a present mode needs a positive proportion")
     {
         const auto message = message_of(
             []
@@ -233,10 +233,11 @@ TEST_CASE(
         REQUIRE_THAT(
             message,
             ContainsSubstring(
-                "D variance share must be positive when the mode is present"));
+                "D variance proportion must be positive when the mode is "
+                "present"));
     }
 
-    SECTION("an absent mode needs a zero share")
+    SECTION("an absent mode needs a zero proportion")
     {
         const auto message = message_of(
             []
@@ -246,7 +247,7 @@ TEST_CASE(
             });
 
         REQUIRE_THAT(
-            message, ContainsSubstring("D variance share must be zero"));
+            message, ContainsSubstring("D variance proportion must be zero"));
     }
 }
 
@@ -255,15 +256,15 @@ TEST_CASE("BayesRecipe::defaults fills in the mode defaults", "[bayes][recipe]")
     const auto additive_only
         = BayesRecipe<mode_a, PooledGaussianFamily>::defaults();
 
-    REQUIRE(additive_only.variance().share(GeneticMode::A) == 0.5);
-    REQUIRE(additive_only.variance().share(GeneticMode::D) == 0.0);
+    REQUIRE(additive_only.variance().genetic(GeneticMode::A) == 0.5);
+    REQUIRE(additive_only.variance().genetic(GeneticMode::D) == 0.0);
     REQUIRE(additive_only.variance().random() == 0.0);
 
     const auto both
         = BayesRecipe<mode_ad, DefaultScaledMixtureFamily>::defaults();
     const auto defaults = ScaledMixture{};
 
-    REQUIRE(both.variance().share(GeneticMode::D) == 0.2);
+    REQUIRE(both.variance().genetic(GeneticMode::D) == 0.2);
     REQUIRE(
         both.genetic_spec().get<GeneticMode::A>().probabilities()
         == defaults.probabilities());
