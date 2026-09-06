@@ -29,6 +29,7 @@
 #include "gelex/bayes/basic_result.h"
 #include "gelex/bayes/detail/genetic_spec.h"
 #include "gelex/bayes/genetic/detail/draws_support.h"
+#include "gelex/bayes/genetic/detail/fitted_update.h"
 #include "gelex/bayes/genetic/detail/pip_support.h"
 #include "gelex/bayes/genetic/detail/prior_support.h"
 #include "gelex/bayes/genetic/detail/result_support.h"
@@ -139,15 +140,6 @@ class ScaledMixtureState
         const double old_value = coefficients_(marker_index);
         const std::uint8_t old_assignment = assignments_(marker_index);
         const double new_value = assignment == 0 ? 0.0 : coefficient;
-        const auto make_target
-            = [&](std::uint8_t component_assignment, double delta)
-        {
-            const auto component_index
-                = static_cast<Eigen::Index>(component_assignment - 1);
-            return bayes::AxpyTarget{
-                delta, fitted_values_.col(component_index)};
-        };
-
         if (old_assignment != assignment)
         {
             --class_counts_[old_assignment];
@@ -156,33 +148,12 @@ class ScaledMixtureState
         coefficients_(marker_index) = new_value;
         assignments_(marker_index) = assignment;
 
-        if (old_assignment == assignment)
-        {
-            const double delta = new_value - old_value;
-            if (assignment == 0 || delta == 0.0)
-            {
-                return std::monostate{};
-            }
-            return make_target(assignment, delta);
-        }
-
-        const bool remove_old = old_assignment != 0 && old_value != 0.0;
-        const bool add_new = assignment != 0 && new_value != 0.0;
-        if (remove_old && add_new)
-        {
-            return std::array{
-                make_target(old_assignment, -old_value),
-                make_target(assignment, new_value)};
-        }
-        if (remove_old)
-        {
-            return make_target(old_assignment, -old_value);
-        }
-        if (add_new)
-        {
-            return make_target(assignment, new_value);
-        }
-        return std::monostate{};
+        return detail::make_fitted_update(
+            fitted_values_,
+            static_cast<Eigen::Index>(old_assignment) - 1,
+            static_cast<Eigen::Index>(assignment) - 1,
+            old_value,
+            new_value);
     }
 
    private:

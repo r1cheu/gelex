@@ -26,12 +26,11 @@
 #include <cstdint>
 #include <random>
 #include <span>
-#include <type_traits>
-#include <variant>
 
 #include "gelex/bayes/basic_state.h"
 #include "gelex/bayes/detail/normal_variance_conjugate_updater.h"
 #include "gelex/bayes/detail/state_factory.h"
+#include "gelex/bayes/genetic/detail/apply_fitted_update.h"
 #include "gelex/bayes/genetic/detail/coefficient_likelihood.h"
 #include "gelex/bayes/genetic/detail/dirichlet_conjugate_updater.h"
 #include "gelex/bayes/genetic/detail/probit_updater.h"
@@ -203,20 +202,24 @@ class JointSpikeSlabKernel
                     new_additive, new_dominance});
             additive.transition(marker, new_additive);
             dominance.transition(marker, new_dominance);
-            apply_fitted_value_transition(
+            const double additive_delta = new_additive - old_additive;
+            const std::array additive_targets{
+                bayes::AxpyTarget{-additive_delta, residual.adjusted_response},
+                bayes::AxpyTarget{additive_delta, additive_fitted_delta_}};
+            apply_fitted_update(
                 additive_projection,
                 marker,
-                new_additive - old_additive,
                 updates.template get<GeneticMode::A>(),
-                additive_fitted_delta_,
-                residual.adjusted_response);
-            apply_fitted_value_transition(
+                std::span{additive_targets});
+            const double dominance_delta = new_dominance - old_dominance;
+            const std::array dominance_targets{
+                bayes::AxpyTarget{-dominance_delta, residual.adjusted_response},
+                bayes::AxpyTarget{dominance_delta, dominance_fitted_delta_}};
+            apply_fitted_update(
                 dominance_projection,
                 marker,
-                new_dominance - old_dominance,
                 updates.template get<GeneticMode::D>(),
-                dominance_fitted_delta_,
-                residual.adjusted_response);
+                std::span{dominance_targets});
         }
 
         additive.transition(additive_fitted_delta_);
@@ -285,46 +288,6 @@ class JointSpikeSlabKernel
             .coefficient = coefficient_posterior,
             .sign = sign_parameters,
             .log_integral = log_integral};
-    }
-
-    static auto apply_fitted_value_transition(
-        const bayes::GeneticProjection& projection,
-        Eigen::Index marker,
-        double coefficient_delta,
-        const std::variant<
-            std::monostate,
-            bayes::AxpyTarget,
-            std::array<bayes::AxpyTarget, 2>>& component_update,
-        Eigen::Ref<Eigen::VectorXd> total_fitted_delta,
-        Eigen::Ref<Eigen::VectorXd> adjusted_response) -> void
-    {
-        std::array<bayes::AxpyTarget, 4> targets{};
-        std::size_t target_count = 0;
-        if (coefficient_delta != 0.0)
-        {
-            targets[target_count++] = {-coefficient_delta, adjusted_response};
-            targets[target_count++] = {coefficient_delta, total_fitted_delta};
-        }
-        std::visit(
-            [&](const auto& update)
-            {
-                using Update = std::remove_cvref_t<decltype(update)>;
-                if constexpr (std::is_same_v<Update, bayes::AxpyTarget>)
-                    targets[target_count++] = update;
-                else if constexpr (!std::is_same_v<Update, std::monostate>)
-                {
-                    for (const auto& target : update)
-                        targets[target_count++] = target;
-                }
-            },
-            component_update);
-        if (target_count != 0)
-        {
-            projection.axpy(
-                marker,
-                std::span<const bayes::AxpyTarget>{
-                    targets.data(), target_count});
-        }
     }
 
     Eigen::VectorXd additive_fitted_delta_;
