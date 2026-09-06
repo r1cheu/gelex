@@ -21,8 +21,11 @@
 #include <iterator>
 #include <string>
 
+#include "gelex/bayes/builtin_method.h"
+#include "gelex/data/genotype_method.h"
 #include "gelex/data/reader.h"
 #include "gelex/data/snp_lut_io.h"
+#include "gelex/exception.h"
 #include "gelex/genetic_mode.h"
 #include "gelex/io/binary_reader.h"
 
@@ -139,4 +142,93 @@ TEST_CASE(
     REQUIRE(luts.size() == 1);
     REQUIRE(luts.contains(gelex::GeneticMode::A));
     REQUIRE(luts.at(gelex::GeneticMode::A).cols() == 3);
+}
+
+TEST_CASE(
+    "MCMC command fits BayesCD with marker annotations",
+    "[cli][mcmc][command]")
+{
+    gelex::test::BedFixture fixture;
+    const auto [bfile, genotypes] = fixture.create_deterministic_bed_files(
+        Eigen::MatrixXd{
+            {0.0, 0.0, 1.0},
+            {1.0, 0.0, 2.0},
+            {2.0, 1.0, 0.0},
+            {0.0, 2.0, 1.0},
+            {1.0, 2.0, 0.0},
+            {2.0, 1.0, 2.0}},
+        {"I1", "I2", "I3", "I4", "I5", "I6"},
+        {"snp1", "snp2", "snp3"},
+        {"1", "1", "1"},
+        {{'A', 'G'}, {'A', 'G'}, {'A', 'G'}});
+    static_cast<void>(genotypes);
+    auto& files = fixture.get_file_fixture();
+    const auto phenotype = files.create_named_text_file(
+        "phenotype.tsv",
+        "FID\tIID\tTrait\n"
+        "fam1\tI1\t1.0\n"
+        "fam2\tI2\t-0.5\n"
+        "fam3\tI3\t0.25\n"
+        "fam4\tI4\t2.0\n"
+        "fam5\tI5\t-1.0\n"
+        "fam6\tI6\t0.75\n");
+    const auto output = files.get_test_dir() / "bayescd";
+
+    cli::McmcConfig config;
+    config.base_data.pheno_path = phenotype.string();
+    config.bfile = bfile.string();
+    config.out = output.string();
+    config.mode = gelex::GeneticMode::A | gelex::GeneticMode::D;
+    config.method = gelex::BayesMethod::CD;
+    config.geno_method = gelex::GenotypeMethod::NOIACenter;
+    config.iters = 4;
+    config.burn_in = 2;
+    config.thin = 1;
+    config.threads = 1;
+    cli::logging::initialize(config.out);
+
+    SECTION("single annotation column")
+    {
+        config.manno = files
+                           .create_named_text_file(
+                               "markers.anno",
+                               "CHR\tSNP\tBP\tA1\tA2\tAnnotation\n"
+                               "1\tsnp1\t1\tA\tG\t-0.5\n"
+                               "1\tsnp2\t2\tA\tG\t0.0\n"
+                               "1\tsnp3\t3\tA\tG\t0.5\n")
+                           .string();
+
+        REQUIRE(mcmc_execute(config) == 0);
+
+        const gelex::BinaryReader draws(config.out + ".draws");
+        REQUIRE(draws.contains("genetic/A/coefficients"));
+        REQUIRE(draws.contains("genetic/D/coefficients"));
+        REQUIRE(draws.contains("genetic/D/probit_coefficients"));
+        REQUIRE(draws.contains("genetic/joint/assignment"));
+
+        const auto snp_effects
+            = gelex::read_snp_effects(config.out + ".snpeff");
+        REQUIRE(snp_effects.rows() == 3);
+        REQUIRE(snp_effects.contains("BETA_A"));
+        REQUIRE(snp_effects.contains("BETA_D"));
+        REQUIRE(snp_effects.contains("PIP"));
+
+        const auto luts = gelex::load_snp_luts(config.out + ".snplut");
+        REQUIRE(luts.size() == 2);
+        REQUIRE(luts.contains(gelex::GeneticMode::A));
+        REQUIRE(luts.contains(gelex::GeneticMode::D));
+    }
+
+    SECTION("multiple annotation columns are rejected")
+    {
+        config.manno = files
+                           .create_named_text_file(
+                               "markers.anno",
+                               "CHR\tSNP\tBP\tA1\tA2\tFirst\tSecond\n"
+                               "1\tsnp1\t1\tA\tG\t-0.5\t1.0\n"
+                               "1\tsnp2\t2\tA\tG\t0.0\t1.0\n"
+                               "1\tsnp3\t3\tA\tG\t0.5\t1.0\n")
+                           .string();
+        REQUIRE_THROWS_AS(mcmc_execute(config), gelex::GelexException);
+    }
 }

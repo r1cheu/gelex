@@ -42,6 +42,7 @@ struct McmcConfig
     BaseDataConfig base_data;
     RandomDesignDataConfig random;
     std::string bfile;
+    std::string manno;
     std::string out{"gelex"};
     gelex::GenotypeMethod geno_method{
         gelex::GenotypeMethod::OrthStandardizeHWE};

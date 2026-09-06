@@ -46,6 +46,13 @@ auto setup_mcmc_command(CLI::App& program, int& exit_code) -> void
         ->group("I/O")
         ->type_name("<BFILE>")
         ->required();
+    cmd.add_option(
+           "--manno",
+           config->manno,
+           "Marker annotation TSV (CHR SNP BP A1 A2 <annotation>) for CD")
+        ->group("I/O")
+        ->type_name("<MANNO>")
+        ->check(CLI::ExistingFile);
     cmd.add_option("-o,--out", config->out, "Output prefix for model files")
         ->group("I/O")
         ->type_name("<OUT>")
