@@ -63,25 +63,19 @@ struct JointSpikeSlabPrior
     SimplexParameter<class_count, WeightUpdate> probabilities;
 };
 
-class HalfNormalState;
-
-class JointSpikeSlabState;
-
-namespace detail
-{
-inline auto make_state(
-    const HalfNormalPrior& prior,
-    GeneticStateDimensions dimensions) -> HalfNormalState;
-
-template <MixtureWeightUpdate WeightUpdate>
-auto make_state(
-    const JointSpikeSlabPrior<WeightUpdate>& prior,
-    GeneticStateDimensions dimensions) -> JointSpikeSlabState;
-}  // namespace detail
-
 class HalfNormalState
 {
    public:
+    HalfNormalState(
+        double variance,
+        Eigen::Index num_markers,
+        Eigen::Index num_individuals)
+        : coefficients_(Eigen::VectorXd::Zero(num_markers)),
+          fitted_values_(Eigen::VectorXd::Zero(num_individuals)),
+          variance_(variance),
+          probit_coefficients_(Eigen::Vector2d::Zero())
+    {
+    }
     auto coefficients() const -> const Eigen::VectorXd&
     {
         return coefficients_;
@@ -111,21 +105,6 @@ class HalfNormalState
     }
 
    private:
-    friend auto detail::make_state(
-        const HalfNormalPrior& prior,
-        detail::GeneticStateDimensions dimensions) -> HalfNormalState;
-
-    HalfNormalState(
-        double variance,
-        Eigen::Index num_markers,
-        Eigen::Index num_individuals)
-        : coefficients_(Eigen::VectorXd::Zero(num_markers)),
-          fitted_values_(Eigen::VectorXd::Zero(num_individuals)),
-          variance_(variance),
-          probit_coefficients_(Eigen::Vector2d::Zero())
-    {
-    }
-
     Eigen::VectorXd coefficients_;
     Eigen::VectorXd fitted_values_;
     double variance_;
@@ -152,6 +131,22 @@ class JointSpikeSlabState
         no_component,
         2,
         3};
+
+    JointSpikeSlabState(
+        std::array<double, class_count> probabilities,
+        Eigen::Index num_markers,
+        Eigen::Index num_individuals)
+        : assignments_(Eigen::VectorX<std::uint8_t>::Zero(num_markers)),
+          class_counts_{static_cast<std::size_t>(num_markers)},
+          probabilities_(probabilities),
+          fitted_values_(
+              Eigen::Matrix<
+                  double,
+                  Eigen::Dynamic,
+                  static_cast<int>(
+                      component_count)>::Zero(num_individuals, component_count))
+    {
+    }
 
     using ModeCoefficients
         = HomogeneousModeValues<GeneticMode::A | GeneticMode::D, double>;
@@ -185,9 +180,13 @@ class JointSpikeSlabState
     {
         assert(class_index < class_count);
         if constexpr (Mode == GeneticMode::A)
+        {
             return additive_components[class_index];
+        }
         else
+        {
             return dominance_components[class_index];
+        }
     }
 
     [[nodiscard]] auto transition(
@@ -217,27 +216,6 @@ class JointSpikeSlabState
     }
 
    private:
-    template <MixtureWeightUpdate WeightUpdate>
-    friend auto detail::make_state(
-        const JointSpikeSlabPrior<WeightUpdate>& prior,
-        detail::GeneticStateDimensions dimensions) -> JointSpikeSlabState;
-
-    JointSpikeSlabState(
-        std::array<double, class_count> probabilities,
-        Eigen::Index num_markers,
-        Eigen::Index num_individuals)
-        : assignments_(Eigen::VectorX<std::uint8_t>::Zero(num_markers)),
-          class_counts_{static_cast<std::size_t>(num_markers)},
-          probabilities_(probabilities),
-          fitted_values_(
-              Eigen::Matrix<
-                  double,
-                  Eigen::Dynamic,
-                  static_cast<int>(
-                      component_count)>::Zero(num_individuals, component_count))
-    {
-    }
-
     Eigen::VectorX<std::uint8_t> assignments_;
     std::array<std::size_t, class_count> class_counts_;
     std::array<double, class_count> probabilities_;
