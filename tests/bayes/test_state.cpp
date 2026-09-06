@@ -109,44 +109,29 @@ using HeterogeneousPriorAD = ModeValues<
     mode_ad,
     GaussianPrior<VarianceLayout::Pooled>,
     SpikeSlabPrior<VarianceLayout::Unpooled, MixtureWeightUpdate::Disabled>>;
-using ScaledMixturePriorAD = ModeValues<
-    mode_ad,
-    ScaledMixturePrior<ScaledMixture::class_count>,
-    ScaledMixturePrior<ScaledMixture::class_count>>;
+using ScaledMixturePriorAD
+    = ModeValues<mode_ad, ScaledMixturePrior<>, ScaledMixturePrior<>>;
 using JointPrior = JointModeValues<
     ModeValues<mode_ad, GaussianPrior<VarianceLayout::Pooled>, HalfNormalPrior>,
-    JointSpikeSlabPrior<JointSpikeSlab::class_count>>;
+    JointSpikeSlabPrior<>>;
 using JointModeSpecs = ModeValues<mode_ad, Gaussian, HalfNormal>;
 using JointSpikeSlabAD = JointModeValues<JointModeSpecs, JointSpikeSlab>;
 
-template <std::size_t ClassCount>
-concept ValidScaledMixtureState
-    = requires { typename ScaledMixtureState<ClassCount>; };
-
-template <std::size_t ClassCount>
-concept ValidJointSpikeSlabState
-    = requires { typename JointSpikeSlabState<ClassCount>; };
-
-static_assert(
-    ScaledMixtureState<ScaledMixture::class_count>::component_count == 4);
-static_assert(
-    JointSpikeSlabState<JointSpikeSlab::class_count>::component_count == 4);
-static_assert(ValidScaledMixtureState<256>);
-static_assert(!ValidScaledMixtureState<257>);
-static_assert(ValidJointSpikeSlabState<4>);
-static_assert(!ValidJointSpikeSlabState<3>);
+static_assert(ScaledMixtureState::class_count == 5);
+static_assert(JointSpikeSlabState::class_count == 4);
+static_assert(ScaledMixtureState::component_count == 4);
+static_assert(JointSpikeSlabState::component_count == 4);
+static_assert(!ValidJointSpikeSlabState);
 
 static_assert(std::same_as<
               decltype(SpikeSlabState<VarianceLayout::Pooled>::assignment),
               Eigen::VectorX<std::uint8_t>>);
-static_assert(
-    std::same_as<
-        decltype(ScaledMixtureState<ScaledMixture::class_count>::assignment),
-        Eigen::VectorX<std::uint8_t>>);
-static_assert(
-    std::same_as<
-        decltype(JointSpikeSlabState<JointSpikeSlab::class_count>::assignment),
-        Eigen::VectorX<std::uint8_t>>);
+static_assert(std::same_as<
+              decltype(ScaledMixtureState::assignment),
+              Eigen::VectorX<std::uint8_t>>);
+static_assert(std::same_as<
+              decltype(JointSpikeSlabState::assignment),
+              Eigen::VectorX<std::uint8_t>>);
 
 static_assert(std::same_as<
               gelex::detail::genetic_state_t<PooledGaussianPriorAD>,
@@ -180,13 +165,12 @@ static_assert(std::same_as<
                   mode_ad,
                   GeneticModeState<GaussianState<VarianceLayout::Pooled>>,
                   GeneticModeState<SpikeSlabState<VarianceLayout::Unpooled>>>>);
-static_assert(
-    std::same_as<
-        gelex::detail::genetic_state_t<ScaledMixturePriorAD>,
-        ModeValues<
-            mode_ad,
-            GeneticModeState<ScaledMixtureState<ScaledMixture::class_count>>,
-            GeneticModeState<ScaledMixtureState<ScaledMixture::class_count>>>>);
+static_assert(std::same_as<
+              gelex::detail::genetic_state_t<ScaledMixturePriorAD>,
+              ModeValues<
+                  mode_ad,
+                  GeneticModeState<ScaledMixtureState>,
+                  GeneticModeState<ScaledMixtureState>>>);
 static_assert(std::same_as<
               gelex::detail::genetic_state_t<JointPrior>,
               JointModeValues<
@@ -194,7 +178,7 @@ static_assert(std::same_as<
                       mode_ad,
                       GeneticModeState<GaussianState<VarianceLayout::Pooled>>,
                       GeneticModeState<HalfNormalState>>,
-                  JointSpikeSlabState<JointSpikeSlab::class_count>>>);
+                  JointSpikeSlabState>>);
 using PooledGaussianFamily = GaussianFamily<VarianceLayout::Pooled>;
 using UnpooledGaussianFamily = GaussianFamily<VarianceLayout::Unpooled>;
 using FixedUnpooledSpikeSlabFamily
@@ -325,8 +309,7 @@ TEST_CASE(
     REQUIRE(family_state.fitted_values.rows() == model.genetic().rows());
     REQUIRE(
         family_state.fitted_values.cols()
-        == static_cast<Eigen::Index>(
-            ScaledMixtureState<ScaledMixture::class_count>::component_count));
+        == static_cast<Eigen::Index>(ScaledMixtureState::component_count));
     REQUIRE(family_state.fitted_values.isZero());
 }
 
@@ -353,8 +336,7 @@ TEST_CASE(
     REQUIRE(joint.fitted_values.rows() == model.genetic().rows());
     REQUIRE(
         joint.fitted_values.cols()
-        == static_cast<Eigen::Index>(
-            JointSpikeSlabState<JointSpikeSlab::class_count>::component_count));
+        == static_cast<Eigen::Index>(JointSpikeSlabState::component_count));
     REQUIRE(joint.fitted_values.isZero());
     // state.mode_values().for_each(
     //     [&]<GeneticMode Mode>(const auto& mode_state)

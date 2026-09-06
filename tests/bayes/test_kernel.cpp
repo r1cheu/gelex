@@ -77,14 +77,11 @@ using PooledSpikeSlabADGeneticPrior = gelex::ModeValues<
     gelex::SpikeSlabPrior<gelex::VarianceLayout::Pooled>>;
 using UnpooledSpikeSlabGeneticPrior = gelex::
     ModeValues<mode_a, gelex::SpikeSlabPrior<gelex::VarianceLayout::Unpooled>>;
-using SampledScaledMixtureGeneticPrior = gelex::ModeValues<
-    mode_a,
-    gelex::ScaledMixturePrior<gelex::ScaledMixture::class_count>>;
+using SampledScaledMixtureGeneticPrior
+    = gelex::ModeValues<mode_a, gelex::ScaledMixturePrior<>>;
 using FixedScaledMixtureGeneticPrior = gelex::ModeValues<
     mode_a,
-    gelex::ScaledMixturePrior<
-        gelex::ScaledMixture::class_count,
-        gelex::MixtureWeightUpdate::Disabled>>;
+    gelex::ScaledMixturePrior<gelex::MixtureWeightUpdate::Disabled>>;
 using HeterogeneousGeneticPrior = gelex::ModeValues<
     mode_ad,
     gelex::GaussianPrior<gelex::VarianceLayout::Pooled>,

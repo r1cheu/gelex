@@ -122,12 +122,11 @@ static_assert(std::same_as<
                   mode_ad,
                   SpikeSlabPrior<VarianceLayout::Pooled>,
                   SpikeSlabPrior<VarianceLayout::Pooled>>>>);
-static_assert(std::same_as<
-              prior_result_t<BayesRecipe<mode_ad, DefaultScaledMixtureFamily>>,
-              BayesPrior<ModeValues<
-                  mode_ad,
-                  ScaledMixturePrior<ScaledMixture::class_count>,
-                  ScaledMixturePrior<ScaledMixture::class_count>>>>);
+static_assert(
+    std::same_as<
+        prior_result_t<BayesRecipe<mode_ad, DefaultScaledMixtureFamily>>,
+        BayesPrior<
+            ModeValues<mode_ad, ScaledMixturePrior<>, ScaledMixturePrior<>>>>);
 static_assert(std::same_as<
               prior_result_t<BayesRecipe<mode_ad, DefaultJointSpikeSlabFamily>>,
               BayesPrior<JointModeValues<
@@ -135,7 +134,7 @@ static_assert(std::same_as<
                       mode_ad,
                       GaussianPrior<VarianceLayout::Pooled>,
                       HalfNormalPrior>,
-                  JointSpikeSlabPrior<JointSpikeSlab::class_count>>>>);
+                  JointSpikeSlabPrior<>>>>);
 static_assert(
     std::same_as<
         prior_result_t<BayesRecipe<mode_ad, FixedUnpooledSpikeSlabFamily>>,
