@@ -110,13 +110,6 @@ class GaussianState
 };
 
 template <VarianceLayout Kind>
-[[nodiscard]] auto genetic_value(const GaussianState<Kind>& state)
-    -> const Eigen::VectorXd&
-{
-    return state.fitted_values();
-}
-
-template <VarianceLayout Kind>
 struct GaussianDraws
 {
     detail::marker_variance_draw_t<Kind> variance;

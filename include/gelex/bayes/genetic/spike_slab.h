@@ -153,13 +153,6 @@ class SpikeSlabState
     double probability_;
 };
 
-template <VarianceLayout Kind>
-[[nodiscard]] auto genetic_value(const SpikeSlabState<Kind>& state)
-    -> const Eigen::VectorXd&
-{
-    return state.fitted_values();
-}
-
 template <VarianceLayout Kind, MixtureWeightUpdate WeightUpdate>
 struct SpikeSlabDraws
 {
