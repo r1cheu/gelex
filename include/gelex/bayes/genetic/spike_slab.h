@@ -41,9 +41,9 @@
 #include "gelex/bayes/variance/detail/calibration.h"
 #include "gelex/genetic_mode.h"
 #include "gelex/io/detail/text_writer.h"
+#include "gelex/namespace.h"
 
-namespace gelex
-{
+GELEX_NAMESPACE_BEGIN(gelex)
 
 template <
     VarianceLayout Kind,
@@ -54,6 +54,23 @@ struct SpikeSlabPrior
     VarianceParameter variance;
     ProbabilityParameter<WeightUpdate> probability;
 };
+
+GELEX_NAMESPACE_BEGIN(detail)
+template <
+    GeneticMode Mode,
+    VarianceLayout Kind,
+    MixtureWeightUpdate WeightUpdate>
+auto make_mode_prior(
+    const SpikeSlabSpec<Kind, WeightUpdate>& spec,
+    const MarkerVarianceCalibrator& calibrator)
+    -> SpikeSlabPrior<Kind, WeightUpdate>
+{
+    return {
+        .variance = calibrator.calibrate(Mode, spec.probability()),
+        .probability = make_parameter<WeightUpdate>(
+            spec.probability(), make_beta_prior(1.0, 1.0))};
+}
+GELEX_NAMESPACE_END(detail)
 
 template <VarianceLayout Kind>
 class SpikeSlabState
@@ -72,6 +89,7 @@ class SpikeSlabState
           probability_(probability)
     {
     }
+
     auto coefficients() const -> const Eigen::VectorXd&
     {
         return coefficients_;
@@ -127,6 +145,20 @@ class SpikeSlabState
     double probability_;
 };
 
+GELEX_NAMESPACE_BEGIN(detail)
+template <VarianceLayout Kind, MixtureWeightUpdate WeightUpdate>
+auto make_state(
+    const SpikeSlabPrior<Kind, WeightUpdate>& prior,
+    GeneticStateDimensions dimensions) -> SpikeSlabState<Kind>
+{
+    return {
+        initial_marker_variance<Kind>(prior.variance, dimensions.marker_count),
+        prior.probability.initial,
+        dimensions.marker_count,
+        dimensions.individual_count};
+}
+GELEX_NAMESPACE_END(detail)
+
 template <VarianceLayout Kind, MixtureWeightUpdate WeightUpdate>
 struct SpikeSlabDraws
 {
@@ -142,45 +174,7 @@ struct SpikeSlabDraws
     }
 };
 
-template <VarianceLayout Kind, MixtureWeightUpdate WeightUpdate>
-struct SpikeSlabResult
-{
-    detail::marker_variance_result_t<Kind> variance;
-    detail::weight_result_t<WeightUpdate, ScalarResult> probability;
-};
-
-}  // namespace gelex
-
-namespace gelex::detail
-{
-
-template <
-    GeneticMode Mode,
-    VarianceLayout Kind,
-    MixtureWeightUpdate WeightUpdate>
-auto make_mode_prior(
-    const SpikeSlabSpec<Kind, WeightUpdate>& spec,
-    const MarkerVarianceCalibrator& calibrator)
-    -> SpikeSlabPrior<Kind, WeightUpdate>
-{
-    return {
-        .variance = calibrator.calibrate(Mode, spec.probability()),
-        .probability = make_parameter<WeightUpdate>(
-            spec.probability(), make_beta_prior(1.0, 1.0))};
-}
-
-template <VarianceLayout Kind, MixtureWeightUpdate WeightUpdate>
-auto make_state(
-    const SpikeSlabPrior<Kind, WeightUpdate>& prior,
-    GeneticStateDimensions dimensions) -> SpikeSlabState<Kind>
-{
-    return {
-        initial_marker_variance<Kind>(prior.variance, dimensions.marker_count),
-        prior.probability.initial,
-        dimensions.marker_count,
-        dimensions.individual_count};
-}
-
+GELEX_NAMESPACE_BEGIN(detail)
 template <VarianceLayout Kind, MixtureWeightUpdate WeightUpdate>
 [[nodiscard]] auto make_draws(
     const SpikeSlabPrior<Kind, WeightUpdate>& /*prior*/,
@@ -192,7 +186,16 @@ template <VarianceLayout Kind, MixtureWeightUpdate WeightUpdate>
         .probability
         = make_probability_draw<WeightUpdate>(builder, "probability")};
 }
+GELEX_NAMESPACE_END(detail)
 
+template <VarianceLayout Kind, MixtureWeightUpdate WeightUpdate>
+struct SpikeSlabResult
+{
+    detail::marker_variance_result_t<Kind> variance;
+    detail::weight_result_t<WeightUpdate, ScalarResult> probability;
+};
+
+GELEX_NAMESPACE_BEGIN(detail)
 template <VarianceLayout Kind, MixtureWeightUpdate WeightUpdate>
 auto make_result(const SpikeSlabDraws<Kind, WeightUpdate>& draws)
     -> SpikeSlabResult<Kind, WeightUpdate>
@@ -218,7 +221,8 @@ auto write_family_summary_rows(
     write_summary_rows(writer, result.variance);
     write_summary_rows(writer, result.probability);
 }
+GELEX_NAMESPACE_END(detail)
 
-}  // namespace gelex::detail
+GELEX_NAMESPACE_END(gelex)
 
 #endif  // GELEX_BAYES_GENETIC_SPIKE_SLAB_H_
