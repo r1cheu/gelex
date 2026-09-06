@@ -38,13 +38,8 @@ namespace gelex
 class RandomEffectResult
 {
    public:
-    RandomEffectResult(
-        CoefficientResult coefficients,
-        ScalarResult variance,
-        ScalarResult explained_variance)
-        : coefficients_{std::move(coefficients)},
-          variance_{std::move(variance)},
-          explained_variance_{std::move(explained_variance)}
+    RandomEffectResult(CoefficientResult coefficients, ScalarResult variance)
+        : coefficients_{std::move(coefficients)}, variance_{std::move(variance)}
     {
     }
 
@@ -58,16 +53,9 @@ class RandomEffectResult
         return variance_;
     }
 
-    [[nodiscard]] auto explained_variance() const noexcept
-        -> const ScalarResult&
-    {
-        return explained_variance_;
-    }
-
    private:
     CoefficientResult coefficients_;
     ScalarResult variance_;
-    ScalarResult explained_variance_;
 };
 
 template <typename GeneticPrior>
@@ -174,19 +162,15 @@ auto make_result(const BayesModel& model, const BayesDraws<GeneticPrior>& draws)
                 random_designs.size(),
                 random_draws.size()));
     }
-    const auto random_explained_variance = draws.variance_summary().random();
 
     std::vector<RandomEffectResult> random;
     random.reserve(random_designs.size());
     for (const auto [index, design] : random_designs | std::views::enumerate)
     {
         const auto& block = random_draws[static_cast<std::size_t>(index)];
-        const auto& explained_variance
-            = random_explained_variance[static_cast<std::size_t>(index)];
         random.emplace_back(
             detail::make_result(block.coefficients(), design.column_names()),
-            detail::make_result(block.variance()),
-            detail::make_result(explained_variance));
+            detail::make_result(block.variance()));
     }
 
     auto genetic_parameters = detail::make_genetic_parameters(draws.genetic());

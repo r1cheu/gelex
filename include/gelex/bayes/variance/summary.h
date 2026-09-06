@@ -19,10 +19,8 @@
 
 #include <cmath>
 #include <fmt/format.h>
-#include <span>
 #include <string_view>
 #include <utility>
-#include <vector>
 
 #include "gelex/bayes/mode_values.h"
 #include "gelex/bayes/state.h"
@@ -55,16 +53,6 @@ class VarianceSummary
         return genetic_total_;
     }
 
-    [[nodiscard]] constexpr auto random_total() const noexcept -> double
-    {
-        return random_total_;
-    }
-
-    [[nodiscard]] auto random() const noexcept -> std::span<const double>
-    {
-        return random_;
-    }
-
     [[nodiscard]] constexpr auto residual() const noexcept -> double
     {
         return residual_;
@@ -72,7 +60,7 @@ class VarianceSummary
 
     [[nodiscard]] constexpr auto phenotypic() const noexcept -> double
     {
-        return genetic_total_ + random_total_ + residual_;
+        return genetic_total_ + residual_;
     }
 
     template <GeneticMode Mode>
@@ -89,11 +77,8 @@ class VarianceSummary
    private:
     VarianceSummary(
         HomogeneousModeValues<Modes, double> genetic,
-        std::vector<double> random,
         double residual)
-        : genetic_{std::move(genetic)},
-          random_{std::move(random)},
-          residual_{residual}
+        : genetic_{std::move(genetic)}, residual_{residual}
     {
         genetic_.for_each(
             [&]<GeneticMode /*Mode*/>(double value)
@@ -101,11 +86,6 @@ class VarianceSummary
                 require_component(value, "genetic");
                 genetic_total_ += value;
             });
-        for (const double value : random_)
-        {
-            require_component(value, "random");
-            random_total_ += value;
-        }
         require_component(residual_, "residual");
         if (phenotypic() <= 0.0)
         {
@@ -132,9 +112,7 @@ class VarianceSummary
         -> VarianceSummary<GeneticPrior::modes>;
 
     HomogeneousModeValues<Modes, double> genetic_;
-    std::vector<double> random_;
     double genetic_total_{0.0};
-    double random_total_{0.0};
     double residual_;
 };
 
@@ -144,13 +122,6 @@ template <typename GeneticPrior>
 {
     constexpr auto modes = GeneticPrior::modes;
     const auto& genetic = state.genetic();
-    std::vector<double> random;
-    random.reserve(state.random().size());
-    for (const auto& block : state.random())
-    {
-        random.push_back(vecvar(block.fitted_values, VarNormType::Population));
-    }
-
     return VarianceSummary<modes>{
         generate_mode_values<modes>(
             [&]<GeneticMode Mode>()
@@ -162,7 +133,6 @@ template <typename GeneticPrior>
                         .sum(),
                     VarNormType::Population);
             }),
-        std::move(random),
         state.residual().variance};
 }
 

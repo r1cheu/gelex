@@ -17,16 +17,11 @@
 #ifndef GELEX_BAYES_VARIANCE_DRAWS_H_
 #define GELEX_BAYES_VARIANCE_DRAWS_H_
 
-#include <cassert>
 #include <cstdint>
 #include <fmt/format.h>
-#include <ranges>
-#include <span>
 #include <string_view>
-#include <vector>
 
 #include "gelex/bayes/basic_draw.h"
-#include "gelex/bayes/design.h"
 #include "gelex/bayes/mode_values.h"
 #include "gelex/bayes/variance/summary.h"
 #include "gelex/genetic_mode.h"
@@ -42,12 +37,8 @@ template <GeneticModeSet Modes>
 class VarianceSummaryDraws
 {
    public:
-    VarianceSummaryDraws(
-        std::span<const bayes::RandomDesign> random_designs,
-        BinaryWriter& writer,
-        std::uint64_t draw_count)
-        : random_{reserve_random(random_designs, writer, draw_count)},
-          explained_variance_{
+    VarianceSummaryDraws(BinaryWriter& writer, std::uint64_t draw_count)
+        : explained_variance_{
               reserve_per_mode(writer, draw_count, "explained_variance")},
           heritability_{reserve_per_mode(writer, draw_count, "heritability")},
           total_explained_variance_{
@@ -59,11 +50,6 @@ class VarianceSummaryDraws
 
     auto append(const VarianceSummary<Modes>& summary) -> void
     {
-        assert(random_.size() == summary.random().size());
-        for (auto&& [draw, value] : std::views::zip(random_, summary.random()))
-        {
-            draw.append(value);
-        }
         explained_variance_.for_each(
             [&]<GeneticMode Mode>(ScalarDraw& draw)
             { draw.append(summary.template genetic<Mode>()); });
@@ -72,11 +58,6 @@ class VarianceSummaryDraws
             { draw.append(summary.template heritability<Mode>()); });
         total_explained_variance_.append(summary.genetic_total());
         total_heritability_.append(summary.total_heritability());
-    }
-
-    [[nodiscard]] auto random() const noexcept -> std::span<const ScalarDraw>
-    {
-        return random_;
     }
 
     template <GeneticMode Mode>
@@ -127,24 +108,6 @@ class VarianceSummaryDraws
             });
     }
 
-    [[nodiscard]] static auto reserve_random(
-        std::span<const bayes::RandomDesign> designs,
-        BinaryWriter& writer,
-        std::uint64_t draw_count) -> std::vector<ScalarDraw>
-    {
-        std::vector<ScalarDraw> draws;
-        draws.reserve(designs.size());
-        for (const auto& design : designs)
-        {
-            draws.push_back(reserve(
-                writer,
-                draw_count,
-                fmt::format("random/{}/explained_variance", design.name())));
-        }
-        return draws;
-    }
-
-    std::vector<ScalarDraw> random_;
     HomogeneousModeValues<Modes, ScalarDraw> explained_variance_;
     HomogeneousModeValues<Modes, ScalarDraw> heritability_;
     ScalarDraw total_explained_variance_;

@@ -63,7 +63,6 @@ auto write_summary(
     for (const auto& random : result.random())
     {
         detail::write_summary_rows(writer, random.variance());
-        detail::write_summary_rows(writer, random.explained_variance());
     }
 
     detail::write_genetic_summary_rows(writer, result.genetic_parameters());
