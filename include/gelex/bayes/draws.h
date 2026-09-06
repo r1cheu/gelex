@@ -186,7 +186,7 @@ class BayesDraws
           residual_{writer_.reserve<double>(
               "residual/variance",
               BinaryShape{1, draw_count})},
-          variance_summary_{model.random(), writer_, draw_count},
+          variance_summary_{writer_, draw_count},
           draw_count_{draw_count}
     {
     }

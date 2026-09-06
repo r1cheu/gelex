@@ -72,7 +72,6 @@ class RandomEffectKernel
         std::normal_distribution<double> normal_distribution;
         const auto coefficient_prior = gelex::make_normal_prior(state.variance);
 
-        state.fitted_values.setZero();
         for (Eigen::Index index = 0; index < state.coefficients.size(); ++index)
         {
             const auto column = design.X().col(index);
@@ -86,7 +85,6 @@ class RandomEffectKernel
             const double new_value
                 = normal_distribution(rng, posterior.normal_parameters());
             state.coefficients(index) = new_value;
-            state.fitted_values.array() += new_value * column.array();
             const double difference = old_value - new_value;
             if (difference != 0.0)
             {
