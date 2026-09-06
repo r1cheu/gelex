@@ -23,11 +23,10 @@
 #include <cstdint>
 #include <random>
 #include <span>
-#include <type_traits>
-#include <variant>
 
 #include "gelex/bayes/basic_state.h"
 #include "gelex/bayes/detail/normal_variance_conjugate_updater.h"
+#include "gelex/bayes/genetic/detail/apply_fitted_update.h"
 #include "gelex/bayes/genetic/detail/coefficient_likelihood.h"
 #include "gelex/bayes/genetic/detail/dirichlet_conjugate_updater.h"
 #include "gelex/bayes/genetic/scaled_mixture.h"
@@ -90,40 +89,16 @@ class ScaledMixtureKernel
                       ? 0.0
                       : normal_distribution(rng, sample.coefficient_parameters);
 
-            std::array<bayes::AxpyTarget, 3> targets{};
-            std::size_t target_count = 0;
-            const double delta = new_value - old_value;
-            if (delta != 0.0)
-            {
-                targets[target_count++] = {-delta, residual.adjusted_response};
-            }
-            std::visit(
-                [&](const auto& update)
-                {
-                    using Update = std::remove_cvref_t<decltype(update)>;
-                    if constexpr (std::is_same_v<Update, bayes::AxpyTarget>)
-                    {
-                        targets[target_count++] = update;
-                    }
-                    else if constexpr (!std::is_same_v<Update, std::monostate>)
-                    {
-                        for (const auto& target : update)
-                        {
-                            targets[target_count++] = target;
-                        }
-                    }
-                },
+            const std::array extra_targets{bayes::AxpyTarget{
+                old_value - new_value, residual.adjusted_response}};
+            apply_fitted_update(
+                projection,
+                marker,
                 state.transition(
                     marker,
                     new_value,
-                    static_cast<std::uint8_t>(sample.class_index)));
-            if (target_count != 0)
-            {
-                projection.axpy(
-                    marker,
-                    std::span<const bayes::AxpyTarget>{
-                        targets.data(), target_count});
-            }
+                    static_cast<std::uint8_t>(sample.class_index)),
+                std::span{extra_targets});
 
             if (sample.class_index != 0)
             {

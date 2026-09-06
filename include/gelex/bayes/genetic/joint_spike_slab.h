@@ -22,12 +22,12 @@
 #include <cstddef>
 #include <cstdint>
 #include <utility>
-#include <variant>
 
 #include "gelex/bayes/basic_draw.h"
 #include "gelex/bayes/basic_result.h"
 #include "gelex/bayes/detail/genetic_spec.h"
 #include "gelex/bayes/genetic/detail/draws_support.h"
+#include "gelex/bayes/genetic/detail/fitted_update.h"
 #include "gelex/bayes/genetic/detail/prior_support.h"
 #include "gelex/bayes/genetic/detail/result_support.h"
 #include "gelex/bayes/genetic/detail/state_support.h"
@@ -36,7 +36,6 @@
 #include "gelex/bayes/genetic/parameter.h"
 #include "gelex/bayes/genetic/traits.h"
 #include "gelex/bayes/genetic_family.h"
-#include "gelex/bayes/genotype/operations.h"
 #include "gelex/bayes/mode_values.h"
 #include "gelex/bayes/parameter.h"
 #include "gelex/bayes/spec.h"
@@ -211,9 +210,10 @@ class JointSpikeSlabState
         auto updates = generate_mode_values<GeneticMode::A | GeneticMode::D>(
             [&]<GeneticMode Mode>()
             {
-                return make_fitted_update<Mode>(
-                    old_assignment,
-                    assignment,
+                return detail::make_fitted_update(
+                    fitted_values_,
+                    fitted_component_index<Mode>(old_assignment),
+                    fitted_component_index<Mode>(assignment),
                     old_coefficients.template get<Mode>(),
                     new_coefficients.template get<Mode>());
             });
@@ -247,45 +247,6 @@ class JointSpikeSlabState
                   static_cast<int>(
                       component_count)>::Zero(num_individuals, component_count))
     {
-    }
-
-    template <GeneticMode Mode>
-    auto make_fitted_update(
-        std::uint8_t old_assignment,
-        std::uint8_t new_assignment,
-        double old_coefficient,
-        double new_coefficient)
-        -> std::variant<
-            std::monostate,
-            bayes::AxpyTarget,
-            std::array<bayes::AxpyTarget, 2>>
-    {
-        const int old_component = fitted_component_index<Mode>(old_assignment);
-        const int new_component = fitted_component_index<Mode>(new_assignment);
-        const auto make_target = [&](int component, double delta)
-        { return bayes::AxpyTarget{delta, fitted_values_.col(component)}; };
-        if (old_component == new_component)
-        {
-            const double delta = new_coefficient - old_coefficient;
-            if (old_component == no_component || delta == 0.0)
-                return std::monostate{};
-            return make_target(old_component, delta);
-        }
-        const bool remove_old
-            = old_component != no_component && old_coefficient != 0.0;
-        const bool add_new
-            = new_component != no_component && new_coefficient != 0.0;
-        if (remove_old && add_new)
-        {
-            return std::array{
-                make_target(old_component, -old_coefficient),
-                make_target(new_component, new_coefficient)};
-        }
-        if (remove_old)
-            return make_target(old_component, -old_coefficient);
-        if (add_new)
-            return make_target(new_component, new_coefficient);
-        return std::monostate{};
     }
 
     Eigen::VectorX<std::uint8_t> assignments_;
