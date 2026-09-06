@@ -65,8 +65,8 @@ TEST_CASE(
     "[cli][mcmc][recipe]")
 {
     cli::McmcConfig config;
-    config.genetic_variance_shares.get<gelex::GeneticMode::A>() = 0.3;
-    config.genetic_variance_shares.get<gelex::GeneticMode::D>() = 0.1;
+    config.genetic_variance_proportion.get<gelex::GeneticMode::A>() = 0.3;
+    config.genetic_variance_proportion.get<gelex::GeneticMode::D>() = 0.1;
     config.mixture_probabilities.get<gelex::GeneticMode::A>() = {0.2};
     config.mixture_probabilities.get<gelex::GeneticMode::D>() = {0.4};
 
@@ -169,7 +169,7 @@ TEST_CASE(
     SECTION("variance share")
     {
         config.mode = mode_d;
-        config.genetic_variance_shares.get<gelex::GeneticMode::A>() = 0.2;
+        config.genetic_variance_proportion.get<gelex::GeneticMode::A>() = 0.2;
     }
     SECTION("mixture probabilities")
     {

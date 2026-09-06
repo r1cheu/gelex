@@ -84,14 +84,14 @@ auto setup_mcmc_command(CLI::App& program, int& exit_code) -> void
         ->check(cli::genetic_mode_set_validator());
     cmd.add_option(
            "--h2",
-           config->genetic_variance_shares.get<gelex::GeneticMode::A>(),
+           config->genetic_variance_proportion.get<gelex::GeneticMode::A>(),
            "Additive heritability (0,1)")
         ->group("Model")
         ->type_name("<P>")
         ->check(cli::open_unit_interval());
     cmd.add_option(
            "--d2",
-           config->genetic_variance_shares.get<gelex::GeneticMode::D>(),
+           config->genetic_variance_proportion.get<gelex::GeneticMode::D>(),
            "Dominance heritability (0,1)")
         ->group("Model")
         ->type_name("<P>")
