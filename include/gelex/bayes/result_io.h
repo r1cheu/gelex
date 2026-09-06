@@ -27,7 +27,8 @@
 #include <string_view>
 #include <type_traits>
 
-#include "gelex/bayes/detail/result_writer.h"
+#include "gelex/bayes/basic_result_io.h"
+#include "gelex/bayes/genetic/family.h"
 #include "gelex/bayes/genetic/result.h"
 #include "gelex/bayes/genotype/design.h"
 #include "gelex/bayes/result.h"

@@ -30,8 +30,8 @@
 #include "gelex/bayes/draws.h"
 #include "gelex/bayes/genetic/gaussian.h"
 #include "gelex/bayes/genetic/joint_spike_slab.h"
+#include "gelex/bayes/genetic/policy.h"
 #include "gelex/bayes/genetic/scaled_mixture.h"
-#include "gelex/bayes/genetic_policy.h"
 #include "gelex/bayes/genotype/operations.h"
 #include "gelex/bayes/mode_values.h"
 #include "gelex/bayes/model.h"
@@ -80,7 +80,7 @@ gelex::GaussianSpec<gelex::VarianceLayout::Pooled>>{
     auto state = gelex::make_state(prior, model);
 
     {
-        auto draws = gelex::make_draws(prior, model, path.string(), 2);
+        auto draws = gelex::BayesDraws{prior, model, path.string(), 2};
         static_assert(!std::movable<decltype(draws)>);
         auto& additive = state.genetic().get<gelex::GeneticMode::A>();
 
@@ -144,7 +144,7 @@ gelex::GaussianSpec<gelex::VarianceLayout::Pooled>>{
         model);
     auto state = gelex::make_state(prior, model);
 
-    auto draws = gelex::make_draws(prior, model, path.string(), 1);
+    auto draws = gelex::BayesDraws{prior, model, path.string(), 1};
     draws.append(state);
 
     REQUIRE_THROWS_AS(draws.append(state), gelex::GelexException);
@@ -164,7 +164,7 @@ gelex::GaussianSpec<gelex::VarianceLayout::Pooled>>{
     auto state = gelex::make_state(prior, model);
 
     {
-        auto draws = gelex::make_draws(prior, model, path.string(), 1);
+        auto draws = gelex::BayesDraws{prior, model, path.string(), 1};
 
         state.genetic().get<gelex::GeneticMode::A>().family_state.fitted_values
             = Eigen::VectorXd{{0.0, 3.0, 0.0}};
@@ -233,11 +233,11 @@ gelex::GaussianSpec<gelex::VarianceLayout::Pooled>>{
     state.residual().variance = 2.0;
 
     gelex::test::FileFixture fixture;
-    auto draws = gelex::make_draws(
+    auto draws = gelex::BayesDraws{
         prior,
         model,
         (fixture.get_test_dir() / "independent_random.draws").string(),
-        1);
+        1};
     draws.append(state);
 
     REQUIRE(
@@ -266,7 +266,7 @@ TEST_CASE("BayesDraws decomposes a joint spike-slab state", "[bayes][draws]")
     auto state = gelex::make_state(prior, model);
 
     {
-        auto draws = gelex::make_draws(prior, model, path.string(), 1);
+        auto draws = gelex::BayesDraws{prior, model, path.string(), 1};
 
         state.genetic().get<gelex::GeneticMode::A>().family_state.fitted_values
             = Eigen::VectorXd{{1.0, 2.0, 3.0}};
@@ -310,7 +310,7 @@ TEST_CASE(
     auto state = gelex::make_state(prior, model);
 
     {
-        auto draws = gelex::make_draws(prior, model, path.string(), 2);
+        auto draws = gelex::BayesDraws{prior, model, path.string(), 2};
 
         state.genetic().joint().assignment
             = Eigen::VectorX<std::uint8_t>{{0, 1}};
@@ -358,7 +358,7 @@ gelex::GaussianSpec<gelex::VarianceLayout::Pooled>>::defaults(), model); auto
 state = gelex::make_state(prior, model);
 
     {
-        auto draws = gelex::make_draws(prior, model, path.string(), 2);
+        auto draws = gelex::BayesDraws{prior, model, path.string(), 2};
         auto& coefficients
             = state.genetic().get<gelex::GeneticMode::A>().coefficients;
         coefficients = Eigen::VectorXd{{1.0, 2.0}};
@@ -403,7 +403,7 @@ gelex::GaussianSpec<gelex::VarianceLayout::Pooled>>::defaults(), model); auto
 state = gelex::make_state(prior, model);
 
     {
-        auto draws = gelex::make_draws(prior, model, path.string(), 2);
+        auto draws = gelex::BayesDraws{prior, model, path.string(), 2};
         auto& additive
             = state.genetic().get<gelex::GeneticMode::A>().coefficients;
         auto& dominance
@@ -472,7 +472,7 @@ TEST_CASE("BayesDraws decomposes per-class genetic values", "[bayes][draws]")
     auto state = gelex::make_state(prior, model);
 
     {
-        auto draws = gelex::make_draws(prior, model, path.string(), 1);
+        auto draws = gelex::BayesDraws{prior, model, path.string(), 1};
 
         // Each mode's class columns sum row-wise to {0, 3, 0}.
         state.genetic().for_each(
@@ -521,7 +521,7 @@ gelex::GaussianSpec<gelex::VarianceLayout::Pooled>>{
     state.residual().variance = 5.0;
 
     {
-        auto draws = gelex::make_draws(prior, model, path.string(), 3);
+        auto draws = gelex::BayesDraws{prior, model, path.string(), 3};
         draws.append(state);
     }
 

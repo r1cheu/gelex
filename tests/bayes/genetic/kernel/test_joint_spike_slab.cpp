@@ -28,7 +28,7 @@
 
 #include "gelex/bayes/genetic/gaussian.h"
 #include "gelex/bayes/genetic/joint_spike_slab.h"
-#include "gelex/bayes/genetic_policy.h"
+#include "gelex/bayes/genetic/policy.h"
 #include "gelex/bayes/genotype/design.h"
 #include "gelex/bayes/kernel.h"
 #include "gelex/bayes/marker_covariate.h"

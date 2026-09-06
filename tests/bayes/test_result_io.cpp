@@ -28,9 +28,9 @@
 #include "gelex/bayes/draws.h"
 #include "gelex/bayes/genetic/gaussian.h"
 #include "gelex/bayes/genetic/joint_spike_slab.h"
+#include "gelex/bayes/genetic/policy.h"
 #include "gelex/bayes/genetic/scaled_mixture.h"
 #include "gelex/bayes/genetic/spike_slab.h"
-#include "gelex/bayes/genetic_policy.h"
 #include "gelex/bayes/genotype/design.h"
 #include "gelex/bayes/mode_values.h"
 #include "gelex/bayes/model.h"
@@ -151,7 +151,7 @@ gelex::GaussianSpec<gelex::VarianceLayout::Pooled>>{
     state.genetic().get<gelex::GeneticMode::A>().family_state.variance = 0.5;
     state.residual().variance = 4.0;
 
-    auto draws = gelex::make_draws(prior, model, path.string(), 2);
+    auto draws = gelex::BayesDraws{prior, model, path.string(), 2};
     draws.append(state);
     draws.append(state);
     return gelex::make_result(model, draws);
@@ -171,7 +171,7 @@ auto collect_genetic_result(
 gelex::GaussianSpec<gelex::VarianceLayout::Pooled>>::defaults(), model); auto
 state = gelex::make_state(prior, model); configure(state);
 
-    auto draws = gelex::make_draws(prior, model, path.string(), 2);
+    auto draws = gelex::BayesDraws{prior, model, path.string(), 2};
     draws.append(state);
     draws.append(state);
     return gelex::make_result(model, draws);
@@ -206,7 +206,7 @@ auto write_genetic_snpeff(
 gelex::GaussianSpec<gelex::VarianceLayout::Pooled>>::defaults(), model); auto
 state = gelex::make_state(prior, model); configure(state);
 
-    auto draws = gelex::make_draws(prior, model, draws_path.string(), 1);
+    auto draws = gelex::BayesDraws{prior, model, draws_path.string(), 1};
     draws.append(state);
     const auto result = gelex::make_result(model, draws);
     gelex::write_snpeff(result, model.genetic(), output_prefix.string());

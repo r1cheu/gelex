@@ -23,7 +23,7 @@
 #include <vector>
 
 #include "gelex/bayes/detail/common_kernel.h"
-#include "gelex/bayes/detail/kernel_factory.h"
+#include "gelex/bayes/genetic/family_kernel.h"
 #include "gelex/bayes/model.h"
 #include "gelex/bayes/prior.h"
 #include "gelex/bayes/state.h"
