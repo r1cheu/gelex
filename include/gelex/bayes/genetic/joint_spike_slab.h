@@ -19,6 +19,7 @@
 
 #include <Eigen/Core>
 #include <array>
+#include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <utility>
@@ -192,8 +193,7 @@ class JointSpikeSlabState
     [[nodiscard]] static constexpr auto fitted_component_index(
         std::size_t class_index) noexcept -> int
     {
-        if (class_index >= class_count)
-            return no_component;
+        assert(class_index < class_count);
         if constexpr (Mode == GeneticMode::A)
             return additive_components[class_index];
         else
