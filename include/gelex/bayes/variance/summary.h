@@ -77,15 +77,15 @@ class VarianceSummary
    private:
     VarianceSummary(
         HomogeneousModeValues<Modes, double> genetic,
+        double genetic_total,
         double residual)
-        : genetic_{std::move(genetic)}, residual_{residual}
+        : genetic_{std::move(genetic)},
+          genetic_total_{genetic_total},
+          residual_{residual}
     {
-        genetic_.for_each(
-            [&]<GeneticMode /*Mode*/>(double value)
-            {
-                require_component(value, "genetic");
-                genetic_total_ += value;
-            });
+        genetic_.for_each([&]<GeneticMode /*Mode*/>(double value)
+                          { require_component(value, "genetic"); });
+        require_component(genetic_total_, "total genetic");
         require_component(residual_, "residual");
         if (phenotypic() <= 0.0)
         {
@@ -112,7 +112,7 @@ class VarianceSummary
         -> VarianceSummary<GeneticPrior::modes>;
 
     HomogeneousModeValues<Modes, double> genetic_;
-    double genetic_total_{0.0};
+    double genetic_total_;
     double residual_;
 };
 
@@ -122,18 +122,35 @@ template <typename GeneticPrior>
 {
     constexpr auto modes = GeneticPrior::modes;
     const auto& genetic = state.genetic();
-    return VarianceSummary<modes>{
-        generate_mode_values<modes>(
-            [&]<GeneticMode Mode>()
-            {
-                return vecvar(
-                    genetic.template get<Mode>()
+    auto genetic_variances = generate_mode_values<modes>(
+        [&]<GeneticMode Mode>()
+        {
+            return vecvar(
+                genetic.template get<Mode>().fitted_values().rowwise().sum(),
+                VarNormType::Population);
+        });
+    const double genetic_total = [&]()
+    {
+        if constexpr (modes.size() == 1)
+        {
+            return genetic_variances.template get<modes.at(0)>();
+        }
+        else
+        {
+            return vecvar(
+                genetic.template get<GeneticMode::A>()
                         .fitted_values()
                         .rowwise()
-                        .sum(),
-                    VarNormType::Population);
-            }),
-        state.residual().variance};
+                        .sum()
+                    + genetic.template get<GeneticMode::D>()
+                          .fitted_values()
+                          .rowwise()
+                          .sum(),
+                VarNormType::Population);
+        }
+    }();
+    return VarianceSummary<modes>{
+        std::move(genetic_variances), genetic_total, state.residual().variance};
 }
 
 }  // namespace gelex
