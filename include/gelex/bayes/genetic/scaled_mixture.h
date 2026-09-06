@@ -190,12 +190,6 @@ class ScaledMixtureState
     std::array<double, class_count> probabilities_;
 };
 
-template <std::size_t ClassCount>
-[[nodiscard]] auto genetic_value(const ScaledMixtureState<ClassCount>& state)
-{
-    return state.fitted_values().rowwise().sum();
-}
-
 template <std::size_t ClassCount, MixtureWeightUpdate WeightUpdate>
 struct ScaledMixtureDraws
 {

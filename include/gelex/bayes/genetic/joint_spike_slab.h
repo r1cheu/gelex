@@ -256,12 +256,6 @@ class JointSpikeSlabState
         fitted_values_;
 };
 
-[[nodiscard]] inline auto genetic_value(const HalfNormalState& state)
-    -> const Eigen::VectorXd&
-{
-    return state.fitted_values();
-}
-
 struct HalfNormalDraws
 {
     ScalarDraw variance;
