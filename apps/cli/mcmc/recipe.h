@@ -90,7 +90,7 @@ constexpr auto option_name(ModeOptionNames names) noexcept -> std::string_view
 template <gelex::GeneticModeSet Modes>
 auto make_variance_budget(const McmcConfig& config) -> gelex::VarianceBudget
 {
-    auto shares = gelex::default_shares(Modes);
+    auto shares = gelex::default_proportion(Modes);
     shares.additive
         = config.genetic_variance_shares.get<gelex::GeneticMode::A>().value_or(
             shares.additive);

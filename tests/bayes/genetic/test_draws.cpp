@@ -19,6 +19,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <concepts>
 #include <cstdint>
+#include <variant>
 
 #include "gelex/bayes/basic_draw.h"
 #include "gelex/bayes/detail/draws_factory.h"
@@ -30,6 +31,7 @@
 #include "gelex/bayes/genetic/scaled_mixture.h"
 #include "gelex/bayes/genetic/spike_slab.h"
 #include "gelex/bayes/genetic_family.h"
+#include "gelex/bayes/genotype/operations.h"
 #include "gelex/bayes/mode_values.h"
 #include "gelex/bayes/model.h"
 #include "gelex/bayes/prior.h"
@@ -174,21 +176,21 @@ TEST_CASE(
             prior.genetic(), model.genetic(), writer, 2);
 
         auto& additive = state.get<GeneticMode::A>();
-        additive.coefficients = Eigen::VectorXd{{1.0, 2.0}};
-        additive.family_state.variance = Eigen::VectorXd{{0.1, 0.2}};
-        additive.family_state.assignment = Eigen::VectorX<std::uint8_t>{{0, 1}};
-        additive.family_state.probability = 0.3;
+        additive.transition(0, 0.0, false);
+        additive.transition(1, 2.0, true);
+        additive.variance() = Eigen::VectorXd{{0.1, 0.2}};
+        additive.probability() = 0.3;
         draws.append(state);
 
-        additive.coefficients = Eigen::VectorXd{{3.0, 4.0}};
-        additive.family_state.variance = Eigen::VectorXd{{0.3, 0.4}};
-        additive.family_state.assignment = Eigen::VectorX<std::uint8_t>{{1, 1}};
-        additive.family_state.probability = 0.5;
+        additive.transition(0, 3.0, true);
+        additive.transition(1, 4.0, true);
+        additive.variance() = Eigen::VectorXd{{0.3, 0.4}};
+        additive.probability() = 0.5;
         draws.append(state);
 
         REQUIRE(
             draws.coefficients().get<GeneticMode::A>().result().mean.isApprox(
-                Eigen::VectorXd{{2.0, 3.0}}));
+                Eigen::VectorXd{{1.5, 3.0}}));
         const auto& family = draws.family<GeneticMode::A>();
         REQUIRE(family.probability.result().mean == Approx(0.4));
         REQUIRE(family.assignment.result().probabilities.isApprox(
@@ -202,7 +204,7 @@ TEST_CASE(
 
     const gelex::BinaryReader reader(path.string());
     REQUIRE(reader.to_map<float>("genetic/A/coefficients")
-                .isApprox(Eigen::MatrixXf{{1.0, 3.0}, {2.0, 4.0}}));
+                .isApprox(Eigen::MatrixXf{{0.0, 3.0}, {2.0, 4.0}}));
     REQUIRE(reader.to_map<float>("genetic/A/variance")
                 .isApprox(Eigen::MatrixXf{{0.1, 0.3}, {0.2, 0.4}}));
     REQUIRE(reader.to_map<double>("genetic/A/probability")
@@ -254,17 +256,25 @@ TEST_CASE(
             prior.genetic(), model.genetic(), writer, 1);
 
         auto& additive = state.get<GeneticMode::A>();
-        additive.family_state.assignment = Eigen::VectorX<std::uint8_t>{{0, 4}};
-        additive.family_state.probabilities = {0.5, 0.2, 0.15, 0.1, 0.05};
-        additive.family_state.fitted_values = Eigen::MatrixXd{
-            {0.0, 1.0, 2.0, 0.0}, {3.0, 1.0, 0.0, 0.0}, {0.0, 1.0, 4.0, 0.0}};
+        auto first = std::get<gelex::bayes::AxpyTarget>(
+            additive.transition(0, 1.0, 1));
+        Eigen::Map<Eigen::VectorXd>(
+            first.target.data(), static_cast<Eigen::Index>(first.target.size()))
+            += first.scale * Eigen::VectorXd{{0.0, 3.0, 0.0}};
+        auto second = std::get<gelex::bayes::AxpyTarget>(
+            additive.transition(1, 1.0, 4));
+        Eigen::Map<Eigen::VectorXd>(
+            second.target.data(),
+            static_cast<Eigen::Index>(second.target.size()))
+            += second.scale * Eigen::VectorXd{{2.0, 0.0, 4.0}};
+        additive.probabilities() = {0.5, 0.2, 0.15, 0.1, 0.05};
         draws.append(state);
 
         REQUIRE(
             gelex::detail::make_pip(draws)
                 .get<GeneticMode::A>()
                 .probabilities()
-                .isApprox(Eigen::VectorXd{{0.0, 1.0}}));
+                .isApprox(Eigen::VectorXd{{1.0, 1.0}}));
     }
 
     const gelex::BinaryReader reader(path.string());
@@ -274,9 +284,9 @@ TEST_CASE(
     REQUIRE(reader.to_map<std::uint8_t>("genetic/A/assignment")
                 .isApprox(
                     Eigen::Matrix<std::uint8_t, Eigen::Dynamic, Eigen::Dynamic>{
-                        {0}, {4}}));
+                        {1}, {4}}));
     REQUIRE(reader.to_map<float>("genetic/A/component_explained_variance")
-                .isApprox(Eigen::MatrixXf{{2.0}, {0.0}, {8.0 / 3.0}, {0.0}}));
+                .isApprox(Eigen::MatrixXf{{2.0}, {0.0}, {0.0}, {8.0 / 3.0}}));
 }
 
 /*

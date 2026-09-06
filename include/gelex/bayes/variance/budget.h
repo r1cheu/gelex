@@ -27,32 +27,36 @@
 namespace gelex
 {
 
-// Initialization shares of phenotypic variance. Mode and model presence are
-// validated by the boundaries that own that structural information.
+/**
+ * @brief Phenotypic variance proportions allocated to model components.
+ *
+ * All supplied proportions are finite and non-negative, with
+ * @f[ p_e = 1 - \sum_{m \in \mathcal M} p_m - p_r > 0. @f]
+ */
 class VarianceBudget
 {
    public:
-    struct Shares
+    struct Proportion
     {
         double additive{};
         double dominance{};
         double random{};
     };
 
-    explicit VarianceBudget(Shares shares);
+    /**
+     * @throws GelexException if a proportion is non-finite or negative, or
+     * their sum is not less than one.
+     */
+    explicit VarianceBudget(Proportion shares);
 
-    [[nodiscard]] constexpr auto share(GeneticMode mode) const noexcept
-        -> double
+    constexpr auto genetic(GeneticMode mode) const noexcept -> double
     {
         return genetic_[std::to_underlying(mode)];
     }
 
-    [[nodiscard]] constexpr auto random() const noexcept -> double
-    {
-        return random_;
-    }
+    constexpr auto random() const noexcept -> double { return random_; }
 
-    [[nodiscard]] constexpr auto residual() const noexcept -> double
+    constexpr auto residual() const noexcept -> double
     {
         return 1.0 - std::ranges::fold_left(genetic_, random_, std::plus{});
     }
@@ -65,12 +69,8 @@ class VarianceBudget
 inline constexpr double default_additive_share = 0.5;
 inline constexpr double default_dominance_share = 0.2;
 
-// Derived from mode presence rather than a per-mode-set table, so the defaults
-// cannot disagree with the mode set they are meant to serve. Yields Shares
-// rather than a finished budget so that an input adapter overrides the fields
-// the user gave and keeps the rest, without restating any default.
-[[nodiscard]] constexpr auto default_shares(GeneticModeSet modes) noexcept
-    -> VarianceBudget::Shares
+[[nodiscard]] constexpr auto default_proportion(GeneticModeSet modes) noexcept
+    -> VarianceBudget::Proportion
 {
     return {
         .additive

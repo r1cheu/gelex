@@ -42,7 +42,7 @@ auto validate_variance_share(double share, std::string_view name) -> void
 
 }  // namespace
 
-VarianceBudget::VarianceBudget(Shares shares)
+VarianceBudget::VarianceBudget(Proportion shares)
     : genetic_{shares.additive, shares.dominance}, random_{shares.random}
 {
     validate_variance_share(shares.additive, "additive");
