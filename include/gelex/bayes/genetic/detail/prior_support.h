@@ -19,7 +19,7 @@
 
 #include <utility>
 
-#include "gelex/bayes/genetic_family.h"
+#include "gelex/bayes/genetic_policy.h"
 #include "gelex/bayes/parameter.h"
 
 namespace gelex::detail

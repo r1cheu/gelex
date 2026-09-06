@@ -22,12 +22,10 @@
 #include <string_view>
 #include <utility>
 
-#include "gelex/bayes/genetic/gaussian.h"
-#include "gelex/bayes/genetic/joint_spike_slab.h"
-#include "gelex/bayes/genetic/scaled_mixture.h"
-#include "gelex/bayes/genetic/spike_slab.h"
-#include "gelex/bayes/genetic_family.h"
+#include "gelex/bayes/genetic_policy.h"
+#include "gelex/bayes/mode_values.h"
 #include "gelex/bayes/recipe.h"
+#include "gelex/bayes/spec.h"
 #include "gelex/genetic_mode.h"
 
 namespace gelex
@@ -55,52 +53,59 @@ inline constexpr std::array bayes_method_names{
 namespace detail
 {
 
-template <BayesMethod Method>
-struct GeneticFamilyFor;
+template <GeneticModeSet Modes, BayesMethod Method>
+struct BuiltinGeneticSpecFor;
 
-template <>
-struct GeneticFamilyFor<BayesMethod::RR>
+template <GeneticModeSet Modes>
+struct BuiltinGeneticSpecFor<Modes, BayesMethod::RR>
 {
-    using type = GaussianFamily<VarianceLayout::Pooled>;
+    using type = GaussianSpec<VarianceLayout::Pooled>;
 };
 
-template <>
-struct GeneticFamilyFor<BayesMethod::A>
+template <GeneticModeSet Modes>
+struct BuiltinGeneticSpecFor<Modes, BayesMethod::A>
 {
-    using type = GaussianFamily<VarianceLayout::Unpooled>;
+    using type = GaussianSpec<VarianceLayout::Unpooled>;
 };
 
-template <>
-struct GeneticFamilyFor<BayesMethod::B>
+template <GeneticModeSet Modes>
+struct BuiltinGeneticSpecFor<Modes, BayesMethod::B>
 {
-    using type = SpikeSlabFamily<VarianceLayout::Unpooled>;
+    using type
+        = HomogeneousModeValues<Modes, SpikeSlabSpec<VarianceLayout::Unpooled>>;
 };
 
-template <>
-struct GeneticFamilyFor<BayesMethod::C>
+template <GeneticModeSet Modes>
+struct BuiltinGeneticSpecFor<Modes, BayesMethod::C>
 {
-    using type = SpikeSlabFamily<VarianceLayout::Pooled>;
+    using type
+        = HomogeneousModeValues<Modes, SpikeSlabSpec<VarianceLayout::Pooled>>;
 };
 
-template <>
-struct GeneticFamilyFor<BayesMethod::R>
+template <GeneticModeSet Modes>
+struct BuiltinGeneticSpecFor<Modes, BayesMethod::R>
 {
-    using type = ScaledMixtureFamily<>;
+    using type = HomogeneousModeValues<Modes, ScaledMixtureSpec<>>;
 };
 
-template <>
-struct GeneticFamilyFor<BayesMethod::CD>
+template <GeneticModeSet Modes>
+    requires(Modes == (GeneticMode::A | GeneticMode::D))
+struct BuiltinGeneticSpecFor<Modes, BayesMethod::CD>
 {
-    using type = JointSpikeSlabFamily<>;
+    using type = JointModeValues<
+        ModeValues<Modes, GaussianSpec<>, HalfNormalSpec>,
+        JointSpikeSlabSpec<>>;
 };
 
 }  // namespace detail
 
-template <BayesMethod Method>
-using genetic_family_t = typename detail::GeneticFamilyFor<Method>::type;
+template <GeneticModeSet Modes, BayesMethod Method>
+using builtin_genetic_spec_t =
+    typename detail::BuiltinGeneticSpecFor<Modes, Method>::type;
 
 template <GeneticModeSet Modes, BayesMethod Method>
-using BuiltinBayesRecipe = BayesRecipe<Modes, genetic_family_t<Method>>;
+using BuiltinBayesRecipe
+    = BayesRecipe<Modes, builtin_genetic_spec_t<Modes, Method>>;
 
 }  // namespace gelex
 

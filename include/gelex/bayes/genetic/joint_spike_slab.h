@@ -26,7 +26,6 @@
 
 #include "gelex/bayes/basic_draw.h"
 #include "gelex/bayes/basic_result.h"
-#include "gelex/bayes/detail/genetic_spec.h"
 #include "gelex/bayes/genetic/detail/draws_support.h"
 #include "gelex/bayes/genetic/detail/fitted_update.h"
 #include "gelex/bayes/genetic/detail/prior_support.h"
@@ -36,7 +35,7 @@
 #include "gelex/bayes/genetic/gaussian.h"
 #include "gelex/bayes/genetic/parameter.h"
 #include "gelex/bayes/genetic/traits.h"
-#include "gelex/bayes/genetic_family.h"
+#include "gelex/bayes/genetic_policy.h"
 #include "gelex/bayes/mode_values.h"
 #include "gelex/bayes/parameter.h"
 #include "gelex/bayes/spec.h"
@@ -49,11 +48,6 @@
 namespace gelex
 {
 
-template <MixtureWeightUpdate WeightUpdate = MixtureWeightUpdate::Enabled>
-struct JointSpikeSlabFamily
-{
-};
-
 // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init,hicpp-member-init)
 struct HalfNormalPrior
 {
@@ -63,7 +57,8 @@ struct HalfNormalPrior
 template <MixtureWeightUpdate WeightUpdate = MixtureWeightUpdate::Enabled>
 struct JointSpikeSlabPrior
 {
-    static constexpr std::size_t class_count = JointSpikeSlab::class_count;
+    static constexpr std::size_t class_count
+        = JointSpikeSlabSpec<>::class_count;
 
     SimplexParameter<class_count, WeightUpdate> probabilities;
 };
@@ -143,7 +138,8 @@ class HalfNormalState
 class JointSpikeSlabState
 {
    public:
-    static constexpr std::size_t class_count = JointSpikeSlab::class_count;
+    static constexpr std::size_t class_count
+        = JointSpikeSlabSpec<>::class_count;
     static constexpr std::size_t component_count = 4;
     static constexpr int no_component = -1;
     static constexpr std::array<int, class_count> additive_components{
@@ -264,7 +260,7 @@ struct HalfNormalDraws
 template <MixtureWeightUpdate WeightUpdate>
 struct JointSpikeSlabDraws
 {
-    CategoryDraw<JointSpikeSlab::class_count> assignment;
+    CategoryDraw<JointSpikeSlabSpec<>::class_count> assignment;
     detail::weight_draw_t<WeightUpdate, VectorDraw> probabilities;
     VectorDraw component_explained_variance;
 
@@ -295,19 +291,10 @@ struct JointSpikeSlabResult
 namespace gelex::detail
 {
 
-template <MixtureWeightUpdate WeightUpdate>
-struct GeneticSpecFor<
-    GeneticMode::A | GeneticMode::D,
-    JointSpikeSlabFamily<WeightUpdate>>
-{
-    using type = JointModeValues<
-        ModeValues<GeneticMode::A | GeneticMode::D, Gaussian, HalfNormal>,
-        JointSpikeSlab>;
-};
-
-template <GeneticMode Mode>
+template <GeneticMode Mode, MixtureWeightUpdate WeightUpdate>
     requires(Mode == GeneticMode::A || Mode == GeneticMode::D)
-constexpr auto initial_activity(const JointSpikeSlab& spec) -> double
+constexpr auto initial_activity(const JointSpikeSlabSpec<WeightUpdate>& spec)
+    -> double
 {
     const auto& probabilities = spec.probabilities();
     if constexpr (Mode == GeneticMode::A)
@@ -323,9 +310,9 @@ constexpr auto initial_activity(const JointSpikeSlab& spec) -> double
 template <GeneticModeSet Modes, MixtureWeightUpdate WeightUpdate>
     requires(Modes == (GeneticMode::A | GeneticMode::D))
 auto make_prior(
-    JointSpikeSlabFamily<WeightUpdate> /*family*/,
-    const genetic_spec_t<Modes, JointSpikeSlabFamily<WeightUpdate>>&
-        genetic_spec,
+    const JointModeValues<
+        ModeValues<Modes, GaussianSpec<>, HalfNormalSpec>,
+        JointSpikeSlabSpec<WeightUpdate>>& genetic_spec,
     const MarkerVarianceCalibrator& calibrator)
 {
     const auto& joint_spec = genetic_spec.joint();
@@ -393,11 +380,11 @@ template <MixtureWeightUpdate WeightUpdate>
     GeneticDrawsBuilder& builder) -> JointSpikeSlabDraws<WeightUpdate>
 {
     return {
-        .assignment = builder.category<JointSpikeSlab::class_count>(
+        .assignment = builder.category<JointSpikeSlabSpec<>::class_count>(
             "assignment", builder.marker_count()),
-        .probabilities
-        = make_probabilities_draw<WeightUpdate, JointSpikeSlab::class_count>(
-            builder),
+        .probabilities = make_probabilities_draw<
+            WeightUpdate,
+            JointSpikeSlabSpec<>::class_count>(builder),
         .component_explained_variance = make_component_explained_variance_draw<
             JointSpikeSlabState::component_count>(builder)};
 }

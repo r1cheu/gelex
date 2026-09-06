@@ -30,7 +30,7 @@
 #include "gelex/bayes/genetic/detail/coefficient_likelihood.h"
 #include "gelex/bayes/genetic/detail/dirichlet_conjugate_updater.h"
 #include "gelex/bayes/genetic/scaled_mixture.h"
-#include "gelex/bayes/genetic_family.h"
+#include "gelex/bayes/genetic_policy.h"
 #include "gelex/bayes/genotype/design.h"
 #include "gelex/bayes/genotype/operations.h"
 #include "gelex/bayes/stats/log_categorical_distribution.h"
@@ -56,9 +56,8 @@ class ScaledMixtureKernel
    public:
     explicit ScaledMixtureKernel(const Prior& prior)
         : variance_updater_{prior.variance.prior},
-          probability_updater_{
-              make_dirichlet_conjugate_updater<ScaledMixture::class_count>(
-                  prior.probabilities)},
+          probability_updater_{make_dirichlet_conjugate_updater<
+              ScaledMixtureSpec<>::class_count>(prior.probabilities)},
           scales_{prior.scales}
     {
     }
@@ -125,15 +124,16 @@ class ScaledMixtureKernel
     auto draw_component(
         const QuadraticLogKernel& likelihood,
         double variance,
-        const std::array<double, ScaledMixture::class_count>& log_probabilities,
+        const std::array<double, ScaledMixtureSpec<>::class_count>&
+            log_probabilities,
         std::mt19937_64& rng) -> ComponentSample
     {
-        std::array<CoefficientParameters, ScaledMixture::class_count>
+        std::array<CoefficientParameters, ScaledMixtureSpec<>::class_count>
             coefficient_parameters{};
-        std::array<double, ScaledMixture::class_count>
+        std::array<double, ScaledMixtureSpec<>::class_count>
             component_log_integrals{};
         for (std::size_t class_index = 1;
-             class_index < ScaledMixture::class_count;
+             class_index < ScaledMixtureSpec<>::class_count;
              ++class_index)
         {
             // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
@@ -160,11 +160,11 @@ class ScaledMixtureKernel
 
     NormalVarianceConjugateUpdater variance_updater_;
     [[no_unique_address]] DirichletConjugateUpdater<
-        ScaledMixture::class_count,
+        ScaledMixtureSpec<>::class_count,
         WeightUpdate> probability_updater_;
-    LogCategoricalDistribution<ScaledMixture::class_count>
+    LogCategoricalDistribution<ScaledMixtureSpec<>::class_count>
         allocation_distribution_;
-    std::array<double, ScaledMixture::class_count> scales_;
+    std::array<double, ScaledMixtureSpec<>::class_count> scales_;
 };
 
 template <MixtureWeightUpdate WeightUpdate>

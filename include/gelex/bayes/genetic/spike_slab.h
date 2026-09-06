@@ -25,7 +25,6 @@
 
 #include "gelex/bayes/basic_draw.h"
 #include "gelex/bayes/basic_result.h"
-#include "gelex/bayes/detail/genetic_spec.h"
 #include "gelex/bayes/genetic/detail/draws_support.h"
 #include "gelex/bayes/genetic/detail/pip_support.h"
 #include "gelex/bayes/genetic/detail/prior_support.h"
@@ -35,7 +34,7 @@
 #include "gelex/bayes/genetic/parameter.h"
 #include "gelex/bayes/genetic/result.h"
 #include "gelex/bayes/genetic/traits.h"
-#include "gelex/bayes/genetic_family.h"
+#include "gelex/bayes/genetic_policy.h"
 #include "gelex/bayes/mode_values.h"
 #include "gelex/bayes/parameter.h"
 #include "gelex/bayes/spec.h"
@@ -46,13 +45,6 @@
 
 namespace gelex
 {
-
-template <
-    VarianceLayout Kind,
-    MixtureWeightUpdate WeightUpdate = MixtureWeightUpdate::Enabled>
-struct SpikeSlabFamily
-{
-};
 
 template <
     VarianceLayout Kind,
@@ -181,34 +173,17 @@ namespace gelex::detail
 {
 
 template <
-    GeneticModeSet Modes,
+    GeneticMode Mode,
     VarianceLayout Kind,
     MixtureWeightUpdate WeightUpdate>
-struct GeneticSpecFor<Modes, SpikeSlabFamily<Kind, WeightUpdate>>
-{
-    using type = HomogeneousModeValues<Modes, SpikeSlab>;
-};
-
-template <
-    GeneticModeSet Modes,
-    VarianceLayout Kind,
-    MixtureWeightUpdate WeightUpdate>
-auto make_prior(
-    SpikeSlabFamily<Kind, WeightUpdate> /*family*/,
-    const genetic_spec_t<Modes, SpikeSlabFamily<Kind, WeightUpdate>>&
-        genetic_spec,
+auto make_mode_prior(
+    const SpikeSlabSpec<Kind, WeightUpdate>& spec,
     const MarkerVarianceCalibrator& calibrator)
 {
-    return transform_mode_values(
-        genetic_spec,
-        [&]<GeneticMode Mode>(
-            const SpikeSlab& spec) -> SpikeSlabPrior<Kind, WeightUpdate>
-        {
-            return {
-                .variance = calibrator.calibrate(Mode, spec.probability()),
-                .probability = make_parameter<WeightUpdate>(
-                    spec.probability(), make_beta_prior(1.0, 1.0))};
-        });
+    return SpikeSlabPrior<Kind, WeightUpdate>{
+        .variance = calibrator.calibrate(Mode, spec.probability()),
+        .probability = make_parameter<WeightUpdate>(
+            spec.probability(), make_beta_prior(1.0, 1.0))};
 }
 
 template <VarianceLayout Kind, MixtureWeightUpdate WeightUpdate>

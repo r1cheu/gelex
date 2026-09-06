@@ -20,13 +20,12 @@
 #include <Eigen/Core>
 
 #include "gelex/bayes/basic_result.h"
-#include "gelex/bayes/detail/genetic_spec.h"
 #include "gelex/bayes/genetic/detail/draws_support.h"
 #include "gelex/bayes/genetic/detail/result_support.h"
 #include "gelex/bayes/genetic/detail/state_support.h"
 #include "gelex/bayes/genetic/detail/summary_support.h"
 #include "gelex/bayes/genetic/traits.h"
-#include "gelex/bayes/genetic_family.h"
+#include "gelex/bayes/genetic_policy.h"
 #include "gelex/bayes/mode_values.h"
 #include "gelex/bayes/parameter.h"
 #include "gelex/bayes/spec.h"
@@ -36,11 +35,6 @@
 
 namespace gelex
 {
-
-template <VarianceLayout Kind>
-struct GaussianFamily
-{
-};
 
 template <VarianceLayout Kind>
 struct GaussianPrior
@@ -132,15 +126,8 @@ namespace gelex::detail
 {
 
 template <GeneticModeSet Modes, VarianceLayout Kind>
-struct GeneticSpecFor<Modes, GaussianFamily<Kind>>
-{
-    using type = Gaussian;
-};
-
-template <GeneticModeSet Modes, VarianceLayout Kind>
 auto make_prior(
-    GaussianFamily<Kind> /*family*/,
-    const Gaussian& /*genetic_spec*/,
+    const GaussianSpec<Kind>& /*genetic_spec*/,
     const MarkerVarianceCalibrator& calibrator)
 {
     return generate_mode_values<Modes>(

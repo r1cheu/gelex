@@ -26,7 +26,6 @@
 
 #include "gelex/bayes/basic_draw.h"
 #include "gelex/bayes/basic_result.h"
-#include "gelex/bayes/detail/genetic_spec.h"
 #include "gelex/bayes/genetic/detail/draws_support.h"
 #include "gelex/bayes/genetic/detail/fitted_update.h"
 #include "gelex/bayes/genetic/detail/pip_support.h"
@@ -37,7 +36,7 @@
 #include "gelex/bayes/genetic/parameter.h"
 #include "gelex/bayes/genetic/result.h"
 #include "gelex/bayes/genetic/traits.h"
-#include "gelex/bayes/genetic_family.h"
+#include "gelex/bayes/genetic_policy.h"
 #include "gelex/bayes/genotype/operations.h"
 #include "gelex/bayes/mode_values.h"
 #include "gelex/bayes/parameter.h"
@@ -52,15 +51,10 @@ namespace gelex
 {
 
 template <MixtureWeightUpdate WeightUpdate = MixtureWeightUpdate::Enabled>
-struct ScaledMixtureFamily
-{
-};
-
-template <MixtureWeightUpdate WeightUpdate = MixtureWeightUpdate::Enabled>
 // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init,hicpp-member-init)
 struct ScaledMixturePrior
 {
-    static constexpr std::size_t class_count = ScaledMixture::class_count;
+    static constexpr std::size_t class_count = ScaledMixtureSpec<>::class_count;
 
     VarianceParameter variance;
     SimplexParameter<class_count, WeightUpdate> probabilities;
@@ -80,7 +74,7 @@ auto make_state(
 class ScaledMixtureState
 {
    public:
-    static constexpr std::size_t class_count = ScaledMixture::class_count;
+    static constexpr std::size_t class_count = ScaledMixtureSpec<>::class_count;
     static constexpr std::size_t component_count = class_count - 1;
 
     auto coefficients() const -> const Eigen::VectorXd&
@@ -179,7 +173,7 @@ template <MixtureWeightUpdate WeightUpdate>
 struct ScaledMixtureDraws
 {
     ScalarDraw variance;
-    CategoryDraw<ScaledMixture::class_count> assignment;
+    CategoryDraw<ScaledMixtureSpec<>::class_count> assignment;
     detail::weight_draw_t<WeightUpdate, VectorDraw> probabilities;
     VectorDraw component_explained_variance;
 
@@ -206,13 +200,9 @@ struct ScaledMixtureResult
 namespace gelex::detail
 {
 
-template <GeneticModeSet Modes, MixtureWeightUpdate WeightUpdate>
-struct GeneticSpecFor<Modes, ScaledMixtureFamily<WeightUpdate>>
-{
-    using type = HomogeneousModeValues<Modes, ScaledMixture>;
-};
-
-constexpr auto initial_activity(const ScaledMixture& spec) -> double
+template <MixtureWeightUpdate WeightUpdate>
+constexpr auto initial_activity(const ScaledMixtureSpec<WeightUpdate>& spec)
+    -> double
 {
     auto activity = 0.0;
     for (const auto [probability, scale] :
@@ -223,25 +213,17 @@ constexpr auto initial_activity(const ScaledMixture& spec) -> double
     return activity;
 }
 
-template <GeneticModeSet Modes, MixtureWeightUpdate WeightUpdate>
-auto make_prior(
-    ScaledMixtureFamily<WeightUpdate> /*family*/,
-    const genetic_spec_t<Modes, ScaledMixtureFamily<WeightUpdate>>&
-        genetic_spec,
+template <GeneticMode Mode, MixtureWeightUpdate WeightUpdate>
+auto make_mode_prior(
+    const ScaledMixtureSpec<WeightUpdate>& spec,
     const MarkerVarianceCalibrator& calibrator)
 {
-    return transform_mode_values(
-        genetic_spec,
-        [&]<GeneticMode Mode>(
-            const ScaledMixture& spec) -> ScaledMixturePrior<WeightUpdate>
-        {
-            return {
-                .variance = calibrator.calibrate(Mode, initial_activity(spec)),
-                .probabilities = make_parameter<WeightUpdate>(
-                    spec.probabilities(),
-                    make_uniform_dirichlet_prior<ScaledMixture::class_count>()),
-                .scales = spec.scales()};
-        });
+    return ScaledMixturePrior<WeightUpdate>{
+        .variance = calibrator.calibrate(Mode, initial_activity(spec)),
+        .probabilities = make_parameter<WeightUpdate>(
+            spec.probabilities(),
+            make_uniform_dirichlet_prior<ScaledMixtureSpec<>::class_count>()),
+        .scales = spec.scales()};
 }
 
 template <MixtureWeightUpdate WeightUpdate>
@@ -263,11 +245,11 @@ template <MixtureWeightUpdate WeightUpdate>
 {
     return {
         .variance = builder.scalar("variance"),
-        .assignment = builder.category<ScaledMixture::class_count>(
+        .assignment = builder.category<ScaledMixtureSpec<>::class_count>(
             "assignment", builder.marker_count()),
-        .probabilities
-        = make_probabilities_draw<WeightUpdate, ScaledMixture::class_count>(
-            builder),
+        .probabilities = make_probabilities_draw<
+            WeightUpdate,
+            ScaledMixtureSpec<>::class_count>(builder),
         .component_explained_variance = make_component_explained_variance_draw<
             ScaledMixtureState::component_count>(builder)};
 }

@@ -27,7 +27,7 @@
 #include "gelex/bayes/genetic/result.h"
 #include "gelex/bayes/genetic/scaled_mixture.h"
 #include "gelex/bayes/genetic/spike_slab.h"
-#include "gelex/bayes/genetic_family.h"
+#include "gelex/bayes/genetic_policy.h"
 #include "gelex/bayes/mode_values.h"
 #include "gelex/genetic_mode.h"
 

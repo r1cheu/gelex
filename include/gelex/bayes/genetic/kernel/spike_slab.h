@@ -29,7 +29,7 @@
 #include "gelex/bayes/genetic/detail/dirichlet_conjugate_updater.h"
 #include "gelex/bayes/genetic/detail/normal_prior_provider.h"
 #include "gelex/bayes/genetic/spike_slab.h"
-#include "gelex/bayes/genetic_family.h"
+#include "gelex/bayes/genetic_policy.h"
 #include "gelex/bayes/genotype/design.h"
 #include "gelex/bayes/stats/log_categorical_distribution.h"
 #include "gelex/genetic_mode.h"

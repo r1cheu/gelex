@@ -31,12 +31,14 @@
 #include "gelex/bayes/genetic/gaussian.h"
 #include "gelex/bayes/genetic/joint_spike_slab.h"
 #include "gelex/bayes/genetic/scaled_mixture.h"
-#include "gelex/bayes/genetic_family.h"
+#include "gelex/bayes/genetic_policy.h"
 #include "gelex/bayes/genotype/operations.h"
+#include "gelex/bayes/mode_values.h"
 #include "gelex/bayes/model.h"
 #include "gelex/bayes/prior.h"
 #include "gelex/bayes/recipe.h"
 #include "gelex/bayes/result.h"
+#include "gelex/bayes/spec.h"
 #include "gelex/bayes/state.h"
 #include "gelex/bayes/variance/budget.h"
 #include "gelex/data/fixed_design.h"
@@ -55,18 +57,24 @@ namespace
 constexpr auto mode_a = gelex::GeneticModeSet{gelex::GeneticMode::A};
 constexpr auto mode_ad = gelex::GeneticMode::A | gelex::GeneticMode::D;
 
+using JointSpikeSlabSpecAD = gelex::JointModeValues<
+    gelex::ModeValues<mode_ad, gelex::GaussianSpec<>, gelex::HalfNormalSpec>,
+    gelex::JointSpikeSlabSpec<>>;
+using ScaledMixtureSpecAD
+    = gelex::HomogeneousModeValues<mode_ad, gelex::ScaledMixtureSpec<>>;
+
 }  // namespace
 
 /*
 TEST_CASE("BayesDraws records every state component", "[bayes][draws]")
 {
-    using Family = gelex::GaussianFamily<gelex::VarianceLayout::Pooled>;
 
     gelex::test::FileFixture fixture;
     const auto path = fixture.get_test_dir() / "bayes.draws";
     const auto model = gelex::test::make_random_effect_model(mode_a);
     const auto prior = gelex::make_prior(
-        gelex::BayesRecipe<mode_a, Family>{
+        gelex::BayesRecipe<mode_a,
+gelex::GaussianSpec<gelex::VarianceLayout::Pooled>>{
             gelex::VarianceBudget{{.additive = 0.4, .random = 0.2}}},
         model);
     auto state = gelex::make_state(prior, model);
@@ -125,13 +133,13 @@ TEST_CASE("BayesDraws records every state component", "[bayes][draws]")
 
 TEST_CASE("BayesDraws bounds the number of appended draws", "[bayes][draws]")
 {
-    using Family = gelex::GaussianFamily<gelex::VarianceLayout::Pooled>;
 
     gelex::test::FileFixture fixture;
     const auto path = fixture.get_test_dir() / "exceeded.draws";
     const auto model = gelex::test::make_random_effect_model(mode_a);
     const auto prior = gelex::make_prior(
-        gelex::BayesRecipe<mode_a, Family>{
+        gelex::BayesRecipe<mode_a,
+gelex::GaussianSpec<gelex::VarianceLayout::Pooled>>{
             gelex::VarianceBudget{{.additive = 0.4, .random = 0.2}}},
         model);
     auto state = gelex::make_state(prior, model);
@@ -144,13 +152,13 @@ TEST_CASE("BayesDraws bounds the number of appended draws", "[bayes][draws]")
 
 TEST_CASE("BayesDraws records the variance decomposition", "[bayes][draws]")
 {
-    using Family = gelex::GaussianFamily<gelex::VarianceLayout::Pooled>;
 
     gelex::test::FileFixture fixture;
     const auto path = fixture.get_test_dir() / "decomposition.draws";
     const auto model = gelex::test::make_random_effect_model(mode_a);
     const auto prior = gelex::make_prior(
-        gelex::BayesRecipe<mode_a, Family>{
+        gelex::BayesRecipe<mode_a,
+gelex::GaussianSpec<gelex::VarianceLayout::Pooled>>{
             gelex::VarianceBudget{{.additive = 0.4, .random = 0.2}}},
         model);
     auto state = gelex::make_state(prior, model);
@@ -193,7 +201,6 @@ TEST_CASE(
     "BayesDraws adds independent random variance components",
     "[bayes][draws]")
 {
-    using Family = gelex::GaussianFamily<gelex::VarianceLayout::Pooled>;
 
     auto genetic = gelex::test::make_genetic_design(
         Eigen::MatrixXd{{0.0, 1.0}, {1.0, 0.0}, {2.0, 1.0}}, mode_a);
@@ -214,7 +221,8 @@ TEST_CASE(
         std::move(random),
         std::move(genetic)};
     const auto prior = gelex::make_prior(
-        gelex::BayesRecipe<mode_a, Family>{
+        gelex::BayesRecipe<mode_a,
+gelex::GaussianSpec<gelex::VarianceLayout::Pooled>>{
             gelex::VarianceBudget{{.additive = 0.4, .random = 0.2}}},
         model);
     auto state = gelex::make_state(prior, model);
@@ -247,13 +255,12 @@ TEST_CASE(
 // other draws test covers.
 TEST_CASE("BayesDraws decomposes a joint spike-slab state", "[bayes][draws]")
 {
-    using Family = gelex::JointSpikeSlabFamily<>;
 
     gelex::test::FileFixture fixture;
     const auto path = fixture.get_test_dir() / "joint_decomposition.draws";
     const auto model = gelex::test::make_random_effect_model(mode_ad);
     const auto prior = gelex::make_prior(
-        gelex::BayesRecipe<mode_ad, Family>{gelex::VarianceBudget{
+        gelex::BayesRecipe<mode_ad, JointSpikeSlabSpecAD>{gelex::VarianceBudget{
             {.additive = 0.4, .dominance = 0.1, .random = 0.1}}},
         model);
     auto state = gelex::make_state(prior, model);
@@ -291,7 +298,6 @@ TEST_CASE(
     "BayesResult derives mode and joint PIP from joint assignments",
     "[bayes][result]")
 {
-    using Family = gelex::JointSpikeSlabFamily<>;
 
     gelex::test::FileFixture fixture;
     const auto path = fixture.get_test_dir() / "joint_pip.draws";
@@ -300,7 +306,7 @@ TEST_CASE(
         Eigen::VectorXd{{1.0, 2.0, 3.0}},
         mode_ad);
     const auto prior = gelex::make_prior(
-        gelex::BayesRecipe<mode_ad, Family>::defaults(), model);
+        gelex::BayesRecipe<mode_ad, JointSpikeSlabSpecAD>::defaults(), model);
     auto state = gelex::make_state(prior, model);
 
     {
@@ -339,7 +345,6 @@ TEST_CASE(
     "BayesResult derives marker PVE from coefficient second moments",
     "[bayes][result]")
 {
-    using Family = gelex::GaussianFamily<gelex::VarianceLayout::Pooled>;
 
     gelex::test::FileFixture fixture;
     const auto path = fixture.get_test_dir() / "marker_pve.draws";
@@ -348,8 +353,9 @@ TEST_CASE(
         Eigen::VectorXd{{1.0, 2.0, 4.0}},
         mode_a);
     const auto prior = gelex::make_prior(
-        gelex::BayesRecipe<mode_a, Family>::defaults(), model);
-    auto state = gelex::make_state(prior, model);
+        gelex::BayesRecipe<mode_a,
+gelex::GaussianSpec<gelex::VarianceLayout::Pooled>>::defaults(), model); auto
+state = gelex::make_state(prior, model);
 
     {
         auto draws = gelex::make_draws(prior, model, path.string(), 2);
@@ -384,7 +390,6 @@ TEST_CASE(
     "PVE",
     "[bayes][result]")
 {
-    using Family = gelex::GaussianFamily<gelex::VarianceLayout::Pooled>;
 
     gelex::test::FileFixture fixture;
     const auto path = fixture.get_test_dir() / "joint_marker_pve.draws";
@@ -393,8 +398,9 @@ TEST_CASE(
         Eigen::VectorXd{{1.0, 2.0, 4.0, 8.0}},
         mode_ad);
     const auto prior = gelex::make_prior(
-        gelex::BayesRecipe<mode_ad, Family>::defaults(), model);
-    auto state = gelex::make_state(prior, model);
+        gelex::BayesRecipe<mode_ad,
+gelex::GaussianSpec<gelex::VarianceLayout::Pooled>>::defaults(), model); auto
+state = gelex::make_state(prior, model);
 
     {
         auto draws = gelex::make_draws(prior, model, path.string(), 2);
@@ -456,13 +462,11 @@ TEST_CASE(
 // garbage rather than a compile error.
 TEST_CASE("BayesDraws decomposes per-class genetic values", "[bayes][draws]")
 {
-    using Family = gelex::ScaledMixtureFamily<>;
-
     gelex::test::FileFixture fixture;
     const auto path = fixture.get_test_dir() / "mixture_decomposition.draws";
     const auto model = gelex::test::make_random_effect_model(mode_ad);
     const auto prior = gelex::make_prior(
-        gelex::BayesRecipe<mode_ad, Family>{gelex::VarianceBudget{
+        gelex::BayesRecipe<mode_ad, ScaledMixtureSpecAD>{gelex::VarianceBudget{
             {.additive = 0.4, .dominance = 0.1, .random = 0.1}}},
         model);
     auto state = gelex::make_state(prior, model);
@@ -504,13 +508,13 @@ TEST_CASE("BayesDraws decomposes per-class genetic values", "[bayes][draws]")
 /*
 TEST_CASE("BayesDraws commits a short run", "[bayes][draws]")
 {
-    using Family = gelex::GaussianFamily<gelex::VarianceLayout::Pooled>;
 
     gelex::test::FileFixture fixture;
     const auto path = fixture.get_test_dir() / "short.draws";
     const auto model = gelex::test::make_random_effect_model(mode_a);
     const auto prior = gelex::make_prior(
-        gelex::BayesRecipe<mode_a, Family>{
+        gelex::BayesRecipe<mode_a,
+gelex::GaussianSpec<gelex::VarianceLayout::Pooled>>{
             gelex::VarianceBudget{{.additive = 0.4, .random = 0.2}}},
         model);
     auto state = gelex::make_state(prior, model);

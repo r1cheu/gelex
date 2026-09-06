@@ -21,7 +21,7 @@
 #include <cstddef>
 #include <type_traits>
 
-#include "gelex/bayes/genetic_family.h"
+#include "gelex/bayes/genetic_policy.h"
 #include "gelex/bayes/parameter.h"
 #include "gelex/bayes/stats/dirichlet_log_kernel.h"
 

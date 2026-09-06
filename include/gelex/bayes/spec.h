@@ -18,22 +18,79 @@
 #define GELEX_BAYES_SPEC_H_
 
 #include <array>
+#include <cmath>
 #include <cstddef>
+#include <fmt/format.h>
+#include <ranges>
+#include <span>
+#include <string_view>
+
+#include "gelex/bayes/genetic_policy.h"
+#include "gelex/exception.h"
 
 namespace gelex
 {
 
-struct Gaussian
+namespace detail
+{
+
+inline auto validate_probability_simplex(
+    std::span<const double> probabilities,
+    std::string_view name) -> void
+{
+    auto total = 0.0;
+    for (const auto [index, probability] :
+         probabilities | std::views::enumerate)
+    {
+        if (!std::isfinite(probability) || probability <= 0.0)
+        {
+            throw GelexException(
+                fmt::format(
+                    "{}[{}] must be finite and positive, got {}",
+                    name,
+                    index,
+                    probability));
+        }
+        total += probability;
+    }
+
+    constexpr double simplex_tolerance = 1e-9;
+    if (!std::isfinite(total) || std::abs(total - 1.0) > simplex_tolerance)
+    {
+        throw GelexException(
+            fmt::format("{} must sum to 1, got {}", name, total));
+    }
+}
+
+}  // namespace detail
+
+template <VarianceLayout Kind = VarianceLayout::Pooled>
+struct GaussianSpec
 {
 };
 
-class SpikeSlab
+template <
+    VarianceLayout Kind = VarianceLayout::Pooled,
+    MixtureWeightUpdate WeightUpdate = MixtureWeightUpdate::Enabled>
+class SpikeSlabSpec
 {
     static constexpr double default_probability = 0.01;
 
    public:
-    SpikeSlab();
-    explicit SpikeSlab(double probability);
+    SpikeSlabSpec() : SpikeSlabSpec{default_probability} {}
+
+    explicit SpikeSlabSpec(double probability) : probability_{probability}
+    {
+        if (!std::isfinite(probability_) || probability_ <= 0.0
+            || probability_ >= 1.0)
+        {
+            throw GelexException(
+                fmt::format(
+                    "spike-slab inclusion probability must lie in the open "
+                    "interval (0, 1), got {}",
+                    probability_));
+        }
+    }
 
     [[nodiscard]] auto probability() const noexcept -> double
     {
@@ -44,11 +101,12 @@ class SpikeSlab
     double probability_;
 };
 
-struct HalfNormal
+struct HalfNormalSpec
 {
 };
 
-class ScaledMixture
+template <MixtureWeightUpdate WeightUpdate = MixtureWeightUpdate::Enabled>
+class ScaledMixtureSpec
 {
     static constexpr std::array default_probabilities{
         0.99,
@@ -62,11 +120,47 @@ class ScaledMixture
     static constexpr std::size_t class_count
         = 5;  // null, small, medium, large, xlarge
 
-    ScaledMixture();
-    explicit ScaledMixture(std::array<double, class_count> probabilities);
-    ScaledMixture(
+    ScaledMixtureSpec()
+        : ScaledMixtureSpec{default_probabilities, default_scales}
+    {
+    }
+
+    explicit ScaledMixtureSpec(std::array<double, class_count> probabilities)
+        : ScaledMixtureSpec{probabilities, default_scales}
+    {
+    }
+
+    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
+    ScaledMixtureSpec(
         std::array<double, class_count> probabilities,
-        std::array<double, class_count> scales);
+        std::array<double, class_count> scales)
+        : probabilities_{probabilities}, scales_{scales}
+    {
+        detail::validate_probability_simplex(
+            probabilities_, "scaled-mixture probabilities");
+        if (scales_.front() != 0.0)
+        {
+            throw GelexException(
+                fmt::format(
+                    "scaled-mixture scales[0] must be zero, got {}",
+                    scales_.front()));
+        }
+        for (const auto [index, scale] :
+             scales_ | std::views::drop(1) | std::views::enumerate)
+        {
+            if (!std::isfinite(scale) || scale <= 0.0)
+            {
+                throw GelexException(
+                    fmt::format(
+                        "scaled-mixture scales[{}] must be finite and "
+                        "positive, "
+                        "got {}",
+                        index + 1,
+                        scale));
+            }
+        }
+    }
+    // NOLINTEND(bugprone-easily-swappable-parameters)
 
     [[nodiscard]] auto probabilities() const noexcept
         -> const std::array<double, class_count>&
@@ -85,7 +179,8 @@ class ScaledMixture
     std::array<double, class_count> scales_;
 };
 
-class JointSpikeSlab
+template <MixtureWeightUpdate WeightUpdate = MixtureWeightUpdate::Enabled>
+class JointSpikeSlabSpec
 {
     static constexpr std::array default_probabilities{
         0.99,
@@ -96,8 +191,14 @@ class JointSpikeSlab
    public:
     static constexpr std::size_t class_count = 4;  // null, A, D, AD
 
-    JointSpikeSlab();
-    explicit JointSpikeSlab(std::array<double, class_count> probabilities);
+    JointSpikeSlabSpec() : JointSpikeSlabSpec{default_probabilities} {}
+
+    explicit JointSpikeSlabSpec(std::array<double, class_count> probabilities)
+        : probabilities_{probabilities}
+    {
+        detail::validate_probability_simplex(
+            probabilities_, "joint spike-slab probabilities");
+    }
 
     [[nodiscard]] auto probabilities() const noexcept
         -> const std::array<double, class_count>&

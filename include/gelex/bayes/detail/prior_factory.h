@@ -38,6 +38,17 @@ namespace gelex
 namespace detail
 {
 
+template <GeneticModeSet Modes, typename... Specs>
+auto make_prior(
+    const ModeValues<Modes, Specs...>& specs,
+    const MarkerVarianceCalibrator& calibrator)
+{
+    return transform_mode_values(
+        specs,
+        [&]<GeneticMode Mode>(const auto& spec)
+        { return make_mode_prior<Mode>(spec, calibrator); });
+}
+
 inline auto random_projection_variance(const bayes::RandomDesign& design)
     -> double
 {

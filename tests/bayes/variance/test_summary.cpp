@@ -24,10 +24,11 @@
 
 #include "gelex/bayes/genetic/gaussian.h"
 #include "gelex/bayes/genetic/scaled_mixture.h"
-#include "gelex/bayes/genetic_family.h"
+#include "gelex/bayes/genetic_policy.h"
 #include "gelex/bayes/model.h"
 #include "gelex/bayes/prior.h"
 #include "gelex/bayes/recipe.h"
+#include "gelex/bayes/spec.h"
 #include "gelex/bayes/state.h"
 #include "gelex/bayes/variance/budget.h"
 #include "gelex/bayes/variance/summary.h"
@@ -45,7 +46,8 @@ namespace
 
 constexpr auto mode_a = gelex::GeneticModeSet{gelex::GeneticMode::A};
 constexpr auto mode_ad = gelex::GeneticMode::A | gelex::GeneticMode::D;
-using Family = gelex::GaussianFamily<gelex::VarianceLayout::Pooled>;
+
+
 
 auto make_ad_model_with_random() -> gelex::BayesModel
 {
@@ -83,7 +85,8 @@ TEST_CASE(
 {
     const auto model = make_ad_model_with_random();
     const auto prior = gelex::make_prior(
-        gelex::BayesRecipe<mode_ad, Family>{gelex::VarianceBudget{
+        gelex::BayesRecipe<mode_ad,
+gelex::GaussianSpec<gelex::VarianceLayout::Pooled>>{gelex::VarianceBudget{
             {.additive = 0.4, .dominance = 0.1, .random = 0.1}}},
         model);
     auto state = gelex::make_state(prior, model);
@@ -116,7 +119,8 @@ TEST_CASE(
 {
     const auto model = make_ad_model_with_random();
     const auto prior = gelex::make_prior(
-        gelex::BayesRecipe<mode_ad, Family>{gelex::VarianceBudget{
+        gelex::BayesRecipe<mode_ad,
+gelex::GaussianSpec<gelex::VarianceLayout::Pooled>>{gelex::VarianceBudget{
             {.additive = 0.4, .dominance = 0.1, .random = 0.1}}},
         model);
     auto state = gelex::make_state(prior, model);

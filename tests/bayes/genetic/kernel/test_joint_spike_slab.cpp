@@ -28,7 +28,7 @@
 
 #include "gelex/bayes/genetic/gaussian.h"
 #include "gelex/bayes/genetic/joint_spike_slab.h"
-#include "gelex/bayes/genetic_family.h"
+#include "gelex/bayes/genetic_policy.h"
 #include "gelex/bayes/genotype/design.h"
 #include "gelex/bayes/kernel.h"
 #include "gelex/bayes/marker_covariate.h"
@@ -55,11 +55,15 @@ namespace
 
 constexpr auto mode_ad = gelex::GeneticMode::A | gelex::GeneticMode::D;
 
-using JointModeSpecs
-    = gelex::ModeValues<mode_ad, gelex::Gaussian, gelex::HalfNormal>;
+using JointSpikeSlabSpecAD = gelex::JointModeValues<
+    gelex::ModeValues<mode_ad, gelex::GaussianSpec<>, gelex::HalfNormalSpec>,
+    gelex::JointSpikeSlabSpec<>>;
+using FixedJointSpikeSlabSpecAD = gelex::JointModeValues<
+    gelex::ModeValues<mode_ad, gelex::GaussianSpec<>, gelex::HalfNormalSpec>,
+    gelex::JointSpikeSlabSpec<gelex::MixtureWeightUpdate::Disabled>>;
 
-using JointGeneticSpec
-    = gelex::JointModeValues<JointModeSpecs, gelex::JointSpikeSlab>;
+using JointModeSpecs
+    = gelex::ModeValues<mode_ad, gelex::GaussianSpec<>, gelex::HalfNormalSpec>;
 
 using JointModePriors = gelex::ModeValues<
     mode_ad,
@@ -285,7 +289,7 @@ auto require_assignment_invariants(const State& state) -> void
     {
         const auto class_index
             = static_cast<std::size_t>(joint.assignment(marker));
-        REQUIRE(class_index < gelex::JointSpikeSlab::class_count);
+        REQUIRE(class_index < gelex::JointSpikeSlabSpec<>::class_count);
         require_additive_assignment(
             {.class_index = class_index,
              .coefficient = additive.coefficients(marker)});
@@ -321,15 +325,13 @@ TEST_CASE(
     "joint half-normal kernel maintains totals and fixed component groups",
     "[bayes][kernel][joint_spike_slab]")
 {
-    using Family = gelex::JointSpikeSlabFamily<>;
-    constexpr std::array probabilities{0.25, 0.25, 0.25, 0.25};
+        constexpr std::array probabilities{0.25, 0.25, 0.25, 0.25};
     const auto model = make_model();
     const auto prior = gelex::make_prior(
-        gelex::BayesRecipe<mode_ad, Family>{
-            JointGeneticSpec{
-                JointModeSpecs{gelex::Gaussian{}, gelex::HalfNormal{}},
-                gelex::JointSpikeSlab{probabilities}},
-            gelex::VarianceBudget{{.additive = 0.4, .dominance = 0.1}}},
+        gelex::BayesRecipe<mode_ad, JointSpikeSlabSpecAD>{JointSpikeSlabSpecAD{
+                JointModeSpecs{gelex::GaussianSpec<>{},
+gelex::HalfNormalSpec{}}, gelex::JointSpikeSlabSpec<>{probabilities}},
+gelex::VarianceBudget{{.additive = 0.4, .dominance = 0.1}}},
         model);
     auto state = gelex::make_state(prior, model);
     auto kernel = gelex::make_kernel(prior);
@@ -354,16 +356,15 @@ TEST_CASE(
     "joint fixed allocation kernel preserves class probabilities",
     "[bayes][kernel][joint_spike_slab]")
 {
-    using Family
-        = gelex::JointSpikeSlabFamily<gelex::MixtureWeightUpdate::Disabled>;
-    constexpr std::array probabilities{0.1, 0.2, 0.3, 0.4};
+        constexpr std::array probabilities{0.1, 0.2, 0.3, 0.4};
     const auto model = make_model();
     const auto prior = gelex::make_prior(
-        gelex::BayesRecipe<mode_ad, Family>{
-            JointGeneticSpec{
-                JointModeSpecs{gelex::Gaussian{}, gelex::HalfNormal{}},
-                gelex::JointSpikeSlab{probabilities}},
-            gelex::VarianceBudget{{.additive = 0.4, .dominance = 0.1}}},
+        gelex::BayesRecipe<mode_ad,
+FixedJointSpikeSlabSpecAD>{FixedJointSpikeSlabSpecAD{
+                JointModeSpecs{gelex::GaussianSpec<>{},
+gelex::HalfNormalSpec{}},
+                gelex::JointSpikeSlabSpec<gelex::MixtureWeightUpdate::Disabled>{probabilities}},
+gelex::VarianceBudget{{.additive = 0.4, .dominance = 0.1}}},
         model);
     auto state = gelex::make_state(prior, model);
     auto kernel = gelex::make_kernel(prior);

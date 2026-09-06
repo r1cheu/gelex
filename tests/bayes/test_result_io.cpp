@@ -30,13 +30,15 @@
 #include "gelex/bayes/genetic/joint_spike_slab.h"
 #include "gelex/bayes/genetic/scaled_mixture.h"
 #include "gelex/bayes/genetic/spike_slab.h"
-#include "gelex/bayes/genetic_family.h"
+#include "gelex/bayes/genetic_policy.h"
 #include "gelex/bayes/genotype/design.h"
+#include "gelex/bayes/mode_values.h"
 #include "gelex/bayes/model.h"
 #include "gelex/bayes/prior.h"
 #include "gelex/bayes/recipe.h"
 #include "gelex/bayes/result.h"
 #include "gelex/bayes/result_io.h"
+#include "gelex/bayes/spec.h"
 #include "gelex/bayes/state.h"
 #include "gelex/bayes/variance/budget.h"
 #include "gelex/data/bed.h"
@@ -57,6 +59,23 @@ namespace
 
 constexpr auto mode_a = gelex::GeneticModeSet{gelex::GeneticMode::A};
 constexpr auto mode_ad = gelex::GeneticMode::A | gelex::GeneticMode::D;
+
+using ScaledMixtureSpecA
+    = gelex::HomogeneousModeValues<mode_a, gelex::ScaledMixtureSpec<>>;
+using UnpooledSpikeSlabSpecA = gelex::HomogeneousModeValues<
+    mode_a,
+    gelex::SpikeSlabSpec<
+        gelex::VarianceLayout::Unpooled,
+        gelex::MixtureWeightUpdate::Enabled>>;
+using JointSpikeSlabSpecAD = gelex::JointModeValues<
+    gelex::ModeValues<mode_ad, gelex::GaussianSpec<>, gelex::HalfNormalSpec>,
+    gelex::JointSpikeSlabSpec<>>;
+using PooledSpikeSlabSpecA = gelex::HomogeneousModeValues<
+    mode_a,
+    gelex::SpikeSlabSpec<gelex::VarianceLayout::Pooled>>;
+using PooledSpikeSlabSpecAD = gelex::HomogeneousModeValues<
+    mode_ad,
+    gelex::SpikeSlabSpec<gelex::VarianceLayout::Pooled>>;
 
 auto read_text(const std::filesystem::path& path) -> std::string
 {
@@ -117,11 +136,11 @@ auto make_parameter_model() -> gelex::BayesModel
 /*
 auto collect_parameter_result(const std::filesystem::path& path)
 {
-    using Family = gelex::GaussianFamily<gelex::VarianceLayout::Pooled>;
 
     auto model = make_parameter_model();
     const auto prior = gelex::make_prior(
-        gelex::BayesRecipe<mode_a, Family>{
+        gelex::BayesRecipe<mode_a,
+gelex::GaussianSpec<gelex::VarianceLayout::Pooled>>{
             gelex::VarianceBudget{{.additive = 0.4, .random = 0.2}}},
         model);
     auto state = gelex::make_state(prior, model);
@@ -138,7 +157,7 @@ auto collect_parameter_result(const std::filesystem::path& path)
     return gelex::make_result(model, draws);
 }
 
-template <gelex::GeneticModeSet Modes, typename Family, typename Configure>
+template <gelex::GeneticModeSet Modes, typename Spec, typename Configure>
 auto collect_genetic_result(
     const std::filesystem::path& path,
     Configure configure)
@@ -148,9 +167,9 @@ auto collect_genetic_result(
         Eigen::VectorXd{{1.0, 2.0, 3.0}},
         Modes);
     const auto prior = gelex::make_prior(
-        gelex::BayesRecipe<Modes, Family>::defaults(), model);
-    auto state = gelex::make_state(prior, model);
-    configure(state);
+        gelex::BayesRecipe<Modes,
+gelex::GaussianSpec<gelex::VarianceLayout::Pooled>>::defaults(), model); auto
+state = gelex::make_state(prior, model); configure(state);
 
     auto draws = gelex::make_draws(prior, model, path.string(), 2);
     draws.append(state);
@@ -158,7 +177,7 @@ auto collect_genetic_result(
     return gelex::make_result(model, draws);
 }
 
-template <gelex::GeneticModeSet Modes, typename Family, typename Configure>
+template <gelex::GeneticModeSet Modes, typename Spec, typename Configure>
 auto write_genetic_snpeff(
     const std::filesystem::path& draws_path,
     const std::filesystem::path& output_prefix,
@@ -183,9 +202,9 @@ auto write_genetic_snpeff(
             Modes,
             gelex::GenotypeMethod::Center}};
     const auto prior = gelex::make_prior(
-        gelex::BayesRecipe<Modes, Family>::defaults(), model);
-    auto state = gelex::make_state(prior, model);
-    configure(state);
+        gelex::BayesRecipe<Modes,
+gelex::GaussianSpec<gelex::VarianceLayout::Pooled>>::defaults(), model); auto
+state = gelex::make_state(prior, model); configure(state);
 
     auto draws = gelex::make_draws(prior, model, draws_path.string(), 1);
     draws.append(state);
@@ -266,9 +285,8 @@ TEST_CASE(
 
     SECTION("vector posterior")
     {
-        using Family = gelex::ScaledMixtureFamily<>;
-        const auto result = collect_genetic_result<mode_a, Family>(
-            fixture.get_test_dir() / "vector_summary.draws",
+                const auto result = collect_genetic_result<mode_a,
+ScaledMixtureSpecA>( fixture.get_test_dir() / "vector_summary.draws",
             [](auto& state)
             {
                 auto& family = state.genetic()
@@ -312,11 +330,8 @@ TEST_CASE(
 
     SECTION("unpooled marker variance")
     {
-        using Family = gelex::SpikeSlabFamily<
-            gelex::VarianceLayout::Unpooled,
-            gelex::MixtureWeightUpdate::Enabled>;
-        const auto result = collect_genetic_result<mode_a, Family>(
-            fixture.get_test_dir() / "unpooled_summary.draws",
+                const auto result = collect_genetic_result<mode_a,
+UnpooledSpikeSlabSpecA>( fixture.get_test_dir() / "unpooled_summary.draws",
             [](auto& state)
             {
                 auto& family = state.genetic()
@@ -344,9 +359,8 @@ TEST_CASE(
 
     SECTION("joint family")
     {
-        using Family = gelex::JointSpikeSlabFamily<>;
-        const auto result = collect_genetic_result<mode_ad, Family>(
-            fixture.get_test_dir() / "joint_summary.draws",
+                const auto result = collect_genetic_result<mode_ad,
+JointSpikeSlabSpecAD>( fixture.get_test_dir() / "joint_summary.draws",
             [](auto& state)
             {
                 auto& dominance = state.genetic()
@@ -395,13 +409,12 @@ TEST_CASE(
     "Bayes SNP effect writer preserves marker metadata and posterior values",
     "[bayes][result_io]")
 {
-    using Family = gelex::GaussianFamily<gelex::VarianceLayout::Pooled>;
 
     gelex::test::FileFixture fixture;
     const auto output = fixture.get_test_dir() / "gaussian";
-    write_genetic_snpeff<mode_a, Family>(
-        fixture.get_test_dir() / "gaussian.draws",
-        output,
+    write_genetic_snpeff<mode_a,
+gelex::GaussianSpec<gelex::VarianceLayout::Pooled>>( fixture.get_test_dir() /
+"gaussian.draws", output,
         [](auto& state)
         {
             auto& additive
@@ -428,9 +441,8 @@ TEST_CASE(
 
     SECTION("mode PIP")
     {
-        using Family = gelex::SpikeSlabFamily<gelex::VarianceLayout::Pooled>;
-        const auto output = fixture.get_test_dir() / "mode_pip";
-        write_genetic_snpeff<mode_a, Family>(
+                const auto output = fixture.get_test_dir() / "mode_pip";
+        write_genetic_snpeff<mode_a, PooledSpikeSlabSpecA>(
             fixture.get_test_dir() / "mode_pip.draws",
             output,
             [](auto& state)
@@ -454,9 +466,8 @@ TEST_CASE(
 
     SECTION("independent AD")
     {
-        using Family = gelex::SpikeSlabFamily<gelex::VarianceLayout::Pooled>;
-        const auto output = fixture.get_test_dir() / "independent_ad";
-        write_genetic_snpeff<mode_ad, Family>(
+                const auto output = fixture.get_test_dir() / "independent_ad";
+        write_genetic_snpeff<mode_ad, PooledSpikeSlabSpecAD>(
             fixture.get_test_dir() / "independent_ad.draws",
             output,
             [](auto& state)
@@ -483,9 +494,8 @@ TEST_CASE(
 
     SECTION("joint AD")
     {
-        using Family = gelex::JointSpikeSlabFamily<>;
-        const auto output = fixture.get_test_dir() / "joint_ad";
-        write_genetic_snpeff<mode_ad, Family>(
+                const auto output = fixture.get_test_dir() / "joint_ad";
+        write_genetic_snpeff<mode_ad, JointSpikeSlabSpecAD>(
             fixture.get_test_dir() / "joint_ad.draws",
             output,
             [](auto& state)
