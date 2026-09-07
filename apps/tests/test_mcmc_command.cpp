@@ -16,14 +16,12 @@
 
 #include <Eigen/Core>
 #include <catch2/catch_test_macros.hpp>
+#include <cstdint>
 #include <filesystem>
-#include <fstream>
-#include <iterator>
 #include <string>
 
 #include "gelex/bayes/builtin_method.h"
 #include "gelex/data/genotype_method.h"
-#include "gelex/data/reader.h"
 #include "gelex/data/snp_lut_io.h"
 #include "gelex/exception.h"
 #include "gelex/genetic_mode.h"
@@ -41,19 +39,6 @@ namespace cli
 auto setup_parallelization(int /*num_threads*/) -> void {}
 
 }  // namespace cli
-
-namespace
-{
-
-auto read_text(const std::filesystem::path& path) -> std::string
-{
-    std::ifstream input(path);
-    return {
-        std::istreambuf_iterator<char>{input},
-        std::istreambuf_iterator<char>{}};
-}
-
-}  // namespace
 
 TEST_CASE(
     "MCMC command runs typed fitting with discrete and quantitative random "
@@ -122,21 +107,11 @@ TEST_CASE(
     REQUIRE(
         draws.to_map<float>("random/random_slopes/coefficients").cols() == 2);
 
-    const auto params = read_text(config.out + ".params");
-    REQUIRE(params.contains("fixed/coefficients\t0\tIntercept"));
-    REQUIRE(params.contains("random/Group/coefficients\t0\tGroup"));
-    REQUIRE(params.contains("random/random_slopes/coefficients\t0\tSlope"));
-
-    const auto summary = read_text(config.out + ".summary");
-    REQUIRE(summary.contains("random/Group/variance\t0"));
-    REQUIRE(summary.contains("random/random_slopes/variance\t0"));
-
-    const auto snp_effects = gelex::read_snp_effects(config.out + ".snpeff");
-    REQUIRE(snp_effects.rows() == 3);
-    REQUIRE(snp_effects.contains("BETA_A"));
-    REQUIRE(snp_effects.contains("SE_A"));
-    REQUIRE(snp_effects.contains("PVE_A"));
-    REQUIRE_FALSE(snp_effects.contains("PIP_A"));
+    REQUIRE(draws.to_map<double>("fixed/coefficients").cols() == 2);
+    REQUIRE(draws.to_map<double>("random/Group/variance").allFinite());
+    REQUIRE(draws.to_map<double>("random/random_slopes/variance").allFinite());
+    REQUIRE(draws.to_map<float>("genetic/A/coefficients").rows() == 3);
+    REQUIRE(draws.to_map<float>("genetic/A/coefficients").cols() == 2);
 
     const auto luts = gelex::load_snp_luts(config.out + ".snplut");
     REQUIRE(luts.size() == 1);
@@ -203,15 +178,17 @@ TEST_CASE(
         const gelex::BinaryReader draws(config.out + ".draws");
         REQUIRE(draws.contains("genetic/A/coefficients"));
         REQUIRE(draws.contains("genetic/D/coefficients"));
-        REQUIRE(draws.contains("genetic/D/probit_coefficients"));
+        REQUIRE(draws.contains("genetic/D/annotation_coefficients"));
         REQUIRE(draws.contains("genetic/joint/assignment"));
 
-        const auto snp_effects
-            = gelex::read_snp_effects(config.out + ".snpeff");
-        REQUIRE(snp_effects.rows() == 3);
-        REQUIRE(snp_effects.contains("BETA_A"));
-        REQUIRE(snp_effects.contains("BETA_D"));
-        REQUIRE(snp_effects.contains("PIP"));
+        REQUIRE(
+            draws.to_map<float>("genetic/D/annotation_coefficients").rows()
+            == 2);
+        REQUIRE(
+            draws.to_map<float>("genetic/D/annotation_coefficients").cols()
+            == 2);
+        REQUIRE(
+            draws.to_map<std::uint8_t>("genetic/joint/assignment").cols() == 2);
 
         const auto luts = gelex::load_snp_luts(config.out + ".snplut");
         REQUIRE(luts.size() == 2);

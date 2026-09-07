@@ -25,9 +25,9 @@
 
 #include "gelex/bayes/genetic/gaussian.h"
 #include "gelex/bayes/genetic/joint_spike_slab.h"
-#include "gelex/bayes/genetic/policy.h"
 #include "gelex/bayes/genetic/scaled_mixture.h"
 #include "gelex/bayes/genetic/spike_slab.h"
+#include "gelex/bayes/genetic/types.h"
 #include "gelex/bayes/mode_values.h"
 #include "gelex/bayes/model.h"
 #include "gelex/bayes/prior.h"
@@ -101,16 +101,22 @@ using JointModeSpecs = ModeValues<mode_ad, GaussianSpec<>, HalfNormalSpec>;
 // Each recipe type admits exactly one prior type, and the five independent
 // families differ only in their leaf.
 static_assert(std::same_as<
-              prior_result_t<
-                  BayesRecipe<mode_ad, GaussianSpec<VarianceLayout::Pooled>>>,
+              prior_result_t<BayesRecipe<
+                  mode_ad,
+                  gelex::HomogeneousModeValues<
+                      mode_ad,
+                      GaussianSpec<VarianceLayout::Pooled>>>>,
               BayesPrior<ModeValues<
                   mode_ad,
                   GaussianPrior<VarianceLayout::Pooled>,
                   GaussianPrior<VarianceLayout::Pooled>>>>);
 static_assert(
     std::same_as<
-        prior_result_t<
-            BayesRecipe<mode_a, GaussianSpec<VarianceLayout::Unpooled>>>,
+        prior_result_t<BayesRecipe<
+            mode_a,
+            gelex::HomogeneousModeValues<
+                mode_a,
+                GaussianSpec<VarianceLayout::Unpooled>>>>,
         BayesPrior<
             ModeValues<mode_a, GaussianPrior<VarianceLayout::Unpooled>>>>);
 static_assert(std::same_as<
@@ -155,8 +161,11 @@ concept CanMakePrior = requires(const Recipe& recipe, const BayesModel& model) {
     make_prior(recipe, model);
 };
 
-static_assert(
-    CanMakePrior<BayesRecipe<mode_a, GaussianSpec<VarianceLayout::Pooled>>>);
+static_assert(CanMakePrior<BayesRecipe<
+                  mode_a,
+                  gelex::HomogeneousModeValues<
+                      mode_a,
+                      GaussianSpec<VarianceLayout::Pooled>>>>);
 static_assert(CanMakePrior<BayesRecipe<mode_ad, JointSpikeSlabSpecAD>>);
 
 template <typename T>
@@ -212,9 +221,12 @@ TEST_CASE(
     "[bayes][prior]")
 {
     const auto model = make_model(mode_ad);
-    const auto recipe
-        = BayesRecipe<mode_ad, GaussianSpec<VarianceLayout::Pooled>>{
-            VarianceBudget{{.additive = 0.4, .dominance = 0.1}}};
+    const auto recipe = BayesRecipe<
+        mode_ad,
+        gelex::HomogeneousModeValues<
+            mode_ad,
+            GaussianSpec<VarianceLayout::Pooled>>>{
+        VarianceBudget{{.additive = 0.4, .dominance = 0.1}}};
 
     const auto prior = make_prior(recipe, model);
 
@@ -230,7 +242,11 @@ TEST_CASE("make_prior calibrates the variance prior mean", "[bayes][prior]")
 {
     const auto model = make_model(mode_a);
     const auto prior = make_prior(
-        BayesRecipe<mode_a, GaussianSpec<VarianceLayout::Unpooled>>::defaults(),
+        BayesRecipe<
+            mode_a,
+            gelex::HomogeneousModeValues<
+                mode_a,
+                GaussianSpec<VarianceLayout::Unpooled>>>::defaults(),
         model);
 
     const auto& variance = prior.genetic().get<GeneticMode::A>().variance;
@@ -373,9 +389,12 @@ TEST_CASE(
     "[bayes][prior]")
 {
     const auto model = make_model(mode_a);
-    const auto recipe
-        = BayesRecipe<mode_a, GaussianSpec<VarianceLayout::Pooled>>{
-            VarianceBudget{{.additive = 0.4}}};
+    const auto recipe = BayesRecipe<
+        mode_a,
+        gelex::HomogeneousModeValues<
+            mode_a,
+            GaussianSpec<VarianceLayout::Pooled>>>{
+        VarianceBudget{{.additive = 0.4}}};
 
     const auto prior = make_prior(recipe, model);
 
@@ -402,9 +421,12 @@ TEST_CASE(
              "second",
              std::vector<std::string>{"second"},
              Eigen::MatrixXd{{0.0}, {2.0}, {4.0}})});
-    const auto recipe
-        = BayesRecipe<mode_a, GaussianSpec<VarianceLayout::Pooled>>{
-            VarianceBudget{{.additive = 0.4, .random = 0.2}}};
+    const auto recipe = BayesRecipe<
+        mode_a,
+        gelex::HomogeneousModeValues<
+            mode_a,
+            GaussianSpec<VarianceLayout::Pooled>>>{
+        VarianceBudget{{.additive = 0.4, .random = 0.2}}};
 
     const auto prior = make_prior(recipe, model);
     const double block_target = model.phenotype_variance() * 0.2 / 2.0;
@@ -429,9 +451,12 @@ TEST_CASE(
     SECTION("a share without a design")
     {
         const auto model = make_model(mode_a);
-        const auto recipe
-            = BayesRecipe<mode_a, GaussianSpec<VarianceLayout::Pooled>>{
-                VarianceBudget{{.additive = 0.4, .random = 0.1}}};
+        const auto recipe = BayesRecipe<
+            mode_a,
+            gelex::HomogeneousModeValues<
+                mode_a,
+                GaussianSpec<VarianceLayout::Pooled>>>{
+            VarianceBudget{{.additive = 0.4, .random = 0.1}}};
 
         REQUIRE_THROWS_AS(make_prior(recipe, model), gelex::GelexException);
     }
@@ -446,8 +471,11 @@ TEST_CASE(
 
         REQUIRE_THROWS_AS(
             make_prior(
-                BayesRecipe<mode_a, GaussianSpec<VarianceLayout::Pooled>>::
-                    defaults(),
+                BayesRecipe<
+                    mode_a,
+                    gelex::HomogeneousModeValues<
+                        mode_a,
+                        GaussianSpec<VarianceLayout::Pooled>>>::defaults(),
                 model),
             gelex::GelexException);
     }
@@ -461,9 +489,12 @@ TEST_CASE(
         "constant",
         std::vector<std::string>{"constant"},
         Eigen::MatrixXd{{1.0}, {1.0}, {1.0}})});
-    const auto recipe
-        = BayesRecipe<mode_a, GaussianSpec<VarianceLayout::Pooled>>{
-            VarianceBudget{{.additive = 0.4, .random = 0.1}}};
+    const auto recipe = BayesRecipe<
+        mode_a,
+        gelex::HomogeneousModeValues<
+            mode_a,
+            GaussianSpec<VarianceLayout::Pooled>>>{
+        VarianceBudget{{.additive = 0.4, .random = 0.1}}};
 
     REQUIRE_THROWS_AS(make_prior(recipe, model), gelex::GelexException);
 }

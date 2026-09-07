@@ -167,6 +167,8 @@ Output Files
 ------------
 
 After a successful run, check files with your output prefix first.
+The current command writes draws directly; it does not export posterior
+summary tables or the fitted-effect files required by ``predict``.
 
 .. list-table::
    :header-rows: 1
@@ -175,21 +177,12 @@ After a successful run, check files with your output prefix first.
    * - File pattern
      - Contents
      - Typical next step
-   * - ``<out>.snpeff``
-     - Estimated SNP effects
-     - Read by ``gelex predict --gfile <out>``
-   * - ``<out>.snplut``
-     - Per-SNP genotype statistics used for coding
-     - Read by ``gelex predict --gfile <out>``
-   * - ``<out>.param``
-     - Estimated fixed/covariate and random-effect terms (mean, stddev)
-     - Read by ``gelex predict --gfile <out>``
-   * - ``<out>.summary``
-     - Posterior summary of model parameters
-     - Review estimated variance components
    * - ``<out>.draws``
      - Binary posterior draws recorded during sampling
-     - Read by ``gelex post --in <out>``
+     - Analyze retained samples
+   * - ``<out>.snplut``
+     - Per-SNP genotype encoding lookup tables
+     - Retain alongside the draws
    * - ``<out>.log``
      - Run log and configuration used
      - Review convergence and settings
@@ -215,7 +208,7 @@ Examples
       -m RR \
       -o model_rr
 
-Expected outputs: ``model_rr.snpeff``, ``model_rr.snplut``, ``model_rr.param``, ``model_rr.summary``, ``model_rr.log``.
+Expected outputs: ``model_rr.draws``, ``model_rr.snplut``, ``model_rr.log``.
 
 .. code-block:: bash
    :caption: Accuracy-Oriented Training (R)
@@ -226,7 +219,7 @@ Expected outputs: ``model_rr.snpeff``, ``model_rr.snplut``, ``model_rr.param``, 
       -m R \
       -o model_bayesr
 
-Expected outputs: ``model_bayesr.snpeff``, ``model_bayesr.snplut``, ``model_bayesr.param``, ``model_bayesr.summary``, ``model_bayesr.log``.
+Expected outputs: ``model_bayesr.draws``, ``model_bayesr.snplut``, ``model_bayesr.log``.
 
 .. code-block:: bash
    :caption: Sparse Effects with Variable Selection (B)

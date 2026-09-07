@@ -161,7 +161,7 @@ inline constexpr std::array genetic_mode_set_names{
 template <>
 struct fmt::formatter<gelex::GeneticMode> : fmt::formatter<std::string_view>
 {
-    auto format(gelex::GeneticMode mode, auto& ctx) const
+    constexpr auto format(gelex::GeneticMode mode, auto& ctx) const
     {
         return fmt::formatter<std::string_view>::format(
             to_string_view(mode), ctx);

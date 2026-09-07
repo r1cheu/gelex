@@ -23,7 +23,7 @@
 #include <utility>
 #include <vector>
 
-#include "gelex/bayes/genetic/family.h"
+#include "gelex/bayes/genetic/construction.h"
 #include "gelex/bayes/model.h"
 #include "gelex/bayes/parameter.h"
 #include "gelex/bayes/recipe.h"
@@ -134,7 +134,7 @@ template <GeneticModeSet Modes, typename GeneticSpec>
 {
     const double phenotype_variance = model.phenotype_variance();
     const detail::MarkerVarianceCalibrator calibrator{model, recipe.variance()};
-    auto genetic = detail::make_prior<Modes>(recipe.genetic_spec(), calibrator);
+    auto genetic = detail::make_prior(recipe.genetic_spec(), calibrator);
     auto random = detail::make_random_variance_parameters(
         model, recipe.variance(), phenotype_variance);
     auto residual = detail::make_mean_calibrated_variance_parameter(

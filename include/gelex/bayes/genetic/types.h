@@ -14,31 +14,33 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_BAYES_BASIC_STATE_H_
-#define GELEX_BAYES_BASIC_STATE_H_
+#ifndef GELEX_BAYES_GENETIC_TYPES_H_
+#define GELEX_BAYES_GENETIC_TYPES_H_
 
-#include <Eigen/Core>
+#include <cstddef>
+#include <cstdint>
 
 namespace gelex
 {
 
-struct FixedEffectState
+enum class VarianceLayout : std::uint8_t
 {
-    Eigen::VectorXd coefficients;
+    Pooled,
+    Unpooled,
 };
 
-struct RandomEffectState
+enum class MixtureWeightUpdate : std::uint8_t
 {
-    Eigen::VectorXd coefficients;
-    double variance{};
+    Disabled,
+    Enabled,
 };
 
-struct ResidualState
+struct GeneticDimensions
 {
-    Eigen::VectorXd adjusted_response;
-    double variance{};
+    std::size_t individual;
+    std::size_t marker;
 };
 
 }  // namespace gelex
 
-#endif  // GELEX_BAYES_BASIC_STATE_H_
+#endif  // GELEX_BAYES_GENETIC_TYPES_H_

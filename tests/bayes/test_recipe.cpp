@@ -23,9 +23,9 @@
 #include "gelex/bayes/builtin_method.h"
 #include "gelex/bayes/genetic/gaussian.h"
 #include "gelex/bayes/genetic/joint_spike_slab.h"
-#include "gelex/bayes/genetic/policy.h"
 #include "gelex/bayes/genetic/scaled_mixture.h"
 #include "gelex/bayes/genetic/spike_slab.h"
+#include "gelex/bayes/genetic/types.h"
 #include "gelex/bayes/mode_values.h"
 #include "gelex/bayes/recipe.h"
 #include "gelex/bayes/spec.h"
@@ -80,10 +80,14 @@ using FixedSpikeSlabAD = FixedPooledSpikeSlabSpecAD;
 
 static_assert(std::same_as<
               BuiltinBayesRecipe<mode_a, BayesMethod::RR>,
-              BayesRecipe<mode_a, PooledGaussian>>);
+              BayesRecipe<
+                  mode_a,
+                  gelex::HomogeneousModeValues<mode_a, PooledGaussian>>>);
 static_assert(std::same_as<
               BuiltinBayesRecipe<mode_a, BayesMethod::A>,
-              BayesRecipe<mode_a, UnpooledGaussian>>);
+              BayesRecipe<
+                  mode_a,
+                  gelex::HomogeneousModeValues<mode_a, UnpooledGaussian>>>);
 static_assert(std::same_as<
               BuiltinBayesRecipe<mode_ad, BayesMethod::B>,
               BayesRecipe<mode_ad, UnpooledSpikeSlabAD>>);
@@ -98,16 +102,19 @@ static_assert(std::same_as<
               BayesRecipe<mode_ad, JointSpikeSlabAD>>);
 static_assert(BayesRecipe<mode_ad, ScaledMixtureAD>::modes == mode_ad);
 static_assert(std::same_as<
-              BayesRecipe<mode_ad, UnpooledGaussian>::genetic_spec_type,
-              UnpooledGaussian>);
+              BayesRecipe<
+                  mode_ad,
+                  gelex::HomogeneousModeValues<mode_ad, UnpooledGaussian>>::
+                  genetic_spec_type,
+              gelex::HomogeneousModeValues<mode_ad, UnpooledGaussian>>);
 static_assert(std::same_as<
               decltype(BayesRecipe<mode_ad, FixedSpikeSlabAD>::defaults()
                            .genetic_spec()),
               const FixedSpikeSlabAD&>);
-static_assert(
-    sizeof(BayesRecipe<mode_ad, PooledGaussian>) == sizeof(VarianceBudget));
 static_assert(std::constructible_from<
-              BayesRecipe<mode_ad, PooledGaussian>,
+              BayesRecipe<
+                  mode_ad,
+                  gelex::HomogeneousModeValues<mode_ad, PooledGaussian>>,
               VarianceBudget>);
 static_assert(std::constructible_from<
               BayesRecipe<mode_ad, UnpooledSpikeSlabAD>,
@@ -122,8 +129,10 @@ static_assert(!std::constructible_from<
               SpikeSlabAD,
               VarianceBudget>);
 static_assert(!std::constructible_from<
-              BayesRecipe<mode_ad, PooledGaussian>,
-              UnpooledGaussian,
+              BayesRecipe<
+                  mode_ad,
+                  gelex::HomogeneousModeValues<mode_ad, PooledGaussian>>,
+              gelex::HomogeneousModeValues<mode_ad, UnpooledGaussian>,
               VarianceBudget>);
 
 auto message_of(auto&& construct) -> std::string
@@ -184,7 +193,9 @@ TEST_CASE(
             {
                 return BayesRecipe<
                     mode_ad,
-                    GaussianSpec<VarianceLayout::Pooled>>{
+                    gelex::HomogeneousModeValues<
+                        mode_ad,
+                        GaussianSpec<VarianceLayout::Pooled>>>{
                     VarianceBudget{{.additive = 0.5}}};
             });
 
@@ -202,7 +213,9 @@ TEST_CASE(
             {
                 return BayesRecipe<
                     mode_a,
-                    GaussianSpec<VarianceLayout::Pooled>>{
+                    gelex::HomogeneousModeValues<
+                        mode_a,
+                        GaussianSpec<VarianceLayout::Pooled>>>{
                     VarianceBudget{{.additive = 0.5, .dominance = 0.2}}};
             });
 
@@ -213,8 +226,11 @@ TEST_CASE(
 
 TEST_CASE("BayesRecipe::defaults fills in the mode defaults", "[bayes][recipe]")
 {
-    const auto additive_only
-        = BayesRecipe<mode_a, GaussianSpec<VarianceLayout::Pooled>>::defaults();
+    const auto additive_only = BayesRecipe<
+        mode_a,
+        gelex::HomogeneousModeValues<
+            mode_a,
+            GaussianSpec<VarianceLayout::Pooled>>>::defaults();
 
     REQUIRE(additive_only.variance().genetic(GeneticMode::A) == 0.5);
     REQUIRE(additive_only.variance().genetic(GeneticMode::D) == 0.0);

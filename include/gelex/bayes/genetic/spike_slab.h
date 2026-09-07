@@ -21,22 +21,21 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <fmt/format.h>
+#include <string_view>
 #include <utility>
 
-#include "gelex/bayes/basic_draw.h"
-#include "gelex/bayes/basic_result.h"
-#include "gelex/bayes/basic_result_io.h"
 #include "gelex/bayes/genetic/draws.h"
 #include "gelex/bayes/genetic/parameter.h"
-#include "gelex/bayes/genetic/policy.h"
-#include "gelex/bayes/genetic/result.h"
 #include "gelex/bayes/genetic/state.h"
+#include "gelex/bayes/genetic/types.h"
 #include "gelex/bayes/parameter.h"
 #include "gelex/bayes/spec.h"
 #include "gelex/bayes/stats/dirichlet_log_kernel.h"
 #include "gelex/bayes/variance/detail/calibration.h"
 #include "gelex/genetic_mode.h"
-#include "gelex/io/detail/text_writer.h"
+#include "gelex/io/binary_format.h"
+#include "gelex/io/binary_writer.h"
 #include "gelex/namespace.h"
 
 GELEX_NAMESPACE_BEGIN(gelex)
@@ -56,7 +55,7 @@ template <
     GeneticMode Mode,
     VarianceLayout Kind,
     MixtureWeightUpdate WeightUpdate>
-auto make_mode_prior(
+auto make_prior(
     const SpikeSlabSpec<Kind, WeightUpdate>& spec,
     const MarkerVarianceCalibrator& calibrator)
     -> SpikeSlabPrior<Kind, WeightUpdate>
@@ -75,12 +74,17 @@ class SpikeSlabState
     SpikeSlabState(
         detail::marker_variance_state_t<Kind> variance,
         double probability,
-        Eigen::Index num_markers,
-        Eigen::Index num_individuals)
-        : coefficients_(Eigen::VectorXd::Zero(num_markers)),
-          assignments_(Eigen::VectorX<std::uint8_t>::Zero(num_markers)),
-          class_counts_{static_cast<std::size_t>(num_markers), 0},
-          fitted_values_(Eigen::VectorXd::Zero(num_individuals)),
+        GeneticDimensions dimensions)
+        : coefficients_(
+              Eigen::VectorXd::Zero(
+                  static_cast<Eigen::Index>(dimensions.marker))),
+          assignments_(
+              Eigen::VectorX<std::uint8_t>::Zero(
+                  static_cast<Eigen::Index>(dimensions.marker))),
+          class_counts_{dimensions.marker, 0},
+          fitted_values_(
+              Eigen::VectorXd::Zero(
+                  static_cast<Eigen::Index>(dimensions.individual))),
           variance_(std::move(variance)),
           probability_(probability)
     {
@@ -145,78 +149,103 @@ GELEX_NAMESPACE_BEGIN(detail)
 template <VarianceLayout Kind, MixtureWeightUpdate WeightUpdate>
 auto make_state(
     const SpikeSlabPrior<Kind, WeightUpdate>& prior,
-    GeneticStateDimensions dimensions) -> SpikeSlabState<Kind>
+    GeneticDimensions dimensions) -> SpikeSlabState<Kind>
 {
     return {
-        initial_marker_variance<Kind>(prior.variance, dimensions.marker_count),
+        initial_marker_variance<Kind>(
+            prior.variance, static_cast<Eigen::Index>(dimensions.marker)),
         prior.probability.initial,
-        dimensions.marker_count,
-        dimensions.individual_count};
+        dimensions};
 }
 GELEX_NAMESPACE_END(detail)
 
 template <VarianceLayout Kind, MixtureWeightUpdate WeightUpdate>
-struct SpikeSlabDraws
+class SpikeSlabDraws
 {
-    detail::marker_variance_draw_t<Kind> variance;
-    CategoryDraw<2> assignment;
-    detail::weight_draw_t<WeightUpdate, ScalarDraw> probability;
+   public:
+    using variance_writer_type = marker_variance_writer_t<Kind>;
+    using probability_writer_type = probability_writer_t<WeightUpdate>;
+
+    explicit SpikeSlabDraws(
+        variance_writer_type variances,
+        PayloadWriter<float> coefficients,
+        PayloadWriter<std::uint8_t> assignments,
+        probability_writer_type probability)
+        : variances_{std::move(variances)},
+          coefficients_{std::move(coefficients)},
+          assignments_{std::move(assignments)},
+          probability_{std::move(probability)}
+    {
+    }
 
     auto append(const SpikeSlabState<Kind>& state) -> void
     {
-        variance.append(state.variance());
-        assignment.append(state.assignments());
-        probability.append(state.probability());
+        if constexpr (Kind == VarianceLayout::Pooled)
+        {
+            variances_.append(state.variance());
+        }
+        else
+        {
+            variances_.append(state.variance().template cast<float>().eval());
+        }
+        coefficients_.append(
+            state.coefficients().template cast<float>().eval());
+        assignments_.append(state.assignments());
+        if constexpr (WeightUpdate == MixtureWeightUpdate::Enabled)
+        {
+            probability_.append(state.probability());
+        }
     }
+
+   private:
+    variance_writer_type variances_;
+    PayloadWriter<float> coefficients_;
+    PayloadWriter<std::uint8_t> assignments_;
+    [[no_unique_address]] probability_writer_type probability_;
 };
 
 GELEX_NAMESPACE_BEGIN(detail)
 template <VarianceLayout Kind, MixtureWeightUpdate WeightUpdate>
 [[nodiscard]] auto make_draws(
     const SpikeSlabPrior<Kind, WeightUpdate>& /*prior*/,
-    GeneticDrawsBuilder& builder) -> SpikeSlabDraws<Kind, WeightUpdate>
+    BinaryWriter& writer,
+    std::string_view prefix,
+    std::size_t draw_count,
+    GeneticDimensions dimensions) -> SpikeSlabDraws<Kind, WeightUpdate>
 {
-    return {
-        .variance = make_marker_variance_draw<Kind>(builder),
-        .assignment = builder.category<2>("assignment", builder.marker_count()),
-        .probability
-        = make_probability_draw<WeightUpdate>(builder, "probability")};
-}
-GELEX_NAMESPACE_END(detail)
+    const std::size_t variance_size
+        = (Kind == VarianceLayout::Pooled) ? 1 : dimensions.marker;
 
-template <VarianceLayout Kind, MixtureWeightUpdate WeightUpdate>
-struct SpikeSlabResult
-{
-    detail::marker_variance_result_t<Kind> variance;
-    detail::weight_result_t<WeightUpdate, ScalarResult> probability;
-};
+    auto variances = writer.reserve<marker_variance_dtype_t<Kind>>(
+        fmt::format("{}/{}", prefix, variance_id),
+        BinaryShape{variance_size, draw_count});
+    auto coefficients = writer.reserve<float>(
+        fmt::format("{}/{}", prefix, coefficients_id),
+        BinaryShape{dimensions.marker, draw_count});
+    auto assignments = writer.reserve<std::uint8_t>(
+        fmt::format("{}/{}", prefix, assignment_id),
+        BinaryShape{dimensions.marker, draw_count});
+    auto probability = [&]() -> probability_writer_t<WeightUpdate>
+    {
+        if constexpr (WeightUpdate == MixtureWeightUpdate::Enabled)
+        {
+            return writer.reserve<double>(
+                fmt::format("{}/{}", prefix, probability_id),
+                BinaryShape{1, draw_count});
+        }
+        else
+        {
+            return {};
+        }
+    }();
 
-GELEX_NAMESPACE_BEGIN(detail)
-template <VarianceLayout Kind, MixtureWeightUpdate WeightUpdate>
-auto make_result(const SpikeSlabDraws<Kind, WeightUpdate>& draws)
-    -> SpikeSlabResult<Kind, WeightUpdate>
-{
-    return {
-        .variance = make_marker_variance_result<Kind>(draws.variance),
-        .probability = make_result(draws.probability)};
+    return SpikeSlabDraws<Kind, WeightUpdate>{
+        std::move(variances),
+        std::move(coefficients),
+        std::move(assignments),
+        std::move(probability)};
 }
 
-template <VarianceLayout Kind, MixtureWeightUpdate WeightUpdate>
-[[nodiscard]] auto make_pip(const SpikeSlabDraws<Kind, WeightUpdate>& draws)
-    -> MarkerPipResult
-{
-    return MarkerPipResult{
-        draws.assignment.probability_of(is_non_null_category)};
-}
-
-template <VarianceLayout Kind, MixtureWeightUpdate WeightUpdate>
-auto write_family_summary_rows(
-    TextWriter& writer,
-    const SpikeSlabResult<Kind, WeightUpdate>& result) -> void
-{
-    write_summary_rows(writer, result.variance);
-    write_summary_rows(writer, result.probability);
-}
 GELEX_NAMESPACE_END(detail)
 
 GELEX_NAMESPACE_END(gelex)

@@ -20,17 +20,11 @@
 #include <Eigen/Core>
 #include <type_traits>
 
-#include "gelex/bayes/genetic/policy.h"
+#include "gelex/bayes/genetic/types.h"
 #include "gelex/bayes/parameter.h"
 
 namespace gelex::detail
 {
-
-struct GeneticStateDimensions
-{
-    Eigen::Index marker_count;
-    Eigen::Index individual_count;
-};
 
 template <VarianceLayout Kind>
 using marker_variance_state_t = std::

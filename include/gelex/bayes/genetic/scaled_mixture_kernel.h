@@ -24,15 +24,15 @@
 #include <random>
 #include <span>
 
-#include "gelex/bayes/basic_state.h"
 #include "gelex/bayes/detail/normal_variance_conjugate_updater.h"
 #include "gelex/bayes/genetic/detail/apply_fitted_update.h"
 #include "gelex/bayes/genetic/detail/coefficient_likelihood.h"
 #include "gelex/bayes/genetic/detail/dirichlet_conjugate_updater.h"
-#include "gelex/bayes/genetic/policy.h"
 #include "gelex/bayes/genetic/scaled_mixture.h"
+#include "gelex/bayes/genetic/types.h"
 #include "gelex/bayes/genotype/design.h"
 #include "gelex/bayes/genotype/operations.h"
+#include "gelex/bayes/state.h"
 #include "gelex/bayes/stats/log_categorical_distribution.h"
 #include "gelex/bayes/stats/quadratic_log_kernel.h"
 #include "gelex/genetic_mode.h"

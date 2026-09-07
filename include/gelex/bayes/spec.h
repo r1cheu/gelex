@@ -25,7 +25,7 @@
 #include <span>
 #include <string_view>
 
-#include "gelex/bayes/genetic/policy.h"
+#include "gelex/bayes/genetic/types.h"
 #include "gelex/exception.h"
 
 namespace gelex

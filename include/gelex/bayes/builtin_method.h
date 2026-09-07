@@ -22,7 +22,7 @@
 #include <string_view>
 #include <utility>
 
-#include "gelex/bayes/genetic/policy.h"
+#include "gelex/bayes/genetic/types.h"
 #include "gelex/bayes/mode_values.h"
 #include "gelex/bayes/recipe.h"
 #include "gelex/bayes/spec.h"
@@ -59,13 +59,15 @@ struct BuiltinGeneticSpecFor;
 template <GeneticModeSet Modes>
 struct BuiltinGeneticSpecFor<Modes, BayesMethod::RR>
 {
-    using type = GaussianSpec<VarianceLayout::Pooled>;
+    using type
+        = HomogeneousModeValues<Modes, GaussianSpec<VarianceLayout::Pooled>>;
 };
 
 template <GeneticModeSet Modes>
 struct BuiltinGeneticSpecFor<Modes, BayesMethod::A>
 {
-    using type = GaussianSpec<VarianceLayout::Unpooled>;
+    using type
+        = HomogeneousModeValues<Modes, GaussianSpec<VarianceLayout::Unpooled>>;
 };
 
 template <GeneticModeSet Modes>

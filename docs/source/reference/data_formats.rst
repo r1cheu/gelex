@@ -232,10 +232,8 @@ Command-to-Output Mapping
      - Main output file(s)
      - Description
    * - ``mcmc``
-     - ``<out>.snpeff``, ``<out>.param``, ``<out>.summary``,
-       ``<out>.snplut``
-     - Posterior SNP effects, effect coefficients, model-level summaries,
-       and binary SNP encoding lookup tables reused by ``predict``.
+     - ``<out>.draws``, ``<out>.snplut``, ``<out>.log``
+     - Retained posterior samples, genotype encoding lookup tables, and run log.
    * - ``assoc``
      - ``<out>.gwas.tsv``
      - SNP-level association statistics.

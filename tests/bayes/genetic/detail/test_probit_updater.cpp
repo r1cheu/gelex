@@ -23,7 +23,7 @@ TEST_CASE(
     "ProbitUpdater samples from supplied sufficient statistics",
     "[bayes][genetic][kernel][probit_updater]")
 {
-    Eigen::Vector2d probit_coefficients{{0.2, -0.4}};
+    Eigen::Vector2d annotation_coefficients{{0.2, -0.4}};
     const auto prior = gelex::make_multi_normal_prior(
         Eigen::Matrix2d{{2.0, 0.5}, {0.5, 1.0}});
     const gelex::MultiQuadraticLogKernel likelihood{
@@ -33,7 +33,7 @@ TEST_CASE(
     std::mt19937_64 rng{123};
 
     gelex::detail::ProbitUpdater updater{prior};
-    updater.update(probit_coefficients, likelihood, rng);
+    updater.update(annotation_coefficients, likelihood, rng);
 
     std::mt19937_64 expected_rng{123};
     const auto posterior = prior + likelihood;
@@ -47,6 +47,6 @@ TEST_CASE(
     const Eigen::Vector2d expected
         = posterior_mean + precision_factor.matrixU().solve(standard_normal);
 
-    REQUIRE(probit_coefficients.isApprox(expected));
+    REQUIRE(annotation_coefficients.isApprox(expected));
     REQUIRE(rng() == expected_rng());
 }
