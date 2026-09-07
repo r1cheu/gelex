@@ -60,7 +60,7 @@ pixi r benchmark             # run benchmarks
 - Simple getters/setters stay in headers
 - Prefer constructor member initializer lists.
 - Prefer `std::views::enumerate` over manual index loops when both index and value are needed
-- Every file carries the Apache-2.0 header (`Copyright <year> RuLei Chen`); add it to new files, preserve on existing
+- Use the two-line file header `// Copyright 2026 RuLei Chen` followed by `// SPDX-License-Identifier: Apache-2.0`; use `#` for Python, Shell, and CMake files, after any shebang. Preserve third-party notices and the full root `LICENSE`.
 - Test placement and fixture ownership follow `tests/CLAUDE.md`; Catch2 tags are domain-scoped (`[data][bed_source]`)
 - When designing the API, adhere to STL conventions.
 - Use Eigen::isApprox for testing instead of element-wise comparisons.
