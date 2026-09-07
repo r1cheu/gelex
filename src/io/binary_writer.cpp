@@ -56,14 +56,14 @@ BinaryWriter::BinaryWriter(std::string_view output_path)
 
 BinaryWriter::~BinaryWriter() noexcept
 {
-    if (std::uncaught_exceptions() > 0)
+    if (!open_ || std::uncaught_exceptions() > 0)
     {
         return;
     }
 
     try
     {
-        finalize();
+        close();
     }
     catch (const std::exception& exception)
     {
@@ -84,8 +84,23 @@ BinaryWriter::~BinaryWriter() noexcept
     }
 }
 
-auto BinaryWriter::finalize() -> void
+auto BinaryWriter::throw_if_closed() const -> void
 {
+    if (!open_)
+    {
+        throw GelexException(
+            fmt::format("{}: binary writer is closed", file_.path().string()));
+    }
+}
+
+auto BinaryWriter::close() -> void
+{
+    if (!open_)
+    {
+        return;
+    }
+    open_ = false;
+
     // A reservation is an upper bound; the directory records what was actually
     // written so a shortfall costs the tail, not the whole file.
     std::size_t truncated = 0;
@@ -200,6 +215,7 @@ auto BinaryWriter::append_bytes(
     std::span<const std::byte> bytes) -> void
 {
     assert(index < reservations_.size());
+    throw_if_closed();
 
     if (!std::in_range<std::streamsize>(bytes.size()))
     {

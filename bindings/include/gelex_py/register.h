@@ -8,6 +8,7 @@ namespace gelex_py
 
 void register_types(nanobind::module_& m);
 void register_data(nanobind::module_& m);
+void register_io(nanobind::module_& m);
 
 }  // namespace gelex_py
 

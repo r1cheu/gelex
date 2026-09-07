@@ -98,12 +98,19 @@ class BinaryWriter
         std::string_view identifier,
         BinaryShape shape) & -> PayloadWriter<T>
     {
+        throw_if_closed();
         auto owned_identifier = std::string{identifier};
         const auto index = reserve_payload(
             owned_identifier, detail::binary_type_for<T>, shape);
         return PayloadWriter<T>{
             this, index, shape, std::move(owned_identifier)};
     }
+
+    // Writes the directory and footer and commits the file. The destructor
+    // closes an open writer; a writer whose close() threw stays closed and
+    // the temporary output is discarded.
+    auto close() -> void;
+    [[nodiscard]] auto is_open() const noexcept -> bool { return open_; }
 
    private:
     template <detail::SupportedDtype>
@@ -115,13 +122,13 @@ class BinaryWriter
         std::uint64_t cursor{0};
     };
 
+    auto throw_if_closed() const -> void;
     auto reserve_payload(
         std::string_view identifier,
         BinaryType type,
         BinaryShape shape) -> std::size_t;
     auto append_bytes(std::size_t index, std::span<const std::byte> bytes)
         -> void;
-    auto finalize() -> void;
     auto check_duplicate_identifier(std::string_view identifier) const -> void;
     static auto align_up(std::uint64_t value, std::uint64_t alignment)
         -> std::uint64_t;
@@ -136,6 +143,7 @@ class BinaryWriter
     detail::AtomicOutputStream file_;
     std::uint64_t next_offset_{0};
     std::uint64_t file_cursor_{0};
+    bool open_{true};
 };
 
 template <detail::SupportedDtype T>

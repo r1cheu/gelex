@@ -212,6 +212,30 @@ TEST_CASE(
     REQUIRE_FALSE(fs::exists(temporary_path));
 }
 
+TEST_CASE("BinaryWriter closes explicitly", "[io][binary_writer]")
+{
+    test::FileFixture fixture;
+    const auto path = fixture.get_test_dir() / "explicit_close.bin";
+
+    gelex::BinaryWriter writer(path.string());
+    auto payload = writer.reserve<double>("value", gelex::BinaryShape{1, 2});
+    payload.append(1.0);
+    REQUIRE(writer.is_open());
+
+    writer.close();
+    REQUIRE_FALSE(writer.is_open());
+    REQUIRE_THROWS_WITH(
+        payload.append(2.0),
+        Catch::Matchers::ContainsSubstring("binary writer is closed"));
+    REQUIRE_THROWS_WITH(
+        writer.reserve<double>("other", gelex::BinaryShape{1, 1}),
+        Catch::Matchers::ContainsSubstring("binary writer is closed"));
+    REQUIRE_NOTHROW(writer.close());
+
+    const gelex::BinaryReader reader(path.string());
+    REQUIRE(reader.to_map<double>("value").isApprox(Eigen::MatrixXd{{1.0}}));
+}
+
 TEST_CASE("BinaryWriter contains finalization failures", "[io][binary_writer]")
 {
     test::FileFixture fixture;

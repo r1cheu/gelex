@@ -60,6 +60,7 @@ execute_process(
 
 install(TARGETS _gelex LIBRARY DESTINATION ${GELEX_PY_SITELIB}/gelex)
 install(FILES ${GELEX_PY_PACKAGE_DIR}/__init__.py
+              ${GELEX_PY_PACKAGE_DIR}/draws.py
         DESTINATION ${GELEX_PY_SITELIB}/gelex)
 
 if(GELEX_PY_GENERATE_STUBS)
