@@ -77,7 +77,7 @@ auto MarkerVarianceCalibrator::calibrate(
                 initial_activity));
     }
 
-    const double target = model_->phenotype_variance() * budget_->share(mode)
+    const double target = model_->phenotype_variance() * budget_->genetic(mode)
                           / (initial_activity * projection_variance);
     return make_mean_calibrated_variance_parameter(target);
 }

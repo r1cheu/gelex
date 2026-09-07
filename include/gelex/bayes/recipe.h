@@ -20,7 +20,6 @@
 #include <fmt/format.h>
 #include <utility>
 
-#include "gelex/bayes/detail/genetic_spec.h"
 #include "gelex/bayes/variance/budget.h"
 #include "gelex/exception.h"
 #include "gelex/genetic_mode.h"
@@ -28,14 +27,12 @@
 namespace gelex
 {
 
-template <GeneticModeSet Modes, typename GeneticFamily>
-    requires detail::SupportedGeneticFamily<Modes, GeneticFamily>
+template <GeneticModeSet Modes, typename GeneticSpec>
 class BayesRecipe
 {
    public:
     static constexpr GeneticModeSet modes = Modes;
-    using family_type = GeneticFamily;
-    using genetic_spec_type = detail::genetic_spec_t<Modes, GeneticFamily>;
+    using genetic_spec_type = GeneticSpec;
 
     BayesRecipe(genetic_spec_type genetic_spec, VarianceBudget variance)
         : genetic_spec_(std::move(genetic_spec)), variance_(variance)
@@ -48,17 +45,17 @@ class BayesRecipe
     {
     }
 
-    [[nodiscard]] static auto defaults() -> BayesRecipe
+    static auto defaults() -> BayesRecipe
     {
-        return BayesRecipe{VarianceBudget{default_shares(Modes)}};
+        return BayesRecipe{VarianceBudget{default_proportion(Modes)}};
     }
 
-    [[nodiscard]] auto genetic_spec() const noexcept -> const genetic_spec_type&
+    auto genetic_spec() const noexcept -> const genetic_spec_type&
     {
         return genetic_spec_;
     }
 
-    [[nodiscard]] auto variance() const noexcept -> const VarianceBudget&
+    auto variance() const noexcept -> const VarianceBudget&
     {
         return variance_;
     }
@@ -66,27 +63,34 @@ class BayesRecipe
    private:
     auto validate() const -> void
     {
+        if constexpr (requires { GeneticSpec::modes; })
+        {
+            static_assert(
+                GeneticSpec::modes == Modes,
+                "genetic spec modes must match recipe modes");
+        }
+
         for (const auto mode : all_genetic_modes)
         {
-            const double share = variance_.share(mode);
+            const double proportion = variance_.genetic(mode);
             const bool is_present = Modes.contains(mode);
-            if (is_present && share == 0.0)
+            if (is_present && proportion == 0.0)
             {
                 throw GelexException(
                     fmt::format(
-                        "invalid Bayes recipe input: {} variance share must "
-                        "be positive when the mode is present, got {}",
+                        "invalid Bayes recipe input: {} variance proportion "
+                        "must be positive when the mode is present, got {}",
                         mode,
-                        share));
+                        proportion));
             }
-            if (!is_present && share != 0.0)
+            if (!is_present && proportion != 0.0)
             {
                 throw GelexException(
                     fmt::format(
-                        "invalid Bayes recipe input: {} variance share must "
-                        "be zero when the mode is absent, got {}",
+                        "invalid Bayes recipe input: {} variance proportion "
+                        "must be zero when the mode is absent, got {}",
                         mode,
-                        share));
+                        proportion));
             }
         }
     }

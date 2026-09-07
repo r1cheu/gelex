@@ -27,6 +27,8 @@
 
 #include "gelex/bayes/draws.h"
 #include "gelex/bayes/genotype/design.h"
+#include "gelex/bayes/marker_covariate.h"
+#include "gelex/bayes/marker_covariate_io.h"
 #include "gelex/bayes/mcmc_runner.h"
 #include "gelex/bayes/model.h"
 #include "gelex/bayes/prior.h"
@@ -55,6 +57,17 @@ struct LoadedMcmcModel
     std::string phenotype_name;
 };
 
+auto load_marker_covariate(const cli::McmcConfig& config, const gelex::Bed& bed)
+    -> std::optional<gelex::bayes::MarkerCovariate>
+{
+    if (config.manno.empty())
+    {
+        return std::nullopt;
+    }
+    return gelex::bayes::make_marker_covariate(
+        gelex::bayes::read_marker_annotation(config.manno), bed.bim());
+}
+
 auto load_mcmc_model(const cli::McmcConfig& config) -> LoadedMcmcModel
 {
     auto bed = gelex::open_bed(config.bfile);
@@ -64,13 +77,14 @@ auto load_mcmc_model(const cli::McmcConfig& config) -> LoadedMcmcModel
     cli::McmcDataLoader loader(std::move(bed), config.random);
     auto base_data = cli::load_base_data(loader, config.base_data);
     auto design_data = std::move(loader).results();
+    auto marker_covariate = load_marker_covariate(config, design_data.bed);
 
     cli::GenotypeProgress progress{total_snps};
     auto genetic = gelex::bayes::GeneticDesign{
         std::move(design_data.bed),
         config.mode,
         config.geno_method,
-        std::nullopt,
+        std::move(marker_covariate),
         std::ref(progress)};
     progress.finish();
     auto model = gelex::BayesModel{
@@ -100,6 +114,13 @@ auto make_model_summary(const gelex::BayesModel& model) -> cli::Summary
     {
         summary.field(
             "Random effects", "{}", fmt::join(random_effect_names, ", "));
+    }
+    if (const auto& marker_covariate = model.genetic().marker_covariate())
+    {
+        summary.field(
+            "Marker annotation",
+            "{}",
+            fmt::join(marker_covariate->annotation_names().subspan(1), ", "));
     }
     for (const gelex::GeneticMode mode : model.genetic().each_mode())
     {
@@ -147,8 +168,8 @@ auto run_mcmc(const cli::McmcConfig& config, const Recipe& recipe) -> int
     const auto prior = gelex::make_prior(recipe, model);
     const auto result = [&]()
     {
-        auto draws = gelex::make_draws(
-            prior, model, config.out + ".draws", runner.draw_count());
+        auto draws = gelex::BayesDraws{
+            prior, model, config.out + ".draws", runner.draw_count()};
         cli::printer().block(cli::section("MCMC Sampling:"));
         const auto total_iterations = static_cast<std::size_t>(config.iters);
         cli::McmcProgress progress{total_iterations, config.burn_in};

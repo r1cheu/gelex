@@ -27,7 +27,8 @@
 #include <string_view>
 #include <type_traits>
 
-#include "gelex/bayes/detail/result_writer.h"
+#include "gelex/bayes/basic_result_io.h"
+#include "gelex/bayes/genetic/family.h"
 #include "gelex/bayes/genetic/result.h"
 #include "gelex/bayes/genotype/design.h"
 #include "gelex/bayes/result.h"
@@ -63,7 +64,6 @@ auto write_summary(
     for (const auto& random : result.random())
     {
         detail::write_summary_rows(writer, random.variance());
-        detail::write_summary_rows(writer, random.explained_variance());
     }
 
     detail::write_genetic_summary_rows(writer, result.genetic_parameters());

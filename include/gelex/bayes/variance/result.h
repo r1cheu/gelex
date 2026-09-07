@@ -20,7 +20,6 @@
 #include <utility>
 
 #include "gelex/bayes/basic_result.h"
-#include "gelex/bayes/detail/result_factory.h"
 #include "gelex/bayes/mode_values.h"
 #include "gelex/bayes/variance/draws.h"
 #include "gelex/genetic_mode.h"

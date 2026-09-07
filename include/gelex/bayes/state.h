@@ -25,7 +25,7 @@
 #include <vector>
 
 #include "gelex/bayes/basic_state.h"
-#include "gelex/bayes/detail/state_factory.h"
+#include "gelex/bayes/genetic/family.h"
 #include "gelex/bayes/model.h"
 #include "gelex/bayes/prior.h"
 #include "gelex/exception.h"
@@ -34,19 +34,23 @@ namespace gelex
 {
 
 template <typename GeneticPrior>
-class BayesState;
-
-template <typename GeneticPrior>
-[[nodiscard]] auto make_state(
-    const BayesPrior<GeneticPrior>& prior,
-    const BayesModel& model) -> BayesState<GeneticPrior>;
-
-template <typename GeneticPrior>
 class BayesState
 {
    public:
     using genetic_prior_type = GeneticPrior;
     using genetic_state_type = detail::genetic_state_t<GeneticPrior>;
+
+    BayesState(
+        FixedEffectState fixed,
+        std::vector<RandomEffectState> random,
+        genetic_state_type genetic,
+        ResidualState residual)
+        : fixed_{std::move(fixed)},
+          random_{std::move(random)},
+          genetic_{std::move(genetic)},
+          residual_{std::move(residual)}
+    {
+    }
 
     [[nodiscard]] auto fixed() noexcept -> FixedEffectState& { return fixed_; }
     [[nodiscard]] auto fixed() const noexcept -> const FixedEffectState&
@@ -83,22 +87,6 @@ class BayesState
     }
 
    private:
-    BayesState(
-        FixedEffectState fixed,
-        std::vector<RandomEffectState> random,
-        genetic_state_type genetic,
-        ResidualState residual)
-        : fixed_{std::move(fixed)},
-          random_{std::move(random)},
-          genetic_{std::move(genetic)},
-          residual_{std::move(residual)}
-    {
-    }
-
-    template <typename T>
-    friend auto make_state(const BayesPrior<T>& prior, const BayesModel& model)
-        -> BayesState<T>;
-
     FixedEffectState fixed_;
     std::vector<RandomEffectState> random_;
     genetic_state_type genetic_;
@@ -129,7 +117,6 @@ template <typename GeneticPrior>
         random.push_back(
             RandomEffectState{
                 .coefficients = Eigen::VectorXd::Zero(design.X().cols()),
-                .fitted_values = Eigen::VectorXd::Zero(design.X().rows()),
                 .variance = parameter.initial});
     }
 

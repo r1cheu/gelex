@@ -28,7 +28,7 @@
 #include <vector>
 
 #include "gelex/bayes/basic_draw.h"
-#include "gelex/bayes/detail/draws_factory.h"
+#include "gelex/bayes/genetic/family.h"
 #include "gelex/bayes/model.h"
 #include "gelex/bayes/prior.h"
 #include "gelex/bayes/state.h"
@@ -37,19 +37,9 @@
 #include "gelex/infra/log.h"
 #include "gelex/io/binary_format.h"
 #include "gelex/io/binary_writer.h"
+#include "gelex/namespace.h"
 
-namespace gelex
-{
-
-template <typename GeneticPrior>
-class BayesDraws;
-
-template <typename GeneticPrior>
-[[nodiscard]] auto make_draws(
-    const BayesPrior<GeneticPrior>& prior,
-    const BayesModel& model,
-    std::string_view output_path,
-    std::uint64_t draw_count) -> BayesDraws<GeneticPrior>;
+GELEX_NAMESPACE_BEGIN(gelex)
 
 class RandomEffectDraws
 {
@@ -80,12 +70,61 @@ class RandomEffectDraws
     ScalarDraw variance_;
 };
 
+GELEX_NAMESPACE_BEGIN(detail)
+inline auto make_random_draws(
+    const BayesModel& model,
+    BinaryWriter& writer,
+    std::uint64_t draw_count) -> std::vector<RandomEffectDraws>
+{
+    const auto designs = model.random();
+    std::vector<RandomEffectDraws> random;
+    random.reserve(designs.size());
+    for (const auto& design : designs)
+    {
+        random.emplace_back(
+            VectorDraw{writer.reserve<float>(
+                fmt::format("random/{}/coefficients", design.name()),
+                BinaryShape{
+                    static_cast<std::uint64_t>(design.X().cols()),
+                    draw_count})},
+            ScalarDraw{writer.reserve<double>(
+                fmt::format("random/{}/variance", design.name()),
+                BinaryShape{1, draw_count})});
+    }
+    return random;
+}
+GELEX_NAMESPACE_END(detail)
+
 template <typename GeneticPrior>
 class BayesDraws
 {
    public:
     using genetic_draws_type = detail::genetic_draws_t<GeneticPrior>;
 
+    BayesDraws(
+        const BayesPrior<GeneticPrior>& prior,
+        const BayesModel& model,
+        std::string_view output_path,
+        std::uint64_t draw_count)
+        : writer_{output_path},
+          fixed_{writer_.reserve<float>(
+              "fixed/coefficients",
+              BinaryShape{
+                  static_cast<std::uint64_t>(model.fixed().X().cols()),
+                  draw_count})},
+          random_{detail::make_random_draws(model, writer_, draw_count)},
+          genetic_{detail::make_draws(
+              prior.genetic(),
+              model.genetic(),
+              writer_,
+              draw_count)},
+          residual_{writer_.reserve<double>(
+              "residual/variance",
+              BinaryShape{1, draw_count})},
+          variance_summary_{writer_, draw_count},
+          draw_count_{draw_count}
+    {
+    }
     BayesDraws(const BayesDraws&) = delete;
     BayesDraws(BayesDraws&&) = delete;
     auto operator=(const BayesDraws&) -> BayesDraws& = delete;
@@ -159,61 +198,6 @@ class BayesDraws
     }
 
    private:
-    template <typename T>
-    friend auto make_draws(
-        const BayesPrior<T>& prior,
-        const BayesModel& model,
-        std::string_view output_path,
-        std::uint64_t draw_count) -> BayesDraws<T>;
-
-    BayesDraws(
-        const BayesPrior<GeneticPrior>& prior,
-        const BayesModel& model,
-        std::string_view output_path,
-        std::uint64_t draw_count)
-        : writer_{output_path},
-          fixed_{writer_.reserve<float>(
-              "fixed/coefficients",
-              BinaryShape{
-                  static_cast<std::uint64_t>(model.fixed().X().cols()),
-                  draw_count})},
-          random_{make_random_draws(model, writer_, draw_count)},
-          genetic_{detail::make_draws(
-              prior.genetic(),
-              model.genetic(),
-              writer_,
-              draw_count)},
-          residual_{writer_.reserve<double>(
-              "residual/variance",
-              BinaryShape{1, draw_count})},
-          variance_summary_{model.random(), writer_, draw_count},
-          draw_count_{draw_count}
-    {
-    }
-
-    static auto make_random_draws(
-        const BayesModel& model,
-        BinaryWriter& writer,
-        std::uint64_t draw_count) -> std::vector<RandomEffectDraws>
-    {
-        const auto designs = model.random();
-        std::vector<RandomEffectDraws> random;
-        random.reserve(designs.size());
-        for (const auto& design : designs)
-        {
-            random.emplace_back(
-                VectorDraw{writer.reserve<float>(
-                    fmt::format("random/{}/coefficients", design.name()),
-                    BinaryShape{
-                        static_cast<std::uint64_t>(design.X().cols()),
-                        draw_count})},
-                ScalarDraw{writer.reserve<double>(
-                    fmt::format("random/{}/variance", design.name()),
-                    BinaryShape{1, draw_count})});
-        }
-        return random;
-    }
-
     // Every leaf PayloadWriter borrows this address.
     BinaryWriter writer_;
     VectorDraw fixed_;
@@ -225,16 +209,6 @@ class BayesDraws
     std::uint64_t appended_{0};
 };
 
-template <typename GeneticPrior>
-[[nodiscard]] auto make_draws(
-    const BayesPrior<GeneticPrior>& prior,
-    const BayesModel& model,
-    std::string_view output_path,
-    std::uint64_t draw_count) -> BayesDraws<GeneticPrior>
-{
-    return BayesDraws<GeneticPrior>{prior, model, output_path, draw_count};
-}
-
-}  // namespace gelex
+GELEX_NAMESPACE_END(gelex)
 
 #endif  // GELEX_BAYES_DRAWS_H_

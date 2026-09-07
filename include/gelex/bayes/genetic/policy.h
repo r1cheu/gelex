@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_BAYES_GENETIC_FAMILY_H_
-#define GELEX_BAYES_GENETIC_FAMILY_H_
+#ifndef GELEX_BAYES_GENETIC_POLICY_H_
+#define GELEX_BAYES_GENETIC_POLICY_H_
 
 #include <cstdint>
 
@@ -36,4 +36,4 @@ enum class MixtureWeightUpdate : std::uint8_t
 
 }  // namespace gelex
 
-#endif  // GELEX_BAYES_GENETIC_FAMILY_H_
+#endif  // GELEX_BAYES_GENETIC_POLICY_H_

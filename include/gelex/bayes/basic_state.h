@@ -30,7 +30,6 @@ struct FixedEffectState
 struct RandomEffectState
 {
     Eigen::VectorXd coefficients;
-    Eigen::VectorXd fitted_values;
     double variance{};
 };
 

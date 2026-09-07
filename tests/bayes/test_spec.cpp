@@ -15,6 +15,7 @@
  */
 
 #include <array>
+#include <catch2/catch_template_test_macros.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 #include <concepts>
@@ -26,19 +27,21 @@
 
 using Catch::Matchers::ContainsSubstring;
 using gelex::GelexException;
-using gelex::HalfNormal;
-using gelex::JointSpikeSlab;
-using gelex::ScaledMixture;
-using gelex::SpikeSlab;
+using gelex::HalfNormalSpec;
+using gelex::JointSpikeSlabSpec;
+using gelex::MixtureWeightUpdate;
+using gelex::ScaledMixtureSpec;
+using gelex::SpikeSlabSpec;
+using gelex::VarianceLayout;
 
 namespace
 {
 
 constexpr double not_a_number = std::numeric_limits<double>::quiet_NaN();
 
-static_assert(ScaledMixture::class_count == 5);
-static_assert(JointSpikeSlab::class_count == 4);
-static_assert(std::default_initializable<HalfNormal>);
+static_assert(ScaledMixtureSpec<>::class_count == 5);
+static_assert(JointSpikeSlabSpec<>::class_count == 4);
+static_assert(std::default_initializable<HalfNormalSpec>);
 
 auto message_of(auto&& construct) -> std::string
 {
@@ -57,16 +60,16 @@ auto message_of(auto&& construct) -> std::string
 
 TEST_CASE("Bayes structural specs provide defaults", "[bayes][spec]")
 {
-    const auto spike_slab = SpikeSlab{};
+    const auto spike_slab = SpikeSlabSpec<>{};
     REQUIRE(spike_slab.probability() == 0.01);
 
-    const auto scaled_mixture = ScaledMixture{};
+    const auto scaled_mixture = ScaledMixtureSpec<>{};
     REQUIRE(
         scaled_mixture.probabilities()
         == std::array{0.99, 0.005, 0.003, 0.001, 0.001});
     REQUIRE(scaled_mixture.scales() == std::array{0.0, 0.001, 0.01, 0.1, 1.0});
 
-    const auto joint_spike_slab = JointSpikeSlab{};
+    const auto joint_spike_slab = JointSpikeSlabSpec<>{};
     REQUIRE(
         joint_spike_slab.probabilities()
         == std::array{0.99, 1.0 / 300, 1.0 / 300, 1.0 / 300});
@@ -74,21 +77,27 @@ TEST_CASE("Bayes structural specs provide defaults", "[bayes][spec]")
 
 TEST_CASE("Bayes structural specs accept resolved values", "[bayes][spec]")
 {
-    const auto spike_slab = SpikeSlab{0.2};
+    const auto spike_slab = SpikeSlabSpec<>{0.2};
     REQUIRE(spike_slab.probability() == 0.2);
 
-    const auto scaled_mixture = ScaledMixture{
+    const auto scaled_mixture = ScaledMixtureSpec<>{
         {0.8, 0.05, 0.05, 0.05, 0.05}, {0.0, 0.01, 0.1, 1.0, 10.0}};
     REQUIRE(
         scaled_mixture.probabilities()
         == std::array{0.8, 0.05, 0.05, 0.05, 0.05});
     REQUIRE(scaled_mixture.scales() == std::array{0.0, 0.01, 0.1, 1.0, 10.0});
 
-    const auto joint_spike_slab = JointSpikeSlab{{0.7, 0.1, 0.1, 0.1}};
+    const auto joint_spike_slab = JointSpikeSlabSpec<>{{0.7, 0.1, 0.1, 0.1}};
     REQUIRE(joint_spike_slab.probabilities() == std::array{0.7, 0.1, 0.1, 0.1});
 }
 
-TEST_CASE("SpikeSlab rejects invalid probabilities", "[bayes][spec]")
+TEMPLATE_TEST_CASE(
+    "SpikeSlab rejects invalid probabilities",
+    "[bayes][spec]",
+    (SpikeSlabSpec<VarianceLayout::Pooled, MixtureWeightUpdate::Enabled>),
+    (SpikeSlabSpec<VarianceLayout::Unpooled, MixtureWeightUpdate::Enabled>),
+    (SpikeSlabSpec<VarianceLayout::Pooled, MixtureWeightUpdate::Disabled>),
+    (SpikeSlabSpec<VarianceLayout::Unpooled, MixtureWeightUpdate::Disabled>))
 {
     auto probability = 0.0;
 
@@ -106,30 +115,38 @@ TEST_CASE("SpikeSlab rejects invalid probabilities", "[bayes][spec]")
     }
 
     REQUIRE_THAT(
-        message_of([probability] { return SpikeSlab{probability}; }),
+        message_of([probability] { return TestType{probability}; }),
         ContainsSubstring("must lie in the open interval (0, 1)"));
 }
 
-TEST_CASE("ScaledMixture rejects invalid probabilities", "[bayes][spec]")
+TEMPLATE_TEST_CASE(
+    "ScaledMixture rejects invalid probabilities",
+    "[bayes][spec]",
+    ScaledMixtureSpec<MixtureWeightUpdate::Enabled>,
+    ScaledMixtureSpec<MixtureWeightUpdate::Disabled>)
 {
     SECTION("a probability is not positive")
     {
         REQUIRE_THAT(
-            message_of([] { return ScaledMixture{{1.0, 0.0, 0.0, 0.0, 0.0}}; }),
+            message_of([] { return TestType{{1.0, 0.0, 0.0, 0.0, 0.0}}; }),
             ContainsSubstring("probabilities[1] must be finite and positive"));
     }
 
     SECTION("probabilities do not sum to one")
     {
         REQUIRE_THAT(
-            message_of([] { return ScaledMixture{{0.2, 0.2, 0.2, 0.2, 0.1}}; }),
+            message_of([] { return TestType{{0.2, 0.2, 0.2, 0.2, 0.1}}; }),
             ContainsSubstring("probabilities must sum to 1"));
     }
 }
 
-TEST_CASE("ScaledMixture rejects invalid scales", "[bayes][spec]")
+TEMPLATE_TEST_CASE(
+    "ScaledMixture rejects invalid scales",
+    "[bayes][spec]",
+    ScaledMixtureSpec<MixtureWeightUpdate::Enabled>,
+    ScaledMixtureSpec<MixtureWeightUpdate::Disabled>)
 {
-    const auto defaults = ScaledMixture{};
+    const auto defaults = TestType{};
     const auto probabilities = defaults.probabilities();
 
     SECTION("the null scale is not first")
@@ -138,7 +155,7 @@ TEST_CASE("ScaledMixture rejects invalid scales", "[bayes][spec]")
             message_of(
                 [probabilities]
                 {
-                    return ScaledMixture{
+                    return TestType{
                         probabilities, {0.01, 0.1, 1.0, 10.0, 100.0}};
                 }),
             ContainsSubstring("scales[0] must be zero"));
@@ -150,7 +167,7 @@ TEST_CASE("ScaledMixture rejects invalid scales", "[bayes][spec]")
             message_of(
                 [probabilities]
                 {
-                    return ScaledMixture{
+                    return TestType{
                         probabilities, {0.0, -0.01, 0.1, 1.0, 10.0}};
                 }),
             ContainsSubstring("scales[1] must be finite and positive"));
@@ -166,7 +183,7 @@ TEST_CASE(
         const auto message = message_of(
             []
             {
-                return ScaledMixture{
+                return ScaledMixtureSpec<>{
                     {0.9, 0.05, 0.02, 0.02, 0.0}, {1.0, 0.1, 1.0, 10.0, 100.0}};
             });
 
@@ -177,12 +194,16 @@ TEST_CASE(
     }
 }
 
-TEST_CASE("JointSpikeSlab rejects invalid inputs", "[bayes][spec]")
+TEMPLATE_TEST_CASE(
+    "JointSpikeSlab rejects invalid inputs",
+    "[bayes][spec]",
+    JointSpikeSlabSpec<MixtureWeightUpdate::Enabled>,
+    JointSpikeSlabSpec<MixtureWeightUpdate::Disabled>)
 {
     SECTION("allocation probabilities do not form a simplex")
     {
         REQUIRE_THAT(
-            message_of([] { return JointSpikeSlab{{0.9, 0.05, 0.02, 0.02}}; }),
+            message_of([] { return TestType{{0.9, 0.05, 0.02, 0.02}}; }),
             ContainsSubstring("probabilities must sum to 1"));
     }
 }

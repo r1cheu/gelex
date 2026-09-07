@@ -19,12 +19,9 @@
 
 #include <cmath>
 #include <fmt/format.h>
-#include <span>
 #include <string_view>
 #include <utility>
-#include <vector>
 
-#include "gelex/bayes/genetic/state.h"
 #include "gelex/bayes/mode_values.h"
 #include "gelex/bayes/state.h"
 #include "gelex/exception.h"
@@ -56,16 +53,6 @@ class VarianceSummary
         return genetic_total_;
     }
 
-    [[nodiscard]] constexpr auto random_total() const noexcept -> double
-    {
-        return random_total_;
-    }
-
-    [[nodiscard]] auto random() const noexcept -> std::span<const double>
-    {
-        return random_;
-    }
-
     [[nodiscard]] constexpr auto residual() const noexcept -> double
     {
         return residual_;
@@ -73,7 +60,7 @@ class VarianceSummary
 
     [[nodiscard]] constexpr auto phenotypic() const noexcept -> double
     {
-        return genetic_total_ + random_total_ + residual_;
+        return genetic_total_ + residual_;
     }
 
     template <GeneticMode Mode>
@@ -90,23 +77,15 @@ class VarianceSummary
    private:
     VarianceSummary(
         HomogeneousModeValues<Modes, double> genetic,
-        std::vector<double> random,
+        double genetic_total,
         double residual)
         : genetic_{std::move(genetic)},
-          random_{std::move(random)},
+          genetic_total_{genetic_total},
           residual_{residual}
     {
-        genetic_.for_each(
-            [&]<GeneticMode /*Mode*/>(double value)
-            {
-                require_component(value, "genetic");
-                genetic_total_ += value;
-            });
-        for (const double value : random_)
-        {
-            require_component(value, "random");
-            random_total_ += value;
-        }
+        genetic_.for_each([&]<GeneticMode /*Mode*/>(double value)
+                          { require_component(value, "genetic"); });
+        require_component(genetic_total_, "total genetic");
         require_component(residual_, "residual");
         if (phenotypic() <= 0.0)
         {
@@ -133,9 +112,7 @@ class VarianceSummary
         -> VarianceSummary<GeneticPrior::modes>;
 
     HomogeneousModeValues<Modes, double> genetic_;
-    std::vector<double> random_;
-    double genetic_total_{0.0};
-    double random_total_{0.0};
+    double genetic_total_;
     double residual_;
 };
 
@@ -145,23 +122,35 @@ template <typename GeneticPrior>
 {
     constexpr auto modes = GeneticPrior::modes;
     const auto& genetic = state.genetic();
-    std::vector<double> random;
-    random.reserve(state.random().size());
-    for (const auto& block : state.random())
+    auto genetic_variances = generate_mode_values<modes>(
+        [&]<GeneticMode Mode>()
+        {
+            return vecvar(
+                genetic.template get<Mode>().fitted_values().rowwise().sum(),
+                VarNormType::Population);
+        });
+    const double genetic_total = [&]()
     {
-        random.push_back(vecvar(block.fitted_values, VarNormType::Population));
-    }
-
+        if constexpr (modes.size() == 1)
+        {
+            return genetic_variances.template get<modes.at(0)>();
+        }
+        else
+        {
+            return vecvar(
+                genetic.template get<GeneticMode::A>()
+                        .fitted_values()
+                        .rowwise()
+                        .sum()
+                    + genetic.template get<GeneticMode::D>()
+                          .fitted_values()
+                          .rowwise()
+                          .sum(),
+                VarNormType::Population);
+        }
+    }();
     return VarianceSummary<modes>{
-        generate_mode_values<modes>(
-            [&]<GeneticMode Mode>()
-            {
-                return vecvar(
-                    genetic_value(genetic.template get<Mode>()),
-                    VarNormType::Population);
-            }),
-        std::move(random),
-        state.residual().variance};
+        std::move(genetic_variances), genetic_total, state.residual().variance};
 }
 
 }  // namespace gelex

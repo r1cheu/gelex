@@ -46,6 +46,13 @@ auto setup_mcmc_command(CLI::App& program, int& exit_code) -> void
         ->group("I/O")
         ->type_name("<BFILE>")
         ->required();
+    cmd.add_option(
+           "--manno",
+           config->manno,
+           "Marker annotation TSV (CHR SNP BP A1 A2 <annotation>) for CD")
+        ->group("I/O")
+        ->type_name("<MANNO>")
+        ->check(CLI::ExistingFile);
     cmd.add_option("-o,--out", config->out, "Output prefix for model files")
         ->group("I/O")
         ->type_name("<OUT>")
@@ -77,14 +84,14 @@ auto setup_mcmc_command(CLI::App& program, int& exit_code) -> void
         ->check(cli::genetic_mode_set_validator());
     cmd.add_option(
            "--h2",
-           config->genetic_variance_shares.get<gelex::GeneticMode::A>(),
+           config->genetic_variance_proportion.get<gelex::GeneticMode::A>(),
            "Additive heritability (0,1)")
         ->group("Model")
         ->type_name("<P>")
         ->check(cli::open_unit_interval());
     cmd.add_option(
            "--d2",
-           config->genetic_variance_shares.get<gelex::GeneticMode::D>(),
+           config->genetic_variance_proportion.get<gelex::GeneticMode::D>(),
            "Dominance heritability (0,1)")
         ->group("Model")
         ->type_name("<P>")

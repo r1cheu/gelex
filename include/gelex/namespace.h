@@ -14,20 +14,12 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_BAYES_GENETIC_DETAIL_PIP_SUPPORT_H_
-#define GELEX_BAYES_GENETIC_DETAIL_PIP_SUPPORT_H_
+#ifndef GELEX_NAMESPACE_H_
+#define GELEX_NAMESPACE_H_
 
-#include <cstddef>
+#define GELEX_NAMESPACE_BEGIN(name) \
+    namespace name                  \
+    {
+#define GELEX_NAMESPACE_END(name) }  // namespace name
 
-namespace gelex::detail
-{
-
-[[nodiscard]] constexpr auto is_non_null_category(std::size_t category) noexcept
-    -> bool
-{
-    return category != 0;
-}
-
-}  // namespace gelex::detail
-
-#endif  // GELEX_BAYES_GENETIC_DETAIL_PIP_SUPPORT_H_
+#endif  // GELEX_NAMESPACE_H_

@@ -42,13 +42,14 @@ struct McmcConfig
     BaseDataConfig base_data;
     RandomDesignDataConfig random;
     std::string bfile;
+    std::string manno;
     std::string out{"gelex"};
     gelex::GenotypeMethod geno_method{
         gelex::GenotypeMethod::OrthStandardizeHWE};
     gelex::BayesMethod method{gelex::BayesMethod::RR};
     gelex::GeneticModeSet mode{gelex::GeneticMode::A};
     gelex::HomogeneousModeValues<option_modes, std::optional<double>>
-        genetic_variance_shares;
+        genetic_variance_proportion;
     gelex::JointModeValues<
         gelex::HomogeneousModeValues<option_modes, std::vector<double>>,
         std::vector<double>>

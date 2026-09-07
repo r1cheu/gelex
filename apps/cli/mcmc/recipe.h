@@ -29,9 +29,9 @@
 #include "gelex/bayes/builtin_method.h"
 #include "gelex/bayes/genetic/gaussian.h"
 #include "gelex/bayes/genetic/joint_spike_slab.h"
+#include "gelex/bayes/genetic/policy.h"
 #include "gelex/bayes/genetic/scaled_mixture.h"
 #include "gelex/bayes/genetic/spike_slab.h"
-#include "gelex/bayes/genetic_family.h"
 #include "gelex/bayes/mode_values.h"
 #include "gelex/bayes/spec.h"
 #include "gelex/bayes/variance/budget.h"
@@ -90,111 +90,91 @@ constexpr auto option_name(ModeOptionNames names) noexcept -> std::string_view
 template <gelex::GeneticModeSet Modes>
 auto make_variance_budget(const McmcConfig& config) -> gelex::VarianceBudget
 {
-    auto shares = gelex::default_shares(Modes);
-    shares.additive
-        = config.genetic_variance_shares.get<gelex::GeneticMode::A>().value_or(
-            shares.additive);
-    shares.dominance
-        = config.genetic_variance_shares.get<gelex::GeneticMode::D>().value_or(
-            shares.dominance);
-    shares.random = config.random_pve.value_or(0.0);
-    return gelex::VarianceBudget{shares};
+    auto proportion = gelex::default_proportion(Modes);
+    proportion.additive
+        = config.genetic_variance_proportion.get<gelex::GeneticMode::A>()
+              .value_or(proportion.additive);
+    proportion.dominance
+        = config.genetic_variance_proportion.get<gelex::GeneticMode::D>()
+              .value_or(proportion.dominance);
+    proportion.random = config.random_pve.value_or(0.0);
+    return gelex::VarianceBudget{proportion};
 }
 
-template <gelex::GeneticModeSet Modes, gelex::VarianceLayout Kind>
-auto make_genetic_spec(
-    gelex::GaussianFamily<Kind> /*family*/,
-    const McmcConfig& /*config*/) -> gelex::Gaussian
+template <typename Spec, gelex::GeneticMode Mode>
+auto make_mode_spec(const McmcConfig& config) -> Spec
 {
-    return {};
-}
-
-template <
-    gelex::GeneticModeSet Modes,
-    gelex::VarianceLayout Kind,
-    gelex::MixtureWeightUpdate WeightUpdate>
-auto make_genetic_spec(
-    gelex::SpikeSlabFamily<Kind, WeightUpdate> /*family*/,
-    const McmcConfig& config)
-{
-    return gelex::generate_mode_values<Modes>(
-        [&]<gelex::GeneticMode Mode>()
+    const auto& values = config.mixture_probabilities.template get<Mode>();
+    const auto probability_option
+        = option_name<Mode>({.additive = "--pi", .dominance = "--dpi"});
+    if constexpr (requires(const Spec& spec) { spec.probability(); })
+    {
+        if (values.empty())
         {
-            const auto& values
-                = config.mixture_probabilities.template get<Mode>();
-            if (values.empty())
-            {
-                return gelex::SpikeSlab{};
-            }
-            const auto option
-                = option_name<Mode>({.additive = "--pi", .dominance = "--dpi"});
-            if (values.size() != 1)
-            {
-                throw gelex::GelexException(
-                    fmt::format(
-                        "{} requires 1 value, got {}", option, values.size()));
-            }
-            return gelex::SpikeSlab{values.front()};
-        });
-}
-
-template <gelex::GeneticModeSet Modes, gelex::MixtureWeightUpdate WeightUpdate>
-auto make_genetic_spec(
-    gelex::ScaledMixtureFamily<WeightUpdate> /*family*/,
-    const McmcConfig& config)
-{
-    return gelex::generate_mode_values<Modes>(
-        [&]<gelex::GeneticMode Mode>()
+            return Spec{};
+        }
+        if (values.size() != 1)
         {
-            const auto& probability_values
-                = config.mixture_probabilities.template get<Mode>();
-            const auto& scale_values
-                = config.mixture_scales.template get<Mode>();
-            const auto probability_option
-                = option_name<Mode>({.additive = "--pi", .dominance = "--dpi"});
-            const auto scale_option = option_name<Mode>(
-                {.additive = "--scale", .dominance = "--dscale"});
-            const gelex::ScaledMixture defaults;
-            const auto probabilities
-                = probability_values.empty()
-                      ? defaults.probabilities()
-                      : to_array<gelex::ScaledMixture::class_count>(
-                            probability_values, probability_option);
-            const auto scales
-                = scale_values.empty()
-                      ? defaults.scales()
-                      : to_array<gelex::ScaledMixture::class_count>(
-                            scale_values, scale_option);
-            return gelex::ScaledMixture{probabilities, scales};
-        });
-}
-
-template <gelex::GeneticModeSet Modes, gelex::MixtureWeightUpdate WeightUpdate>
-    requires(Modes == additive_dominance_mode)
-auto make_genetic_spec(
-    gelex::JointSpikeSlabFamily<WeightUpdate> /*family*/,
-    const McmcConfig& config)
-{
-    auto mode_specs
-        = gelex::ModeValues<Modes, gelex::Gaussian, gelex::HalfNormal>{
-            gelex::Gaussian{}, gelex::HalfNormal{}};
-
-    const auto& probability_values = config.mixture_probabilities.joint();
-    auto joint_spec = probability_values.empty()
-                          ? gelex::JointSpikeSlab{}
-                          : gelex::JointSpikeSlab{
-                                to_array<gelex::JointSpikeSlab::class_count>(
-                                    probability_values, "--jpi")};
-    return gelex::JointModeValues{std::move(mode_specs), std::move(joint_spec)};
+            throw gelex::GelexException(
+                fmt::format(
+                    "{} requires 1 value, got {}",
+                    probability_option,
+                    values.size()));
+        }
+        return Spec{values.front()};
+    }
+    else
+    {
+        const auto& scale_values = config.mixture_scales.template get<Mode>();
+        const auto scale_option = option_name<Mode>(
+            {.additive = "--scale", .dominance = "--dscale"});
+        const Spec defaults;
+        const auto probabilities
+            = values.empty()
+                  ? defaults.probabilities()
+                  : to_array<Spec::class_count>(values, probability_option);
+        const auto scales
+            = scale_values.empty()
+                  ? defaults.scales()
+                  : to_array<Spec::class_count>(scale_values, scale_option);
+        return Spec{probabilities, scales};
+    }
 }
 
 template <gelex::GeneticModeSet Modes, gelex::BayesMethod Method>
 auto make_mcmc_recipe(const McmcConfig& config)
 {
-    using GeneticFamily = gelex::genetic_family_t<Method>;
-    auto genetic_spec = make_genetic_spec<Modes>(GeneticFamily{}, config);
-    return gelex::BuiltinBayesRecipe<Modes, Method>{
-        std::move(genetic_spec), make_variance_budget<Modes>(config)};
+    using Recipe = gelex::BuiltinBayesRecipe<Modes, Method>;
+    using Spec = typename Recipe::genetic_spec_type;
+    auto genetic_spec = [&]() -> Spec
+    {
+        if constexpr (
+            Method == gelex::BayesMethod::RR || Method == gelex::BayesMethod::A)
+        {
+            return {};
+        }
+        else if constexpr (Method == gelex::BayesMethod::CD)
+        {
+            using JointSpec = gelex::JointSpikeSlabSpec<>;
+            const auto& values = config.mixture_probabilities.joint();
+            auto joint_spec = values.empty()
+                                  ? JointSpec{}
+                                  : JointSpec{to_array<JointSpec::class_count>(
+                                        values, "--jpi")};
+            return Spec{{}, std::move(joint_spec)};
+        }
+        else
+        {
+            return gelex::generate_mode_values<Modes>(
+                [&]<gelex::GeneticMode Mode>()
+                {
+                    return make_mode_spec<
+                        typename Spec::template mode_value_type<Mode>,
+                        Mode>(config);
+                });
+        }
+    }();
+    return Recipe{std::move(genetic_spec), make_variance_budget<Modes>(config)};
 }
 
 template <gelex::GeneticModeSet Modes, typename Function>
@@ -225,8 +205,16 @@ decltype(auto) dispatch_mcmc_method(
                 std::forward<Function>(function),
                 make_mcmc_recipe<Modes, gelex::BayesMethod::R>(config));
         case gelex::BayesMethod::CD:
-            throw gelex::GelexException(
-                "--method CD is not supported currently");
+            if constexpr (Modes == additive_dominance_mode)
+            {
+                return std::invoke(
+                    std::forward<Function>(function),
+                    make_mcmc_recipe<Modes, gelex::BayesMethod::CD>(config));
+            }
+            else
+            {
+                throw gelex::GelexException("--method CD requires --mode AD");
+            }
     }
     throw gelex::GelexException("unsupported Bayesian method");
 }

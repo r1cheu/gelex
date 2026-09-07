@@ -19,15 +19,23 @@
 
 #include <Eigen/Core>
 #include <cassert>
+#include <cstddef>
 #include <cstdint>
+#include <fmt/format.h>
+#include <string>
+#include <string_view>
+#include <type_traits>
 #include <utility>
 
 #include "gelex/bayes/basic_draw.h"
+#include "gelex/bayes/genetic/policy.h"
 #include "gelex/bayes/mode_values.h"
 #include "gelex/genetic_mode.h"
+#include "gelex/io/binary_format.h"
+#include "gelex/io/binary_writer.h"
+#include "gelex/namespace.h"
 
-namespace gelex
-{
+GELEX_NAMESPACE_BEGIN(gelex)
 
 template <GeneticModeSet Modes>
 class GeneticCoefficientDraws
@@ -46,7 +54,7 @@ class GeneticCoefficientDraws
     {
         draws_.for_each(
             [&]<GeneticMode Mode>(auto& draw)
-            { draw.append(state.template get<Mode>().coefficients); });
+            { draw.append(state.template get<Mode>().coefficients()); });
     }
 
     template <GeneticMode Mode>
@@ -75,9 +83,9 @@ class GeneticCoefficientDraws<(GeneticMode::A | GeneticMode::D)>
     auto append(const GeneticState& state) -> void
     {
         const auto& additive
-            = state.template get<GeneticMode::A>().coefficients;
+            = state.template get<GeneticMode::A>().coefficients();
         const auto& dominance
-            = state.template get<GeneticMode::D>().coefficients;
+            = state.template get<GeneticMode::D>().coefficients();
 
         draws_.template get<GeneticMode::A>().append(additive);
         draws_.template get<GeneticMode::D>().append(dominance);
@@ -130,9 +138,8 @@ class IndependentGeneticDraws
     auto append(const GeneticState& state) -> void
     {
         coefficients_.append(state);
-        families_.for_each(
-            [&]<GeneticMode Mode>(auto& family)
-            { family.append(state.template get<Mode>().family_state); });
+        families_.for_each([&]<GeneticMode Mode>(auto& family)
+                           { family.append(state.template get<Mode>()); });
     }
 
     [[nodiscard]] auto coefficients() const noexcept -> const CoefficientDraws&
@@ -172,12 +179,8 @@ class JointGeneticDraws
     auto append(const GeneticState& state) -> void
     {
         coefficients_.append(state);
-        families_.for_each(
-            [&]<GeneticMode Mode>(auto& family)
-            {
-                family.append(
-                    state.mode_values().template get<Mode>().family_state);
-            });
+        families_.for_each([&]<GeneticMode Mode>(auto& family)
+                           { family.append(state.template get<Mode>()); });
         joint_family_.append(state.joint());
     }
 
@@ -204,6 +207,132 @@ class JointGeneticDraws
     JointT joint_family_;
 };
 
-}  // namespace gelex
+GELEX_NAMESPACE_BEGIN(detail)
+struct GeneticDrawsDimensions
+{
+    Eigen::Index marker_count;
+    std::uint64_t draw_count;
+};
+
+class GeneticDrawsBuilder
+{
+   public:
+    GeneticDrawsBuilder(
+        BinaryWriter& writer,
+        std::string prefix,
+        GeneticDrawsDimensions dimensions)
+        : writer_{&writer}, prefix_{std::move(prefix)}, dimensions_{dimensions}
+    {
+    }
+
+    [[nodiscard]] auto scalar(std::string_view name) -> ScalarDraw
+    {
+        return ScalarDraw{reserve<double>(name, 1)};
+    }
+
+    [[nodiscard]] auto vector(std::string_view name, Eigen::Index rows)
+        -> VectorDraw
+    {
+        return VectorDraw{reserve<float>(name, rows)};
+    }
+
+    template <std::size_t CategoryCount>
+    [[nodiscard]] auto category(std::string_view name, Eigen::Index rows)
+        -> CategoryDraw<CategoryCount>
+    {
+        return CategoryDraw<CategoryCount>{reserve<std::uint8_t>(name, rows)};
+    }
+
+    [[nodiscard]] auto marker_count() const noexcept -> Eigen::Index
+    {
+        return dimensions_.marker_count;
+    }
+
+   private:
+    template <SupportedDtype T>
+    [[nodiscard]] auto reserve(std::string_view name, Eigen::Index rows)
+        -> PayloadWriter<T>
+    {
+        return writer_->reserve<T>(
+            fmt::format("{}/{}", prefix_, name),
+            BinaryShape{
+                static_cast<std::uint64_t>(rows), dimensions_.draw_count});
+    }
+
+    BinaryWriter* writer_;
+    std::string prefix_;
+    GeneticDrawsDimensions dimensions_;
+};
+
+template <VarianceLayout Kind>
+using marker_variance_draw_t = std::
+    conditional_t<Kind == VarianceLayout::Pooled, ScalarDraw, VectorDraw>;
+
+template <MixtureWeightUpdate Update, typename Draw>
+using weight_draw_t = std::
+    conditional_t<Update == MixtureWeightUpdate::Enabled, Draw, EmptyDraw>;
+
+template <VarianceLayout Kind>
+[[nodiscard]] auto make_marker_variance_draw(GeneticDrawsBuilder& builder)
+    -> marker_variance_draw_t<Kind>
+{
+    if constexpr (Kind == VarianceLayout::Pooled)
+    {
+        return builder.scalar("variance");
+    }
+    else
+    {
+        return builder.vector("variance", builder.marker_count());
+    }
+}
+
+template <MixtureWeightUpdate Update>
+[[nodiscard]] auto make_probability_draw(
+    GeneticDrawsBuilder& builder,
+    std::string_view name) -> weight_draw_t<Update, ScalarDraw>
+{
+    if constexpr (Update == MixtureWeightUpdate::Enabled)
+    {
+        return builder.scalar(name);
+    }
+    else
+    {
+        return EmptyDraw{};
+    }
+}
+
+template <MixtureWeightUpdate Update, std::size_t ClassCount>
+[[nodiscard]] auto make_probabilities_draw(GeneticDrawsBuilder& builder)
+    -> weight_draw_t<Update, VectorDraw>
+{
+    if constexpr (Update == MixtureWeightUpdate::Enabled)
+    {
+        return builder.vector(
+            "probabilities", static_cast<Eigen::Index>(ClassCount));
+    }
+    else
+    {
+        return EmptyDraw{};
+    }
+}
+
+// rows non-additive: they are shares, not a decomposition of genetic variance.
+template <std::size_t ComponentCount>
+[[nodiscard]] auto make_component_explained_variance_draw(
+    GeneticDrawsBuilder& builder) -> VectorDraw
+{
+    return builder.vector(
+        "component_explained_variance",
+        static_cast<Eigen::Index>(ComponentCount));
+}
+
+[[nodiscard]] constexpr auto is_non_null_category(std::size_t category) noexcept
+    -> bool
+{
+    return category != 0;
+}
+GELEX_NAMESPACE_END(detail)
+
+GELEX_NAMESPACE_END(gelex)
 
 #endif  // GELEX_BAYES_GENETIC_DRAWS_H_

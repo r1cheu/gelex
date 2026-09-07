@@ -18,24 +18,39 @@
 #define GELEX_BAYES_GENETIC_STATE_H_
 
 #include <Eigen/Core>
+#include <type_traits>
 
-namespace gelex
+#include "gelex/bayes/genetic/policy.h"
+#include "gelex/bayes/parameter.h"
+
+namespace gelex::detail
 {
 
-template <typename FamilyState>
-struct GeneticModeState
+struct GeneticStateDimensions
 {
-    Eigen::VectorXd coefficients;
-    FamilyState family_state;
+    Eigen::Index marker_count;
+    Eigen::Index individual_count;
 };
 
-template <typename FamilyState>
-[[nodiscard]] auto genetic_value(const GeneticModeState<FamilyState>& state)
-    -> decltype(auto)
+template <VarianceLayout Kind>
+using marker_variance_state_t = std::
+    conditional_t<Kind == VarianceLayout::Pooled, double, Eigen::VectorXd>;
+
+template <VarianceLayout Kind>
+auto initial_marker_variance(
+    const VarianceParameter& parameter,
+    Eigen::Index marker_count) -> marker_variance_state_t<Kind>
 {
-    return genetic_value(state.family_state);
+    if constexpr (Kind == VarianceLayout::Pooled)
+    {
+        return parameter.initial;
+    }
+    else
+    {
+        return Eigen::VectorXd::Constant(marker_count, parameter.initial);
+    }
 }
 
-}  // namespace gelex
+}  // namespace gelex::detail
 
 #endif  // GELEX_BAYES_GENETIC_STATE_H_

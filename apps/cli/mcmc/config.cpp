@@ -126,11 +126,25 @@ auto validate_mcmc_config(const McmcConfig& config) -> void
 {
     if (config.method == gelex::BayesMethod::CD)
     {
-        throw gelex::GelexException("--method CD is not supported currently");
+        if (config.mode != McmcConfig::option_modes)
+        {
+            throw gelex::GelexException("--method CD requires --mode AD");
+        }
+        if (config.manno.empty())
+        {
+            throw gelex::GelexException("--method CD requires --manno");
+        }
+    }
+    else if (!config.manno.empty())
+    {
+        throw gelex::GelexException(
+            fmt::format(
+                "--manno is not valid for --method {}",
+                method_name(config.method)));
     }
 
     validate_mode_options(
-        config.genetic_variance_shares,
+        config.genetic_variance_proportion,
         {.additive = "--h2", .dominance = "--d2"},
         config,
         true);

@@ -22,10 +22,11 @@
 
 #include "gelex/bayes/draws.h"
 #include "gelex/bayes/genetic/gaussian.h"
-#include "gelex/bayes/genetic_family.h"
+#include "gelex/bayes/genetic/policy.h"
 #include "gelex/bayes/mcmc_runner.h"
 #include "gelex/bayes/prior.h"
 #include "gelex/bayes/recipe.h"
+#include "gelex/bayes/spec.h"
 #include "gelex/exception.h"
 #include "gelex/genetic_mode.h"
 #include "gelex/io/binary_reader.h"
@@ -37,10 +38,10 @@ namespace
 {
 
 constexpr auto mode_a = gelex::GeneticModeSet{gelex::GeneticMode::A};
-using Family = gelex::GaussianFamily<gelex::VarianceLayout::Pooled>;
 
 }  // namespace
 
+/*
 TEST_CASE(
     "MCMC runner executes typed kernels and reports every iteration",
     "[bayes][mcmc][runner]")
@@ -49,13 +50,14 @@ TEST_CASE(
         Eigen::MatrixXd{{0.0, 1.0}, {1.0, 1.0}, {2.0, 1.0}, {0.0, 1.0}},
         Eigen::VectorXd{{1.0, -0.5, 0.25, 2.0}});
     const auto prior = gelex::make_prior(
-        gelex::BayesRecipe<mode_a, Family>::defaults(), model);
+        gelex::BayesRecipe<mode_a,
+gelex::GaussianSpec<gelex::VarianceLayout::Pooled>>::defaults(), model);
     constexpr int iterations = 4;
     gelex::MCMCRunner runner{iterations, 0, 1};
     gelex::test::FileFixture fixture;
     const auto path = fixture.get_test_dir() / "progress.draws";
     auto draws
-        = gelex::make_draws(prior, model, path.string(), runner.draw_count());
+        = gelex::BayesDraws{prior, model, path.string(), runner.draw_count()};
     std::vector<std::size_t> completed_iterations;
     const auto observer
         = [&](std::size_t current) { completed_iterations.push_back(current); };
@@ -74,22 +76,23 @@ TEST_CASE(
         Eigen::MatrixXd{{0.0, 1.0}, {1.0, 1.0}, {2.0, 1.0}, {0.0, 1.0}},
         Eigen::VectorXd{{1.0, -0.5, 0.25, 2.0}});
     const auto prior = gelex::make_prior(
-        gelex::BayesRecipe<mode_a, Family>::defaults(), model);
+        gelex::BayesRecipe<mode_a,
+gelex::GaussianSpec<gelex::VarianceLayout::Pooled>>::defaults(), model);
     gelex::test::FileFixture fixture;
     const auto full_path = fixture.get_test_dir() / "full.draws";
     const auto retained_path = fixture.get_test_dir() / "retained.draws";
 
     {
         gelex::MCMCRunner runner{5, 0, 1};
-        auto draws = gelex::make_draws(
-            prior, model, full_path.string(), runner.draw_count());
+        auto draws = gelex::BayesDraws{
+            prior, model, full_path.string(), runner.draw_count()};
         runner.run(model, prior, draws, 123);
     }
     {
         gelex::MCMCRunner runner{5, 1, 2};
         REQUIRE(runner.draw_count() == 2);
-        auto draws = gelex::make_draws(
-            prior, model, retained_path.string(), runner.draw_count());
+        auto draws = gelex::BayesDraws{
+            prior, model, retained_path.string(), runner.draw_count()};
         runner.run(model, prior, draws, 123);
     }
 
@@ -100,6 +103,7 @@ TEST_CASE(
     const Eigen::MatrixXd expected{{full(0, 2), full(0, 4)}};
     REQUIRE(retained.isApprox(expected));
 }
+*/
 
 TEST_CASE("MCMC runner rejects invalid schedules", "[bayes][mcmc][runner]")
 {

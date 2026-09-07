@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_BAYES_GENETIC_KERNEL_SPIKE_SLAB_H_
-#define GELEX_BAYES_GENETIC_KERNEL_SPIKE_SLAB_H_
+#ifndef GELEX_BAYES_GENETIC_SPIKE_SLAB_KERNEL_H_
+#define GELEX_BAYES_GENETIC_SPIKE_SLAB_KERNEL_H_
 
 #include <Eigen/Core>
 #include <array>
@@ -28,9 +28,8 @@
 #include "gelex/bayes/genetic/detail/coefficient_likelihood.h"
 #include "gelex/bayes/genetic/detail/dirichlet_conjugate_updater.h"
 #include "gelex/bayes/genetic/detail/normal_prior_provider.h"
+#include "gelex/bayes/genetic/policy.h"
 #include "gelex/bayes/genetic/spike_slab.h"
-#include "gelex/bayes/genetic/state.h"
-#include "gelex/bayes/genetic_family.h"
 #include "gelex/bayes/genotype/design.h"
 #include "gelex/bayes/stats/log_categorical_distribution.h"
 #include "gelex/genetic_mode.h"
@@ -42,7 +41,7 @@ template <VarianceLayout Kind, MixtureWeightUpdate WeightUpdate>
 class SpikeSlabKernel
 {
     using Prior = SpikeSlabPrior<Kind, WeightUpdate>;
-    using State = GeneticModeState<SpikeSlabState<Kind>>;
+    using State = SpikeSlabState<Kind>;
 
    public:
     explicit SpikeSlabKernel(const Prior& prior)
@@ -61,20 +60,16 @@ class SpikeSlabKernel
     {
         const auto& projection = design.projection(Mode);
         const auto valid_indices = projection.valid_indices();
-        auto& coefficients = state.coefficients;
-        auto& family_state = state.family_state;
-        auto& variance = family_state.variance;
+        const auto& coefficients = state.coefficients();
+        auto& variance = state.variance();
 
         previous_adjusted_response_ = residual.adjusted_response;
         std::normal_distribution<double> normal_distribution;
         const auto log_probabilities = make_log_weights(
-            std::array{
-                1.0 - family_state.probability, family_state.probability});
-        std::array<std::size_t, 2> allocation_counts{};
+            std::array{1.0 - state.probability(), state.probability()});
         const auto normal_prior_for_marker
             = make_normal_prior_provider<Kind>(variance);
 
-        std::size_t pooled_active_count = 0;
         double pooled_sum_squares = 0.0;
         for (const Eigen::Index marker : valid_indices)
         {
@@ -88,11 +83,6 @@ class SpikeSlabKernel
                 log_probabilities, std::array{0.0, slab_kernel.log_integral()});
             const std::size_t allocation
                 = allocation_distribution_(rng, allocation_parameters);
-            if constexpr (WeightUpdate == MixtureWeightUpdate::Enabled)
-            {
-                // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
-                ++allocation_counts[allocation];
-            }
             const bool is_active = allocation == 1;
             const double new_value
                 = is_active ? normal_distribution(
@@ -100,9 +90,7 @@ class SpikeSlabKernel
                             : 0.0;
             const double squared_effect = new_value * new_value;
 
-            coefficients(marker) = new_value;
-            family_state.assignment(marker)
-                = static_cast<std::uint8_t>(is_active);
+            state.transition(marker, new_value, is_active);
             projection.axpy(
                 marker, old_value - new_value, residual.adjusted_response);
 
@@ -110,7 +98,6 @@ class SpikeSlabKernel
             {
                 if (is_active)
                 {
-                    ++pooled_active_count;
                     pooled_sum_squares += squared_effect;
                 }
             }
@@ -123,17 +110,21 @@ class SpikeSlabKernel
             }
         }
 
-        state.family_state.fitted_values.col(0).noalias()
-            += previous_adjusted_response_ - residual.adjusted_response;
+        previous_adjusted_response_ -= residual.adjusted_response;
+        state.transition(previous_adjusted_response_);
         if constexpr (Kind == VarianceLayout::Pooled)
         {
             variance_updater_.update(
-                variance, pooled_active_count, pooled_sum_squares, rng);
+                variance, state.class_counts()[1], pooled_sum_squares, rng);
         }
         std::array probabilities{
-            1.0 - family_state.probability, family_state.probability};
+            1.0 - state.probability(), state.probability()};
+        auto allocation_counts = state.class_counts();
+        // Skipped markers remain NULL but do not contribute to the posterior.
+        allocation_counts[0] -= static_cast<std::size_t>(coefficients.size())
+                                - valid_indices.size();
         probability_updater_.update(probabilities, allocation_counts, rng);
-        family_state.probability = probabilities[1];
+        state.probability() = probabilities[1];
     }
 
    private:
@@ -152,4 +143,4 @@ template <VarianceLayout Kind, MixtureWeightUpdate WeightUpdate>
 
 }  // namespace gelex::detail
 
-#endif  // GELEX_BAYES_GENETIC_KERNEL_SPIKE_SLAB_H_
+#endif  // GELEX_BAYES_GENETIC_SPIKE_SLAB_KERNEL_H_

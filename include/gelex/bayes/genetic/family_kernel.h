@@ -14,18 +14,18 @@
  * limitations under the License.
  */
 
-#ifndef GELEX_BAYES_DETAIL_KERNEL_FACTORY_H_
-#define GELEX_BAYES_DETAIL_KERNEL_FACTORY_H_
+#ifndef GELEX_BAYES_GENETIC_FAMILY_KERNEL_H_
+#define GELEX_BAYES_GENETIC_FAMILY_KERNEL_H_
 
 #include <type_traits>
 #include <utility>
 
-#include "gelex/bayes/detail/state_factory.h"
 #include "gelex/bayes/genetic/detail/independent_sweep.h"
-#include "gelex/bayes/genetic/kernel/gaussian.h"
-#include "gelex/bayes/genetic/kernel/joint_spike_slab.h"
-#include "gelex/bayes/genetic/kernel/scaled_mixture.h"
-#include "gelex/bayes/genetic/kernel/spike_slab.h"
+#include "gelex/bayes/genetic/family.h"
+#include "gelex/bayes/genetic/gaussian_kernel.h"
+#include "gelex/bayes/genetic/joint_spike_slab_kernel.h"
+#include "gelex/bayes/genetic/scaled_mixture_kernel.h"
+#include "gelex/bayes/genetic/spike_slab_kernel.h"
 #include "gelex/bayes/mode_values.h"
 #include "gelex/genetic_mode.h"
 
@@ -52,4 +52,4 @@ using genetic_kernel_t
 
 }  // namespace gelex::detail
 
-#endif  // GELEX_BAYES_DETAIL_KERNEL_FACTORY_H_
+#endif  // GELEX_BAYES_GENETIC_FAMILY_KERNEL_H_

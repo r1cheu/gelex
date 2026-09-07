@@ -94,18 +94,27 @@ auto GeneticProjection::cols() const noexcept -> Eigen::Index
 
 auto GeneticProjection::dot(
     Eigen::Index marker,
-    const Eigen::Ref<const Eigen::VectorXd>& values) const noexcept -> double
+    const Eigen::Ref<const Eigen::VectorXd>& rhs) const noexcept -> double
 {
-    return gelex::bayes::dot(genotype_->col(marker), luts_.col(marker), values);
+    return gelex::bayes::dot(genotype_->col(marker), luts_.col(marker), rhs);
+}
+
+auto GeneticProjection::multiply(
+    Eigen::Index marker,
+    double scale,
+    Eigen::Ref<Eigen::VectorXd> target) const noexcept -> void
+{
+    gelex::bayes::multiply(
+        genotype_->col(marker), luts_.col(marker), scale, target);
 }
 
 auto GeneticProjection::axpy(
     Eigen::Index marker,
     double scale,
-    Eigen::Ref<Eigen::VectorXd> values) const noexcept -> void
+    Eigen::Ref<Eigen::VectorXd> target) const noexcept -> void
 {
     gelex::bayes::axpy(
-        genotype_->col(marker), luts_.col(marker), scale, values);
+        genotype_->col(marker), luts_.col(marker), scale, target);
 }
 
 auto GeneticProjection::axpy(

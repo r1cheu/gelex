@@ -17,13 +17,21 @@
 #include <filesystem>
 #include <string>
 
-#include "gelex/bayes/marker_covariate.h"
+#include "gelex/data/dataframe/key_type.h"
+
+namespace gelex
+{
+template <KeyType Key>
+class DataFrame;
+}  // namespace gelex
 
 namespace gelex::bayes
 {
-auto read_marker_covariate(
-    const std::filesystem::path& path,
-    const DataFrame<std::string>& marker_metadata) -> MarkerCovariate;
-}
+// Reads a marker annotation table with header CHR\tSNP\tBP\tA1\tA2\t<name>
+// (one numeric annotation column), indexed by SNP. Alignment against marker
+// metadata is make_marker_covariate.
+auto read_marker_annotation(const std::filesystem::path& path)
+    -> DataFrame<std::string>;
+}  // namespace gelex::bayes
 
 #endif  // GELEX_BAYES_MARKER_COVARIATE_IO_H

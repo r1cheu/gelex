@@ -91,11 +91,18 @@ Options
 ``--dcovar``
    Categorical covariate TSV in format ``FID IID factor1 ...``.
 
+``--manno``
+   Marker annotation TSV with header ``CHR SNP BP A1 A2 <annotation>`` and
+   exactly one numeric annotation column. Markers are matched to the
+   ``.bim`` file by SNP id and must agree on ``CHR``, ``BP``, ``A1`` and
+   ``A2``. Required by ``CD`` (it drives the probit model for the sign of
+   dominance effects) and rejected by every other method.
+
 .. rubric:: Model Options
 
 ``--mode`` ``A``
    Genetic effect mode: ``A`` (additive), ``D`` (dominance), or ``AD``.
-   ``CD`` requires ``AD``.
+   ``CD`` requires ``AD`` together with ``--manno``.
 
 ``--geno-method, --gm`` ``OSH``
    Genotype coding method. Accepts codes ``SH``, ``CH``, ``OSH``, ``OCH``,
@@ -130,10 +137,6 @@ Options
 ``--sample-pi`` / ``--sample-dpi`` / ``--sample-jpi``
    Sample additive, dominance, or joint (``CD``) mixture proportions instead of
    holding them fixed.
-
-``--dom-pos-prob``
-   Initial probability that an active dominance effect is positive, in
-   ``(0, 1)``.
 
 .. rubric:: MCMC Options
 
@@ -269,6 +272,23 @@ Expected outputs: ``model_bayesr.snpeff``, ``model_bayesr.snplut``, ``model_baye
       --dscale 0.0001 0.001 0.01 0.1 1.0 \
       --dpi 0.95 0.05 \
       -o model_dom
+
+.. code-block:: bash
+   :caption: Coupled Additive + Dominance Selection (CD)
+
+   gelex mcmc \
+      -b train_data \
+      -p phenotypes.tsv \
+      -m CD \
+      --mode AD \
+      --gm NC \
+      --manno annotations.tsv \
+      --jpi 0.97 0.01 0.01 0.01 \
+      -o model_bayescd
+
+``CD`` assumes the additive and dominance columns of each marker are
+orthogonal, so use a NOIA coding (``NS`` or ``NC``). The coding is not
+enforced; other codings run but violate the model's factorisation.
 
 .. code-block:: bash
    :caption: Estimate Mixture Proportions
