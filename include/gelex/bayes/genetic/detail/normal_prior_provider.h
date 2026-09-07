@@ -19,8 +19,8 @@
 
 #include <Eigen/Core>
 
-#include "gelex/bayes/genetic/policy.h"
 #include "gelex/bayes/genetic/state.h"
+#include "gelex/bayes/genetic/types.h"
 #include "gelex/bayes/stats/quadratic_log_kernel.h"
 
 namespace gelex::detail

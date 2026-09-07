@@ -25,12 +25,12 @@
 #include <utility>
 #include <vector>
 
-#include "gelex/bayes/genetic/family.h"
+#include "gelex/bayes/genetic/construction.h"
 #include "gelex/bayes/genetic/gaussian.h"
 #include "gelex/bayes/genetic/joint_spike_slab.h"
-#include "gelex/bayes/genetic/policy.h"
 #include "gelex/bayes/genetic/scaled_mixture.h"
 #include "gelex/bayes/genetic/spike_slab.h"
+#include "gelex/bayes/genetic/types.h"
 #include "gelex/bayes/mode_values.h"
 #include "gelex/bayes/model.h"
 #include "gelex/bayes/prior.h"
@@ -209,7 +209,11 @@ TEST_CASE(
 {
     const auto model = make_model(mode_ad);
     const auto prior = gelex::make_prior(
-        BayesRecipe<mode_ad, GaussianSpec<VarianceLayout::Pooled>>::defaults(),
+        BayesRecipe<
+            mode_ad,
+            gelex::HomogeneousModeValues<
+                mode_ad,
+                GaussianSpec<VarianceLayout::Pooled>>>::defaults(),
         model);
 
     const auto state
@@ -239,7 +243,11 @@ TEST_CASE(
 {
     const auto model = make_model(mode_a);
     const auto prior = gelex::make_prior(
-        BayesRecipe<mode_a, GaussianSpec<VarianceLayout::Unpooled>>::defaults(),
+        BayesRecipe<
+            mode_a,
+            gelex::HomogeneousModeValues<
+                mode_a,
+                GaussianSpec<VarianceLayout::Unpooled>>>::defaults(),
         model);
 
     const auto state
@@ -292,18 +300,17 @@ TEST_CASE(
     const auto state
         = gelex::detail::make_state(prior.genetic(), model.genetic());
     const auto& mode_state = state.get<GeneticMode::A>();
-    const auto& family_state = mode_state;
 
-    REQUIRE(family_state.assignments().size() == model.genetic().cols());
-    REQUIRE(family_state.assignments().isZero());
+    REQUIRE(mode_state.assignments().size() == model.genetic().cols());
+    REQUIRE(mode_state.assignments().isZero());
     REQUIRE(
-        family_state.probabilities()
+        mode_state.probabilities()
         == prior.genetic().get<GeneticMode::A>().probabilities.initial);
-    REQUIRE(family_state.fitted_values().rows() == model.genetic().rows());
+    REQUIRE(mode_state.fitted_values().rows() == model.genetic().rows());
     REQUIRE(
-        family_state.fitted_values().cols()
+        mode_state.fitted_values().cols()
         == static_cast<Eigen::Index>(ScaledMixtureState::component_count));
-    REQUIRE(family_state.fitted_values().isZero());
+    REQUIRE(mode_state.fitted_values().isZero());
 }
 
 TEST_CASE(
@@ -332,17 +339,15 @@ TEST_CASE(
         joint.fitted_values().cols()
         == static_cast<Eigen::Index>(JointSpikeSlabState::component_count));
     REQUIRE(joint.fitted_values().isZero());
-    // state.mode_values().for_each(
-    //     [&]<GeneticMode Mode>(const auto& mode_state)
-    //     {
-    //         STATIC_REQUIRE(mode_ad.contains(Mode));
-    //         REQUIRE(
-    //             mode_state.family_state.
-    //             == model.genetic().rows());
-    //         REQUIRE(mode_state.family_state.fitted_values().isZero());
-    //     });
+    state.mode_values().for_each(
+        [&]<GeneticMode Mode>(const auto& mode_state)
+        {
+            REQUIRE(
+                mode_state.fitted_values().rows() == model.genetic().rows());
+            REQUIRE(mode_state.fitted_values().isZero());
+        });
     const auto& dominance = state.mode_values().get<GeneticMode::D>();
-    REQUIRE(dominance.probit_coefficients().isZero());
+    REQUIRE(dominance.annotation_coefficients().isZero());
     REQUIRE(
         state.mode_values().get<GeneticMode::A>().variance()
         == Approx(prior.genetic()
@@ -358,7 +363,11 @@ TEST_CASE(
     const auto full_model = make_model(mode_ad);
     const auto additive_model = make_model(mode_a);
     const auto prior = gelex::make_prior(
-        BayesRecipe<mode_ad, GaussianSpec<VarianceLayout::Pooled>>::defaults(),
+        BayesRecipe<
+            mode_ad,
+            gelex::HomogeneousModeValues<
+                mode_ad,
+                GaussianSpec<VarianceLayout::Pooled>>>::defaults(),
         full_model);
 
     REQUIRE_THROWS_AS(
@@ -371,9 +380,12 @@ TEST_CASE(
     "[bayes][state]")
 {
     const auto model = make_model_with_random();
-    const auto recipe
-        = BayesRecipe<mode_a, GaussianSpec<VarianceLayout::Pooled>>{
-            VarianceBudget{{.additive = 0.4, .random = 0.1}}};
+    const auto recipe = BayesRecipe<
+        mode_a,
+        gelex::HomogeneousModeValues<
+            mode_a,
+            GaussianSpec<VarianceLayout::Pooled>>>{
+        VarianceBudget{{.additive = 0.4, .random = 0.1}}};
     const auto prior = gelex::make_prior(recipe, model);
 
     const auto state = gelex::make_state(prior, model);
@@ -402,7 +414,11 @@ TEST_CASE(
 {
     const auto random_model = make_model_with_random();
     const auto prior = gelex::make_prior(
-        BayesRecipe<mode_a, GaussianSpec<VarianceLayout::Pooled>>{
+        BayesRecipe<
+            mode_a,
+            gelex::HomogeneousModeValues<
+                mode_a,
+                GaussianSpec<VarianceLayout::Pooled>>>{
             VarianceBudget{{.additive = 0.4, .random = 0.1}}},
         random_model);
     const auto model_without_random = make_model(mode_a);

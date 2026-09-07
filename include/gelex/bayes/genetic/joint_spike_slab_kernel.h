@@ -27,19 +27,19 @@
 #include <random>
 #include <span>
 
-#include "gelex/bayes/basic_state.h"
 #include "gelex/bayes/detail/normal_variance_conjugate_updater.h"
+#include "gelex/bayes/genetic/construction.h"
 #include "gelex/bayes/genetic/detail/apply_fitted_update.h"
 #include "gelex/bayes/genetic/detail/coefficient_likelihood.h"
 #include "gelex/bayes/genetic/detail/dirichlet_conjugate_updater.h"
 #include "gelex/bayes/genetic/detail/probit_updater.h"
-#include "gelex/bayes/genetic/family.h"
 #include "gelex/bayes/genetic/gaussian.h"
 #include "gelex/bayes/genetic/joint_spike_slab.h"
-#include "gelex/bayes/genetic/policy.h"
+#include "gelex/bayes/genetic/types.h"
 #include "gelex/bayes/genotype/design.h"
 #include "gelex/bayes/genotype/operations.h"
 #include "gelex/bayes/mode_values.h"
+#include "gelex/bayes/state.h"
 #include "gelex/bayes/stats/half_quadratic_log_kernel.h"
 #include "gelex/bayes/stats/log_categorical_distribution.h"
 #include "gelex/bayes/stats/multi_quadratic_log_kernel.h"
@@ -112,7 +112,7 @@ class JointSpikeSlabKernel
         TruncatedNormalDistribution<> probit_latent_distribution;
 
         const auto log_probabilities = make_log_weights(joint.probabilities());
-        auto& probit_coefficients = dominance.probit_coefficients();
+        auto& annotation_coefficients = dominance.annotation_coefficients();
 
         const auto additive_prior = make_normal_prior(additive.variance());
         const auto dominance_prior
@@ -131,7 +131,7 @@ class JointSpikeSlabKernel
             const Eigen::Vector2d marker_covariate
                 = marker_covariates.X().col(marker);
             const double linear_predictor
-                = marker_covariate.dot(probit_coefficients);
+                = marker_covariate.dot(annotation_coefficients);
             const std::array<double, 2> dominance_log_probabilities{
                 log_norm_cdf(-linear_predictor),
                 log_norm_cdf(linear_predictor)};
@@ -229,7 +229,7 @@ class JointSpikeSlabKernel
         if (dominance_count != 0)
         {
             probit_updater_.update(
-                probit_coefficients,
+                annotation_coefficients,
                 MultiQuadraticLogKernel{
                     probit_likelihood_quadratic, probit_likelihood_linear, 0.0},
                 rng);

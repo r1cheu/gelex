@@ -22,18 +22,15 @@
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
+#include <fmt/format.h>
+#include <string_view>
 #include <utility>
 
-#include "gelex/bayes/basic_draw.h"
-#include "gelex/bayes/basic_result.h"
-#include "gelex/bayes/basic_result_io.h"
 #include "gelex/bayes/genetic/detail/fitted_update.h"
 #include "gelex/bayes/genetic/draws.h"
 #include "gelex/bayes/genetic/gaussian.h"
 #include "gelex/bayes/genetic/parameter.h"
-#include "gelex/bayes/genetic/policy.h"
-#include "gelex/bayes/genetic/result.h"
-#include "gelex/bayes/genetic/state.h"
+#include "gelex/bayes/genetic/types.h"
 #include "gelex/bayes/mode_values.h"
 #include "gelex/bayes/parameter.h"
 #include "gelex/bayes/spec.h"
@@ -41,7 +38,8 @@
 #include "gelex/bayes/variance/detail/calibration.h"
 #include "gelex/genetic_mode.h"
 #include "gelex/infra/var.h"
-#include "gelex/io/detail/text_writer.h"
+#include "gelex/io/binary_format.h"
+#include "gelex/io/binary_writer.h"
 #include "gelex/namespace.h"
 
 GELEX_NAMESPACE_BEGIN(gelex)
@@ -117,14 +115,15 @@ GELEX_NAMESPACE_END(detail)
 class HalfNormalState
 {
    public:
-    HalfNormalState(
-        double variance,
-        Eigen::Index num_markers,
-        Eigen::Index num_individuals)
-        : coefficients_(Eigen::VectorXd::Zero(num_markers)),
-          fitted_values_(Eigen::VectorXd::Zero(num_individuals)),
+    HalfNormalState(double variance, GeneticDimensions dimensions)
+        : coefficients_(
+              Eigen::VectorXd::Zero(
+                  static_cast<Eigen::Index>(dimensions.marker))),
+          fitted_values_(
+              Eigen::VectorXd::Zero(
+                  static_cast<Eigen::Index>(dimensions.individual))),
           variance_(variance),
-          probit_coefficients_(Eigen::Vector2d::Zero())
+          annotation_coefficients_(Eigen::Vector2d::Zero())
     {
     }
 
@@ -138,13 +137,13 @@ class HalfNormalState
     }
     auto variance() const -> double { return variance_; }
     auto variance() -> double& { return variance_; }
-    auto probit_coefficients() const -> const Eigen::Vector2d&
+    auto annotation_coefficients() const -> const Eigen::Vector2d&
     {
-        return probit_coefficients_;
+        return annotation_coefficients_;
     }
-    auto probit_coefficients() -> Eigen::Vector2d&
+    auto annotation_coefficients() -> Eigen::Vector2d&
     {
-        return probit_coefficients_;
+        return annotation_coefficients_;
     }
 
     auto transition(Eigen::Index marker, double coefficient) -> void
@@ -160,7 +159,7 @@ class HalfNormalState
     Eigen::VectorXd coefficients_;
     Eigen::VectorXd fitted_values_;
     double variance_;
-    Eigen::Vector2d probit_coefficients_;
+    Eigen::Vector2d annotation_coefficients_;
 };
 
 // Classes are NULL, A-only, D-only and AD; fitted_values holds one column per
@@ -191,12 +190,16 @@ class JointSpikeSlabState
 
     JointSpikeSlabState(
         std::array<double, class_count> probabilities,
-        Eigen::Index num_markers,
-        Eigen::Index num_individuals)
-        : assignments_(Eigen::VectorX<std::uint8_t>::Zero(num_markers)),
-          class_counts_{static_cast<std::size_t>(num_markers)},
+        GeneticDimensions dimensions)
+        : assignments_(
+              Eigen::VectorX<std::uint8_t>::Zero(
+                  static_cast<Eigen::Index>(dimensions.marker))),
+          class_counts_{dimensions.marker},
           probabilities_(probabilities),
-          fitted_values_(FittedValues::Zero(num_individuals, component_count))
+          fitted_values_(
+              FittedValues::Zero(
+                  static_cast<Eigen::Index>(dimensions.individual),
+                  component_count))
     {
     }
 
@@ -270,62 +273,101 @@ class JointSpikeSlabState
 GELEX_NAMESPACE_BEGIN(detail)
 inline auto make_state(
     const HalfNormalPrior& prior,
-    GeneticStateDimensions dimensions) -> HalfNormalState
+    GeneticDimensions dimensions) -> HalfNormalState
 {
-    return {
-        prior.variance.initial,
-        dimensions.marker_count,
-        dimensions.individual_count};
+    return {prior.variance.initial, dimensions};
 }
 
 template <MixtureWeightUpdate WeightUpdate>
 auto make_state(
     const JointSpikeSlabPrior<WeightUpdate>& prior,
-    GeneticStateDimensions dimensions) -> JointSpikeSlabState
+    GeneticDimensions dimensions) -> JointSpikeSlabState
 {
-    return {
-        prior.probabilities.initial,
-        dimensions.marker_count,
-        dimensions.individual_count};
+    return {prior.probabilities.initial, dimensions};
 }
 GELEX_NAMESPACE_END(detail)
 
-struct HalfNormalDraws
+class HalfNormalDraws
 {
-    ScalarDraw variance;
-    VectorDraw probit_coefficients;
+   public:
+    explicit HalfNormalDraws(
+        PayloadWriter<double> variance,
+        PayloadWriter<float> coefficients,
+        PayloadWriter<float> annotation_coefficients)
+        : variance_{std::move(variance)},
+          coefficients_{std::move(coefficients)},
+          annotation_coefficients_{std::move(annotation_coefficients)}
+    {
+    }
 
     auto append(const HalfNormalState& state) -> void
     {
-        variance.append(state.variance());
-        probit_coefficients.append(state.probit_coefficients());
+        variance_.append(state.variance());
+        coefficients_.append(state.coefficients().cast<float>().eval());
+        annotation_coefficients_.append(
+            state.annotation_coefficients().cast<float>().eval());
     }
+
+   private:
+    PayloadWriter<double> variance_;
+    PayloadWriter<float> coefficients_;
+    PayloadWriter<float> annotation_coefficients_;
 };
 
 template <MixtureWeightUpdate WeightUpdate>
-struct JointSpikeSlabDraws
+class JointSpikeSlabDraws
 {
-    CategoryDraw<JointSpikeSlabSpec<>::class_count> assignment;
-    detail::weight_draw_t<WeightUpdate, VectorDraw> probabilities;
-    VectorDraw component_explained_variance;
+   public:
+    using probability_writer_type = probability_writer_t<WeightUpdate>;
+
+    explicit JointSpikeSlabDraws(
+        PayloadWriter<std::uint8_t> assignments,
+        probability_writer_type probabilities,
+        PayloadWriter<double> component_explained_variance)
+        : assignments_{std::move(assignments)},
+          probabilities_{std::move(probabilities)},
+          component_explained_variance_{std::move(component_explained_variance)}
+    {
+    }
 
     auto append(const JointSpikeSlabState& state) -> void
     {
-        assignment.append(state.assignments());
-        probabilities.append(state.probabilities());
-        component_explained_variance.append(
+        assignments_.append(state.assignments());
+        if constexpr (WeightUpdate == MixtureWeightUpdate::Enabled)
+        {
+            probabilities_.append(state.probabilities());
+        }
+        component_explained_variance_.append(
             matvar<0>(state.fitted_values(), VarNormType::Population));
     }
+
+   private:
+    PayloadWriter<std::uint8_t> assignments_;
+    [[no_unique_address]] probability_writer_type probabilities_;
+    PayloadWriter<double> component_explained_variance_;
 };
 
 GELEX_NAMESPACE_BEGIN(detail)
 [[nodiscard]] inline auto make_draws(
     const HalfNormalPrior& /*prior*/,
-    GeneticDrawsBuilder& builder) -> HalfNormalDraws
+    BinaryWriter& writer,
+    std::string_view prefix,
+    std::size_t draw_count,
+    GeneticDimensions dimensions) -> HalfNormalDraws
 {
-    return {
-        .variance = builder.scalar("variance"),
-        .probit_coefficients = builder.vector("probit_coefficients", 2)};
+    auto variance = writer.reserve<double>(
+        fmt::format("{}/{}", prefix, variance_id), BinaryShape{1, draw_count});
+    auto coefficients = writer.reserve<float>(
+        fmt::format("{}/{}", prefix, coefficients_id),
+        BinaryShape{dimensions.marker, draw_count});
+    auto annotation_coefficients = writer.reserve<float>(
+        fmt::format("{}/{}", prefix, annotation_coefficients_id),
+        BinaryShape{2, draw_count});
+
+    return HalfNormalDraws{
+        std::move(variance),
+        std::move(coefficients),
+        std::move(annotation_coefficients)};
 }
 
 // Rows follow the fitted column layout of JointSpikeSlabState: A in A-only,
@@ -333,65 +375,35 @@ GELEX_NAMESPACE_BEGIN(detail)
 template <MixtureWeightUpdate WeightUpdate>
 [[nodiscard]] auto make_draws(
     const JointSpikeSlabPrior<WeightUpdate>& /*prior*/,
-    GeneticDrawsBuilder& builder) -> JointSpikeSlabDraws<WeightUpdate>
+    BinaryWriter& writer,
+    std::string_view prefix,
+    std::size_t draw_count,
+    GeneticDimensions dimensions) -> JointSpikeSlabDraws<WeightUpdate>
 {
-    return {
-        .assignment = builder.category<JointSpikeSlabSpec<>::class_count>(
-            "assignment", builder.marker_count()),
-        .probabilities = make_probabilities_draw<
-            WeightUpdate,
-            JointSpikeSlabSpec<>::class_count>(builder),
-        .component_explained_variance = make_component_explained_variance_draw<
-            JointSpikeSlabState::component_count>(builder)};
-}
-GELEX_NAMESPACE_END(detail)
+    auto assignments = writer.reserve<std::uint8_t>(
+        fmt::format("{}/{}", prefix, assignment_id),
+        BinaryShape{dimensions.marker, draw_count});
+    auto probabilities = [&]() -> probability_writer_t<WeightUpdate>
+    {
+        if constexpr (WeightUpdate == MixtureWeightUpdate::Enabled)
+        {
+            return writer.reserve<double>(
+                fmt::format("{}/{}", prefix, probabilities_id),
+                BinaryShape{JointSpikeSlabState::class_count, draw_count});
+        }
+        else
+        {
+            return {};
+        }
+    }();
+    auto component_explained_variance = writer.reserve<double>(
+        fmt::format("{}/{}", prefix, component_explained_variance_id),
+        BinaryShape{JointSpikeSlabState::component_count, draw_count});
 
-struct HalfNormalResult
-{
-    ScalarResult variance;
-    VectorResult probit_coefficients;
-};
-
-template <MixtureWeightUpdate WeightUpdate>
-struct JointSpikeSlabResult
-{
-    detail::weight_result_t<WeightUpdate, VectorResult> probabilities;
-    VectorResult component_explained_variance;
-};
-
-GELEX_NAMESPACE_BEGIN(detail)
-inline auto make_result(const HalfNormalDraws& draws) -> HalfNormalResult
-{
-    return {
-        .variance = make_result(draws.variance),
-        .probit_coefficients = make_result(draws.probit_coefficients)};
-}
-
-template <MixtureWeightUpdate WeightUpdate>
-auto make_result(const JointSpikeSlabDraws<WeightUpdate>& draws)
-    -> JointSpikeSlabResult<WeightUpdate>
-{
-    return {
-        .probabilities = make_result(draws.probabilities),
-        .component_explained_variance
-        = make_result(draws.component_explained_variance)};
-}
-
-inline auto write_family_summary_rows(
-    TextWriter& writer,
-    const HalfNormalResult& result) -> void
-{
-    write_summary_rows(writer, result.variance);
-    write_summary_rows(writer, result.probit_coefficients);
-}
-
-template <MixtureWeightUpdate WeightUpdate>
-auto write_family_summary_rows(
-    TextWriter& writer,
-    const JointSpikeSlabResult<WeightUpdate>& result) -> void
-{
-    write_summary_rows(writer, result.probabilities);
-    write_summary_rows(writer, result.component_explained_variance);
+    return JointSpikeSlabDraws<WeightUpdate>{
+        std::move(assignments),
+        std::move(probabilities),
+        std::move(component_explained_variance)};
 }
 GELEX_NAMESPACE_END(detail)
 

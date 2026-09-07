@@ -27,13 +27,13 @@
 #include <utility>
 #include <vector>
 
-#include "gelex/bayes/basic_draw.h"
-#include "gelex/bayes/genetic/family.h"
+#include "gelex/bayes/genetic/construction.h"
 #include "gelex/bayes/model.h"
 #include "gelex/bayes/prior.h"
 #include "gelex/bayes/state.h"
 #include "gelex/bayes/variance/draws.h"
 #include "gelex/exception.h"
+#include "gelex/genetic_mode.h"
 #include "gelex/infra/log.h"
 #include "gelex/io/binary_format.h"
 #include "gelex/io/binary_writer.h"
@@ -44,30 +44,22 @@ GELEX_NAMESPACE_BEGIN(gelex)
 class RandomEffectDraws
 {
    public:
-    RandomEffectDraws(VectorDraw coefficients, ScalarDraw variance)
+    RandomEffectDraws(
+        PayloadWriter<float> coefficients,
+        PayloadWriter<double> variance)
         : coefficients_{std::move(coefficients)}, variance_{std::move(variance)}
     {
     }
 
     auto append(const RandomEffectState& state) -> void
     {
-        coefficients_.append(state.coefficients);
+        coefficients_.append(state.coefficients.cast<float>().eval());
         variance_.append(state.variance);
     }
 
-    [[nodiscard]] auto coefficients() const noexcept -> const VectorDraw&
-    {
-        return coefficients_;
-    }
-
-    [[nodiscard]] auto variance() const noexcept -> const ScalarDraw&
-    {
-        return variance_;
-    }
-
    private:
-    VectorDraw coefficients_;
-    ScalarDraw variance_;
+    PayloadWriter<float> coefficients_;
+    PayloadWriter<double> variance_;
 };
 
 GELEX_NAMESPACE_BEGIN(detail)
@@ -82,14 +74,13 @@ inline auto make_random_draws(
     for (const auto& design : designs)
     {
         random.emplace_back(
-            VectorDraw{writer.reserve<float>(
+            writer.reserve<float>(
                 fmt::format("random/{}/coefficients", design.name()),
                 BinaryShape{
-                    static_cast<std::uint64_t>(design.X().cols()),
-                    draw_count})},
-            ScalarDraw{writer.reserve<double>(
+                    static_cast<std::uint64_t>(design.X().cols()), draw_count}),
+            writer.reserve<double>(
                 fmt::format("random/{}/variance", design.name()),
-                BinaryShape{1, draw_count})});
+                BinaryShape{1, draw_count}));
     }
     return random;
 }
@@ -107,7 +98,7 @@ class BayesDraws
         std::string_view output_path,
         std::uint64_t draw_count)
         : writer_{output_path},
-          fixed_{writer_.reserve<float>(
+          fixed_{writer_.reserve<double>(
               "fixed/coefficients",
               BinaryShape{
                   static_cast<std::uint64_t>(model.fixed().X().cols()),
@@ -164,46 +155,25 @@ class BayesDraws
         {
             draws.append(random_state);
         }
-        genetic_.append(state.genetic());
+        genetic_.for_each(
+            [&]<GeneticMode Mode>(auto& draws)
+            { draws.append(state.genetic().template get<Mode>()); });
+        if constexpr (requires { genetic_.joint(); })
+        {
+            genetic_.joint().append(state.genetic().joint());
+        }
         residual_.append(state.residual().variance);
         variance_summary_.append(variance_summary);
         ++appended_;
     }
 
-    [[nodiscard]] auto fixed() const noexcept -> const VectorDraw&
-    {
-        return fixed_;
-    }
-
-    [[nodiscard]] auto random() const noexcept
-        -> std::span<const RandomEffectDraws>
-    {
-        return random_;
-    }
-
-    [[nodiscard]] auto genetic() const noexcept -> const genetic_draws_type&
-    {
-        return genetic_;
-    }
-
-    [[nodiscard]] auto residual() const noexcept -> const ScalarDraw&
-    {
-        return residual_;
-    }
-
-    [[nodiscard]] auto variance_summary() const noexcept
-        -> const VarianceSummaryDraws<GeneticPrior::modes>&
-    {
-        return variance_summary_;
-    }
-
    private:
     // Every leaf PayloadWriter borrows this address.
     BinaryWriter writer_;
-    VectorDraw fixed_;
+    PayloadWriter<double> fixed_;
     std::vector<RandomEffectDraws> random_;
     genetic_draws_type genetic_;
-    ScalarDraw residual_;
+    PayloadWriter<double> residual_;
     VarianceSummaryDraws<GeneticPrior::modes> variance_summary_;
     std::uint64_t draw_count_;
     std::uint64_t appended_{0};

@@ -32,16 +32,27 @@ namespace gelex
 {
 
 template <GeneticModeSet Modes>
-class VarianceSummary;
-
-template <typename GeneticPrior>
-[[nodiscard]] auto make_variance_summary(const BayesState<GeneticPrior>& state)
-    -> VarianceSummary<GeneticPrior::modes>;
-
-template <GeneticModeSet Modes>
 class VarianceSummary
 {
    public:
+    VarianceSummary(
+        HomogeneousModeValues<Modes, double> genetic,
+        double genetic_total,
+        double residual)
+        : genetic_{std::move(genetic)},
+          genetic_total_{genetic_total},
+          residual_{residual}
+    {
+        genetic_.for_each([&]<GeneticMode /*Mode*/>(double value)
+                          { require_component(value, "genetic"); });
+        require_component(genetic_total_, "total genetic");
+        require_component(residual_, "residual");
+        if (phenotypic() <= 0.0)
+        {
+            throw GelexException(
+                "variance summary: phenotypic variance must be positive");
+        }
+    }
     template <GeneticMode Mode>
     [[nodiscard]] constexpr auto genetic() const noexcept -> double
     {
@@ -75,25 +86,6 @@ class VarianceSummary
     }
 
    private:
-    VarianceSummary(
-        HomogeneousModeValues<Modes, double> genetic,
-        double genetic_total,
-        double residual)
-        : genetic_{std::move(genetic)},
-          genetic_total_{genetic_total},
-          residual_{residual}
-    {
-        genetic_.for_each([&]<GeneticMode /*Mode*/>(double value)
-                          { require_component(value, "genetic"); });
-        require_component(genetic_total_, "total genetic");
-        require_component(residual_, "residual");
-        if (phenotypic() <= 0.0)
-        {
-            throw GelexException(
-                "variance summary: phenotypic variance must be positive");
-        }
-    }
-
     static auto require_component(double value, std::string_view name) -> void
     {
         if (!std::isfinite(value) || value < 0.0)
@@ -106,10 +98,6 @@ class VarianceSummary
                     value));
         }
     }
-
-    template <typename GeneticPrior>
-    friend auto make_variance_summary(const BayesState<GeneticPrior>& state)
-        -> VarianceSummary<GeneticPrior::modes>;
 
     HomogeneousModeValues<Modes, double> genetic_;
     double genetic_total_;

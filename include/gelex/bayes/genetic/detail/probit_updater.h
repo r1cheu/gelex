@@ -34,7 +34,7 @@ class ProbitUpdater
     }
 
     auto update(
-        Eigen::Ref<Eigen::Vector2d> probit_coefficients,
+        Eigen::Ref<Eigen::Vector2d> annotation_coefficients,
         const MultiQuadraticLogKernel& likelihood,
         std::mt19937_64& rng) -> void
     {
@@ -48,7 +48,7 @@ class ProbitUpdater
         const Eigen::Vector2d standard_normal{
             {standard_normal_distribution_(rng),
              standard_normal_distribution_(rng)}};
-        probit_coefficients
+        annotation_coefficients
             = posterior_mean
               + precision_factor.matrixU().solve(standard_normal);
     }

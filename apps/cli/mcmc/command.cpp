@@ -32,8 +32,6 @@
 #include "gelex/bayes/mcmc_runner.h"
 #include "gelex/bayes/model.h"
 #include "gelex/bayes/prior.h"
-#include "gelex/bayes/result.h"
-#include "gelex/bayes/result_io.h"
 #include "gelex/data/bed.h"
 #include "gelex/data/snp_lut.h"
 #include "gelex/data/snp_lut_io.h"
@@ -166,7 +164,6 @@ auto run_mcmc(const cli::McmcConfig& config, const Recipe& recipe) -> int
     make_model_summary(model).show();
 
     const auto prior = gelex::make_prior(recipe, model);
-    const auto result = [&]()
     {
         auto draws = gelex::BayesDraws{
             prior, model, config.out + ".draws", runner.draw_count()};
@@ -175,16 +172,10 @@ auto run_mcmc(const cli::McmcConfig& config, const Recipe& recipe) -> int
         cli::McmcProgress progress{total_iterations, config.burn_in};
         runner.run(model, prior, draws, config.seed, std::ref(progress));
         progress.finish();
-        return gelex::make_result(model, draws);
-    }();
-
-    gelex::write_params(result, config.out);
-    gelex::write_summary(result, config.out);
-    gelex::write_snpeff(result, model.genetic(), config.out);
+    }
 
     cli::printer().block(
-        cli::results_saved(
-            config.out, ".draws, .params, .summary, .snpeff, .snplut, .log"));
+        cli::results_saved(config.out, ".draws, .snplut, .log"));
     return 0;
 }
 

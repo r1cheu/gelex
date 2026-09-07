@@ -32,7 +32,8 @@ Options
    PLINK binary prefix (``.bed/.bim/.fam``) for target samples.
 
 ``-g, --gfile`` ``required``
-   Fitted-model prefix from ``gelex mcmc`` or ``gelex vi``. Reads
+   Existing fitted-model export prefix. The current ``mcmc`` command only
+   writes draws and does not create this export. Reads
    ``<prefix>.snpeff``, ``<prefix>.snplut``, and ``<prefix>.param``
    (covariate coefficients are taken from ``.param``).
 

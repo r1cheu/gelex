@@ -26,9 +26,9 @@
 #include <vector>
 
 #include "gelex/bayes/genetic/gaussian.h"
-#include "gelex/bayes/genetic/policy.h"
 #include "gelex/bayes/genetic/scaled_mixture.h"
 #include "gelex/bayes/genetic/spike_slab.h"
+#include "gelex/bayes/genetic/types.h"
 #include "gelex/bayes/kernel.h"
 #include "gelex/bayes/mode_values.h"
 #include "gelex/bayes/prior.h"
@@ -233,7 +233,6 @@ auto reconstruct_scaled_mixture_fitted(
 
 }  // namespace
 
-/*
 TEST_CASE(
     "pooled Gaussian kernel preserves adjusted-response and fitted-cache "
     "invariants",
@@ -241,25 +240,31 @@ TEST_CASE(
 {
     const auto model = make_model();
     const auto prior = gelex::make_prior(
-        gelex::BayesRecipe<mode_a,
-gelex::GaussianSpec<gelex::VarianceLayout::Pooled>>::defaults(), model); auto
-state = gelex::make_state(prior, model); auto kernel =
-gelex::make_kernel(prior); std::mt19937_64 rng{123};
+        gelex::BayesRecipe<
+            mode_a,
+            gelex::HomogeneousModeValues<
+                mode_a,
+                gelex::GaussianSpec<gelex::VarianceLayout::Pooled>>>::
+            defaults(),
+        model);
+    auto state = gelex::make_state(prior, model);
+    auto kernel = gelex::make_kernel(prior);
+    std::mt19937_64 rng{123};
 
     kernel.step(model, state, rng);
 
     const auto& genetic = state.genetic().get<gelex::GeneticMode::A>();
     const auto reconstructed = reconstruct_genetic_fitted(
-        model.genetic(), gelex::GeneticMode::A, genetic.coefficients);
+        model.genetic(), gelex::GeneticMode::A, genetic.coefficients());
     const Eigen::VectorXd fixed_fitted
         = model.fixed().X() * state.fixed().coefficients;
 
-    REQUIRE(genetic.family_state.fitted_values.isApprox(reconstructed));
+    REQUIRE(genetic.fitted_values().isApprox(reconstructed));
     REQUIRE((state.residual().adjusted_response + fixed_fitted + reconstructed)
                 .isApprox(model.phenotype()));
-    REQUIRE(genetic.coefficients(1) == 0.0);
+    REQUIRE(genetic.coefficients()(1) == 0.0);
     REQUIRE(state.residual().variance > 0.0);
-    REQUIRE(genetic.family_state.variance > 0.0);
+    REQUIRE(genetic.variance() > 0.0);
 }
 
 TEST_CASE(
@@ -269,31 +274,37 @@ TEST_CASE(
 {
     const auto model = make_ad_model();
     const auto prior = gelex::make_prior(
-        gelex::BayesRecipe<mode_ad,
-gelex::GaussianSpec<gelex::VarianceLayout::Pooled>>::defaults(), model); auto
-state = gelex::make_state(prior, model); auto kernel =
-gelex::make_kernel(prior); std::mt19937_64 rng{123};
+        gelex::BayesRecipe<
+            mode_ad,
+            gelex::HomogeneousModeValues<
+                mode_ad,
+                gelex::GaussianSpec<gelex::VarianceLayout::Pooled>>>::
+            defaults(),
+        model);
+    auto state = gelex::make_state(prior, model);
+    auto kernel = gelex::make_kernel(prior);
+    std::mt19937_64 rng{123};
 
     kernel.step(model, state, rng);
 
     const auto& additive = state.genetic().get<gelex::GeneticMode::A>();
     const auto& dominance = state.genetic().get<gelex::GeneticMode::D>();
     const auto additive_fitted = reconstruct_genetic_fitted(
-        model.genetic(), gelex::GeneticMode::A, additive.coefficients);
+        model.genetic(), gelex::GeneticMode::A, additive.coefficients());
     const auto dominance_fitted = reconstruct_genetic_fitted(
-        model.genetic(), gelex::GeneticMode::D, dominance.coefficients);
+        model.genetic(), gelex::GeneticMode::D, dominance.coefficients());
     const Eigen::VectorXd fixed_fitted
         = model.fixed().X() * state.fixed().coefficients;
 
-    REQUIRE(additive.family_state.fitted_values.isApprox(additive_fitted));
-    REQUIRE(dominance.family_state.fitted_values.isApprox(dominance_fitted));
+    REQUIRE(additive.fitted_values().isApprox(additive_fitted));
+    REQUIRE(dominance.fitted_values().isApprox(dominance_fitted));
     REQUIRE((state.residual().adjusted_response + fixed_fitted + additive_fitted
              + dominance_fitted)
                 .isApprox(model.phenotype()));
-    REQUIRE(additive.coefficients(1) == 0.0);
-    REQUIRE(dominance.coefficients(1) == 0.0);
-    REQUIRE(additive.family_state.variance > 0.0);
-    REQUIRE(dominance.family_state.variance > 0.0);
+    REQUIRE(additive.coefficients()(1) == 0.0);
+    REQUIRE(dominance.coefficients()(1) == 0.0);
+    REQUIRE(additive.variance() > 0.0);
+    REQUIRE(dominance.variance() > 0.0);
 }
 
 TEST_CASE(
@@ -303,28 +314,34 @@ TEST_CASE(
 {
     const auto model = make_model();
     const auto prior = gelex::make_prior(
-        gelex::BayesRecipe<mode_a,
-gelex::GaussianSpec<gelex::VarianceLayout::Unpooled>>::defaults(), model); auto
-state = gelex::make_state(prior, model); auto kernel =
-gelex::make_kernel(prior); const double invalid_marker_variance =
-state.genetic().get<gelex::GeneticMode::A>().family_state.variance(1);
+        gelex::BayesRecipe<
+            mode_a,
+            gelex::HomogeneousModeValues<
+                mode_a,
+                gelex::GaussianSpec<gelex::VarianceLayout::Unpooled>>>::
+            defaults(),
+        model);
+    auto state = gelex::make_state(prior, model);
+    auto kernel = gelex::make_kernel(prior);
+    const double invalid_marker_variance
+        = state.genetic().get<gelex::GeneticMode::A>().variance()(1);
     std::mt19937_64 rng{123};
 
     kernel.step(model, state, rng);
 
     const auto& genetic = state.genetic().get<gelex::GeneticMode::A>();
     const auto reconstructed = reconstruct_genetic_fitted(
-        model.genetic(), gelex::GeneticMode::A, genetic.coefficients);
+        model.genetic(), gelex::GeneticMode::A, genetic.coefficients());
     const Eigen::VectorXd fixed_fitted
         = model.fixed().X() * state.fixed().coefficients;
 
-    REQUIRE(genetic.family_state.fitted_values.isApprox(reconstructed));
+    REQUIRE(genetic.fitted_values().isApprox(reconstructed));
     REQUIRE((state.residual().adjusted_response + fixed_fitted + reconstructed)
                 .isApprox(model.phenotype()));
-    REQUIRE(genetic.coefficients(1) == 0.0);
-    REQUIRE(genetic.family_state.variance.size() == model.genetic().cols());
-    REQUIRE((genetic.family_state.variance.array() > 0.0).all());
-    REQUIRE(genetic.family_state.variance(1) == invalid_marker_variance);
+    REQUIRE(genetic.coefficients()(1) == 0.0);
+    REQUIRE(genetic.variance().size() == model.genetic().cols());
+    REQUIRE((genetic.variance().array() > 0.0).all());
+    REQUIRE(genetic.variance()(1) == invalid_marker_variance);
 }
 
 TEST_CASE(
@@ -333,8 +350,11 @@ TEST_CASE(
 {
     const auto model = make_model_with_random();
     const auto prior = gelex::make_prior(
-        gelex::BayesRecipe<mode_a,
-gelex::GaussianSpec<gelex::VarianceLayout::Pooled>>{
+        gelex::BayesRecipe<
+            mode_a,
+            gelex::HomogeneousModeValues<
+                mode_a,
+                gelex::GaussianSpec<gelex::VarianceLayout::Pooled>>>{
             gelex::VarianceBudget{{.additive = 0.4, .random = 0.1}}},
         model);
     auto state = gelex::make_state(prior, model);
@@ -355,16 +375,14 @@ gelex::GaussianSpec<gelex::VarianceLayout::Pooled>>{
     const Eigen::VectorXd random_fitted
         = model.random().front().X() * random.coefficients;
     const auto genetic_fitted = reconstruct_genetic_fitted(
-        model.genetic(), gelex::GeneticMode::A, genetic.coefficients);
+        model.genetic(), gelex::GeneticMode::A, genetic.coefficients());
 
     REQUIRE(random.coefficients.allFinite());
     REQUIRE(random.variance > 0.0);
-    REQUIRE(random.fitted_values.isApprox(random_fitted));
     REQUIRE((state.residual().adjusted_response + fixed_fitted + random_fitted
              + genetic_fitted)
                 .isApprox(model.phenotype()));
 }
-*/
 
 TEST_CASE(
     "pooled spike-slab kernel preserves collapsed-state invariants",

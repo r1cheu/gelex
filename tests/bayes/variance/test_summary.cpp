@@ -18,135 +18,56 @@
 #include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <limits>
-#include <string>
-#include <utility>
-#include <vector>
 
-#include "gelex/bayes/genetic/gaussian.h"
-#include "gelex/bayes/genetic/policy.h"
-#include "gelex/bayes/genetic/scaled_mixture.h"
-#include "gelex/bayes/model.h"
+#include "gelex/bayes/builtin_method.h"
+#include "gelex/bayes/mode_values.h"
 #include "gelex/bayes/prior.h"
-#include "gelex/bayes/recipe.h"
-#include "gelex/bayes/spec.h"
 #include "gelex/bayes/state.h"
 #include "gelex/bayes/variance/budget.h"
 #include "gelex/bayes/variance/summary.h"
-#include "gelex/data/fixed_design.h"
 #include "gelex/exception.h"
 #include "gelex/genetic_mode.h"
 
-#include "bayes/random_design_fixture.h"
-#include "compact_genotype_fixture.h"
-
-using Catch::Approx;
-/*
-namespace
-{
-
-constexpr auto mode_a = gelex::GeneticModeSet{gelex::GeneticMode::A};
-constexpr auto mode_ad = gelex::GeneticMode::A | gelex::GeneticMode::D;
-
-
-
-auto make_ad_model_with_random() -> gelex::BayesModel
-{
-    auto genetic = gelex::test::make_genetic_design(
-        Eigen::MatrixXd{{0.0, 1.0}, {1.0, 1.0}, {2.0, 1.0}, {0.0, 1.0}},
-        mode_ad);
-    std::vector<gelex::bayes::RandomDesign> random;
-    random.push_back(
-        gelex::test::make_random_design(
-            "batch",
-            std::vector<std::string>{"batch"},
-            Eigen::MatrixXd{{0.0}, {1.0}, {0.0}, {1.0}}));
-    return gelex::BayesModel{
-        Eigen::VectorXd{{1.0, -0.5, 0.25, 2.0}},
-        gelex::FixedDesign::make(4),
-        std::move(random),
-        std::move(genetic)};
-}
-
-}  // namespace
+#include "bayes/bayes_model_fixture.h"
 
 TEST_CASE(
-    "genetic_value reduces a per-class decomposition to the mode total",
+    "Variance summary includes covariance between genetic modes",
     "[bayes][variance_summary]")
 {
-    gelex::ScaledMixtureState state;
-    state.fitted_values = Eigen::MatrixXd{{1.0, 2.0}, {3.0, 4.0}};
-
-    REQUIRE(gelex::genetic_value(state).isApprox(Eigen::VectorXd{{3.0, 7.0}}));
-}
-
-TEST_CASE(
-    "make_variance_summary treats modes as independent variance components",
-    "[bayes][variance_summary]")
-{
-    const auto model = make_ad_model_with_random();
+    constexpr auto modes = gelex::GeneticMode::A | gelex::GeneticMode::D;
+    const auto model = gelex::test::make_random_effect_model(modes);
     const auto prior = gelex::make_prior(
-        gelex::BayesRecipe<mode_ad,
-gelex::GaussianSpec<gelex::VarianceLayout::Pooled>>{gelex::VarianceBudget{
-            {.additive = 0.4, .dominance = 0.1, .random = 0.1}}},
+        gelex::BuiltinBayesRecipe<modes, gelex::BayesMethod::RR>{
+            gelex::VarianceBudget{
+                {.additive = 0.4, .dominance = 0.1, .random = 0.1}}},
         model);
     auto state = gelex::make_state(prior, model);
-
-    state.genetic().get<gelex::GeneticMode::A>().family_state.fitted_values()
-        = Eigen::VectorXd{{1.0, 2.0, 3.0, 4.0}};
-    state.genetic().get<gelex::GeneticMode::D>().family_state.fitted_values
-        = Eigen::VectorXd{{0.0, 1.0, 0.0, 1.0}};
-    state.random()[0].fitted_values = Eigen::VectorXd{{2.0, 0.0, 2.0, 0.0}};
-    state.residual().variance = 3.0;
-
+    state.genetic().get<gelex::GeneticMode::A>().transition(
+        Eigen::VectorXd{{0, 1, 2}});
+    state.genetic().get<gelex::GeneticMode::D>().transition(
+        Eigen::VectorXd{{0, 1, 2}});
+    state.residual().variance = 2.0;
     const auto summary = gelex::make_variance_summary(state);
-
-    REQUIRE(summary.genetic<gelex::GeneticMode::A>() == Approx(1.25));
-    REQUIRE(summary.genetic<gelex::GeneticMode::D>() == Approx(0.25));
-    REQUIRE(summary.genetic_total() == Approx(1.5));
-    REQUIRE(summary.random_total() == Approx(1.0));
-    REQUIRE(summary.residual() == Approx(3.0));
-    REQUIRE(summary.phenotypic() == Approx(5.5));
     REQUIRE(
-        summary.heritability<gelex::GeneticMode::A>() == Approx(1.25 / 5.5));
-    REQUIRE(
-        summary.heritability<gelex::GeneticMode::D>() == Approx(0.25 / 5.5));
-    REQUIRE(summary.total_heritability() == Approx(1.5 / 5.5));
+        summary.genetic<gelex::GeneticMode::A>() == Catch::Approx(2.0 / 3.0));
+    REQUIRE(summary.genetic_total() == Catch::Approx(8.0 / 3.0));
+    REQUIRE(summary.total_heritability() == Catch::Approx(4.0 / 7.0));
 }
 
 TEST_CASE(
-    "make_variance_summary rejects a draw its ratios are undefined on",
+    "Variance summary rejects invalid variance components",
     "[bayes][variance_summary]")
 {
-    const auto model = make_ad_model_with_random();
-    const auto prior = gelex::make_prior(
-        gelex::BayesRecipe<mode_ad,
-gelex::GaussianSpec<gelex::VarianceLayout::Pooled>>{gelex::VarianceBudget{
-            {.additive = 0.4, .dominance = 0.1, .random = 0.1}}},
-        model);
-    auto state = gelex::make_state(prior, model);
-
-    const auto summarize = [&] { return gelex::make_variance_summary(state);
-    };
-
-    SECTION("no phenotypic variance to divide by")
-    {
-        // Every component is zero, so heritability would be 0/0.
-        state.residual().variance = 0.0;
-        REQUIRE_THROWS_AS(summarize(), gelex::GelexException);
-    }
-
-    SECTION("a diverged genetic value")
-    {
-        state.genetic().get<gelex::GeneticMode::A>().family_state.fitted_values
-            = Eigen::VectorXd{
-                {std::numeric_limits<double>::quiet_NaN(), 0.0, 0.0, 0.0}};
-        REQUIRE_THROWS_AS(summarize(), gelex::GelexException);
-    }
-
-    SECTION("a negative residual variance")
-    {
-        state.residual().variance = -1.0;
-        REQUIRE_THROWS_AS(summarize(), gelex::GelexException);
-    }
+    constexpr auto modes = gelex::GeneticModeSet{gelex::GeneticMode::A};
+    using Values = gelex::HomogeneousModeValues<modes, double>;
+    using Summary = gelex::VarianceSummary<modes>;
+    REQUIRE_THROWS_AS((Summary{Values{0.0}, 0.0, 0.0}), gelex::GelexException);
+    REQUIRE_THROWS_AS((Summary{Values{1.0}, 1.0, -1.0}), gelex::GelexException);
+    REQUIRE_THROWS_AS((Summary{Values{-1.0}, 1.0, 1.0}), gelex::GelexException);
+    REQUIRE_THROWS_AS(
+        (Summary{Values{1.0}, std::numeric_limits<double>::infinity(), 1.0}),
+        gelex::GelexException);
+    REQUIRE_THROWS_AS(
+        (Summary{Values{std::numeric_limits<double>::quiet_NaN()}, 1.0, 1.0}),
+        gelex::GelexException);
 }
-*/

@@ -20,8 +20,8 @@
 #include <type_traits>
 #include <utility>
 
+#include "gelex/bayes/genetic/construction.h"
 #include "gelex/bayes/genetic/detail/independent_sweep.h"
-#include "gelex/bayes/genetic/family.h"
 #include "gelex/bayes/genetic/gaussian_kernel.h"
 #include "gelex/bayes/genetic/joint_spike_slab_kernel.h"
 #include "gelex/bayes/genetic/scaled_mixture_kernel.h"
