@@ -1,8 +1,8 @@
 // Copyright 2026 RuLei Chen
 // SPDX-License-Identifier: Apache-2.0
 
-#ifndef GELEX_BAYES_MARKER_COVARIATE_IO_H
-#define GELEX_BAYES_MARKER_COVARIATE_IO_H
+#ifndef GELEX_BAYES_GENETIC_MARKER_COVARIATE_IO_H
+#define GELEX_BAYES_GENETIC_MARKER_COVARIATE_IO_H
 
 #include <filesystem>
 #include <string>
@@ -24,4 +24,4 @@ auto read_marker_annotation(const std::filesystem::path& path)
     -> DataFrame<std::string>;
 }  // namespace gelex::bayes
 
-#endif  // GELEX_BAYES_MARKER_COVARIATE_IO_H
+#endif  // GELEX_BAYES_GENETIC_MARKER_COVARIATE_IO_H

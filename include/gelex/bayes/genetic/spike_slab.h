@@ -12,14 +12,14 @@
 #include <string_view>
 #include <utility>
 
-#include "gelex/bayes/genetic/draws.h"
+#include "gelex/bayes/genetic/detail/marker_variance.h"
+#include "gelex/bayes/genetic/draw_schema.h"
 #include "gelex/bayes/genetic/parameter.h"
-#include "gelex/bayes/genetic/state.h"
 #include "gelex/bayes/genetic/types.h"
 #include "gelex/bayes/parameter.h"
 #include "gelex/bayes/spec.h"
 #include "gelex/bayes/stats/dirichlet_log_kernel.h"
-#include "gelex/bayes/variance/detail/calibration.h"
+#include "gelex/bayes/variance/calibration.h"
 #include "gelex/genetic_mode.h"
 #include "gelex/io/binary_format.h"
 #include "gelex/io/binary_writer.h"
@@ -37,7 +37,6 @@ struct SpikeSlabPrior
     ProbabilityParameter<WeightUpdate> probability;
 };
 
-GELEX_NAMESPACE_BEGIN(detail)
 template <
     GeneticMode Mode,
     VarianceLayout Kind,
@@ -49,17 +48,17 @@ auto make_prior(
 {
     return {
         .variance = calibrator.calibrate(Mode, spec.probability()),
-        .probability = make_parameter<WeightUpdate>(
+        .probability = detail::make_parameter<WeightUpdate>(
             spec.probability(), make_beta_prior(1.0, 1.0))};
 }
-GELEX_NAMESPACE_END(detail)
 
 template <VarianceLayout Kind>
 class SpikeSlabState
 {
    public:
+    using variance_type = detail::marker_variance_state_t<Kind>;
     SpikeSlabState(
-        detail::marker_variance_state_t<Kind> variance,
+        variance_type variance,
         double probability,
         GeneticDimensions dimensions)
         : coefficients_(
@@ -93,14 +92,8 @@ class SpikeSlabState
     {
         return fitted_values_;
     }
-    auto variance() const -> const detail::marker_variance_state_t<Kind>&
-    {
-        return variance_;
-    }
-    auto variance() -> detail::marker_variance_state_t<Kind>&
-    {
-        return variance_;
-    }
+    auto variance() const -> const variance_type& { return variance_; }
+    auto variance() -> variance_type& { return variance_; }
     auto probability() const -> double { return probability_; }
     auto probability() -> double& { return probability_; }
 
@@ -128,23 +121,21 @@ class SpikeSlabState
     Eigen::VectorX<std::uint8_t> assignments_;
     std::array<std::size_t, 2> class_counts_;
     Eigen::VectorXd fitted_values_;
-    detail::marker_variance_state_t<Kind> variance_;
+    variance_type variance_;
     double probability_;
 };
 
-GELEX_NAMESPACE_BEGIN(detail)
 template <VarianceLayout Kind, MixtureWeightUpdate WeightUpdate>
 auto make_state(
     const SpikeSlabPrior<Kind, WeightUpdate>& prior,
     GeneticDimensions dimensions) -> SpikeSlabState<Kind>
 {
     return {
-        initial_marker_variance<Kind>(
+        detail::initial_marker_variance<Kind>(
             prior.variance, static_cast<Eigen::Index>(dimensions.marker)),
         prior.probability.initial,
         dimensions};
 }
-GELEX_NAMESPACE_END(detail)
 
 template <VarianceLayout Kind, MixtureWeightUpdate WeightUpdate>
 class SpikeSlabDraws
@@ -191,7 +182,6 @@ class SpikeSlabDraws
     [[no_unique_address]] probability_writer_type probability_;
 };
 
-GELEX_NAMESPACE_BEGIN(detail)
 template <VarianceLayout Kind, MixtureWeightUpdate WeightUpdate>
 [[nodiscard]] auto make_draws(
     const SpikeSlabPrior<Kind, WeightUpdate>& /*prior*/,
@@ -232,8 +222,6 @@ template <VarianceLayout Kind, MixtureWeightUpdate WeightUpdate>
         std::move(assignments),
         std::move(probability)};
 }
-
-GELEX_NAMESPACE_END(detail)
 
 GELEX_NAMESPACE_END(gelex)
 

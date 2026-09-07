@@ -12,7 +12,7 @@
 #include <utility>
 #include <vector>
 
-#include "gelex/bayes/design.h"
+#include "gelex/bayes/random_design.h"
 #include "gelex/data/dataframe/reader.h"
 
 #include "file_fixture.h"

@@ -1,7 +1,7 @@
 // Copyright 2026 RuLei Chen
 // SPDX-License-Identifier: Apache-2.0
 
-#include "gelex/bayes/marker_covariate.h"
+#include "gelex/bayes/genetic/marker_covariate.h"
 
 #include <Eigen/Core>
 #include <algorithm>
@@ -50,6 +50,22 @@ auto validate_marker_metadata_column(
 
 namespace gelex::bayes
 {
+MarkerCovariate::MarkerCovariate(
+    std::vector<std::string> annotation_names,
+    Eigen::MatrixXd values)
+    : annotation_names_{std::move(annotation_names)}, values_{std::move(values)}
+{
+    if (!std::cmp_equal(annotation_names_.size(), values_.rows()))
+    {
+        throw GelexException(
+            "marker covariate annotation name count must match matrix rows");
+    }
+    if (!values_.allFinite())
+    {
+        throw GelexException("marker covariate values must be finite");
+    }
+}
+
 auto make_marker_covariate(
     DataFrame<std::string> frame,
     const DataFrame<std::string>& marker_metadata) -> MarkerCovariate
@@ -91,11 +107,6 @@ auto make_marker_covariate(
         annotation_names.push_back(column_name);
         values.row(static_cast<Eigen::Index>(index + 1))
             = frame[column_name].to_map<double>().transpose();
-    }
-
-    if (!values.allFinite())
-    {
-        throw GelexException("marker covariate values must be finite");
     }
 
     return MarkerCovariate(std::move(annotation_names), std::move(values));

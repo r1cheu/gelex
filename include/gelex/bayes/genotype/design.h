@@ -15,8 +15,8 @@
 #include <string>
 #include <vector>
 
+#include "gelex/bayes/genetic/marker_covariate.h"
 #include "gelex/bayes/genotype/projection.h"
-#include "gelex/bayes/marker_covariate.h"
 #include "gelex/data/bed.h"
 #include "gelex/data/dataframe/dataframe.h"
 #include "gelex/data/genotype_method.h"

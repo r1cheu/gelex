@@ -13,9 +13,9 @@
 #include <utility>
 
 #include "gelex/bayes/draws.h"
+#include "gelex/bayes/genetic/marker_covariate.h"
+#include "gelex/bayes/genetic/marker_covariate_io.h"
 #include "gelex/bayes/genotype/design.h"
-#include "gelex/bayes/marker_covariate.h"
-#include "gelex/bayes/marker_covariate_io.h"
 #include "gelex/bayes/mcmc_runner.h"
 #include "gelex/bayes/model.h"
 #include "gelex/bayes/prior.h"

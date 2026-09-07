@@ -5,11 +5,13 @@
 #include <catch2/catch_test_macros.hpp>
 #include <cstddef>
 #include <filesystem>
+#include <initializer_list>
+#include <limits>
 #include <string>
 #include <utility>
 #include <vector>
 
-#include "gelex/bayes/marker_covariate.h"
+#include "gelex/bayes/genetic/marker_covariate.h"
 #include "gelex/data/dataframe/column.h"
 #include "gelex/data/dataframe/dataframe.h"
 #include "gelex/data/dataframe/reader.h"
@@ -36,6 +38,47 @@ auto read_annotation_frame(
     return gelex::read_dataframe<std::string>(path, options, schema);
 }
 }  // namespace
+
+TEST_CASE(
+    "MarkerCovariate validates its stored representation",
+    "[bayes][marker_covariate]")
+{
+    const std::vector<std::string> names{"Intercept", "Annotation"};
+    const Eigen::MatrixXd values{{1.0, 1.0, 1.0}, {0.25, -0.5, 0.75}};
+
+    SECTION("names correspond to annotation rows")
+    {
+        const gelex::bayes::MarkerCovariate covariate{names, values};
+        REQUIRE(covariate.X().isApprox(values));
+        REQUIRE(
+            std::vector(
+                covariate.annotation_names().begin(),
+                covariate.annotation_names().end())
+            == names);
+    }
+
+    SECTION("rejects names matching columns instead of rows")
+    {
+        const std::vector<std::string> wrong_names{"A", "B", "C"};
+        REQUIRE_THROWS_AS(
+            (gelex::bayes::MarkerCovariate{wrong_names, values}),
+            gelex::GelexException);
+    }
+
+    SECTION("rejects nonfinite values")
+    {
+        for (const double invalid :
+             {std::numeric_limits<double>::quiet_NaN(),
+              std::numeric_limits<double>::infinity(),
+              -std::numeric_limits<double>::infinity()})
+        {
+            const Eigen::MatrixXd invalid_values{{1.0}, {invalid}};
+            REQUIRE_THROWS_AS(
+                (gelex::bayes::MarkerCovariate{names, invalid_values}),
+                gelex::GelexException);
+        }
+    }
+}
 
 TEST_CASE(
     "MarkerCovariate aligns marker annotations",

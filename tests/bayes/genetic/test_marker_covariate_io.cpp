@@ -7,8 +7,8 @@
 #include <utility>
 #include <vector>
 
-#include "gelex/bayes/marker_covariate.h"
-#include "gelex/bayes/marker_covariate_io.h"
+#include "gelex/bayes/genetic/marker_covariate.h"
+#include "gelex/bayes/genetic/marker_covariate_io.h"
 #include "gelex/data/dataframe/dataframe.h"
 #include "gelex/data/reader.h"
 #include "gelex/exception.h"

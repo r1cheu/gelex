@@ -15,15 +15,15 @@
 #include <variant>
 
 #include "gelex/bayes/genetic/detail/fitted_update.h"
-#include "gelex/bayes/genetic/draws.h"
+#include "gelex/bayes/genetic/detail/marker_variance.h"
+#include "gelex/bayes/genetic/draw_schema.h"
 #include "gelex/bayes/genetic/parameter.h"
-#include "gelex/bayes/genetic/state.h"
 #include "gelex/bayes/genetic/types.h"
 #include "gelex/bayes/genotype/operations.h"
 #include "gelex/bayes/parameter.h"
 #include "gelex/bayes/spec.h"
 #include "gelex/bayes/stats/dirichlet_log_kernel.h"
-#include "gelex/bayes/variance/detail/calibration.h"
+#include "gelex/bayes/variance/calibration.h"
 #include "gelex/genetic_mode.h"
 #include "gelex/infra/var.h"
 #include "gelex/io/binary_format.h"
@@ -57,6 +57,8 @@ constexpr auto initial_activity(const ScaledMixtureSpec<WeightUpdate>& spec)
     return activity;
 }
 
+GELEX_NAMESPACE_END(detail)
+
 template <GeneticMode Mode, MixtureWeightUpdate WeightUpdate>
 auto make_prior(
     const ScaledMixtureSpec<WeightUpdate>& spec,
@@ -64,13 +66,12 @@ auto make_prior(
     -> ScaledMixturePrior<WeightUpdate>
 {
     return {
-        .variance = calibrator.calibrate(Mode, initial_activity(spec)),
-        .probabilities = make_parameter<WeightUpdate>(
+        .variance = calibrator.calibrate(Mode, detail::initial_activity(spec)),
+        .probabilities = detail::make_parameter<WeightUpdate>(
             spec.probabilities(),
             make_uniform_dirichlet_prior<ScaledMixtureSpec<>::class_count>()),
         .scales = spec.scales()};
 }
-GELEX_NAMESPACE_END(detail)
 
 class ScaledMixtureState
 {
@@ -164,7 +165,6 @@ class ScaledMixtureState
     std::array<double, class_count> probabilities_;
 };
 
-GELEX_NAMESPACE_BEGIN(detail)
 template <MixtureWeightUpdate WeightUpdate>
 auto make_state(
     const ScaledMixturePrior<WeightUpdate>& prior,
@@ -172,7 +172,6 @@ auto make_state(
 {
     return {prior.variance.initial, prior.probabilities.initial, dimensions};
 }
-GELEX_NAMESPACE_END(detail)
 
 template <MixtureWeightUpdate WeightUpdate>
 class ScaledMixtureDraws
@@ -215,7 +214,6 @@ class ScaledMixtureDraws
     PayloadWriter<double> component_explained_variance_;
 };
 
-GELEX_NAMESPACE_BEGIN(detail)
 template <MixtureWeightUpdate WeightUpdate>
 [[nodiscard]] auto make_draws(
     const ScaledMixturePrior<WeightUpdate>& /*prior*/,
@@ -256,7 +254,6 @@ template <MixtureWeightUpdate WeightUpdate>
         std::move(probabilities),
         std::move(component_explained_variance)};
 }
-GELEX_NAMESPACE_END(detail)
 
 GELEX_NAMESPACE_END(gelex)
 

@@ -16,7 +16,7 @@
 #include "gelex/bayes/state.h"
 #include "gelex/genetic_mode.h"
 
-namespace gelex::detail
+namespace gelex
 {
 
 template <VarianceLayout Kind>
@@ -48,13 +48,13 @@ class GaussianKernel
         previous_adjusted_response_ = residual.adjusted_response;
         std::normal_distribution<double> normal_dist;
         const auto normal_prior_for_marker
-            = make_normal_prior_provider<Kind>(variance);
+            = detail::make_normal_prior_provider<Kind>(variance);
 
         double sum_squares = 0.0;
         for (const Eigen::Index marker : valid_indices)
         {
             const double old_value = coefficients(marker);
-            const auto likelihood = make_coefficient_likelihood(
+            const auto likelihood = detail::make_coefficient_likelihood(
                 projection, marker, old_value, residual);
             const auto posterior
                 = (likelihood + normal_prior_for_marker(marker))
@@ -86,7 +86,7 @@ class GaussianKernel
     }
 
    private:
-    NormalVarianceConjugateUpdater variance_updater_;
+    detail::NormalVarianceConjugateUpdater variance_updater_;
     Eigen::VectorXd previous_adjusted_response_;
 };
 
@@ -96,6 +96,6 @@ template <VarianceLayout Kind>
     return GaussianKernel<Kind>{prior};
 }
 
-}  // namespace gelex::detail
+}  // namespace gelex
 
 #endif  // GELEX_BAYES_GENETIC_GAUSSIAN_KERNEL_H_

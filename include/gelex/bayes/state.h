@@ -11,7 +11,7 @@
 #include <utility>
 #include <vector>
 
-#include "gelex/bayes/genetic/construction.h"
+#include "gelex/bayes/genetic/factory.h"
 #include "gelex/bayes/model.h"
 #include "gelex/bayes/prior.h"
 #include "gelex/exception.h"
@@ -41,7 +41,7 @@ class BayesState
 {
    public:
     using genetic_prior_type = GeneticPrior;
-    using genetic_state_type = detail::genetic_state_t<GeneticPrior>;
+    using genetic_state_type = genetic_state_t<GeneticPrior>;
 
     BayesState(
         FixedEffectState fixed,
@@ -127,7 +127,7 @@ template <typename GeneticPrior>
         FixedEffectState{
             .coefficients = Eigen::VectorXd::Zero(model.fixed().X().cols())},
         std::move(random),
-        detail::make_state(prior.genetic(), model.genetic()),
+        make_state(prior.genetic(), model.genetic()),
         ResidualState{
             .adjusted_response = model.phenotype(),
             .variance = prior.residual().initial}};

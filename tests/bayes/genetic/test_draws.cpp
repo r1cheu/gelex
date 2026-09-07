@@ -7,7 +7,8 @@
 #include <cstdint>
 #include <string>
 
-#include "gelex/bayes/genetic/construction.h"
+#include "gelex/bayes/genetic/draw_schema.h"
+#include "gelex/bayes/genetic/factory.h"
 #include "gelex/bayes/genetic/gaussian.h"
 #include "gelex/bayes/genetic/joint_spike_slab.h"
 #include "gelex/bayes/genetic/parameter.h"
@@ -46,11 +47,15 @@ auto check_mode_draws(const Spec& spec) -> void
     gelex::test::FileFixture fixture;
     const auto path = (fixture.get_test_dir() / "mode.draws").string();
     const gelex::GeneticDimensions dimensions{.individual = 3, .marker = 2};
-    auto state = gelex::detail::make_state(prior, dimensions);
+    auto state = gelex::make_state(prior, dimensions);
     {
         gelex::BinaryWriter writer{path};
-        auto draws = gelex::detail::make_draws(
-            prior, writer, "genetic/A", 2, dimensions);
+        auto draws = gelex::make_draws(
+            prior,
+            writer,
+            gelex::genetic_id<gelex::GeneticMode::A>,
+            2,
+            dimensions);
         if constexpr (requires { state.assignments(); })
         {
             static_cast<void>(state.transition(0, 1.25, 1));
@@ -178,16 +183,20 @@ TEST_CASE(
             .probabilities = gelex::detail::make_parameter<Update>(
                 std::array<double, 4>{0.25, 0.25, 0.25, 0.25},
                 gelex::make_uniform_dirichlet_prior<4>())};
-        auto dominance = gelex::detail::make_state(dominance_prior, dimensions);
-        auto joint = gelex::detail::make_state(joint_prior, dimensions);
+        auto dominance = gelex::make_state(dominance_prior, dimensions);
+        auto joint = gelex::make_state(joint_prior, dimensions);
         dominance.transition(0, 1.5);
         dominance.annotation_coefficients() = Eigen::Vector2d{{0.25, -0.5}};
         {
             gelex::BinaryWriter writer{path};
-            auto mode_draws = gelex::detail::make_draws(
-                dominance_prior, writer, "genetic/D", 1, dimensions);
-            auto joint_draws = gelex::detail::make_draws(
-                joint_prior, writer, "genetic/joint", 1, dimensions);
+            auto mode_draws = gelex::make_draws(
+                dominance_prior,
+                writer,
+                gelex::genetic_id<gelex::GeneticMode::D>,
+                1,
+                dimensions);
+            auto joint_draws = gelex::make_draws(
+                joint_prior, writer, gelex::joint_genetic_id, 1, dimensions);
             mode_draws.append(dominance);
             joint_draws.append(joint);
             writer.close();

@@ -1,8 +1,8 @@
 // Copyright 2026 RuLei Chen
 // SPDX-License-Identifier: Apache-2.0
 
-#ifndef GELEX_BAYES_DESIGN_H_
-#define GELEX_BAYES_DESIGN_H_
+#ifndef GELEX_BAYES_RANDOM_DESIGN_H_
+#define GELEX_BAYES_RANDOM_DESIGN_H_
 
 #include <Eigen/Core>
 #include <span>
@@ -23,18 +23,14 @@ class DataFrame;
 namespace gelex::bayes
 {
 
-class RandomDesign;
-
-[[nodiscard]] auto make_random_designs(const DataFrame<std::string>& frame)
-    -> std::vector<RandomDesign>;
-
-[[nodiscard]] auto make_quantitative_random_design(
-    const DataFrame<std::string>& frame,
-    std::string name) -> RandomDesign;
-
 class RandomDesign
 {
    public:
+    RandomDesign(
+        std::string name,
+        std::vector<std::string> column_names,
+        Eigen::MatrixXd X);
+
     RandomDesign(const RandomDesign&) = default;
     auto operator=(const RandomDesign&) -> RandomDesign& = default;
     RandomDesign(RandomDesign&&) noexcept = default;
@@ -63,24 +59,19 @@ class RandomDesign
     }
 
    private:
-    RandomDesign(
-        std::string name,
-        std::vector<std::string> column_names,
-        Eigen::MatrixXd X);
-
-    friend auto make_random_designs(const DataFrame<std::string>& frame)
-        -> std::vector<RandomDesign>;
-
-    friend auto make_quantitative_random_design(
-        const DataFrame<std::string>& frame,
-        std::string name) -> RandomDesign;
-
     std::string name_;
     std::vector<std::string> column_names_;
     Eigen::MatrixXd matrix_;
     Eigen::VectorXd xtx_diag_;
 };
 
+[[nodiscard]] auto make_random_designs(const DataFrame<std::string>& frame)
+    -> std::vector<RandomDesign>;
+
+[[nodiscard]] auto make_quantitative_random_design(
+    const DataFrame<std::string>& frame,
+    std::string name) -> RandomDesign;
+
 }  // namespace gelex::bayes
 
-#endif  // GELEX_BAYES_DESIGN_H_
+#endif  // GELEX_BAYES_RANDOM_DESIGN_H_

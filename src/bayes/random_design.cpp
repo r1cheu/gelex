@@ -1,7 +1,7 @@
 // Copyright 2026 RuLei Chen
 // SPDX-License-Identifier: Apache-2.0
 
-#include "gelex/bayes/design.h"
+#include "gelex/bayes/random_design.h"
 
 #include <Eigen/Core>
 #include <cstddef>
@@ -40,6 +40,13 @@ RandomDesign::RandomDesign(
         throw GelexException(
             fmt::format(
                 "RandomDesign '{}': X must not have zero columns", name_));
+    }
+    if (!std::cmp_equal(column_names_.size(), matrix_.cols()))
+    {
+        throw GelexException(
+            fmt::format(
+                "RandomDesign '{}': column name count must match X columns",
+                name_));
     }
     if (!xtx_diag_.allFinite() || (xtx_diag_.array() <= 0.0).any())
     {

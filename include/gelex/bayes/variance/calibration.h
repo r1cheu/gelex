@@ -1,8 +1,10 @@
 // Copyright 2026 RuLei Chen
 // SPDX-License-Identifier: Apache-2.0
 
-#ifndef GELEX_BAYES_VARIANCE_DETAIL_CALIBRATION_H_
-#define GELEX_BAYES_VARIANCE_DETAIL_CALIBRATION_H_
+#ifndef GELEX_BAYES_VARIANCE_CALIBRATION_H_
+#define GELEX_BAYES_VARIANCE_CALIBRATION_H_
+
+#include <array>
 
 #include "gelex/bayes/parameter.h"
 #include "gelex/genetic_mode.h"
@@ -19,26 +21,25 @@ namespace detail
 auto make_mean_calibrated_variance_parameter(double target)
     -> VarianceParameter;
 
+}  // namespace detail
+
 class MarkerVarianceCalibrator
 {
    public:
-    MarkerVarianceCalibrator(
-        const BayesModel& model,
-        const VarianceBudget& budget) noexcept
-        : model_{&model}, budget_{&budget}
-    {
-    }
+    explicit MarkerVarianceCalibrator(
+        std::array<double, all_genetic_modes.size()> base_variances);
 
     auto calibrate(GeneticMode mode, double initial_activity) const
         -> VarianceParameter;
 
    private:
-    const BayesModel* model_;
-    const VarianceBudget* budget_;
+    std::array<double, all_genetic_modes.size()> base_variances_;
 };
 
-}  // namespace detail
+auto make_marker_variance_calibrator(
+    const BayesModel& model,
+    const VarianceBudget& budget) -> MarkerVarianceCalibrator;
 
 }  // namespace gelex
 
-#endif  // GELEX_BAYES_VARIANCE_DETAIL_CALIBRATION_H_
+#endif  // GELEX_BAYES_VARIANCE_CALIBRATION_H_

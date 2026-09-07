@@ -6,7 +6,7 @@
 #include <utility>
 #include <vector>
 
-#include "gelex/bayes/design.h"
+#include "gelex/bayes/random_design.h"
 #include "gelex/data/bed.h"
 #include "gelex/data/dataframe/index.h"
 

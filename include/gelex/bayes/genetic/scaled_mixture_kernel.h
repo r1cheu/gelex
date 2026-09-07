@@ -24,7 +24,7 @@
 #include "gelex/bayes/stats/quadratic_log_kernel.h"
 #include "gelex/genetic_mode.h"
 
-namespace gelex::detail
+namespace gelex
 {
 
 template <MixtureWeightUpdate WeightUpdate>
@@ -45,8 +45,9 @@ class ScaledMixtureKernel
    public:
     explicit ScaledMixtureKernel(const Prior& prior)
         : variance_updater_{prior.variance.prior},
-          probability_updater_{make_dirichlet_conjugate_updater<class_count>(
-              prior.probabilities)},
+          probability_updater_{
+              detail::make_dirichlet_conjugate_updater<class_count>(
+                  prior.probabilities)},
           scales_{prior.scales}
     {
     }
@@ -69,7 +70,7 @@ class ScaledMixtureKernel
         for (const Eigen::Index marker : valid_indices)
         {
             const double old_value = coefficients(marker);
-            const auto likelihood = make_coefficient_likelihood(
+            const auto likelihood = detail::make_coefficient_likelihood(
                 projection, marker, old_value, residual);
             const auto sample = draw_component(
                 likelihood, state.variance(), log_probabilities, rng);
@@ -80,7 +81,7 @@ class ScaledMixtureKernel
 
             const std::array extra_targets{bayes::AxpyTarget{
                 old_value - new_value, residual.adjusted_response}};
-            apply_fitted_update(
+            detail::apply_fitted_update(
                 projection,
                 marker,
                 state.transition(
@@ -143,9 +144,10 @@ class ScaledMixtureKernel
             .coefficient_parameters = coefficient_parameters[class_index]};
     }
 
-    NormalVarianceConjugateUpdater variance_updater_;
-    [[no_unique_address]] DirichletConjugateUpdater<class_count, WeightUpdate>
-        probability_updater_;
+    detail::NormalVarianceConjugateUpdater variance_updater_;
+    [[no_unique_address]] detail::DirichletConjugateUpdater<
+        class_count,
+        WeightUpdate> probability_updater_;
     LogCategoricalDistribution<class_count> allocation_distribution_;
     std::array<double, class_count> scales_;
 };
@@ -156,6 +158,6 @@ template <MixtureWeightUpdate WeightUpdate>
     return ScaledMixtureKernel<WeightUpdate>{prior};
 }
 
-}  // namespace gelex::detail
+}  // namespace gelex
 
 #endif  // GELEX_BAYES_GENETIC_SCALED_MIXTURE_KERNEL_H_

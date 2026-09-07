@@ -14,7 +14,6 @@
 #include <vector>
 
 #include "gelex/bayes/builtin_method.h"
-#include "gelex/bayes/design.h"
 #include "gelex/bayes/draws.h"
 #include "gelex/bayes/genetic/gaussian.h"
 #include "gelex/bayes/genetic/joint_spike_slab.h"
@@ -24,6 +23,7 @@
 #include "gelex/bayes/mode_values.h"
 #include "gelex/bayes/model.h"
 #include "gelex/bayes/prior.h"
+#include "gelex/bayes/random_design.h"
 #include "gelex/bayes/recipe.h"
 #include "gelex/bayes/spec.h"
 #include "gelex/bayes/state.h"

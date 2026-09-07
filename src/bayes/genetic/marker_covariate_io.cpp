@@ -1,7 +1,7 @@
 // Copyright 2026 RuLei Chen
 // SPDX-License-Identifier: Apache-2.0
 
-#include "gelex/bayes/marker_covariate_io.h"
+#include "gelex/bayes/genetic/marker_covariate_io.h"
 
 #include <algorithm>
 #include <array>
