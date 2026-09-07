@@ -14,7 +14,7 @@
 #include <utility>
 #include <vector>
 
-#include "gelex/bayes/genetic/construction.h"
+#include "gelex/bayes/genetic/factory.h"
 #include "gelex/bayes/model.h"
 #include "gelex/bayes/prior.h"
 #include "gelex/bayes/state.h"
@@ -77,7 +77,7 @@ template <typename GeneticPrior>
 class BayesDraws
 {
    public:
-    using genetic_draws_type = detail::genetic_draws_t<GeneticPrior>;
+    using genetic_draws_type = genetic_draws_t<GeneticPrior>;
 
     BayesDraws(
         const BayesPrior<GeneticPrior>& prior,
@@ -91,7 +91,7 @@ class BayesDraws
                   static_cast<std::uint64_t>(model.fixed().X().cols()),
                   draw_count})},
           random_{detail::make_random_draws(model, writer_, draw_count)},
-          genetic_{detail::make_draws(
+          genetic_{make_draws(
               prior.genetic(),
               model.genetic(),
               writer_,

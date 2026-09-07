@@ -9,22 +9,40 @@
 #include <type_traits>
 #include <vector>
 
-#include "gelex/bayes/design.h"
+#include "gelex/bayes/random_design.h"
 #include "gelex/data/dataframe/constants.h"
 #include "gelex/data/dataframe/reader.h"
 #include "gelex/exception.h"
 
 #include "file_fixture.h"
 
-static_assert(!std::is_constructible_v<
+static_assert(std::is_constructible_v<
               gelex::bayes::RandomDesign,
               std::string,
               std::vector<std::string>,
               Eigen::MatrixXd>);
 
 TEST_CASE(
+    "RandomDesign validates direct construction",
+    "[bayes][random_design]")
+{
+    const Eigen::MatrixXd values{{1.0, 0.0}, {0.0, 2.0}, {1.0, 1.0}};
+    const std::vector<std::string> names{"x1", "x2"};
+    const gelex::bayes::RandomDesign design{"random", names, values};
+    REQUIRE(design.name() == "random");
+    REQUIRE(std::ranges::equal(design.column_names(), names));
+    REQUIRE(design.X().isApprox(values));
+    REQUIRE(design.xtx_diag().isApprox(Eigen::VectorXd{{2.0, 5.0}}));
+
+    const std::vector<std::string> wrong_names{"x1", "x2", "x3"};
+    REQUIRE_THROWS_AS(
+        (gelex::bayes::RandomDesign{"random", wrong_names, values}),
+        gelex::GelexException);
+}
+
+TEST_CASE(
     "make_random_designs builds one-hot coefficient blocks",
-    "[bayes][design_factory]")
+    "[bayes][random_design]")
 {
     gelex::test::FileFixture files;
     constexpr std::string_view content
@@ -65,7 +83,7 @@ TEST_CASE(
 
 TEST_CASE(
     "make_quantitative_random_design keeps one multi-column block",
-    "[bayes][design_factory]")
+    "[bayes][random_design]")
 {
     gelex::test::FileFixture files;
     constexpr std::string_view content
@@ -93,7 +111,7 @@ TEST_CASE(
 
 TEST_CASE(
     "RandomDesign factories reject invalid blocks",
-    "[bayes][design_factory]")
+    "[bayes][random_design]")
 {
     gelex::test::FileFixture files;
 

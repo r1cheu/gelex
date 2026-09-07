@@ -12,7 +12,9 @@
 #include <utility>
 #include <vector>
 
+#include "gelex/bayes/common_kernel.h"
 #include "gelex/bayes/genetic/gaussian.h"
+#include "gelex/bayes/genetic/kernel_factory.h"
 #include "gelex/bayes/genetic/scaled_mixture.h"
 #include "gelex/bayes/genetic/spike_slab.h"
 #include "gelex/bayes/genetic/types.h"
@@ -82,6 +84,12 @@ using HeterogeneousGeneticPrior = gelex::ModeValues<
     gelex::SpikeSlabPrior<
         gelex::VarianceLayout::Unpooled,
         gelex::MixtureWeightUpdate::Disabled>>;
+
+static_assert(std::constructible_from<
+              gelex::BayesKernel<AdditiveGeneticPrior>,
+              std::vector<gelex::RandomEffectKernel>,
+              gelex::genetic_kernel_t<AdditiveGeneticPrior>,
+              gelex::ResidualVarianceKernel>);
 
 static_assert(
     std::same_as<

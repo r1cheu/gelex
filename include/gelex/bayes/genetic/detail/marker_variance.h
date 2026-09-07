@@ -1,8 +1,8 @@
 // Copyright 2026 RuLei Chen
 // SPDX-License-Identifier: Apache-2.0
 
-#ifndef GELEX_BAYES_GENETIC_STATE_H_
-#define GELEX_BAYES_GENETIC_STATE_H_
+#ifndef GELEX_BAYES_GENETIC_DETAIL_MARKER_VARIANCE_H_
+#define GELEX_BAYES_GENETIC_DETAIL_MARKER_VARIANCE_H_
 
 #include <Eigen/Core>
 #include <type_traits>
@@ -34,4 +34,4 @@ auto initial_marker_variance(
 
 }  // namespace gelex::detail
 
-#endif  // GELEX_BAYES_GENETIC_STATE_H_
+#endif  // GELEX_BAYES_GENETIC_DETAIL_MARKER_VARIANCE_H_

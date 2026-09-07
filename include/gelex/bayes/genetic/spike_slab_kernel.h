@@ -21,7 +21,7 @@
 #include "gelex/bayes/stats/log_categorical_distribution.h"
 #include "gelex/genetic_mode.h"
 
-namespace gelex::detail
+namespace gelex
 {
 
 template <VarianceLayout Kind, MixtureWeightUpdate WeightUpdate>
@@ -34,7 +34,7 @@ class SpikeSlabKernel
     explicit SpikeSlabKernel(const Prior& prior)
         : variance_updater_{prior.variance.prior},
           probability_updater_{
-              make_dirichlet_conjugate_updater<2>(prior.probability)}
+              detail::make_dirichlet_conjugate_updater<2>(prior.probability)}
     {
     }
 
@@ -55,13 +55,13 @@ class SpikeSlabKernel
         const auto log_probabilities = make_log_weights(
             std::array{1.0 - state.probability(), state.probability()});
         const auto normal_prior_for_marker
-            = make_normal_prior_provider<Kind>(variance);
+            = detail::make_normal_prior_provider<Kind>(variance);
 
         double pooled_sum_squares = 0.0;
         for (const Eigen::Index marker : valid_indices)
         {
             const double old_value = coefficients(marker);
-            const auto likelihood = make_coefficient_likelihood(
+            const auto likelihood = detail::make_coefficient_likelihood(
                 projection, marker, old_value, residual);
             const auto slab_kernel
                 = likelihood + normal_prior_for_marker(marker);
@@ -115,8 +115,8 @@ class SpikeSlabKernel
     }
 
    private:
-    NormalVarianceConjugateUpdater variance_updater_;
-    [[no_unique_address]] DirichletConjugateUpdater<2, WeightUpdate>
+    detail::NormalVarianceConjugateUpdater variance_updater_;
+    [[no_unique_address]] detail::DirichletConjugateUpdater<2, WeightUpdate>
         probability_updater_;
     LogCategoricalDistribution<2> allocation_distribution_;
     Eigen::VectorXd previous_adjusted_response_;
@@ -128,6 +128,6 @@ template <VarianceLayout Kind, MixtureWeightUpdate WeightUpdate>
     return SpikeSlabKernel<Kind, WeightUpdate>{prior};
 }
 
-}  // namespace gelex::detail
+}  // namespace gelex
 
 #endif  // GELEX_BAYES_GENETIC_SPIKE_SLAB_KERNEL_H_

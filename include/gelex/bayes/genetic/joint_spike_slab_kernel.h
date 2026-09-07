@@ -15,11 +15,11 @@
 #include <span>
 
 #include "gelex/bayes/detail/normal_variance_conjugate_updater.h"
-#include "gelex/bayes/genetic/construction.h"
 #include "gelex/bayes/genetic/detail/apply_fitted_update.h"
 #include "gelex/bayes/genetic/detail/coefficient_likelihood.h"
 #include "gelex/bayes/genetic/detail/dirichlet_conjugate_updater.h"
 #include "gelex/bayes/genetic/detail/probit_updater.h"
+#include "gelex/bayes/genetic/factory.h"
 #include "gelex/bayes/genetic/gaussian.h"
 #include "gelex/bayes/genetic/joint_spike_slab.h"
 #include "gelex/bayes/genetic/types.h"
@@ -35,7 +35,7 @@
 #include "gelex/genetic_mode.h"
 #include "gelex/infra/normal.h"
 
-namespace gelex::detail
+namespace gelex
 {
 
 template <MixtureWeightUpdate WeightUpdate>
@@ -74,8 +74,9 @@ class JointSpikeSlabKernel
                                           .template get<GeneticMode::D>()
                                           .variance.prior},
           probit_updater_{make_multi_normal_prior(Eigen::Matrix2d::Identity())},
-          probability_updater_{make_dirichlet_conjugate_updater<class_count>(
-              prior.joint().probabilities)}
+          probability_updater_{
+              detail::make_dirichlet_conjugate_updater<class_count>(
+                  prior.joint().probabilities)}
     {
     }
 
@@ -122,10 +123,12 @@ class JointSpikeSlabKernel
             const std::array<double, 2> dominance_log_probabilities{
                 log_norm_cdf(-linear_predictor),
                 log_norm_cdf(linear_predictor)};
-            const auto additive_likelihood = make_coefficient_likelihood(
-                additive_projection, marker, old_additive, residual);
-            const auto dominance_likelihood = make_coefficient_likelihood(
-                dominance_projection, marker, old_dominance, residual);
+            const auto additive_likelihood
+                = detail::make_coefficient_likelihood(
+                    additive_projection, marker, old_additive, residual);
+            const auto dominance_likelihood
+                = detail::make_coefficient_likelihood(
+                    dominance_projection, marker, old_dominance, residual);
             const auto additive_posterior
                 = additive_likelihood + additive_prior;
             const double additive_log_integral
@@ -192,7 +195,7 @@ class JointSpikeSlabKernel
             const std::array additive_targets{
                 bayes::AxpyTarget{-additive_delta, residual.adjusted_response},
                 bayes::AxpyTarget{additive_delta, additive_fitted_delta_}};
-            apply_fitted_update(
+            detail::apply_fitted_update(
                 additive_projection,
                 marker,
                 updates.template get<GeneticMode::A>(),
@@ -201,7 +204,7 @@ class JointSpikeSlabKernel
             const std::array dominance_targets{
                 bayes::AxpyTarget{-dominance_delta, residual.adjusted_response},
                 bayes::AxpyTarget{dominance_delta, dominance_fitted_delta_}};
-            apply_fitted_update(
+            detail::apply_fitted_update(
                 dominance_projection,
                 marker,
                 updates.template get<GeneticMode::D>(),
@@ -278,11 +281,12 @@ class JointSpikeSlabKernel
 
     Eigen::VectorXd additive_fitted_delta_;
     Eigen::VectorXd dominance_fitted_delta_;
-    NormalVarianceConjugateUpdater additive_variance_updater_;
-    NormalVarianceConjugateUpdater dominance_variance_updater_;
-    ProbitUpdater probit_updater_;
-    [[no_unique_address]] DirichletConjugateUpdater<class_count, WeightUpdate>
-        probability_updater_;
+    detail::NormalVarianceConjugateUpdater additive_variance_updater_;
+    detail::NormalVarianceConjugateUpdater dominance_variance_updater_;
+    detail::ProbitUpdater probit_updater_;
+    [[no_unique_address]] detail::DirichletConjugateUpdater<
+        class_count,
+        WeightUpdate> probability_updater_;
     LogCategoricalDistribution<class_count> allocation_distribution_;
     LogCategoricalDistribution<2> sign_distribution_;
 };
@@ -299,6 +303,6 @@ template <MixtureWeightUpdate WeightUpdate>
     return JointSpikeSlabKernel<WeightUpdate>{prior};
 }
 
-}  // namespace gelex::detail
+}  // namespace gelex
 
 #endif  // GELEX_BAYES_GENETIC_JOINT_SPIKE_SLAB_KERNEL_H_

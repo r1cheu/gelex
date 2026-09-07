@@ -1,8 +1,8 @@
 // Copyright 2026 RuLei Chen
 // SPDX-License-Identifier: Apache-2.0
 
-#ifndef GELEX_BAYES_GENETIC_DRAWS_H_
-#define GELEX_BAYES_GENETIC_DRAWS_H_
+#ifndef GELEX_BAYES_GENETIC_DRAW_SCHEMA_H_
+#define GELEX_BAYES_GENETIC_DRAW_SCHEMA_H_
 
 /* Shared serialization schema for genetic draws: payload IDs,
  * storage dtypes, and corresponding writer types.
@@ -23,12 +23,15 @@ GELEX_NAMESPACE_BEGIN(gelex)
 template <detail::SupportedDtype>
 class PayloadWriter;
 
+GELEX_NAMESPACE_BEGIN(detail)
 template <GeneticMode Mode>
 inline constexpr auto genetic_id_storage
     = FMT_STATIC_FORMAT("genetic/{}", Mode);
+GELEX_NAMESPACE_END(detail)
 
 template <GeneticMode Mode>
-inline const std::string_view genetic_id{genetic_id_storage<Mode>.c_str()};
+inline const std::string_view genetic_id{
+    detail::genetic_id_storage<Mode>.c_str()};
 
 inline constexpr std::string_view joint_genetic_id = "genetic/joint";
 inline constexpr std::string_view coefficients_id = "coefficients";
@@ -56,4 +59,4 @@ using probability_writer_t = std::conditional_t<
 
 GELEX_NAMESPACE_END(gelex)
 
-#endif  // GELEX_BAYES_GENETIC_DRAWS_H_
+#endif  // GELEX_BAYES_GENETIC_DRAW_SCHEMA_H_

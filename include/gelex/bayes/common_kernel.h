@@ -1,21 +1,24 @@
 // Copyright 2026 RuLei Chen
 // SPDX-License-Identifier: Apache-2.0
 
-#ifndef GELEX_BAYES_DETAIL_COMMON_KERNEL_H_
-#define GELEX_BAYES_DETAIL_COMMON_KERNEL_H_
+#ifndef GELEX_BAYES_COMMON_KERNEL_H_
+#define GELEX_BAYES_COMMON_KERNEL_H_
 
 #include <Eigen/Core>
 #include <cstddef>
 #include <random>
 
-#include "gelex/bayes/design.h"
 #include "gelex/bayes/detail/normal_variance_conjugate_updater.h"
 #include "gelex/bayes/parameter.h"
+#include "gelex/bayes/random_design.h"
 #include "gelex/bayes/state.h"
 #include "gelex/bayes/stats/quadratic_log_kernel.h"
 #include "gelex/data/fixed_design.h"
 
-namespace gelex::detail
+namespace gelex
+{
+
+namespace detail
 {
 
 inline auto update_fixed_effects(
@@ -41,6 +44,8 @@ inline auto update_fixed_effects(
             += (old_value - new_value) * column.array();
     }
 }
+
+}  // namespace detail
 
 class RandomEffectKernel
 {
@@ -88,7 +93,7 @@ class RandomEffectKernel
     }
 
    private:
-    NormalVarianceConjugateUpdater variance_updater_;
+    detail::NormalVarianceConjugateUpdater variance_updater_;
 };
 
 class ResidualVarianceKernel
@@ -109,9 +114,9 @@ class ResidualVarianceKernel
     }
 
    private:
-    NormalVarianceConjugateUpdater variance_updater_;
+    detail::NormalVarianceConjugateUpdater variance_updater_;
 };
 
-}  // namespace gelex::detail
+}  // namespace gelex
 
-#endif  // GELEX_BAYES_DETAIL_COMMON_KERNEL_H_
+#endif  // GELEX_BAYES_COMMON_KERNEL_H_

@@ -8,6 +8,7 @@
 #include <fmt/format.h>
 #include <string_view>
 
+#include "gelex/bayes/genetic/draw_schema.h"
 #include "gelex/bayes/mode_values.h"
 #include "gelex/bayes/variance/summary.h"
 #include "gelex/genetic_mode.h"
@@ -68,7 +69,7 @@ class VarianceSummaryDraws
                 return reserve(
                     writer,
                     draw_count,
-                    fmt::format("genetic/{}/{}", Mode, leaf));
+                    fmt::format("{}/{}", genetic_id<Mode>, leaf));
             });
     }
 

@@ -14,7 +14,7 @@
 #include <utility>
 
 #include "gelex/bayes/genetic/detail/fitted_update.h"
-#include "gelex/bayes/genetic/draws.h"
+#include "gelex/bayes/genetic/draw_schema.h"
 #include "gelex/bayes/genetic/gaussian.h"
 #include "gelex/bayes/genetic/parameter.h"
 #include "gelex/bayes/genetic/types.h"
@@ -22,7 +22,7 @@
 #include "gelex/bayes/parameter.h"
 #include "gelex/bayes/spec.h"
 #include "gelex/bayes/stats/dirichlet_log_kernel.h"
-#include "gelex/bayes/variance/detail/calibration.h"
+#include "gelex/bayes/variance/calibration.h"
 #include "gelex/genetic_mode.h"
 #include "gelex/infra/var.h"
 #include "gelex/io/binary_format.h"
@@ -63,6 +63,8 @@ constexpr auto initial_activity(const JointSpikeSlabSpec<WeightUpdate>& spec)
     }
 }
 
+GELEX_NAMESPACE_END(detail)
+
 template <GeneticModeSet Modes, MixtureWeightUpdate WeightUpdate>
     requires(Modes == (GeneticMode::A | GeneticMode::D))
 auto make_prior(
@@ -77,7 +79,7 @@ auto make_prior(
         [&]<GeneticMode Mode>(const auto&)
         {
             auto variance = calibrator.calibrate(
-                Mode, initial_activity<Mode>(joint_spec));
+                Mode, detail::initial_activity<Mode>(joint_spec));
             if constexpr (Mode == GeneticMode::A)
             {
                 return GaussianPrior<VarianceLayout::Pooled>{
@@ -93,11 +95,10 @@ auto make_prior(
     return JointModeValues{
         std::move(mode_priors),
         JointPrior{
-            .probabilities = make_parameter<WeightUpdate>(
+            .probabilities = detail::make_parameter<WeightUpdate>(
                 joint_spec.probabilities(),
                 make_uniform_dirichlet_prior<JointPrior::class_count>())}};
 }
-GELEX_NAMESPACE_END(detail)
 
 class HalfNormalState
 {
@@ -257,7 +258,6 @@ class JointSpikeSlabState
     FittedValues fitted_values_;
 };
 
-GELEX_NAMESPACE_BEGIN(detail)
 inline auto make_state(
     const HalfNormalPrior& prior,
     GeneticDimensions dimensions) -> HalfNormalState
@@ -272,7 +272,6 @@ auto make_state(
 {
     return {prior.probabilities.initial, dimensions};
 }
-GELEX_NAMESPACE_END(detail)
 
 class HalfNormalDraws
 {
@@ -334,7 +333,6 @@ class JointSpikeSlabDraws
     PayloadWriter<double> component_explained_variance_;
 };
 
-GELEX_NAMESPACE_BEGIN(detail)
 [[nodiscard]] inline auto make_draws(
     const HalfNormalPrior& /*prior*/,
     BinaryWriter& writer,
@@ -392,7 +390,6 @@ template <MixtureWeightUpdate WeightUpdate>
         std::move(probabilities),
         std::move(component_explained_variance)};
 }
-GELEX_NAMESPACE_END(detail)
 
 GELEX_NAMESPACE_END(gelex)
 

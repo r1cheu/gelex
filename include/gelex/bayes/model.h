@@ -8,8 +8,8 @@
 #include <span>
 #include <vector>
 
-#include "gelex/bayes/design.h"
 #include "gelex/bayes/genotype/design.h"
+#include "gelex/bayes/random_design.h"
 #include "gelex/data/fixed_design.h"
 
 namespace gelex

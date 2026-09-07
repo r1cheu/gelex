@@ -1,8 +1,8 @@
 // Copyright 2026 RuLei Chen
 // SPDX-License-Identifier: Apache-2.0
 
-#ifndef GELEX_BAYES_GENETIC_CONSTRUCTION_H_
-#define GELEX_BAYES_GENETIC_CONSTRUCTION_H_
+#ifndef GELEX_BAYES_GENETIC_FACTORY_H_
+#define GELEX_BAYES_GENETIC_FACTORY_H_
 
 // Composes per-method prior, state, and draw factories over genetic modes.
 
@@ -11,7 +11,7 @@
 #include <cstdint>
 #include <utility>
 
-#include "gelex/bayes/genetic/draws.h"
+#include "gelex/bayes/genetic/draw_schema.h"
 #include "gelex/bayes/genetic/gaussian.h"
 #include "gelex/bayes/genetic/joint_spike_slab.h"
 #include "gelex/bayes/genetic/scaled_mixture.h"
@@ -19,12 +19,12 @@
 #include "gelex/bayes/genetic/types.h"
 #include "gelex/bayes/genotype/design.h"
 #include "gelex/bayes/mode_values.h"
-#include "gelex/bayes/variance/detail/calibration.h"
+#include "gelex/bayes/variance/calibration.h"
 #include "gelex/exception.h"
 #include "gelex/genetic_mode.h"
 #include "gelex/io/binary_writer.h"
 
-namespace gelex::detail
+namespace gelex
 {
 
 // ---- prior
@@ -42,6 +42,8 @@ auto make_prior(
 
 // ---- state
 
+namespace detail
+{
 template <GeneticModeSet Modes>
 auto validate_genetic_design(const bayes::GeneticDesign& design) -> void
 {
@@ -56,12 +58,14 @@ auto validate_genetic_design(const bayes::GeneticDesign& design) -> void
     }
 }
 
+}  // namespace detail
+
 template <GeneticModeSet Modes, typename... Priors>
 auto make_state(
     const ModeValues<Modes, Priors...>& prior,
     const bayes::GeneticDesign& design)
 {
-    validate_genetic_design<Modes>(design);
+    detail::validate_genetic_design<Modes>(design);
     const auto dimensions = GeneticDimensions{
         .individual = static_cast<std::size_t>(design.rows()),
         .marker = static_cast<std::size_t>(design.cols())};
@@ -98,7 +102,7 @@ template <GeneticModeSet Modes, typename... Priors>
     BinaryWriter& writer,
     std::uint64_t draw_count)
 {
-    validate_genetic_design<Modes>(design);
+    detail::validate_genetic_design<Modes>(design);
     const GeneticDimensions dimensions{
         .individual = static_cast<std::size_t>(design.rows()),
         .marker = static_cast<std::size_t>(design.cols())};
@@ -135,6 +139,6 @@ using genetic_draws_t = decltype(make_draws(
     std::declval<BinaryWriter&>(),
     std::declval<std::uint64_t>()));
 
-}  // namespace gelex::detail
+}  // namespace gelex
 
-#endif  // GELEX_BAYES_GENETIC_CONSTRUCTION_H_
+#endif  // GELEX_BAYES_GENETIC_FACTORY_H_

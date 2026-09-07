@@ -9,8 +9,8 @@
 #include <utility>
 #include <vector>
 
-#include "gelex/bayes/detail/common_kernel.h"
-#include "gelex/bayes/genetic/family_kernel.h"
+#include "gelex/bayes/common_kernel.h"
+#include "gelex/bayes/genetic/kernel_factory.h"
 #include "gelex/bayes/model.h"
 #include "gelex/bayes/prior.h"
 #include "gelex/bayes/state.h"
@@ -19,16 +19,19 @@ namespace gelex
 {
 
 template <typename GeneticPrior>
-class BayesKernel;
-
-template <typename GeneticPrior>
-[[nodiscard]] auto make_kernel(const BayesPrior<GeneticPrior>& prior)
-    -> BayesKernel<GeneticPrior>;
-
-template <typename GeneticPrior>
 class BayesKernel
 {
    public:
+    BayesKernel(
+        std::vector<RandomEffectKernel> random,
+        genetic_kernel_t<GeneticPrior> genetic,
+        ResidualVarianceKernel residual)
+        : random_{std::move(random)},
+          genetic_{std::move(genetic)},
+          residual_{residual}
+    {
+    }
+
     auto step(
         const BayesModel& model,
         BayesState<GeneticPrior>& state,
@@ -49,30 +52,16 @@ class BayesKernel
     }
 
    private:
-    BayesKernel(
-        std::vector<detail::RandomEffectKernel> random,
-        detail::genetic_kernel_t<GeneticPrior> genetic,
-        detail::ResidualVarianceKernel residual)
-        : random_{std::move(random)},
-          genetic_{std::move(genetic)},
-          residual_{residual}
-    {
-    }
-
-    template <typename OtherGeneticPrior>
-    friend auto make_kernel(const BayesPrior<OtherGeneticPrior>& prior)
-        -> BayesKernel<OtherGeneticPrior>;
-
-    std::vector<detail::RandomEffectKernel> random_;
-    detail::genetic_kernel_t<GeneticPrior> genetic_;
-    detail::ResidualVarianceKernel residual_;
+    std::vector<RandomEffectKernel> random_;
+    genetic_kernel_t<GeneticPrior> genetic_;
+    ResidualVarianceKernel residual_;
 };
 
 template <typename GeneticPrior>
 [[nodiscard]] auto make_kernel(const BayesPrior<GeneticPrior>& prior)
     -> BayesKernel<GeneticPrior>
 {
-    std::vector<detail::RandomEffectKernel> random;
+    std::vector<RandomEffectKernel> random;
     random.reserve(prior.random().size());
     for (const auto& parameter : prior.random())
     {
@@ -80,8 +69,8 @@ template <typename GeneticPrior>
     }
     return BayesKernel<GeneticPrior>{
         std::move(random),
-        detail::make_kernel(prior.genetic()),
-        detail::ResidualVarianceKernel{prior.residual()}};
+        make_kernel(prior.genetic()),
+        ResidualVarianceKernel{prior.residual()}};
 }
 
 }  // namespace gelex

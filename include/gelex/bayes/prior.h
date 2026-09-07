@@ -10,12 +10,12 @@
 #include <utility>
 #include <vector>
 
-#include "gelex/bayes/genetic/construction.h"
+#include "gelex/bayes/genetic/factory.h"
 #include "gelex/bayes/model.h"
 #include "gelex/bayes/parameter.h"
 #include "gelex/bayes/recipe.h"
 #include "gelex/bayes/variance/budget.h"
-#include "gelex/bayes/variance/detail/calibration.h"
+#include "gelex/bayes/variance/calibration.h"
 #include "gelex/exception.h"
 #include "gelex/infra/var.h"
 #include "gelex/namespace.h"
@@ -120,8 +120,9 @@ template <GeneticModeSet Modes, typename GeneticSpec>
     const BayesModel& model)
 {
     const double phenotype_variance = model.phenotype_variance();
-    const detail::MarkerVarianceCalibrator calibrator{model, recipe.variance()};
-    auto genetic = detail::make_prior(recipe.genetic_spec(), calibrator);
+    const auto calibrator
+        = make_marker_variance_calibrator(model, recipe.variance());
+    auto genetic = make_prior(recipe.genetic_spec(), calibrator);
     auto random = detail::make_random_variance_parameters(
         model, recipe.variance(), phenotype_variance);
     auto residual = detail::make_mean_calibrated_variance_parameter(

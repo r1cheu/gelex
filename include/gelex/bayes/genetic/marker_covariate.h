@@ -1,13 +1,12 @@
 // Copyright 2026 RuLei Chen
 // SPDX-License-Identifier: Apache-2.0
 
-#ifndef GELEX_BAYES_MARKER_COVARIATE_H
-#define GELEX_BAYES_MARKER_COVARIATE_H
+#ifndef GELEX_BAYES_GENETIC_MARKER_COVARIATE_H
+#define GELEX_BAYES_GENETIC_MARKER_COVARIATE_H
 
 #include <Eigen/Core>
 #include <span>
 #include <string>
-#include <utility>
 #include <vector>
 
 #include "gelex/data/dataframe/key_type.h"
@@ -20,15 +19,13 @@ class DataFrame;
 
 namespace gelex::bayes
 {
-class MarkerCovariate;
-
-auto make_marker_covariate(
-    DataFrame<std::string> frame,
-    const DataFrame<std::string>& marker_metadata) -> MarkerCovariate;
-
 class MarkerCovariate
 {
    public:
+    MarkerCovariate(
+        std::vector<std::string> annotation_names,
+        Eigen::MatrixXd values);
+
     MarkerCovariate(const MarkerCovariate&) = delete;
     auto operator=(const MarkerCovariate&) -> MarkerCovariate& = delete;
     MarkerCovariate(MarkerCovariate&&) noexcept = default;
@@ -47,21 +44,13 @@ class MarkerCovariate
     }
 
    private:
-    MarkerCovariate(
-        std::vector<std::string> annotation_names,
-        Eigen::MatrixXd values)
-        : annotation_names_(std::move(annotation_names)),
-          values_(std::move(values))
-    {
-    }
-
     std::vector<std::string> annotation_names_;
     Eigen::MatrixXd values_;
-
-    friend auto make_marker_covariate(
-        DataFrame<std::string> frame,
-        const DataFrame<std::string>& marker_metadata) -> MarkerCovariate;
 };
+
+auto make_marker_covariate(
+    DataFrame<std::string> frame,
+    const DataFrame<std::string>& marker_metadata) -> MarkerCovariate;
 }  // namespace gelex::bayes
 
-#endif  // GELEX_BAYES_MARKER_COVARIATE_H
+#endif  // GELEX_BAYES_GENETIC_MARKER_COVARIATE_H
