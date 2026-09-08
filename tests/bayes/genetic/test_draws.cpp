@@ -5,9 +5,7 @@
 #include <array>
 #include <catch2/catch_test_macros.hpp>
 #include <cstdint>
-#include <string>
 
-#include "gelex/bayes/genetic/factory.h"
 #include "gelex/bayes/genetic/gaussian.h"
 #include "gelex/bayes/genetic/joint_spike_slab.h"
 #include "gelex/bayes/genetic/parameter.h"
@@ -52,19 +50,28 @@ auto check_mode_draws(const Spec& spec) -> void
         gelex::BinaryWriter writer{path};
         auto draws = gelex::make_draws(
             state, writer, gelex::genetic_id<gelex::GeneticMode::A>, 2);
-        if constexpr (requires { state.assignments(); })
+        if constexpr (requires { state.probability(); })
         {
-            static_cast<void>(state.transition(0, 1.25, 1));
+            state.transition(0, 1.25, true);
+        }
+        else if constexpr (requires { state.assignments(); })
+        {
+            state.transition(0, 1.25, 1);
         }
         else
         {
             state.transition(0, 1.25);
         }
         draws.append(state);
-        if constexpr (requires { state.assignments(); })
+        if constexpr (requires { state.probability(); })
         {
-            static_cast<void>(state.transition(0, 0.0, 0));
-            static_cast<void>(state.transition(1, -2.5, 1));
+            state.transition(0, 0.0, false);
+            state.transition(1, -2.5, true);
+        }
+        else if constexpr (requires { state.assignments(); })
+        {
+            state.transition(0, 0.0, 0);
+            state.transition(1, -2.5, 1);
         }
         else
         {
@@ -122,10 +129,6 @@ auto check_mode_draws(const Spec& spec) -> void
                                 gelex::ScaledMixtureState<>::class_count}
                                 .replicate(1, 2)));
         }
-        REQUIRE(reader.to_map<double>("genetic/A/component_explained_variance")
-                    .isApprox(
-                        Eigen::MatrixXd::Zero(
-                            gelex::ScaledMixtureState<>::component_count, 2)));
     }
 }
 
@@ -201,9 +204,7 @@ TEST_CASE(
         REQUIRE(reader.to_map<std::uint8_t>("genetic/joint/assignment")
                     .cast<double>()
                     .isApprox(Eigen::VectorXd::Zero(2)));
-        REQUIRE(
-            reader.to_map<double>("genetic/joint/component_explained_variance")
-                .isApprox(Eigen::VectorXd::Zero(4)));
+
         REQUIRE(
             reader.contains("genetic/joint/probabilities")
             == (Update == gelex::MixtureWeightUpdate::Enabled));

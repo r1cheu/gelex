@@ -12,12 +12,10 @@
 #include <cstddef>
 #include <cstdint>
 #include <random>
-#include <span>
 #include <type_traits>
 #include <variant>
 
 #include "gelex/bayes/detail/normal_variance_conjugate_updater.h"
-#include "gelex/bayes/genetic/detail/apply_fitted_update.h"
 #include "gelex/bayes/genetic/detail/coefficient_likelihood.h"
 #include "gelex/bayes/genetic/detail/dirichlet_conjugate_updater.h"
 #include "gelex/bayes/genetic/detail/probit_updater.h"
@@ -26,7 +24,7 @@
 #include "gelex/bayes/genetic/joint_spike_slab.h"
 #include "gelex/bayes/genetic/types.h"
 #include "gelex/bayes/genotype/design.h"
-#include "gelex/bayes/genotype/operations.h"
+#include "gelex/bayes/genotype/projection.h"
 #include "gelex/bayes/mode_values.h"
 #include "gelex/bayes/state.h"
 #include "gelex/bayes/stats/half_quadratic_log_kernel.h"
@@ -53,7 +51,6 @@ class JointSpikeSlabKernel
     using genetic_prior_type
         = JointModeValues<mode_priors_type, joint_prior_type>;
     using genetic_state_type = genetic_state_t<genetic_prior_type>;
-    using joint_state_type = JointSpikeSlabState<WeightUpdate>;
     using sign_parameters_type = LogCategoricalDistribution<2>::param_type;
 
     static constexpr std::size_t class_count
@@ -128,8 +125,6 @@ class JointSpikeSlabKernel
         double dominance_sum_squares = 0.0;
         Eigen::Matrix2d probit_likelihood_quadratic = Eigen::Matrix2d::Zero();
         Eigen::Vector2d probit_likelihood_linear = Eigen::Vector2d::Zero();
-        additive_fitted_delta_.setZero(design.rows());
-        dominance_fitted_delta_.setZero(design.rows());
         for (const Eigen::Index marker : valid_indices)
         {
             const double old_additive = additive.coefficients()(marker);
@@ -200,37 +195,25 @@ class JointSpikeSlabKernel
                 dominance_sum_squares += new_dominance * new_dominance;
             }
 
-            const auto updates = joint.transition(
-                marker,
-                static_cast<std::uint8_t>(class_index),
-                typename joint_state_type::mode_coefficients_type{
-                    old_additive, old_dominance},
-                typename joint_state_type::mode_coefficients_type{
-                    new_additive, new_dominance});
+            if (old_additive != new_additive)
+            {
+                additive_projection.axpy(
+                    marker,
+                    old_additive - new_additive,
+                    residual.adjusted_response);
+            }
+            if (old_dominance != new_dominance)
+            {
+                dominance_projection.axpy(
+                    marker,
+                    old_dominance - new_dominance,
+                    residual.adjusted_response);
+            }
             additive.transition(marker, new_additive);
             dominance.transition(marker, new_dominance);
-            const double additive_delta = new_additive - old_additive;
-            const std::array additive_targets{
-                bayes::AxpyTarget{-additive_delta, residual.adjusted_response},
-                bayes::AxpyTarget{additive_delta, additive_fitted_delta_}};
-            detail::apply_fitted_update(
-                additive_projection,
-                marker,
-                updates.template get<GeneticMode::A>(),
-                std::span{additive_targets});
-            const double dominance_delta = new_dominance - old_dominance;
-            const std::array dominance_targets{
-                bayes::AxpyTarget{-dominance_delta, residual.adjusted_response},
-                bayes::AxpyTarget{dominance_delta, dominance_fitted_delta_}};
-            detail::apply_fitted_update(
-                dominance_projection,
-                marker,
-                updates.template get<GeneticMode::D>(),
-                std::span{dominance_targets});
+            joint.transition(marker, static_cast<std::uint8_t>(class_index));
         }
 
-        additive.transition(additive_fitted_delta_);
-        dominance.transition(dominance_fitted_delta_);
         const auto& counts = joint.class_counts();
         const auto additive_count = counts[1] + counts[3];
         const auto dominance_count = counts[2] + counts[3];
@@ -266,9 +249,15 @@ class JointSpikeSlabKernel
     [[nodiscard]] static constexpr auto is_active(
         std::size_t class_index) noexcept -> bool
     {
-        return joint_state_type::template fitted_component_index<Mode>(
-                   class_index)
-               != joint_state_type::no_component;
+        assert(class_index < class_count);
+        if constexpr (Mode == GeneticMode::A)
+        {
+            return class_index == 1 || class_index == 3;
+        }
+        else
+        {
+            return class_index == 2 || class_index == 3;
+        }
     }
 
     [[nodiscard]] static auto make_dominance_posterior(
@@ -302,8 +291,6 @@ class JointSpikeSlabKernel
             .log_integral = log_integral};
     }
 
-    Eigen::VectorXd additive_fitted_delta_;
-    Eigen::VectorXd dominance_fitted_delta_;
     detail::NormalVarianceConjugateUpdater additive_variance_updater_;
     detail::NormalVarianceConjugateUpdater dominance_variance_updater_;
     detail::ProbitUpdater probit_updater_;

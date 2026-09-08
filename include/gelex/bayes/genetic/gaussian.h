@@ -5,6 +5,7 @@
 #define GELEX_BAYES_GENETIC_GAUSSIAN_H_
 
 #include <Eigen/Core>
+#include <cassert>
 #include <cstddef>
 #include <fmt/format.h>
 #include <string_view>
@@ -46,9 +47,6 @@ class GaussianState
         : coefficients_(
               Eigen::VectorXd::Zero(
                   static_cast<Eigen::Index>(dimensions.marker))),
-          fitted_values_(
-              Eigen::VectorXd::Zero(
-                  static_cast<Eigen::Index>(dimensions.individual))),
           variance_(variance)
     {
     }
@@ -57,25 +55,17 @@ class GaussianState
     {
         return coefficients_;
     }
-    auto fitted_values() const -> const Eigen::VectorXd&
-    {
-        return fitted_values_;
-    }
     auto variance() const -> const variance_type& { return variance_; }
     auto variance() -> variance_type& { return variance_; }
 
-    auto transition(Eigen::Index marker_index, double coefficient) -> void
+    auto transition(Eigen::Index marker, double coefficient) -> void
     {
-        coefficients_(marker_index) = coefficient;
-    }
-    auto transition(const Eigen::Ref<const Eigen::VectorXd>& delta) -> void
-    {
-        fitted_values_.noalias() += delta;
+        assert(marker >= 0 && marker < coefficients_.size());
+        coefficients_(marker) = coefficient;
     }
 
    private:
     Eigen::VectorXd coefficients_;
-    Eigen::VectorXd fitted_values_;
     variance_type variance_;
 };
 

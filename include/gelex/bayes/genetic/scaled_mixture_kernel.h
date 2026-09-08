@@ -9,18 +9,16 @@
 #include <cstddef>
 #include <cstdint>
 #include <random>
-#include <span>
 #include <type_traits>
 #include <variant>
 
 #include "gelex/bayes/detail/normal_variance_conjugate_updater.h"
-#include "gelex/bayes/genetic/detail/apply_fitted_update.h"
 #include "gelex/bayes/genetic/detail/coefficient_likelihood.h"
 #include "gelex/bayes/genetic/detail/dirichlet_conjugate_updater.h"
 #include "gelex/bayes/genetic/scaled_mixture.h"
 #include "gelex/bayes/genetic/types.h"
 #include "gelex/bayes/genotype/design.h"
-#include "gelex/bayes/genotype/operations.h"
+#include "gelex/bayes/genotype/projection.h"
 #include "gelex/bayes/state.h"
 #include "gelex/bayes/stats/log_categorical_distribution.h"
 #include "gelex/bayes/stats/quadratic_log_kernel.h"
@@ -96,16 +94,15 @@ class ScaledMixtureKernel
                       ? 0.0
                       : normal_distribution(rng, sample.coefficient_parameters);
 
-            const std::array extra_targets{bayes::AxpyTarget{
-                old_value - new_value, residual.adjusted_response}};
-            detail::apply_fitted_update(
-                projection,
+            if (old_value != new_value)
+            {
+                projection.axpy(
+                    marker, old_value - new_value, residual.adjusted_response);
+            }
+            state.transition(
                 marker,
-                state.transition(
-                    marker,
-                    new_value,
-                    static_cast<std::uint8_t>(sample.class_index)),
-                std::span{extra_targets});
+                new_value,
+                static_cast<std::uint8_t>(sample.class_index));
 
             if (sample.class_index != 0)
             {

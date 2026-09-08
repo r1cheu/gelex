@@ -202,35 +202,10 @@ auto reconstruct_genetic_fitted(
     return fitted;
 }
 
-auto reconstruct_scaled_mixture_fitted(
-    const gelex::bayes::GeneticDesign& design,
-    gelex::GeneticMode mode,
-    const Eigen::VectorXd& coefficients,
-    const Eigen::VectorX<std::uint8_t>& assignment) -> Eigen::MatrixXd
-{
-    Eigen::MatrixXd fitted = Eigen::MatrixXd::Zero(
-        design.rows(),
-        static_cast<Eigen::Index>(gelex::ScaledMixtureSpec<>::class_count - 1));
-    const auto& projection = design.projection(mode);
-    for (Eigen::Index marker = 0; marker < coefficients.size(); ++marker)
-    {
-        const auto class_index = static_cast<std::size_t>(assignment(marker));
-        if (class_index != 0)
-        {
-            projection.axpy(
-                marker,
-                coefficients(marker),
-                fitted.col(static_cast<Eigen::Index>(class_index - 1)));
-        }
-    }
-    return fitted;
-}
-
 }  // namespace
 
 TEST_CASE(
-    "pooled Gaussian kernel preserves adjusted-response and fitted-cache "
-    "invariants",
+    "pooled Gaussian kernel preserves the adjusted-response invariant",
     "[bayes][kernel]")
 {
     const auto model = make_model();
@@ -254,7 +229,6 @@ TEST_CASE(
     const Eigen::VectorXd fixed_fitted
         = model.fixed().X() * state.fixed().coefficients;
 
-    REQUIRE(genetic.fitted_values().isApprox(reconstructed));
     REQUIRE((state.residual().adjusted_response + fixed_fitted + reconstructed)
                 .isApprox(model.phenotype()));
     REQUIRE(genetic.coefficients()(1) == 0.0);
@@ -291,8 +265,6 @@ TEST_CASE(
     const Eigen::VectorXd fixed_fitted
         = model.fixed().X() * state.fixed().coefficients;
 
-    REQUIRE(additive.fitted_values().isApprox(additive_fitted));
-    REQUIRE(dominance.fitted_values().isApprox(dominance_fitted));
     REQUIRE((state.residual().adjusted_response + fixed_fitted + additive_fitted
              + dominance_fitted)
                 .isApprox(model.phenotype()));
@@ -303,8 +275,7 @@ TEST_CASE(
 }
 
 TEST_CASE(
-    "unpooled Gaussian kernel preserves adjusted-response and fitted-cache "
-    "invariants",
+    "unpooled Gaussian kernel preserves the adjusted-response invariant",
     "[bayes][kernel]")
 {
     const auto model = make_model();
@@ -330,7 +301,6 @@ TEST_CASE(
     const Eigen::VectorXd fixed_fitted
         = model.fixed().X() * state.fixed().coefficients;
 
-    REQUIRE(genetic.fitted_values().isApprox(reconstructed));
     REQUIRE((state.residual().adjusted_response + fixed_fitted + reconstructed)
                 .isApprox(model.phenotype()));
     REQUIRE(genetic.coefficients()(1) == 0.0);
@@ -356,8 +326,6 @@ TEST_CASE(
     auto kernel = gelex::make_kernel(prior);
     std::mt19937_64 rng{123};
 
-    // The fitted cache is rebuilt each sweep, so a missing reset only shows up
-    // from the second one onwards.
     for (int sweep = 0; sweep < 3; ++sweep)
     {
         kernel.step(model, state, rng);
@@ -403,7 +371,6 @@ TEST_CASE(
     const Eigen::VectorXd fixed_fitted
         = model.fixed().X() * state.fixed().coefficients;
 
-    REQUIRE(genetic.fitted_values().isApprox(reconstructed));
     REQUIRE((state.residual().adjusted_response + fixed_fitted + reconstructed)
                 .isApprox(model.phenotype()));
     REQUIRE(family.assignments().size() == model.genetic().cols());
@@ -451,8 +418,6 @@ TEST_CASE(
     const Eigen::VectorXd fixed_fitted
         = model.fixed().X() * state.fixed().coefficients;
 
-    REQUIRE(additive.fitted_values().isApprox(additive_fitted));
-    REQUIRE(dominance.fitted_values().isApprox(dominance_fitted));
     REQUIRE((state.residual().adjusted_response + fixed_fitted + additive_fitted
              + dominance_fitted)
                 .isApprox(model.phenotype()));
@@ -498,7 +463,7 @@ TEST_CASE(
 
     REQUIRE(genetic.coefficients().isZero());
     REQUIRE(family.assignments().isZero());
-    REQUIRE(genetic.fitted_values().isZero());
+
     REQUIRE((state.residual().adjusted_response + fixed_fitted)
                 .isApprox(model.phenotype()));
     REQUIRE((family.variance().array() > 0.0).all());
@@ -528,16 +493,11 @@ TEST_CASE(
     const auto& family = genetic;
     const auto fitted = reconstruct_genetic_fitted(
         model.genetic(), gelex::GeneticMode::A, genetic.coefficients());
-    const auto component_fitted = reconstruct_scaled_mixture_fitted(
-        model.genetic(),
-        gelex::GeneticMode::A,
-        genetic.coefficients(),
-        family.assignments());
     const Eigen::VectorXd fixed_fitted
         = model.fixed().X() * state.fixed().coefficients;
     REQUIRE((state.residual().adjusted_response + fixed_fitted + fitted)
                 .isApprox(model.phenotype()));
-    REQUIRE(family.fitted_values().isApprox(component_fitted));
+
     REQUIRE(family.assignments()(1) == 0);
     REQUIRE(genetic.coefficients()(1) == 0.0);
     for (Eigen::Index marker = 0; marker < family.assignments().size();
@@ -586,16 +546,11 @@ TEST_CASE(
     const auto& family = genetic;
     const auto reconstructed = reconstruct_genetic_fitted(
         model.genetic(), gelex::GeneticMode::A, genetic.coefficients());
-    const auto component_fitted = reconstruct_scaled_mixture_fitted(
-        model.genetic(),
-        gelex::GeneticMode::A,
-        genetic.coefficients(),
-        family.assignments());
     const Eigen::VectorXd fixed_fitted
         = model.fixed().X() * state.fixed().coefficients;
 
     REQUIRE(family.probabilities() == probabilities);
-    REQUIRE(family.fitted_values().isApprox(component_fitted));
+
     REQUIRE((state.residual().adjusted_response + fixed_fitted + reconstructed)
                 .isApprox(model.phenotype()));
     REQUIRE(family.variance() > 0.0);

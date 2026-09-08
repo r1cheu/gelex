@@ -6,6 +6,7 @@
 
 #include <Eigen/Core>
 #include <array>
+#include <cassert>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -73,9 +74,6 @@ class SpikeSlabState
               Eigen::VectorX<std::uint8_t>::Zero(
                   static_cast<Eigen::Index>(dimensions.marker))),
           class_counts_{dimensions.marker, 0},
-          fitted_values_(
-              Eigen::VectorXd::Zero(
-                  static_cast<Eigen::Index>(dimensions.individual))),
           variance_(std::move(variance)),
           probability_(probability)
     {
@@ -94,10 +92,6 @@ class SpikeSlabState
     {
         return class_counts_;
     }
-    auto fitted_values() const -> const Eigen::VectorXd&
-    {
-        return fitted_values_;
-    }
     auto variance() const -> const variance_type& { return variance_; }
     auto variance() -> variance_type& { return variance_; }
     auto probability() const -> double { return probability_; }
@@ -111,6 +105,7 @@ class SpikeSlabState
     auto transition(Eigen::Index marker, double coefficient, bool active)
         -> void
     {
+        assert(marker >= 0 && marker < coefficients_.size());
         const auto old_assignment = assignments_(marker);
         const auto new_assignment = static_cast<std::uint8_t>(active);
         if (old_assignment != new_assignment)
@@ -120,11 +115,6 @@ class SpikeSlabState
         }
         assignments_(marker) = new_assignment;
         coefficients_(marker) = active ? coefficient : 0.0;
-    }
-
-    auto transition(const Eigen::Ref<const Eigen::VectorXd>& delta) -> void
-    {
-        fitted_values_.noalias() += delta;
     }
 
    private:
@@ -144,7 +134,6 @@ class SpikeSlabState
     Eigen::VectorXd coefficients_;
     Eigen::VectorX<std::uint8_t> assignments_;
     std::array<std::size_t, 2> class_counts_;
-    Eigen::VectorXd fitted_values_;
     variance_type variance_;
     double probability_;
 };
