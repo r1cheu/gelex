@@ -9,6 +9,8 @@
 #include <cstddef>
 #include <cstdint>
 #include <random>
+#include <type_traits>
+#include <variant>
 
 #include "gelex/bayes/detail/normal_variance_conjugate_updater.h"
 #include "gelex/bayes/genetic/detail/coefficient_likelihood.h"
@@ -27,21 +29,35 @@ namespace gelex
 template <VarianceLayout Kind, MixtureWeightUpdate WeightUpdate>
 class SpikeSlabKernel
 {
-    using Prior = SpikeSlabPrior<Kind, WeightUpdate>;
-    using State = SpikeSlabState<Kind>;
+    using prior_type = SpikeSlabPrior<Kind, WeightUpdate>;
+    using state_type = SpikeSlabState<Kind, WeightUpdate>;
+    using probability_updater_type = std::conditional_t<
+        WeightUpdate == MixtureWeightUpdate::Enabled,
+        detail::DirichletConjugateUpdater<2>,
+        std::monostate>;
 
    public:
-    explicit SpikeSlabKernel(const Prior& prior)
+    explicit SpikeSlabKernel(const prior_type& prior)
         : variance_updater_{prior.variance.prior},
           probability_updater_{
-              detail::make_dirichlet_conjugate_updater<2>(prior.probability)}
+              [&]() -> probability_updater_type
+              {
+                  if constexpr (WeightUpdate == MixtureWeightUpdate::Enabled)
+                  {
+                      return probability_updater_type{prior.probability.prior};
+                  }
+                  else
+                  {
+                      return {};
+                  }
+              }()}
     {
     }
 
     template <GeneticMode Mode>
     auto step(
         const bayes::GeneticDesign& design,
-        State& state,
+        state_type& state,
         ResidualState& residual,
         std::mt19937_64& rng) -> void
     {
@@ -104,20 +120,22 @@ class SpikeSlabKernel
             variance_updater_.update(
                 variance, state.class_counts()[1], pooled_sum_squares, rng);
         }
-        std::array probabilities{
-            1.0 - state.probability(), state.probability()};
-        auto allocation_counts = state.class_counts();
-        // Skipped markers remain NULL but do not contribute to the posterior.
-        allocation_counts[0] -= static_cast<std::size_t>(coefficients.size())
-                                - valid_indices.size();
-        probability_updater_.update(probabilities, allocation_counts, rng);
-        state.probability() = probabilities[1];
+        if constexpr (WeightUpdate == MixtureWeightUpdate::Enabled)
+        {
+            auto allocation_counts = state.class_counts();
+            // Skipped markers remain NULL but do not contribute to the
+            // posterior.
+            allocation_counts[0]
+                -= static_cast<std::size_t>(coefficients.size())
+                   - valid_indices.size();
+            state.set_probability(
+                probability_updater_.draw(allocation_counts, rng)[1]);
+        }
     }
 
    private:
     detail::NormalVarianceConjugateUpdater variance_updater_;
-    [[no_unique_address]] detail::DirichletConjugateUpdater<2, WeightUpdate>
-        probability_updater_;
+    [[no_unique_address]] probability_updater_type probability_updater_;
     LogCategoricalDistribution<2> allocation_distribution_;
     Eigen::VectorXd previous_adjusted_response_;
 };

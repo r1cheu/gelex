@@ -116,21 +116,22 @@ static_assert(std::same_as<
               SpikeSlabState<VarianceLayout::Unpooled>::variance_type,
               Eigen::VectorXd>);
 
-static_assert(ScaledMixtureState::class_count == 5);
-static_assert(JointSpikeSlabState::class_count == 4);
-static_assert(ScaledMixtureState::component_count == 4);
-static_assert(JointSpikeSlabState::component_count == 4);
+static_assert(ScaledMixtureState<>::class_count == 5);
+static_assert(JointSpikeSlabState<>::class_count == 4);
+static_assert(ScaledMixtureState<>::component_count == 4);
+static_assert(JointSpikeSlabState<>::component_count == 4);
 static_assert(
     std::same_as<
         decltype(std::declval<const SpikeSlabState<VarianceLayout::Pooled>&>()
                      .assignments()),
         const Eigen::VectorX<std::uint8_t>&>);
-static_assert(std::same_as<
-              decltype(std::declval<const ScaledMixtureState&>().assignments()),
-              const Eigen::VectorX<std::uint8_t>&>);
 static_assert(
     std::same_as<
-        decltype(std::declval<const JointSpikeSlabState&>().assignments()),
+        decltype(std::declval<const ScaledMixtureState<>&>().assignments()),
+        const Eigen::VectorX<std::uint8_t>&>);
+static_assert(
+    std::same_as<
+        decltype(std::declval<const JointSpikeSlabState<>&>().assignments()),
         const Eigen::VectorX<std::uint8_t>&>);
 
 static_assert(std::same_as<
@@ -155,17 +156,26 @@ static_assert(std::same_as<
                   SpikeSlabState<VarianceLayout::Unpooled>,
                   SpikeSlabState<VarianceLayout::Unpooled>>>);
 static_assert(std::same_as<
-              gelex::genetic_state_t<UnpooledSpikeSlabPriorAD>,
-              gelex::genetic_state_t<FixedUnpooledSpikeSlabPriorAD>>);
+              gelex::genetic_state_t<FixedUnpooledSpikeSlabPriorAD>,
+              ModeValues<
+                  mode_ad,
+                  SpikeSlabState<
+                      VarianceLayout::Unpooled,
+                      MixtureWeightUpdate::Disabled>,
+                  SpikeSlabState<
+                      VarianceLayout::Unpooled,
+                      MixtureWeightUpdate::Disabled>>>);
 static_assert(std::same_as<
               gelex::genetic_state_t<HeterogeneousPriorAD>,
               ModeValues<
                   mode_ad,
                   GaussianState<VarianceLayout::Pooled>,
-                  SpikeSlabState<VarianceLayout::Unpooled>>>);
+                  SpikeSlabState<
+                      VarianceLayout::Unpooled,
+                      MixtureWeightUpdate::Disabled>>>);
 static_assert(std::same_as<
               gelex::genetic_state_t<ScaledMixturePriorAD>,
-              ModeValues<mode_ad, ScaledMixtureState, ScaledMixtureState>>);
+              ModeValues<mode_ad, ScaledMixtureState<>, ScaledMixtureState<>>>);
 static_assert(std::same_as<
               gelex::genetic_state_t<JointPrior>,
               JointModeValues<
@@ -173,7 +183,7 @@ static_assert(std::same_as<
                       mode_ad,
                       GaussianState<VarianceLayout::Pooled>,
                       HalfNormalState>,
-                  JointSpikeSlabState>>);
+                  JointSpikeSlabState<>>>);
 
 auto make_model(GeneticModeSet modes) -> BayesModel
 {
@@ -304,7 +314,7 @@ TEST_CASE(
     REQUIRE(mode_state.fitted_values().rows() == model.genetic().rows());
     REQUIRE(
         mode_state.fitted_values().cols()
-        == static_cast<Eigen::Index>(ScaledMixtureState::component_count));
+        == static_cast<Eigen::Index>(ScaledMixtureState<>::component_count));
     REQUIRE(mode_state.fitted_values().isZero());
 }
 
@@ -331,7 +341,7 @@ TEST_CASE(
     REQUIRE(joint.fitted_values().rows() == model.genetic().rows());
     REQUIRE(
         joint.fitted_values().cols()
-        == static_cast<Eigen::Index>(JointSpikeSlabState::component_count));
+        == static_cast<Eigen::Index>(JointSpikeSlabState<>::component_count));
     REQUIRE(joint.fitted_values().isZero());
     state.mode_values().for_each(
         [&]<GeneticMode Mode>(const auto& mode_state)

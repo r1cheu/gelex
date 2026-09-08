@@ -51,11 +51,7 @@ auto check_mode_draws(const Spec& spec) -> void
     {
         gelex::BinaryWriter writer{path};
         auto draws = gelex::make_draws(
-            prior,
-            writer,
-            gelex::genetic_id<gelex::GeneticMode::A>,
-            2,
-            dimensions);
+            state, writer, gelex::genetic_id<gelex::GeneticMode::A>, 2);
         if constexpr (requires { state.assignments(); })
         {
             static_cast<void>(state.transition(0, 1.25, 1));
@@ -123,13 +119,13 @@ auto check_mode_draws(const Spec& spec) -> void
                         .isApprox(
                             Eigen::Map<const Eigen::VectorXd>{
                                 state.probabilities().data(),
-                                gelex::ScaledMixtureState::class_count}
+                                gelex::ScaledMixtureState<>::class_count}
                                 .replicate(1, 2)));
         }
         REQUIRE(reader.to_map<double>("genetic/A/component_explained_variance")
                     .isApprox(
                         Eigen::MatrixXd::Zero(
-                            gelex::ScaledMixtureState::component_count, 2)));
+                            gelex::ScaledMixtureState<>::component_count, 2)));
     }
 }
 
@@ -190,13 +186,9 @@ TEST_CASE(
         {
             gelex::BinaryWriter writer{path};
             auto mode_draws = gelex::make_draws(
-                dominance_prior,
-                writer,
-                gelex::genetic_id<gelex::GeneticMode::D>,
-                1,
-                dimensions);
-            auto joint_draws = gelex::make_draws(
-                joint_prior, writer, gelex::joint_genetic_id, 1, dimensions);
+                dominance, writer, gelex::genetic_id<gelex::GeneticMode::D>, 1);
+            auto joint_draws
+                = gelex::make_draws(joint, writer, gelex::joint_genetic_id, 1);
             mode_draws.append(dominance);
             joint_draws.append(joint);
             writer.close();

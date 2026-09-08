@@ -97,8 +97,9 @@ auto GrmBuilder::accumulate(std::string_view label, Index start, Index end)
     return results;
 }
 
-auto GrmBuilder::build(std::span<const MarkerRange> ranges, const Sink& sink)
-    -> void
+auto GrmBuilder::build(
+    std::span<const MarkerRange> ranges,
+    const sink_type& sink) -> void
 {
     processed_ = 0;
 

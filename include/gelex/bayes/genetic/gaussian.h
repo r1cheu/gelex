@@ -13,7 +13,6 @@
 #include "gelex/bayes/genetic/detail/marker_variance.h"
 #include "gelex/bayes/genetic/draw_schema.h"
 #include "gelex/bayes/genetic/types.h"
-#include "gelex/bayes/mode_values.h"
 #include "gelex/bayes/parameter.h"
 #include "gelex/bayes/spec.h"
 #include "gelex/bayes/variance/calibration.h"
@@ -123,21 +122,22 @@ class GaussianDraws
 
 template <VarianceLayout Kind>
 [[nodiscard]] auto make_draws(
-    const GaussianPrior<Kind>& /*prior*/,
+    const GaussianState<Kind>& state,
     BinaryWriter& writer,
     std::string_view prefix,
-    std::size_t draw_count,
-    GeneticDimensions dimensions) -> GaussianDraws<Kind>
+    std::size_t draw_count) -> GaussianDraws<Kind>
 {
+    const auto marker_count
+        = static_cast<std::size_t>(state.coefficients().size());
     const std::size_t variance_size
-        = (Kind == VarianceLayout::Pooled) ? 1 : dimensions.marker;
+        = (Kind == VarianceLayout::Pooled) ? 1 : marker_count;
 
     auto variances = writer.reserve<marker_variance_dtype_t<Kind>>(
         fmt::format("{}/{}", prefix, variance_id),
         BinaryShape{variance_size, draw_count});
     auto coefficients = writer.reserve<float>(
         fmt::format("{}/{}", prefix, coefficients_id),
-        BinaryShape{dimensions.marker, draw_count});
+        BinaryShape{marker_count, draw_count});
 
     return GaussianDraws<Kind>{std::move(variances), std::move(coefficients)};
 }

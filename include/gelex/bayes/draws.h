@@ -16,7 +16,6 @@
 
 #include "gelex/bayes/genetic/factory.h"
 #include "gelex/bayes/model.h"
-#include "gelex/bayes/prior.h"
 #include "gelex/bayes/state.h"
 #include "gelex/bayes/variance/draws.h"
 #include "gelex/exception.h"
@@ -77,10 +76,10 @@ template <typename GeneticPrior>
 class BayesDraws
 {
    public:
-    using genetic_draws_type = genetic_draws_t<GeneticPrior>;
+    using genetic_draws_type = genetic_draws_t<genetic_state_t<GeneticPrior>>;
 
     BayesDraws(
-        const BayesPrior<GeneticPrior>& prior,
+        const BayesState<GeneticPrior>& state,
         const BayesModel& model,
         std::string_view output_path,
         std::uint64_t draw_count)
@@ -88,14 +87,10 @@ class BayesDraws
           fixed_{writer_.reserve<double>(
               "fixed/coefficients",
               BinaryShape{
-                  static_cast<std::uint64_t>(model.fixed().X().cols()),
+                  static_cast<std::uint64_t>(state.fixed().coefficients.size()),
                   draw_count})},
           random_{detail::make_random_draws(model, writer_, draw_count)},
-          genetic_{make_draws(
-              prior.genetic(),
-              model.genetic(),
-              writer_,
-              draw_count)},
+          genetic_{make_draws(state.genetic(), writer_, draw_count)},
           residual_{writer_.reserve<double>(
               "residual/variance",
               BinaryShape{1, draw_count})},

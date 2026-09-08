@@ -12,7 +12,6 @@
 #include <string>
 #include <utility>
 
-#include "gelex/bayes/draws.h"
 #include "gelex/bayes/genetic/marker_covariate.h"
 #include "gelex/bayes/genetic/marker_covariate_io.h"
 #include "gelex/bayes/genotype/design.h"
@@ -151,15 +150,12 @@ auto run_mcmc(const cli::McmcConfig& config, const Recipe& recipe) -> int
     make_model_summary(model).show();
 
     const auto prior = gelex::make_prior(recipe, model);
-    {
-        auto draws = gelex::BayesDraws{
-            prior, model, config.out + ".draws", runner.draw_count()};
-        cli::printer().block(cli::section("MCMC Sampling:"));
-        const auto total_iterations = static_cast<std::size_t>(config.iters);
-        cli::McmcProgress progress{total_iterations, config.burn_in};
-        runner.run(model, prior, draws, config.seed, std::ref(progress));
-        progress.finish();
-    }
+    cli::printer().block(cli::section("MCMC Sampling:"));
+    const auto total_iterations = static_cast<std::size_t>(config.iters);
+    cli::McmcProgress progress{total_iterations, config.burn_in};
+    runner.run(
+        model, prior, config.out + ".draws", config.seed, std::ref(progress));
+    progress.finish();
 
     cli::printer().block(
         cli::results_saved(config.out, ".draws, .snplut, .log"));

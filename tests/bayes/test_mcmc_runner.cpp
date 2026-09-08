@@ -7,8 +7,6 @@
 #include <type_traits>
 #include <vector>
 
-#include "gelex/bayes/draws.h"
-#include "gelex/bayes/genetic/gaussian.h"
 #include "gelex/bayes/genetic/types.h"
 #include "gelex/bayes/mcmc_runner.h"
 #include "gelex/bayes/mode_values.h"
@@ -48,16 +46,17 @@ TEST_CASE(
     gelex::MCMCRunner runner{iterations, 0, 1};
     gelex::test::FileFixture fixture;
     const auto path = fixture.get_test_dir() / "progress.draws";
-    auto draws
-        = gelex::BayesDraws{prior, model, path.string(), runner.draw_count()};
     std::vector<std::size_t> completed_iterations;
     const auto observer
         = [&](std::size_t current) { completed_iterations.push_back(current); };
 
-    static_assert(std::is_void_v<decltype(runner.run(model, prior, draws))>);
-    runner.run(model, prior, draws, 123, observer);
+    static_assert(
+        std::is_void_v<decltype(runner.run(model, prior, path.string()))>);
+    runner.run(model, prior, path.string(), 123, observer);
 
     REQUIRE(completed_iterations == std::vector<std::size_t>{1, 2, 3, 4});
+    const gelex::BinaryReader reader{path.string()};
+    REQUIRE(reader.to_map<double>("residual/variance").cols() == iterations);
 }
 
 TEST_CASE(
@@ -79,19 +78,11 @@ TEST_CASE(
     const auto full_path = fixture.get_test_dir() / "full.draws";
     const auto retained_path = fixture.get_test_dir() / "retained.draws";
 
-    {
-        gelex::MCMCRunner runner{5, 0, 1};
-        auto draws = gelex::BayesDraws{
-            prior, model, full_path.string(), runner.draw_count()};
-        runner.run(model, prior, draws, 123);
-    }
-    {
-        gelex::MCMCRunner runner{5, 1, 2};
-        REQUIRE(runner.draw_count() == 2);
-        auto draws = gelex::BayesDraws{
-            prior, model, retained_path.string(), runner.draw_count()};
-        runner.run(model, prior, draws, 123);
-    }
+    gelex::MCMCRunner full_runner{5, 0, 1};
+    full_runner.run(model, prior, full_path.string(), 123);
+    gelex::MCMCRunner retained_runner{5, 1, 2};
+    REQUIRE(retained_runner.draw_count() == 2);
+    retained_runner.run(model, prior, retained_path.string(), 123);
 
     const gelex::BinaryReader full_reader(full_path.string());
     const gelex::BinaryReader retained_reader(retained_path.string());

@@ -22,8 +22,8 @@ class BedSource
    public:
     using value_type = std::uint8_t;
     using size_type = std::size_t;
-    using const_pointer = const std::uint8_t*;
-    using const_span = std::span<const std::uint8_t>;
+    using const_pointer_type = const std::uint8_t*;
+    using const_span_type = std::span<const std::uint8_t>;
 
     BedSource(
         const std::filesystem::path& bed_path,
@@ -36,7 +36,7 @@ class BedSource
     BedSource& operator=(BedSource&&) noexcept = default;
     ~BedSource() = default;
 
-    [[nodiscard]] auto data() const noexcept -> const_pointer
+    [[nodiscard]] auto data() const noexcept -> const_pointer_type
     {
         return payload_;
     }
@@ -66,13 +66,13 @@ class BedSource
         return num_variants_ * bytes_per_variant_;
     }
 
-    [[nodiscard]] auto bytes() const noexcept -> const_span
+    [[nodiscard]] auto bytes() const noexcept -> const_span_type
     {
         return {payload_, size_bytes()};
     }
 
     [[nodiscard]] auto operator[](size_type variant_idx) const noexcept
-        -> const_span
+        -> const_span_type
     {
         return {
             payload_ + (variant_idx * bytes_per_variant_),
@@ -80,7 +80,7 @@ class BedSource
         };
     }
 
-    [[nodiscard]] auto at(size_type variant_idx) const -> const_span
+    [[nodiscard]] auto at(size_type variant_idx) const -> const_span_type
     {
         if (variant_idx >= num_variants_)
         {
@@ -95,7 +95,7 @@ class BedSource
     }
 
     [[nodiscard]] auto subspan(size_type start, size_type count) const
-        -> const_span
+        -> const_span_type
     {
         if (start > num_variants_ || count > num_variants_ - start)
         {

@@ -91,11 +91,12 @@ class DirichletDistribution
     {
         result_type sample{};
         T sum = T{0};
-        using GammaParameters = typename std::gamma_distribution<T>::param_type;
+        using gamma_parameters_type =
+            typename std::gamma_distribution<T>::param_type;
         for (auto&& [concentration, value] :
              std::views::zip(parameters.concentrations_, sample))
         {
-            value = gamma_(rng, GammaParameters{concentration, T{1}});
+            value = gamma_(rng, gamma_parameters_type{concentration, T{1}});
             sum += value;
         }
         assert(std::isfinite(sum) && sum > T{0});
