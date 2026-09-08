@@ -118,8 +118,6 @@ static_assert(std::same_as<
 
 static_assert(ScaledMixtureState<>::class_count == 5);
 static_assert(JointSpikeSlabState<>::class_count == 4);
-static_assert(ScaledMixtureState<>::component_count == 4);
-static_assert(JointSpikeSlabState<>::component_count == 4);
 static_assert(
     std::same_as<
         decltype(std::declval<const SpikeSlabState<VarianceLayout::Pooled>&>()
@@ -233,9 +231,6 @@ TEST_CASE(
             STATIC_REQUIRE(mode_ad.contains(Mode));
             REQUIRE(mode_state.coefficients().size() == model.genetic().cols());
             REQUIRE(mode_state.coefficients().isZero());
-            REQUIRE(
-                mode_state.fitted_values().size() == model.genetic().rows());
-            REQUIRE(mode_state.fitted_values().isZero());
         });
     REQUIRE(
         state.get<GeneticMode::A>().variance()
@@ -296,7 +291,7 @@ TEST_CASE(
 }
 
 TEST_CASE(
-    "scaled-mixture state owns assignment and component fitted caches",
+    "scaled-mixture state initializes assignments and probabilities",
     "[bayes][state]")
 {
     const auto model = make_model(mode_a);
@@ -311,11 +306,6 @@ TEST_CASE(
     REQUIRE(
         mode_state.probabilities()
         == prior.genetic().get<GeneticMode::A>().probabilities.initial);
-    REQUIRE(mode_state.fitted_values().rows() == model.genetic().rows());
-    REQUIRE(
-        mode_state.fitted_values().cols()
-        == static_cast<Eigen::Index>(ScaledMixtureState<>::component_count));
-    REQUIRE(mode_state.fitted_values().isZero());
 }
 
 TEST_CASE(
@@ -338,18 +328,7 @@ TEST_CASE(
         joint.probabilities() == recipe.genetic_spec().joint().probabilities());
     REQUIRE(joint.assignments().size() == model.genetic().cols());
     REQUIRE(joint.assignments().isZero());
-    REQUIRE(joint.fitted_values().rows() == model.genetic().rows());
-    REQUIRE(
-        joint.fitted_values().cols()
-        == static_cast<Eigen::Index>(JointSpikeSlabState<>::component_count));
-    REQUIRE(joint.fitted_values().isZero());
-    state.mode_values().for_each(
-        [&]<GeneticMode Mode>(const auto& mode_state)
-        {
-            REQUIRE(
-                mode_state.fitted_values().rows() == model.genetic().rows());
-            REQUIRE(mode_state.fitted_values().isZero());
-        });
+
     const auto& dominance = state.mode_values().get<GeneticMode::D>();
     REQUIRE(dominance.annotation_coefficients().isZero());
     REQUIRE(
@@ -409,7 +388,6 @@ TEST_CASE(
 
     const auto& genetic = state.genetic().get<GeneticMode::A>();
     REQUIRE(genetic.coefficients().isZero());
-    REQUIRE(genetic.fitted_values().isZero());
 }
 
 TEST_CASE(

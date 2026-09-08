@@ -6,27 +6,24 @@
 
 #include <Eigen/Core>
 #include <array>
+#include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <fmt/format.h>
 #include <ranges>
 #include <string_view>
 #include <utility>
-#include <variant>
 
-#include "gelex/bayes/genetic/detail/fitted_update.h"
 #include "gelex/bayes/genetic/detail/marker_variance.h"
 #include "gelex/bayes/genetic/draw_traits.h"
 #include "gelex/bayes/genetic/parameter.h"
 #include "gelex/bayes/genetic/types.h"
-#include "gelex/bayes/genotype/operations.h"
 #include "gelex/bayes/parameter.h"
 #include "gelex/bayes/serialization_ids.h"
 #include "gelex/bayes/spec.h"
 #include "gelex/bayes/stats/dirichlet_log_kernel.h"
 #include "gelex/bayes/variance/calibration.h"
 #include "gelex/genetic_mode.h"
-#include "gelex/infra/var.h"
 #include "gelex/io/binary_format.h"
 #include "gelex/io/binary_writer.h"
 #include "gelex/namespace.h"
@@ -79,10 +76,6 @@ class ScaledMixtureState
 {
    public:
     static constexpr std::size_t class_count = ScaledMixtureSpec<>::class_count;
-    static constexpr std::size_t component_count = class_count - 1;
-
-    using fitted_values_type = Eigen::
-        Matrix<double, Eigen::Dynamic, static_cast<int>(component_count)>;
 
     ScaledMixtureState(
         double variance,
@@ -95,10 +88,6 @@ class ScaledMixtureState
               Eigen::VectorX<std::uint8_t>::Zero(
                   static_cast<Eigen::Index>(dimensions.marker))),
           class_counts_{dimensions.marker},
-          fitted_values_(
-              fitted_values_type::Zero(
-                  static_cast<Eigen::Index>(dimensions.individual),
-                  component_count)),
           variance_(variance),
           probabilities_(probabilities)
     {
@@ -118,10 +107,6 @@ class ScaledMixtureState
     {
         return class_counts_;
     }
-    auto fitted_values() const -> const fitted_values_type&
-    {
-        return fitted_values_;
-    }
     auto variance() const -> double { return variance_; }
     auto variance() -> double& { return variance_; }
     auto probabilities() const -> const std::array<double, class_count>&
@@ -137,41 +122,27 @@ class ScaledMixtureState
         probabilities_ = probabilities;
     }
 
-    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
-    [[nodiscard]] auto transition(
-        Eigen::Index marker_index,
+    auto transition(
+        Eigen::Index marker,
         double coefficient,
-        std::uint8_t assignment)
-        -> std::variant<
-            std::monostate,
-            bayes::AxpyTarget,
-            std::array<bayes::AxpyTarget, 2>>
-    // NOLINTEND(bugprone-easily-swappable-parameters)
+        std::uint8_t assignment) -> void
     {
-        const double old_value = coefficients_(marker_index);
-        const std::uint8_t old_assignment = assignments_(marker_index);
-        const double new_value = assignment == 0 ? 0.0 : coefficient;
+        assert(marker >= 0 && marker < coefficients_.size());
+        assert(assignment < class_count);
+        const auto old_assignment = assignments_(marker);
         if (old_assignment != assignment)
         {
             --class_counts_[old_assignment];
             ++class_counts_[assignment];
         }
-        coefficients_(marker_index) = new_value;
-        assignments_(marker_index) = assignment;
-
-        return detail::make_fitted_update(
-            fitted_values_,
-            static_cast<Eigen::Index>(old_assignment) - 1,
-            static_cast<Eigen::Index>(assignment) - 1,
-            old_value,
-            new_value);
+        coefficients_(marker) = assignment == 0 ? 0.0 : coefficient;
+        assignments_(marker) = assignment;
     }
 
    private:
     Eigen::VectorXd coefficients_;
     Eigen::VectorX<std::uint8_t> assignments_;
     std::array<std::size_t, class_count> class_counts_;
-    fitted_values_type fitted_values_;
     double variance_;
     std::array<double, class_count> probabilities_;
 };
@@ -194,13 +165,11 @@ class ScaledMixtureDraws
         PayloadWriter<double> variance,
         PayloadWriter<float> coefficients,
         PayloadWriter<std::uint8_t> assignments,
-        probability_writer_type probabilities,
-        PayloadWriter<double> component_explained_variance)
+        probability_writer_type probabilities)
         : variance_{std::move(variance)},
           coefficients_{std::move(coefficients)},
           assignments_{std::move(assignments)},
-          probabilities_{std::move(probabilities)},
-          component_explained_variance_{std::move(component_explained_variance)}
+          probabilities_{std::move(probabilities)}
     {
     }
 
@@ -214,8 +183,6 @@ class ScaledMixtureDraws
         {
             probabilities_.append(state.probabilities());
         }
-        component_explained_variance_.append(
-            matvar<0>(state.fitted_values(), VarNormType::Population));
     }
 
    private:
@@ -223,7 +190,6 @@ class ScaledMixtureDraws
     PayloadWriter<float> coefficients_;
     PayloadWriter<std::uint8_t> assignments_;
     [[no_unique_address]] probability_writer_type probabilities_;
-    PayloadWriter<double> component_explained_variance_;
 };
 
 template <MixtureWeightUpdate WeightUpdate>
@@ -257,17 +223,12 @@ template <MixtureWeightUpdate WeightUpdate>
             return {};
         }
     }();
-    auto component_explained_variance = writer.reserve<double>(
-        fmt::format("{}/{}", prefix, component_explained_variance_id),
-        BinaryShape{
-            ScaledMixtureState<WeightUpdate>::component_count, draw_count});
 
     return ScaledMixtureDraws<WeightUpdate>{
         std::move(variance),
         std::move(coefficients),
         std::move(assignments),
-        std::move(probabilities),
-        std::move(component_explained_variance)};
+        std::move(probabilities)};
 }
 
 GELEX_NAMESPACE_END(gelex)

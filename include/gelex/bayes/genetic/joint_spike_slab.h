@@ -13,7 +13,6 @@
 #include <string_view>
 #include <utility>
 
-#include "gelex/bayes/genetic/detail/fitted_update.h"
 #include "gelex/bayes/genetic/draw_traits.h"
 #include "gelex/bayes/genetic/gaussian.h"
 #include "gelex/bayes/genetic/parameter.h"
@@ -25,7 +24,6 @@
 #include "gelex/bayes/stats/dirichlet_log_kernel.h"
 #include "gelex/bayes/variance/calibration.h"
 #include "gelex/genetic_mode.h"
-#include "gelex/infra/var.h"
 #include "gelex/io/binary_format.h"
 #include "gelex/io/binary_writer.h"
 #include "gelex/namespace.h"
@@ -108,9 +106,6 @@ class HalfNormalState
         : coefficients_(
               Eigen::VectorXd::Zero(
                   static_cast<Eigen::Index>(dimensions.marker))),
-          fitted_values_(
-              Eigen::VectorXd::Zero(
-                  static_cast<Eigen::Index>(dimensions.individual))),
           variance_(variance),
           annotation_coefficients_(Eigen::Vector2d::Zero())
     {
@@ -119,10 +114,6 @@ class HalfNormalState
     auto coefficients() const -> const Eigen::VectorXd&
     {
         return coefficients_;
-    }
-    auto fitted_values() const -> const Eigen::VectorXd&
-    {
-        return fitted_values_;
     }
     auto variance() const -> double { return variance_; }
     auto variance() -> double& { return variance_; }
@@ -137,46 +128,23 @@ class HalfNormalState
 
     auto transition(Eigen::Index marker, double coefficient) -> void
     {
+        assert(marker >= 0 && marker < coefficients_.size());
         coefficients_(marker) = coefficient;
-    }
-    auto transition(const Eigen::Ref<const Eigen::VectorXd>& delta) -> void
-    {
-        fitted_values_.noalias() += delta;
     }
 
    private:
     Eigen::VectorXd coefficients_;
-    Eigen::VectorXd fitted_values_;
     double variance_;
     Eigen::Vector2d annotation_coefficients_;
 };
 
-// Classes are NULL, A-only, D-only and AD; fitted_values holds one column per
-// (mode, class) cell in which that mode is active, so every column carries a
-// single mode and the two columns of a mode sum to that mode's total.
+// Classes are NULL, A-only, D-only and AD.
 template <MixtureWeightUpdate WeightUpdate = MixtureWeightUpdate::Enabled>
 class JointSpikeSlabState
 {
    public:
     static constexpr std::size_t class_count
         = JointSpikeSlabSpec<>::class_count;
-    static constexpr std::size_t component_count = 4;
-    static constexpr int no_component = -1;
-    static constexpr std::array<int, class_count> additive_components{
-        no_component,
-        0,
-        no_component,
-        1};
-    static constexpr std::array<int, class_count> dominance_components{
-        no_component,
-        no_component,
-        2,
-        3};
-
-    using fitted_values_type = Eigen::
-        Matrix<double, Eigen::Dynamic, static_cast<int>(component_count)>;
-    using mode_coefficients_type
-        = HomogeneousModeValues<GeneticMode::A | GeneticMode::D, double>;
 
     JointSpikeSlabState(
         std::array<double, class_count> probabilities,
@@ -185,11 +153,7 @@ class JointSpikeSlabState
               Eigen::VectorX<std::uint8_t>::Zero(
                   static_cast<Eigen::Index>(dimensions.marker))),
           class_counts_{dimensions.marker},
-          probabilities_(probabilities),
-          fitted_values_(
-              fitted_values_type::Zero(
-                  static_cast<Eigen::Index>(dimensions.individual),
-                  component_count))
+          probabilities_(probabilities)
     {
         detail::validate_probability_simplex(
             probabilities_, "joint spike-slab probabilities");
@@ -215,58 +179,24 @@ class JointSpikeSlabState
             probabilities, "joint spike-slab probabilities");
         probabilities_ = probabilities;
     }
-    auto fitted_values() const -> const fitted_values_type&
-    {
-        return fitted_values_;
-    }
 
-    template <GeneticMode Mode>
-        requires(Mode == GeneticMode::A || Mode == GeneticMode::D)
-    [[nodiscard]] static constexpr auto fitted_component_index(
-        std::size_t class_index) noexcept -> int
+    auto transition(Eigen::Index marker, std::uint8_t assignment) -> void
     {
-        assert(class_index < class_count);
-        if constexpr (Mode == GeneticMode::A)
-        {
-            return additive_components[class_index];
-        }
-        else
-        {
-            return dominance_components[class_index];
-        }
-    }
-
-    [[nodiscard]] auto transition(
-        Eigen::Index marker,
-        std::uint8_t assignment,
-        const mode_coefficients_type& old_coefficients,
-        const mode_coefficients_type& new_coefficients)
-    {
+        assert(marker >= 0 && marker < assignments_.size());
+        assert(assignment < class_count);
         const auto old_assignment = assignments_(marker);
-        auto updates = generate_mode_values<GeneticMode::A | GeneticMode::D>(
-            [&]<GeneticMode Mode>()
-            {
-                return detail::make_fitted_update(
-                    fitted_values_,
-                    fitted_component_index<Mode>(old_assignment),
-                    fitted_component_index<Mode>(assignment),
-                    old_coefficients.template get<Mode>(),
-                    new_coefficients.template get<Mode>());
-            });
         if (old_assignment != assignment)
         {
             --class_counts_[old_assignment];
             ++class_counts_[assignment];
         }
         assignments_(marker) = assignment;
-        return updates;
     }
 
    private:
     Eigen::VectorX<std::uint8_t> assignments_;
     std::array<std::size_t, class_count> class_counts_;
     std::array<double, class_count> probabilities_;
-    fitted_values_type fitted_values_;
 };
 
 inline auto make_state(
@@ -319,11 +249,9 @@ class JointSpikeSlabDraws
 
     explicit JointSpikeSlabDraws(
         PayloadWriter<std::uint8_t> assignments,
-        probability_writer_type probabilities,
-        PayloadWriter<double> component_explained_variance)
+        probability_writer_type probabilities)
         : assignments_{std::move(assignments)},
-          probabilities_{std::move(probabilities)},
-          component_explained_variance_{std::move(component_explained_variance)}
+          probabilities_{std::move(probabilities)}
     {
     }
 
@@ -334,14 +262,11 @@ class JointSpikeSlabDraws
         {
             probabilities_.append(state.probabilities());
         }
-        component_explained_variance_.append(
-            matvar<0>(state.fitted_values(), VarNormType::Population));
     }
 
    private:
     PayloadWriter<std::uint8_t> assignments_;
     [[no_unique_address]] probability_writer_type probabilities_;
-    PayloadWriter<double> component_explained_variance_;
 };
 
 [[nodiscard]] inline auto make_draws(
@@ -369,8 +294,6 @@ class JointSpikeSlabDraws
         std::move(annotation_coefficients)};
 }
 
-// Rows follow the fitted column layout of JointSpikeSlabState: A in A-only,
-// A in AD, D in D-only, D in AD.
 template <MixtureWeightUpdate WeightUpdate>
 [[nodiscard]] auto make_draws(
     const JointSpikeSlabState<WeightUpdate>& state,
@@ -398,15 +321,9 @@ template <MixtureWeightUpdate WeightUpdate>
             return {};
         }
     }();
-    auto component_explained_variance = writer.reserve<double>(
-        fmt::format("{}/{}", prefix, component_explained_variance_id),
-        BinaryShape{
-            JointSpikeSlabState<WeightUpdate>::component_count, draw_count});
 
     return JointSpikeSlabDraws<WeightUpdate>{
-        std::move(assignments),
-        std::move(probabilities),
-        std::move(component_explained_variance)};
+        std::move(assignments), std::move(probabilities)};
 }
 
 GELEX_NAMESPACE_END(gelex)

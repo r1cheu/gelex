@@ -19,6 +19,7 @@
 #include "gelex/bayes/genetic/spike_slab.h"
 #include "gelex/bayes/genetic/types.h"
 #include "gelex/bayes/genotype/design.h"
+#include "gelex/bayes/genotype/projection.h"
 #include "gelex/bayes/state.h"
 #include "gelex/bayes/stats/log_categorical_distribution.h"
 #include "gelex/genetic_mode.h"
@@ -66,7 +67,6 @@ class SpikeSlabKernel
         const auto& coefficients = state.coefficients();
         auto& variance = state.variance();
 
-        previous_adjusted_response_ = residual.adjusted_response;
         std::normal_distribution<double> normal_distribution;
         const auto log_probabilities = make_log_weights(
             std::array{1.0 - state.probability(), state.probability()});
@@ -93,9 +93,12 @@ class SpikeSlabKernel
                             : 0.0;
             const double squared_effect = new_value * new_value;
 
+            if (old_value != new_value)
+            {
+                projection.axpy(
+                    marker, old_value - new_value, residual.adjusted_response);
+            }
             state.transition(marker, new_value, is_active);
-            projection.axpy(
-                marker, old_value - new_value, residual.adjusted_response);
 
             if constexpr (Kind == VarianceLayout::Pooled)
             {
@@ -112,9 +115,6 @@ class SpikeSlabKernel
                     variance(marker), is_active ? 1 : 0, squared_effect, rng);
             }
         }
-
-        previous_adjusted_response_ -= residual.adjusted_response;
-        state.transition(previous_adjusted_response_);
         if constexpr (Kind == VarianceLayout::Pooled)
         {
             variance_updater_.update(
@@ -137,7 +137,6 @@ class SpikeSlabKernel
     detail::NormalVarianceConjugateUpdater variance_updater_;
     [[no_unique_address]] probability_updater_type probability_updater_;
     LogCategoricalDistribution<2> allocation_distribution_;
-    Eigen::VectorXd previous_adjusted_response_;
 };
 
 template <VarianceLayout Kind, MixtureWeightUpdate WeightUpdate>

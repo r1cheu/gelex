@@ -13,6 +13,7 @@
 #include "gelex/bayes/genetic/gaussian.h"
 #include "gelex/bayes/genetic/types.h"
 #include "gelex/bayes/genotype/design.h"
+#include "gelex/bayes/genotype/projection.h"
 #include "gelex/bayes/state.h"
 #include "gelex/genetic_mode.h"
 
@@ -43,9 +44,6 @@ class GaussianKernel
         const auto& coefficients = state.coefficients();
         auto& variance = state.variance();
 
-        // TODO(rlchen): Skip deterministic fitted-cache maintenance during
-        // burn-in and rebuild it once at the sampling boundary.
-        previous_adjusted_response_ = residual.adjusted_response;
         std::normal_distribution<double> normal_dist;
         const auto normal_prior_for_marker
             = detail::make_normal_prior_provider<Kind>(variance);
@@ -61,9 +59,12 @@ class GaussianKernel
                       .normal_parameters();
 
             const double new_value = normal_dist(rng, posterior);
+            if (old_value != new_value)
+            {
+                projection.axpy(
+                    marker, old_value - new_value, residual.adjusted_response);
+            }
             state.transition(marker, new_value);
-            projection.axpy(
-                marker, old_value - new_value, residual.adjusted_response);
 
             if constexpr (Kind == VarianceLayout::Pooled)
             {
@@ -75,9 +76,6 @@ class GaussianKernel
                     variance(marker), 1, new_value * new_value, rng);
             }
         }
-
-        previous_adjusted_response_ -= residual.adjusted_response;
-        state.transition(previous_adjusted_response_);
         if constexpr (Kind == VarianceLayout::Pooled)
         {
             variance_updater_.update(
@@ -87,7 +85,6 @@ class GaussianKernel
 
    private:
     detail::NormalVarianceConjugateUpdater variance_updater_;
-    Eigen::VectorXd previous_adjusted_response_;
 };
 
 template <VarianceLayout Kind>

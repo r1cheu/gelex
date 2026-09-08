@@ -9,18 +9,16 @@
 #include <cstddef>
 #include <cstdint>
 #include <random>
-#include <span>
-#include <string>
 #include <utility>
 #include <vector>
 
-#include "gelex/bayes/genetic/detail/apply_fitted_update.h"
 #include "gelex/bayes/genetic/gaussian.h"
 #include "gelex/bayes/genetic/joint_spike_slab.h"
 #include "gelex/bayes/genetic/marker_covariate.h"
 #include "gelex/bayes/genetic/marker_covariate_io.h"
 #include "gelex/bayes/genetic/types.h"
 #include "gelex/bayes/genotype/design.h"
+#include "gelex/bayes/genotype/projection.h"
 #include "gelex/bayes/kernel.h"
 #include "gelex/bayes/mode_values.h"
 #include "gelex/bayes/model.h"
@@ -64,12 +62,6 @@ using JointGeneticPrior = gelex::
 
 using SampledPrior = JointGeneticPrior<gelex::MixtureWeightUpdate::Enabled>;
 using FixedPrior = JointGeneticPrior<gelex::MixtureWeightUpdate::Disabled>;
-
-struct JointCoefficients
-{
-    Eigen::VectorXd additive;
-    Eigen::VectorXd dominance;
-};
 
 struct AssignmentObservation
 {
@@ -142,39 +134,6 @@ auto reconstruct_total(
     return fitted_values;
 }
 
-auto reconstruct_joint_fitted_values(
-    const gelex::bayes::GeneticDesign& design,
-    const JointCoefficients& coefficients,
-    const Eigen::VectorX<std::uint8_t>& assignment) -> Eigen::MatrixXd
-{
-    using JointState = gelex::JointSpikeSlabState<>;
-    Eigen::MatrixXd fitted_values = Eigen::MatrixXd::Zero(
-        design.rows(), static_cast<Eigen::Index>(JointState::component_count));
-    constexpr auto additive_component = JointState::additive_components;
-    constexpr auto dominance_component = JointState::dominance_components;
-    const auto& additive_projection = design.projection(gelex::GeneticMode::A);
-    const auto& dominance_projection = design.projection(gelex::GeneticMode::D);
-    for (Eigen::Index marker = 0; marker < assignment.size(); ++marker)
-    {
-        const auto class_index = static_cast<std::size_t>(assignment(marker));
-        if (additive_component.at(class_index) >= 0)
-        {
-            additive_projection.axpy(
-                marker,
-                coefficients.additive(marker),
-                fitted_values.col(additive_component.at(class_index)));
-        }
-        if (dominance_component.at(class_index) >= 0)
-        {
-            dominance_projection.axpy(
-                marker,
-                coefficients.dominance(marker),
-                fitted_values.col(dominance_component.at(class_index)));
-        }
-    }
-    return fitted_values;
-}
-
 template <typename State>
 auto initialize_non_null_state(const gelex::BayesModel& model, State& state)
     -> void
@@ -188,57 +147,31 @@ auto initialize_non_null_state(const gelex::BayesModel& model, State& state)
     const Eigen::VectorXd dominance_values{{0.0, 0.0, -0.4, 0.5}};
     for (Eigen::Index marker = 0; marker < 4; ++marker)
     {
-        const gelex::JointSpikeSlabState<>::mode_coefficients_type old_values{
-            0.0, 0.0};
-        const gelex::JointSpikeSlabState<>::mode_coefficients_type new_values{
-            additive_values(marker), dominance_values(marker)};
-        auto updates = joint.transition(
-            marker, static_cast<std::uint8_t>(marker), old_values, new_values);
-        updates.for_each(
-            [&]<gelex::GeneticMode Mode>(const auto& update)
-            {
-                const std::array<gelex::bayes::AxpyTarget, 0> extra{};
-                gelex::detail::apply_fitted_update(
-                    model.genetic().projection(Mode),
-                    marker,
-                    update,
-                    std::span{extra});
-            });
+        joint.transition(marker, static_cast<std::uint8_t>(marker));
         additive.transition(marker, additive_values(marker));
         dominance.transition(marker, dominance_values(marker));
     }
-    additive.transition(reconstruct_total(
-        model.genetic(), gelex::GeneticMode::A, additive.coefficients()));
-    dominance.transition(reconstruct_total(
-        model.genetic(), gelex::GeneticMode::D, dominance.coefficients()));
-    state.residual().adjusted_response -= additive.fitted_values();
-    state.residual().adjusted_response -= dominance.fitted_values();
+    state.residual().adjusted_response -= reconstruct_total(
+        model.genetic(), gelex::GeneticMode::A, additive.coefficients());
+    state.residual().adjusted_response -= reconstruct_total(
+        model.genetic(), gelex::GeneticMode::D, dominance.coefficients());
 }
 
 template <typename State>
-auto require_fitted_value_invariants(
+auto require_residual_invariant(
     const gelex::BayesModel& model,
     const State& state) -> void
 {
     const auto& mode_states = state.genetic().mode_values();
     const auto& additive = mode_states.template get<gelex::GeneticMode::A>();
     const auto& dominance = mode_states.template get<gelex::GeneticMode::D>();
-    const auto& joint = state.genetic().joint();
     const auto additive_fitted_values = reconstruct_total(
         model.genetic(), gelex::GeneticMode::A, additive.coefficients());
     const auto dominance_fitted_values = reconstruct_total(
         model.genetic(), gelex::GeneticMode::D, dominance.coefficients());
-    const auto joint_fitted_values = reconstruct_joint_fitted_values(
-        model.genetic(),
-        {.additive = additive.coefficients(),
-         .dominance = dominance.coefficients()},
-        joint.assignments());
     const Eigen::VectorXd fixed_fitted_values
         = model.fixed().X() * state.fixed().coefficients;
 
-    REQUIRE(additive.fitted_values().isApprox(additive_fitted_values));
-    REQUIRE(dominance.fitted_values().isApprox(dominance_fitted_values));
-    REQUIRE(joint.fitted_values().isApprox(joint_fitted_values));
     REQUIRE((state.residual().adjusted_response + fixed_fitted_values
              + additive_fitted_values + dominance_fitted_values)
                 .isApprox(model.phenotype()));
@@ -295,7 +228,7 @@ auto require_state_invariants(
     const gelex::BayesModel& model,
     const State& state) -> void
 {
-    require_fitted_value_invariants(model, state);
+    require_residual_invariant(model, state);
     require_assignment_invariants(state);
 }
 

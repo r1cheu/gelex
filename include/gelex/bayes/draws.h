@@ -18,7 +18,6 @@
 #include "gelex/bayes/model.h"
 #include "gelex/bayes/serialization_ids.h"
 #include "gelex/bayes/state.h"
-#include "gelex/bayes/variance/draws.h"
 #include "gelex/exception.h"
 #include "gelex/genetic_mode.h"
 #include "gelex/infra/log.h"
@@ -78,7 +77,6 @@ class BayesDraws
           residual_{writer_.reserve<double>(
               residual_variance_id,
               BinaryShape{1, draw_count})},
-          variance_summary_{writer_, draw_count},
           draw_count_{draw_count}
     {
     }
@@ -114,7 +112,6 @@ class BayesDraws
                 fmt::format(
                     "draw count exceeded: {} draws reserved", draw_count_));
         }
-        const auto variance_summary = make_variance_summary(state);
         fixed_.append(state.fixed().coefficients);
         for (auto&& [draws, random_state] :
              std::views::zip(random_, state.random()))
@@ -129,7 +126,6 @@ class BayesDraws
             genetic_.joint().append(state.genetic().joint());
         }
         residual_.append(state.residual().variance);
-        variance_summary_.append(variance_summary);
         ++appended_;
     }
 
@@ -140,7 +136,6 @@ class BayesDraws
     std::vector<RandomEffectDraws> random_;
     genetic_draws_type genetic_;
     PayloadWriter<double> residual_;
-    VarianceSummaryDraws<GeneticPrior::modes> variance_summary_;
     std::uint64_t draw_count_;
     std::uint64_t appended_{0};
 };
