@@ -9,33 +9,15 @@
 #include <random>
 #include <utility>
 
-#include "gelex/bayes/genetic/types.h"
-#include "gelex/bayes/parameter.h"
 #include "gelex/bayes/stats/dirichlet_distribution.h"
 #include "gelex/bayes/stats/dirichlet_log_kernel.h"
 
 namespace gelex::detail
 {
 
-template <std::size_t K, MixtureWeightUpdate Update>
-class DirichletConjugateUpdater;
-
 template <std::size_t K>
     requires(K > 1)
-class DirichletConjugateUpdater<K, MixtureWeightUpdate::Disabled>
-{
-   public:
-    auto update(
-        std::array<double, K>& /*weights*/,
-        const std::array<std::size_t, K>& /*counts*/,
-        std::mt19937_64& /*rng*/) noexcept -> void
-    {
-    }
-};
-
-template <std::size_t K>
-    requires(K > 1)
-class DirichletConjugateUpdater<K, MixtureWeightUpdate::Enabled>
+class DirichletConjugateUpdater
 {
    public:
     explicit DirichletConjugateUpdater(DirichletLogKernel<K> prior)
@@ -43,39 +25,19 @@ class DirichletConjugateUpdater<K, MixtureWeightUpdate::Enabled>
     {
     }
 
-    auto update(
-        std::array<double, K>& weights,
+    [[nodiscard]] auto draw(
         const std::array<std::size_t, K>& counts,
-        std::mt19937_64& rng) -> void
+        std::mt19937_64& rng) -> std::array<double, K>
     {
         const auto posterior = prior_ + make_categorical_likelihood(counts);
         distribution_.reset();
-        weights = distribution_(rng, posterior.dirichlet_parameters());
+        return distribution_(rng, posterior.dirichlet_parameters());
     }
 
    private:
     DirichletLogKernel<K> prior_;
     DirichletDistribution<K> distribution_;
 };
-
-template <std::size_t K, typename T>
-    requires(K > 1)
-[[nodiscard]] auto make_dirichlet_conjugate_updater(
-    const FixedParameter<T>& /*parameter*/)
-    -> DirichletConjugateUpdater<K, MixtureWeightUpdate::Disabled>
-{
-    return {};
-}
-
-template <std::size_t K, typename T>
-    requires(K > 1)
-[[nodiscard]] auto make_dirichlet_conjugate_updater(
-    const Parameter<T, DirichletLogKernel<K>>& parameter)
-    -> DirichletConjugateUpdater<K, MixtureWeightUpdate::Enabled>
-{
-    return DirichletConjugateUpdater<K, MixtureWeightUpdate::Enabled>{
-        parameter.prior};
-}
 
 }  // namespace gelex::detail
 

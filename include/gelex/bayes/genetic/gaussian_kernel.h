@@ -22,11 +22,11 @@ namespace gelex
 template <VarianceLayout Kind>
 class GaussianKernel
 {
-    using Prior = GaussianPrior<Kind>;
-    using State = GaussianState<Kind>;
+    using prior_type = GaussianPrior<Kind>;
+    using state_type = GaussianState<Kind>;
 
    public:
-    explicit GaussianKernel(const Prior& prior)
+    explicit GaussianKernel(const prior_type& prior)
         : variance_updater_{prior.variance.prior}
     {
     }
@@ -34,7 +34,7 @@ class GaussianKernel
     template <GeneticMode Mode>
     auto step(
         const bayes::GeneticDesign& design,
-        State& state,
+        state_type& state,
         ResidualState& residual,
         std::mt19937_64& rng) -> void
     {

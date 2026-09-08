@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <functional>
 #include <random>
+#include <string_view>
 
 #include "gelex/bayes/draws.h"
 #include "gelex/bayes/kernel.h"
@@ -33,11 +34,12 @@ class MCMCRunner
     auto run(
         const BayesModel& model,
         const BayesPrior<GeneticPrior>& prior,
-        BayesDraws<GeneticPrior>& draws,
+        std::string_view output_path,
         int seed = 42,
         const std::function<void(std::size_t)>& observer = {}) -> void
     {
         auto state = make_state(prior, model);
+        auto draws = BayesDraws{state, model, output_path, draw_count()};
         auto kernel = make_kernel(prior);
         auto rng
             = std::mt19937_64{static_cast<std::mt19937_64::result_type>(seed)};

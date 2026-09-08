@@ -153,6 +153,7 @@ class HalfNormalState
 // Classes are NULL, A-only, D-only and AD; fitted_values holds one column per
 // (mode, class) cell in which that mode is active, so every column carries a
 // single mode and the two columns of a mode sum to that mode's total.
+template <MixtureWeightUpdate WeightUpdate = MixtureWeightUpdate::Enabled>
 class JointSpikeSlabState
 {
    public:
@@ -171,9 +172,9 @@ class JointSpikeSlabState
         2,
         3};
 
-    using FittedValues = Eigen::
+    using fitted_values_type = Eigen::
         Matrix<double, Eigen::Dynamic, static_cast<int>(component_count)>;
-    using ModeCoefficients
+    using mode_coefficients_type
         = HomogeneousModeValues<GeneticMode::A | GeneticMode::D, double>;
 
     JointSpikeSlabState(
@@ -185,10 +186,12 @@ class JointSpikeSlabState
           class_counts_{dimensions.marker},
           probabilities_(probabilities),
           fitted_values_(
-              FittedValues::Zero(
+              fitted_values_type::Zero(
                   static_cast<Eigen::Index>(dimensions.individual),
                   component_count))
     {
+        detail::validate_probability_simplex(
+            probabilities_, "joint spike-slab probabilities");
     }
 
     auto assignments() const -> const Eigen::VectorX<std::uint8_t>&
@@ -203,11 +206,18 @@ class JointSpikeSlabState
     {
         return probabilities_;
     }
-    auto probabilities() -> std::array<double, class_count>&
+    auto set_probabilities(std::array<double, class_count> probabilities)
+        -> void
+        requires(WeightUpdate == MixtureWeightUpdate::Enabled)
     {
-        return probabilities_;
+        detail::validate_probability_simplex(
+            probabilities, "joint spike-slab probabilities");
+        probabilities_ = probabilities;
     }
-    auto fitted_values() const -> const FittedValues& { return fitted_values_; }
+    auto fitted_values() const -> const fitted_values_type&
+    {
+        return fitted_values_;
+    }
 
     template <GeneticMode Mode>
         requires(Mode == GeneticMode::A || Mode == GeneticMode::D)
@@ -228,8 +238,8 @@ class JointSpikeSlabState
     [[nodiscard]] auto transition(
         Eigen::Index marker,
         std::uint8_t assignment,
-        const ModeCoefficients& old_coefficients,
-        const ModeCoefficients& new_coefficients)
+        const mode_coefficients_type& old_coefficients,
+        const mode_coefficients_type& new_coefficients)
     {
         const auto old_assignment = assignments_(marker);
         auto updates = generate_mode_values<GeneticMode::A | GeneticMode::D>(
@@ -255,7 +265,7 @@ class JointSpikeSlabState
     Eigen::VectorX<std::uint8_t> assignments_;
     std::array<std::size_t, class_count> class_counts_;
     std::array<double, class_count> probabilities_;
-    FittedValues fitted_values_;
+    fitted_values_type fitted_values_;
 };
 
 inline auto make_state(
@@ -268,7 +278,7 @@ inline auto make_state(
 template <MixtureWeightUpdate WeightUpdate>
 auto make_state(
     const JointSpikeSlabPrior<WeightUpdate>& prior,
-    GeneticDimensions dimensions) -> JointSpikeSlabState
+    GeneticDimensions dimensions) -> JointSpikeSlabState<WeightUpdate>
 {
     return {prior.probabilities.initial, dimensions};
 }
@@ -316,7 +326,7 @@ class JointSpikeSlabDraws
     {
     }
 
-    auto append(const JointSpikeSlabState& state) -> void
+    auto append(const JointSpikeSlabState<WeightUpdate>& state) -> void
     {
         assignments_.append(state.assignments());
         if constexpr (WeightUpdate == MixtureWeightUpdate::Enabled)
@@ -334,20 +344,23 @@ class JointSpikeSlabDraws
 };
 
 [[nodiscard]] inline auto make_draws(
-    const HalfNormalPrior& /*prior*/,
+    const HalfNormalState& state,
     BinaryWriter& writer,
     std::string_view prefix,
-    std::size_t draw_count,
-    GeneticDimensions dimensions) -> HalfNormalDraws
+    std::size_t draw_count) -> HalfNormalDraws
 {
+    const auto marker_count
+        = static_cast<std::size_t>(state.coefficients().size());
     auto variance = writer.reserve<double>(
         fmt::format("{}/{}", prefix, variance_id), BinaryShape{1, draw_count});
     auto coefficients = writer.reserve<float>(
         fmt::format("{}/{}", prefix, coefficients_id),
-        BinaryShape{dimensions.marker, draw_count});
+        BinaryShape{marker_count, draw_count});
     auto annotation_coefficients = writer.reserve<float>(
         fmt::format("{}/{}", prefix, annotation_coefficients_id),
-        BinaryShape{2, draw_count});
+        BinaryShape{
+            static_cast<std::size_t>(state.annotation_coefficients().size()),
+            draw_count});
 
     return HalfNormalDraws{
         std::move(variance),
@@ -359,22 +372,25 @@ class JointSpikeSlabDraws
 // A in AD, D in D-only, D in AD.
 template <MixtureWeightUpdate WeightUpdate>
 [[nodiscard]] auto make_draws(
-    const JointSpikeSlabPrior<WeightUpdate>& /*prior*/,
+    const JointSpikeSlabState<WeightUpdate>& state,
     BinaryWriter& writer,
     std::string_view prefix,
-    std::size_t draw_count,
-    GeneticDimensions dimensions) -> JointSpikeSlabDraws<WeightUpdate>
+    std::size_t draw_count) -> JointSpikeSlabDraws<WeightUpdate>
 {
+    const auto marker_count
+        = static_cast<std::size_t>(state.assignments().size());
     auto assignments = writer.reserve<std::uint8_t>(
         fmt::format("{}/{}", prefix, assignment_id),
-        BinaryShape{dimensions.marker, draw_count});
+        BinaryShape{marker_count, draw_count});
     auto probabilities = [&]() -> probability_writer_t<WeightUpdate>
     {
         if constexpr (WeightUpdate == MixtureWeightUpdate::Enabled)
         {
             return writer.reserve<double>(
                 fmt::format("{}/{}", prefix, probabilities_id),
-                BinaryShape{JointSpikeSlabState::class_count, draw_count});
+                BinaryShape{
+                    JointSpikeSlabState<WeightUpdate>::class_count,
+                    draw_count});
         }
         else
         {
@@ -383,7 +399,8 @@ template <MixtureWeightUpdate WeightUpdate>
     }();
     auto component_explained_variance = writer.reserve<double>(
         fmt::format("{}/{}", prefix, component_explained_variance_id),
-        BinaryShape{JointSpikeSlabState::component_count, draw_count});
+        BinaryShape{
+            JointSpikeSlabState<WeightUpdate>::component_count, draw_count});
 
     return JointSpikeSlabDraws<WeightUpdate>{
         std::move(assignments),

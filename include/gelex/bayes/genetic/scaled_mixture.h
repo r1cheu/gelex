@@ -73,13 +73,14 @@ auto make_prior(
         .scales = spec.scales()};
 }
 
+template <MixtureWeightUpdate WeightUpdate = MixtureWeightUpdate::Enabled>
 class ScaledMixtureState
 {
    public:
     static constexpr std::size_t class_count = ScaledMixtureSpec<>::class_count;
     static constexpr std::size_t component_count = class_count - 1;
 
-    using FittedValues = Eigen::
+    using fitted_values_type = Eigen::
         Matrix<double, Eigen::Dynamic, static_cast<int>(component_count)>;
 
     ScaledMixtureState(
@@ -94,12 +95,14 @@ class ScaledMixtureState
                   static_cast<Eigen::Index>(dimensions.marker))),
           class_counts_{dimensions.marker},
           fitted_values_(
-              FittedValues::Zero(
+              fitted_values_type::Zero(
                   static_cast<Eigen::Index>(dimensions.individual),
                   component_count)),
           variance_(variance),
           probabilities_(probabilities)
     {
+        detail::validate_probability_simplex(
+            probabilities_, "scaled-mixture probabilities");
     }
 
     auto coefficients() const -> const Eigen::VectorXd&
@@ -114,16 +117,23 @@ class ScaledMixtureState
     {
         return class_counts_;
     }
-    auto fitted_values() const -> const FittedValues& { return fitted_values_; }
+    auto fitted_values() const -> const fitted_values_type&
+    {
+        return fitted_values_;
+    }
     auto variance() const -> double { return variance_; }
     auto variance() -> double& { return variance_; }
     auto probabilities() const -> const std::array<double, class_count>&
     {
         return probabilities_;
     }
-    auto probabilities() -> std::array<double, class_count>&
+    auto set_probabilities(std::array<double, class_count> probabilities)
+        -> void
+        requires(WeightUpdate == MixtureWeightUpdate::Enabled)
     {
-        return probabilities_;
+        detail::validate_probability_simplex(
+            probabilities, "scaled-mixture probabilities");
+        probabilities_ = probabilities;
     }
 
     // NOLINTBEGIN(bugprone-easily-swappable-parameters)
@@ -160,7 +170,7 @@ class ScaledMixtureState
     Eigen::VectorXd coefficients_;
     Eigen::VectorX<std::uint8_t> assignments_;
     std::array<std::size_t, class_count> class_counts_;
-    FittedValues fitted_values_;
+    fitted_values_type fitted_values_;
     double variance_;
     std::array<double, class_count> probabilities_;
 };
@@ -168,7 +178,7 @@ class ScaledMixtureState
 template <MixtureWeightUpdate WeightUpdate>
 auto make_state(
     const ScaledMixturePrior<WeightUpdate>& prior,
-    GeneticDimensions dimensions) -> ScaledMixtureState
+    GeneticDimensions dimensions) -> ScaledMixtureState<WeightUpdate>
 {
     return {prior.variance.initial, prior.probabilities.initial, dimensions};
 }
@@ -193,10 +203,11 @@ class ScaledMixtureDraws
     {
     }
 
-    auto append(const ScaledMixtureState& state) -> void
+    auto append(const ScaledMixtureState<WeightUpdate>& state) -> void
     {
         variance_.append(state.variance());
-        coefficients_.append(state.coefficients().cast<float>().eval());
+        coefficients_.append(
+            state.coefficients().template cast<float>().eval());
         assignments_.append(state.assignments());
         if constexpr (WeightUpdate == MixtureWeightUpdate::Enabled)
         {
@@ -216,27 +227,29 @@ class ScaledMixtureDraws
 
 template <MixtureWeightUpdate WeightUpdate>
 [[nodiscard]] auto make_draws(
-    const ScaledMixturePrior<WeightUpdate>& /*prior*/,
+    const ScaledMixtureState<WeightUpdate>& state,
     BinaryWriter& writer,
     std::string_view prefix,
-    std::size_t draw_count,
-    GeneticDimensions dimensions) -> ScaledMixtureDraws<WeightUpdate>
+    std::size_t draw_count) -> ScaledMixtureDraws<WeightUpdate>
 {
+    const auto marker_count
+        = static_cast<std::size_t>(state.coefficients().size());
     auto variance = writer.reserve<double>(
         fmt::format("{}/{}", prefix, variance_id), BinaryShape{1, draw_count});
     auto coefficients = writer.reserve<float>(
         fmt::format("{}/{}", prefix, coefficients_id),
-        BinaryShape{dimensions.marker, draw_count});
+        BinaryShape{marker_count, draw_count});
     auto assignments = writer.reserve<std::uint8_t>(
         fmt::format("{}/{}", prefix, assignment_id),
-        BinaryShape{dimensions.marker, draw_count});
+        BinaryShape{marker_count, draw_count});
     auto probabilities = [&]() -> probability_writer_t<WeightUpdate>
     {
         if constexpr (WeightUpdate == MixtureWeightUpdate::Enabled)
         {
             return writer.reserve<double>(
                 fmt::format("{}/{}", prefix, probabilities_id),
-                BinaryShape{ScaledMixtureState::class_count, draw_count});
+                BinaryShape{
+                    ScaledMixtureState<WeightUpdate>::class_count, draw_count});
         }
         else
         {
@@ -245,7 +258,8 @@ template <MixtureWeightUpdate WeightUpdate>
     }();
     auto component_explained_variance = writer.reserve<double>(
         fmt::format("{}/{}", prefix, component_explained_variance_id),
-        BinaryShape{ScaledMixtureState::component_count, draw_count});
+        BinaryShape{
+            ScaledMixtureState<WeightUpdate>::component_count, draw_count});
 
     return ScaledMixtureDraws<WeightUpdate>{
         std::move(variance),

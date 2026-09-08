@@ -67,7 +67,7 @@ TEST_CASE("BayesDraws decomposes per-class genetic values", "[bayes][draws]")
     auto state = gelex::make_state(prior, model);
 
     {
-        auto draws = gelex::BayesDraws{prior, model, path.string(), 1};
+        auto draws = gelex::BayesDraws{state, model, path.string(), 1};
 
         // Each mode's class columns sum row-wise to {0, 3, 0}.
         state.genetic().for_each(
@@ -120,7 +120,7 @@ TEST_CASE(
     state.genetic().get<gelex::GeneticMode::A>().transition(0, 0.5);
     state.genetic().get<gelex::GeneticMode::D>().transition(1, -0.25);
     {
-        auto draws = gelex::BayesDraws{prior, model, path, 3};
+        auto draws = gelex::BayesDraws{state, model, path, 3};
         draws.append(state);
         REQUIRE_FALSE(std::filesystem::exists(path));
     }
@@ -152,7 +152,7 @@ TEST_CASE(
         model);
     const auto state = gelex::make_state(prior, model);
     {
-        auto draws = gelex::BayesDraws{prior, model, path, 1};
+        auto draws = gelex::BayesDraws{state, model, path, 1};
         draws.append(state);
         REQUIRE_THROWS_AS(draws.append(state), gelex::GelexException);
     }

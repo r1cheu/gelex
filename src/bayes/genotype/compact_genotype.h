@@ -43,13 +43,13 @@ class CompactGenotype
     }
 
    private:
-    using RawMatrix = Eigen::
+    using raw_matrix_type = Eigen::
         Array<std::uint8_t, Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor>;
 
     [[nodiscard]] auto col(Eigen::Index index) const noexcept
         -> std::span<const std::uint8_t>;
 
-    RawMatrix raw_codes_;
+    raw_matrix_type raw_codes_;
     std::vector<gelex::LocusStats> locus_stats_;
     Eigen::VectorXd a1_frequency_;
 

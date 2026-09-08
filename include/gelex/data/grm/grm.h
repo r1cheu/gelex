@@ -35,7 +35,7 @@ struct GrmMatrix
 class GrmBuilder
 {
    public:
-    using Sink = std::function<void(const GrmMatrix&)>;
+    using sink_type = std::function<void(const GrmMatrix&)>;
 
     GrmBuilder(
         const Bed& bed,
@@ -44,7 +44,8 @@ class GrmBuilder
         Eigen::Index chunk_size,
         std::function<void(std::size_t)> observer = {});
 
-    auto build(std::span<const MarkerRange> ranges, const Sink& sink) -> void;
+    auto build(std::span<const MarkerRange> ranges, const sink_type& sink)
+        -> void;
 
    private:
     auto accumulate(

@@ -98,11 +98,12 @@ class ScaledInvChi2Distribution
     template <typename Generator>
     auto operator()(Generator& rng, const param_type& parameters) -> result_type
     {
-        using ChiSquaredParameters =
+        using chi_squared_parameters_type =
             typename std::chi_squared_distribution<T>::param_type;
         const T degrees_of_freedom = parameters.degrees_of_freedom_;
         return (degrees_of_freedom * parameters.scale_)
-               / chi_squared_(rng, ChiSquaredParameters{degrees_of_freedom});
+               / chi_squared_(
+                   rng, chi_squared_parameters_type{degrees_of_freedom});
     }
 
    private:

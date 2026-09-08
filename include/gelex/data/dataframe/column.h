@@ -93,13 +93,13 @@ class Column
 template <ValueType T>
 auto Column::push_back(T&& value) -> void
 {
-    using Raw = std::remove_cvref_t<T>;
+    using raw_type = std::remove_cvref_t<T>;
     if (std::holds_alternative<std::monostate>(storage_))
     {
-        storage_ = std::vector<Raw>{std::forward<T>(value)};
+        storage_ = std::vector<raw_type>{std::forward<T>(value)};
         return;
     }
-    auto* vec = std::get_if<std::vector<Raw>>(&storage_);
+    auto* vec = std::get_if<std::vector<raw_type>>(&storage_);
     if (!vec)
     {
         throw GelexException(

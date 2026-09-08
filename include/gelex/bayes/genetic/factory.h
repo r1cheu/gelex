@@ -95,47 +95,35 @@ using genetic_state_t = decltype(make_state(
 
 // ---- draws
 
-template <GeneticModeSet Modes, typename... Priors>
+template <GeneticModeSet Modes, typename... States>
 [[nodiscard]] auto make_draws(
-    const ModeValues<Modes, Priors...>& prior,
-    const bayes::GeneticDesign& design,
+    const ModeValues<Modes, States...>& state,
     BinaryWriter& writer,
     std::uint64_t draw_count)
 {
-    detail::validate_genetic_design<Modes>(design);
-    const GeneticDimensions dimensions{
-        .individual = static_cast<std::size_t>(design.rows()),
-        .marker = static_cast<std::size_t>(design.cols())};
     return transform_mode_values(
-        prior,
-        [&]<GeneticMode Mode>(const auto& mode_prior)
+        state,
+        [&]<GeneticMode Mode>(const auto& mode_state)
         {
-            return make_draws(
-                mode_prior, writer, genetic_id<Mode>, draw_count, dimensions);
+            return make_draws(mode_state, writer, genetic_id<Mode>, draw_count);
         });
 }
 
-template <typename ModeValuesType, typename JointPrior>
+template <typename ModeValuesType, typename JointState>
 [[nodiscard]] auto make_draws(
-    const JointModeValues<ModeValuesType, JointPrior>& prior,
-    const bayes::GeneticDesign& design,
+    const JointModeValues<ModeValuesType, JointState>& state,
     BinaryWriter& writer,
     std::uint64_t draw_count)
 {
-    auto mode_draws
-        = make_draws(prior.mode_values(), design, writer, draw_count);
-    const GeneticDimensions dimensions{
-        .individual = static_cast<std::size_t>(design.rows()),
-        .marker = static_cast<std::size_t>(design.cols())};
-    auto joint_draws = make_draws(
-        prior.joint(), writer, joint_genetic_id, draw_count, dimensions);
+    auto mode_draws = make_draws(state.mode_values(), writer, draw_count);
+    auto joint_draws
+        = make_draws(state.joint(), writer, joint_genetic_id, draw_count);
     return JointModeValues{std::move(mode_draws), std::move(joint_draws)};
 }
 
-template <typename Prior>
+template <typename State>
 using genetic_draws_t = decltype(make_draws(
-    std::declval<const Prior&>(),
-    std::declval<const bayes::GeneticDesign&>(),
+    std::declval<const State&>(),
     std::declval<BinaryWriter&>(),
     std::declval<std::uint64_t>()));
 

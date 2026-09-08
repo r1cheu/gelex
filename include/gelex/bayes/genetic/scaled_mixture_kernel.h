@@ -10,6 +10,8 @@
 #include <cstdint>
 #include <random>
 #include <span>
+#include <type_traits>
+#include <variant>
 
 #include "gelex/bayes/detail/normal_variance_conjugate_updater.h"
 #include "gelex/bayes/genetic/detail/apply_fitted_update.h"
@@ -30,24 +32,39 @@ namespace gelex
 template <MixtureWeightUpdate WeightUpdate>
 class ScaledMixtureKernel
 {
-    using Prior = ScaledMixturePrior<WeightUpdate>;
-    using State = ScaledMixtureState;
-    using CoefficientParameters = std::normal_distribution<double>::param_type;
+    using prior_type = ScaledMixturePrior<WeightUpdate>;
+    using state_type = ScaledMixtureState<WeightUpdate>;
+    using coefficient_parameters_type
+        = std::normal_distribution<double>::param_type;
 
-    static constexpr std::size_t class_count = State::class_count;
+    static constexpr std::size_t class_count = state_type::class_count;
+    using probability_updater_type = std::conditional_t<
+        WeightUpdate == MixtureWeightUpdate::Enabled,
+        detail::DirichletConjugateUpdater<class_count>,
+        std::monostate>;
 
     struct ComponentSample
     {
         std::size_t class_index{};
-        CoefficientParameters coefficient_parameters;
+        coefficient_parameters_type coefficient_parameters;
     };
 
    public:
-    explicit ScaledMixtureKernel(const Prior& prior)
+    explicit ScaledMixtureKernel(const prior_type& prior)
         : variance_updater_{prior.variance.prior},
           probability_updater_{
-              detail::make_dirichlet_conjugate_updater<class_count>(
-                  prior.probabilities)},
+              [&]() -> probability_updater_type
+              {
+                  if constexpr (WeightUpdate == MixtureWeightUpdate::Enabled)
+                  {
+                      return probability_updater_type{
+                          prior.probabilities.prior};
+                  }
+                  else
+                  {
+                      return {};
+                  }
+              }()},
           scales_{prior.scales}
     {
     }
@@ -55,7 +72,7 @@ class ScaledMixtureKernel
     template <GeneticMode Mode>
     auto step(
         const bayes::GeneticDesign& design,
-        State& state,
+        state_type& state,
         ResidualState& residual,
         std::mt19937_64& rng) -> void
     {
@@ -102,12 +119,17 @@ class ScaledMixtureKernel
                                   - state.class_counts()[0];
         variance_updater_.update(
             state.variance(), active_count, scaled_sum_squares, rng);
-        auto allocation_counts = state.class_counts();
-        // Skipped markers remain NULL but do not contribute to the posterior.
-        allocation_counts[0] -= static_cast<std::size_t>(coefficients.size())
-                                - valid_indices.size();
-        probability_updater_.update(
-            state.probabilities(), allocation_counts, rng);
+        if constexpr (WeightUpdate == MixtureWeightUpdate::Enabled)
+        {
+            auto allocation_counts = state.class_counts();
+            // Skipped markers remain NULL but do not contribute to the
+            // posterior.
+            allocation_counts[0]
+                -= static_cast<std::size_t>(coefficients.size())
+                   - valid_indices.size();
+            state.set_probabilities(
+                probability_updater_.draw(allocation_counts, rng));
+        }
     }
 
    private:
@@ -117,7 +139,8 @@ class ScaledMixtureKernel
         const std::array<double, class_count>& log_probabilities,
         std::mt19937_64& rng) -> ComponentSample
     {
-        std::array<CoefficientParameters, class_count> coefficient_parameters{};
+        std::array<coefficient_parameters_type, class_count>
+            coefficient_parameters{};
         std::array<double, class_count> component_log_integrals{};
         for (std::size_t class_index = 1; class_index < class_count;
              ++class_index)
@@ -145,9 +168,7 @@ class ScaledMixtureKernel
     }
 
     detail::NormalVarianceConjugateUpdater variance_updater_;
-    [[no_unique_address]] detail::DirichletConjugateUpdater<
-        class_count,
-        WeightUpdate> probability_updater_;
+    [[no_unique_address]] probability_updater_type probability_updater_;
     LogCategoricalDistribution<class_count> allocation_distribution_;
     std::array<double, class_count> scales_;
 };

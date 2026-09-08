@@ -13,6 +13,8 @@
 #include <cstdint>
 #include <random>
 #include <span>
+#include <type_traits>
+#include <variant>
 
 #include "gelex/bayes/detail/normal_variance_conjugate_updater.h"
 #include "gelex/bayes/genetic/detail/apply_fitted_update.h"
@@ -41,32 +43,38 @@ namespace gelex
 template <MixtureWeightUpdate WeightUpdate>
 class JointSpikeSlabKernel
 {
-    using AdditivePrior = GaussianPrior<VarianceLayout::Pooled>;
-    using DominancePrior = HalfNormalPrior;
-    using ModePriors = ModeValues<
+    using additive_prior_type = GaussianPrior<VarianceLayout::Pooled>;
+    using dominance_prior_type = HalfNormalPrior;
+    using mode_priors_type = ModeValues<
         GeneticMode::A | GeneticMode::D,
-        AdditivePrior,
-        DominancePrior>;
-    using JointPrior = JointSpikeSlabPrior<WeightUpdate>;
-    using GeneticPrior = JointModeValues<ModePriors, JointPrior>;
-    using GeneticState = genetic_state_t<GeneticPrior>;
-    using JointState = JointSpikeSlabState;
-    using SignParameters = LogCategoricalDistribution<2>::param_type;
+        additive_prior_type,
+        dominance_prior_type>;
+    using joint_prior_type = JointSpikeSlabPrior<WeightUpdate>;
+    using genetic_prior_type
+        = JointModeValues<mode_priors_type, joint_prior_type>;
+    using genetic_state_type = genetic_state_t<genetic_prior_type>;
+    using joint_state_type = JointSpikeSlabState<WeightUpdate>;
+    using sign_parameters_type = LogCategoricalDistribution<2>::param_type;
 
     static constexpr std::size_t class_count
         = JointSpikeSlabSpec<>::class_count;
+    using probability_updater_type = std::conditional_t<
+        WeightUpdate == MixtureWeightUpdate::Enabled,
+        detail::DirichletConjugateUpdater<class_count>,
+        std::monostate>;
+
     static constexpr std::size_t negative_index = 0;
     static constexpr std::size_t positive_index = 1;
 
     struct DominancePosterior
     {
         HalfQuadraticLogKernel::Evaluation coefficient;
-        SignParameters sign;
+        sign_parameters_type sign;
         double log_integral{};
     };
 
    public:
-    explicit JointSpikeSlabKernel(const GeneticPrior& prior)
+    explicit JointSpikeSlabKernel(const genetic_prior_type& prior)
         : additive_variance_updater_{prior.mode_values()
                                          .template get<GeneticMode::A>()
                                          .variance.prior},
@@ -75,14 +83,24 @@ class JointSpikeSlabKernel
                                           .variance.prior},
           probit_updater_{make_multi_normal_prior(Eigen::Matrix2d::Identity())},
           probability_updater_{
-              detail::make_dirichlet_conjugate_updater<class_count>(
-                  prior.joint().probabilities)}
+              [&]() -> probability_updater_type
+              {
+                  if constexpr (WeightUpdate == MixtureWeightUpdate::Enabled)
+                  {
+                      return probability_updater_type{
+                          prior.joint().probabilities.prior};
+                  }
+                  else
+                  {
+                      return {};
+                  }
+              }()}
     {
     }
 
     auto step(
         const bayes::GeneticDesign& design,
-        GeneticState& state,
+        genetic_state_type& state,
         ResidualState& residual,
         std::mt19937_64& rng) -> void
     {
@@ -185,9 +203,9 @@ class JointSpikeSlabKernel
             const auto updates = joint.transition(
                 marker,
                 static_cast<std::uint8_t>(class_index),
-                typename JointState::ModeCoefficients{
+                typename joint_state_type::mode_coefficients_type{
                     old_additive, old_dominance},
-                typename JointState::ModeCoefficients{
+                typename joint_state_type::mode_coefficients_type{
                     new_additive, new_dominance});
             additive.transition(marker, new_additive);
             dominance.transition(marker, new_dominance);
@@ -229,13 +247,17 @@ class JointSpikeSlabKernel
         dominance_variance_updater_.update(
             dominance.variance(), dominance_count, dominance_sum_squares, rng);
 
-        auto allocation_counts = counts;
-        // Skipped markers remain NULL but do not contribute to the posterior.
-        allocation_counts[0]
-            -= static_cast<std::size_t>(joint.assignments().size())
-               - valid_indices.size();
-        probability_updater_.update(
-            joint.probabilities(), allocation_counts, rng);
+        if constexpr (WeightUpdate == MixtureWeightUpdate::Enabled)
+        {
+            auto allocation_counts = counts;
+            // Skipped markers remain NULL but do not contribute to the
+            // posterior.
+            allocation_counts[0]
+                -= static_cast<std::size_t>(joint.assignments().size())
+                   - valid_indices.size();
+            joint.set_probabilities(
+                probability_updater_.draw(allocation_counts, rng));
+        }
     }
 
    private:
@@ -244,8 +266,9 @@ class JointSpikeSlabKernel
     [[nodiscard]] static constexpr auto is_active(
         std::size_t class_index) noexcept -> bool
     {
-        return JointState::template fitted_component_index<Mode>(class_index)
-               != JointState::no_component;
+        return joint_state_type::template fitted_component_index<Mode>(
+                   class_index)
+               != joint_state_type::no_component;
     }
 
     [[nodiscard]] static auto make_dominance_posterior(
@@ -284,9 +307,7 @@ class JointSpikeSlabKernel
     detail::NormalVarianceConjugateUpdater additive_variance_updater_;
     detail::NormalVarianceConjugateUpdater dominance_variance_updater_;
     detail::ProbitUpdater probit_updater_;
-    [[no_unique_address]] detail::DirichletConjugateUpdater<
-        class_count,
-        WeightUpdate> probability_updater_;
+    [[no_unique_address]] probability_updater_type probability_updater_;
     LogCategoricalDistribution<class_count> allocation_distribution_;
     LogCategoricalDistribution<2> sign_distribution_;
 };

@@ -147,7 +147,7 @@ auto reconstruct_joint_fitted_values(
     const JointCoefficients& coefficients,
     const Eigen::VectorX<std::uint8_t>& assignment) -> Eigen::MatrixXd
 {
-    using JointState = gelex::JointSpikeSlabState;
+    using JointState = gelex::JointSpikeSlabState<>;
     Eigen::MatrixXd fitted_values = Eigen::MatrixXd::Zero(
         design.rows(), static_cast<Eigen::Index>(JointState::component_count));
     constexpr auto additive_component = JointState::additive_components;
@@ -188,8 +188,9 @@ auto initialize_non_null_state(const gelex::BayesModel& model, State& state)
     const Eigen::VectorXd dominance_values{{0.0, 0.0, -0.4, 0.5}};
     for (Eigen::Index marker = 0; marker < 4; ++marker)
     {
-        const gelex::JointSpikeSlabState::ModeCoefficients old_values{0.0, 0.0};
-        const gelex::JointSpikeSlabState::ModeCoefficients new_values{
+        const gelex::JointSpikeSlabState<>::mode_coefficients_type old_values{
+            0.0, 0.0};
+        const gelex::JointSpikeSlabState<>::mode_coefficients_type new_values{
             additive_values(marker), dominance_values(marker)};
         auto updates = joint.transition(
             marker, static_cast<std::uint8_t>(marker), old_values, new_values);

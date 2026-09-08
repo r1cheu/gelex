@@ -6,6 +6,7 @@
 
 #include <Eigen/Core>
 #include <array>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <fmt/format.h>
@@ -20,6 +21,7 @@
 #include "gelex/bayes/spec.h"
 #include "gelex/bayes/stats/dirichlet_log_kernel.h"
 #include "gelex/bayes/variance/calibration.h"
+#include "gelex/exception.h"
 #include "gelex/genetic_mode.h"
 #include "gelex/io/binary_format.h"
 #include "gelex/io/binary_writer.h"
@@ -52,7 +54,9 @@ auto make_prior(
             spec.probability(), make_beta_prior(1.0, 1.0))};
 }
 
-template <VarianceLayout Kind>
+template <
+    VarianceLayout Kind,
+    MixtureWeightUpdate WeightUpdate = MixtureWeightUpdate::Enabled>
 class SpikeSlabState
 {
    public:
@@ -74,6 +78,7 @@ class SpikeSlabState
           variance_(std::move(variance)),
           probability_(probability)
     {
+        validate_probability(probability_);
     }
 
     auto coefficients() const -> const Eigen::VectorXd&
@@ -95,7 +100,12 @@ class SpikeSlabState
     auto variance() const -> const variance_type& { return variance_; }
     auto variance() -> variance_type& { return variance_; }
     auto probability() const -> double { return probability_; }
-    auto probability() -> double& { return probability_; }
+    auto set_probability(double probability) -> void
+        requires(WeightUpdate == MixtureWeightUpdate::Enabled)
+    {
+        validate_probability(probability);
+        probability_ = probability;
+    }
 
     auto transition(Eigen::Index marker, double coefficient, bool active)
         -> void
@@ -117,6 +127,19 @@ class SpikeSlabState
     }
 
    private:
+    static auto validate_probability(double probability) -> void
+    {
+        if (!std::isfinite(probability) || probability <= 0.0
+            || probability >= 1.0)
+        {
+            throw GelexException(
+                fmt::format(
+                    "spike-slab inclusion probability must lie in the open "
+                    "interval (0, 1), got {}",
+                    probability));
+        }
+    }
+
     Eigen::VectorXd coefficients_;
     Eigen::VectorX<std::uint8_t> assignments_;
     std::array<std::size_t, 2> class_counts_;
@@ -128,7 +151,7 @@ class SpikeSlabState
 template <VarianceLayout Kind, MixtureWeightUpdate WeightUpdate>
 auto make_state(
     const SpikeSlabPrior<Kind, WeightUpdate>& prior,
-    GeneticDimensions dimensions) -> SpikeSlabState<Kind>
+    GeneticDimensions dimensions) -> SpikeSlabState<Kind, WeightUpdate>
 {
     return {
         detail::initial_marker_variance<Kind>(
@@ -156,7 +179,7 @@ class SpikeSlabDraws
     {
     }
 
-    auto append(const SpikeSlabState<Kind>& state) -> void
+    auto append(const SpikeSlabState<Kind, WeightUpdate>& state) -> void
     {
         if constexpr (Kind == VarianceLayout::Pooled)
         {
@@ -184,24 +207,25 @@ class SpikeSlabDraws
 
 template <VarianceLayout Kind, MixtureWeightUpdate WeightUpdate>
 [[nodiscard]] auto make_draws(
-    const SpikeSlabPrior<Kind, WeightUpdate>& /*prior*/,
+    const SpikeSlabState<Kind, WeightUpdate>& state,
     BinaryWriter& writer,
     std::string_view prefix,
-    std::size_t draw_count,
-    GeneticDimensions dimensions) -> SpikeSlabDraws<Kind, WeightUpdate>
+    std::size_t draw_count) -> SpikeSlabDraws<Kind, WeightUpdate>
 {
+    const auto marker_count
+        = static_cast<std::size_t>(state.coefficients().size());
     const std::size_t variance_size
-        = (Kind == VarianceLayout::Pooled) ? 1 : dimensions.marker;
+        = (Kind == VarianceLayout::Pooled) ? 1 : marker_count;
 
     auto variances = writer.reserve<marker_variance_dtype_t<Kind>>(
         fmt::format("{}/{}", prefix, variance_id),
         BinaryShape{variance_size, draw_count});
     auto coefficients = writer.reserve<float>(
         fmt::format("{}/{}", prefix, coefficients_id),
-        BinaryShape{dimensions.marker, draw_count});
+        BinaryShape{marker_count, draw_count});
     auto assignments = writer.reserve<std::uint8_t>(
         fmt::format("{}/{}", prefix, assignment_id),
-        BinaryShape{dimensions.marker, draw_count});
+        BinaryShape{marker_count, draw_count});
     auto probability = [&]() -> probability_writer_t<WeightUpdate>
     {
         if constexpr (WeightUpdate == MixtureWeightUpdate::Enabled)
