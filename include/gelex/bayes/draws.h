@@ -16,6 +16,7 @@
 
 #include "gelex/bayes/genetic/factory.h"
 #include "gelex/bayes/model.h"
+#include "gelex/bayes/serialization_ids.h"
 #include "gelex/bayes/state.h"
 #include "gelex/bayes/variance/draws.h"
 #include "gelex/exception.h"
@@ -49,27 +50,10 @@ class RandomEffectDraws
 };
 
 GELEX_NAMESPACE_BEGIN(detail)
-inline auto make_random_draws(
+auto make_random_draws(
     const BayesModel& model,
     BinaryWriter& writer,
-    std::uint64_t draw_count) -> std::vector<RandomEffectDraws>
-{
-    const auto designs = model.random();
-    std::vector<RandomEffectDraws> random;
-    random.reserve(designs.size());
-    for (const auto& design : designs)
-    {
-        random.emplace_back(
-            writer.reserve<float>(
-                fmt::format("random/{}/coefficients", design.name()),
-                BinaryShape{
-                    static_cast<std::uint64_t>(design.X().cols()), draw_count}),
-            writer.reserve<double>(
-                fmt::format("random/{}/variance", design.name()),
-                BinaryShape{1, draw_count}));
-    }
-    return random;
-}
+    std::uint64_t draw_count) -> std::vector<RandomEffectDraws>;
 GELEX_NAMESPACE_END(detail)
 
 template <typename GeneticPrior>
@@ -85,14 +69,14 @@ class BayesDraws
         std::uint64_t draw_count)
         : writer_{output_path},
           fixed_{writer_.reserve<double>(
-              "fixed/coefficients",
+              fixed_coefficients_id,
               BinaryShape{
                   static_cast<std::uint64_t>(state.fixed().coefficients.size()),
                   draw_count})},
           random_{detail::make_random_draws(model, writer_, draw_count)},
           genetic_{make_draws(state.genetic(), writer_, draw_count)},
           residual_{writer_.reserve<double>(
-              "residual/variance",
+              residual_variance_id,
               BinaryShape{1, draw_count})},
           variance_summary_{writer_, draw_count},
           draw_count_{draw_count}

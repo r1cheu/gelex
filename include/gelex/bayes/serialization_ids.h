@@ -1,27 +1,19 @@
 // Copyright 2026 RuLei Chen
 // SPDX-License-Identifier: Apache-2.0
 
-#ifndef GELEX_BAYES_GENETIC_DRAW_SCHEMA_H_
-#define GELEX_BAYES_GENETIC_DRAW_SCHEMA_H_
-
-/* Shared serialization schema for genetic draws: payload IDs,
- * storage dtypes, and corresponding writer types.
- */
+#ifndef GELEX_BAYES_SERIALIZATION_IDS_H_
+#define GELEX_BAYES_SERIALIZATION_IDS_H_
 
 #include <fmt/compile.h>
 #include <string_view>
-#include <type_traits>
-#include <variant>
 
-#include "gelex/bayes/genetic/types.h"
 #include "gelex/genetic_mode.h"
-#include "gelex/io/binary_format.h"
 #include "gelex/namespace.h"
 
 GELEX_NAMESPACE_BEGIN(gelex)
 
-template <detail::SupportedDtype>
-class PayloadWriter;
+inline constexpr std::string_view fixed_coefficients_id = "fixed/coefficients";
+inline constexpr std::string_view residual_variance_id = "residual/variance";
 
 GELEX_NAMESPACE_BEGIN(detail)
 template <GeneticMode Mode>
@@ -45,18 +37,6 @@ inline constexpr std::string_view fitted_values_id = "fitted_values";
 inline constexpr std::string_view component_explained_variance_id
     = "component_explained_variance";
 
-template <VarianceLayout Kind>
-using marker_variance_dtype_t
-    = std::conditional_t<Kind == VarianceLayout::Pooled, double, float>;
-template <VarianceLayout Kind>
-using marker_variance_writer_t = PayloadWriter<marker_variance_dtype_t<Kind>>;
-
-template <MixtureWeightUpdate Update>
-using probability_writer_t = std::conditional_t<
-    Update == MixtureWeightUpdate::Enabled,
-    PayloadWriter<double>,
-    std::monostate>;
-
 GELEX_NAMESPACE_END(gelex)
 
-#endif  // GELEX_BAYES_GENETIC_DRAW_SCHEMA_H_
+#endif  // GELEX_BAYES_SERIALIZATION_IDS_H_

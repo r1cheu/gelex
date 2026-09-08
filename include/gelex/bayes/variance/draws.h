@@ -8,8 +8,8 @@
 #include <fmt/format.h>
 #include <string_view>
 
-#include "gelex/bayes/genetic/draw_schema.h"
 #include "gelex/bayes/mode_values.h"
+#include "gelex/bayes/serialization_ids.h"
 #include "gelex/bayes/variance/summary.h"
 #include "gelex/genetic_mode.h"
 #include "gelex/io/binary_format.h"

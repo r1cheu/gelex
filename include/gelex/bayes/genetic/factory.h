@@ -11,7 +11,6 @@
 #include <cstdint>
 #include <utility>
 
-#include "gelex/bayes/genetic/draw_schema.h"
 #include "gelex/bayes/genetic/gaussian.h"
 #include "gelex/bayes/genetic/joint_spike_slab.h"
 #include "gelex/bayes/genetic/scaled_mixture.h"
@@ -19,6 +18,7 @@
 #include "gelex/bayes/genetic/types.h"
 #include "gelex/bayes/genotype/design.h"
 #include "gelex/bayes/mode_values.h"
+#include "gelex/bayes/serialization_ids.h"
 #include "gelex/bayes/variance/calibration.h"
 #include "gelex/exception.h"
 #include "gelex/genetic_mode.h"
