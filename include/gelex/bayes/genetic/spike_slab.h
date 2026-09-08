@@ -14,10 +14,11 @@
 #include <utility>
 
 #include "gelex/bayes/genetic/detail/marker_variance.h"
-#include "gelex/bayes/genetic/draw_schema.h"
+#include "gelex/bayes/genetic/draw_traits.h"
 #include "gelex/bayes/genetic/parameter.h"
 #include "gelex/bayes/genetic/types.h"
 #include "gelex/bayes/parameter.h"
+#include "gelex/bayes/serialization_ids.h"
 #include "gelex/bayes/spec.h"
 #include "gelex/bayes/stats/dirichlet_log_kernel.h"
 #include "gelex/bayes/variance/calibration.h"

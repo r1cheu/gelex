@@ -7,7 +7,6 @@
 #include <cstdint>
 #include <string>
 
-#include "gelex/bayes/genetic/draw_schema.h"
 #include "gelex/bayes/genetic/factory.h"
 #include "gelex/bayes/genetic/gaussian.h"
 #include "gelex/bayes/genetic/joint_spike_slab.h"
@@ -18,6 +17,7 @@
 #include "gelex/bayes/mode_values.h"
 #include "gelex/bayes/prior.h"
 #include "gelex/bayes/recipe.h"
+#include "gelex/bayes/serialization_ids.h"
 #include "gelex/bayes/spec.h"
 #include "gelex/bayes/stats/dirichlet_log_kernel.h"
 #include "gelex/bayes/stats/scaled_inv_chi2_log_kernel.h"
