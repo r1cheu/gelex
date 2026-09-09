@@ -15,7 +15,7 @@
 #include "gelex/bayes/spec.h"
 #include "gelex/exception.h"
 #include "gelex/genetic_mode.h"
-#include "gelex/io/binary_reader.h"
+#include "gelex/io/dense_reader.h"
 
 #include "compact_genotype_fixture.h"
 #include "file_fixture.h"
@@ -55,7 +55,7 @@ TEST_CASE(
     runner.run(model, prior, path.string(), 123, observer);
 
     REQUIRE(completed_iterations == std::vector<std::size_t>{1, 2, 3, 4});
-    const gelex::BinaryReader reader{path.string()};
+    const gelex::DenseReader reader{path.string()};
     REQUIRE(reader.to_map<double>("residual/variance").cols() == iterations);
 }
 
@@ -84,8 +84,8 @@ TEST_CASE(
     REQUIRE(retained_runner.draw_count() == 2);
     retained_runner.run(model, prior, retained_path.string(), 123);
 
-    const gelex::BinaryReader full_reader(full_path.string());
-    const gelex::BinaryReader retained_reader(retained_path.string());
+    const gelex::DenseReader full_reader(full_path.string());
+    const gelex::DenseReader retained_reader(retained_path.string());
     const auto full = full_reader.to_map<double>("residual/variance");
     const auto retained = retained_reader.to_map<double>("residual/variance");
     const Eigen::MatrixXd expected{{full(0, 2), full(0, 4)}};

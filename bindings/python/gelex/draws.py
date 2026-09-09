@@ -10,7 +10,7 @@ import os
 
 import numpy as np
 
-from ._gelex import BinaryReader
+from ._gelex import DenseReader
 
 __all__ = ["read_draws"]
 
@@ -26,7 +26,7 @@ def read_draws(path: str | os.PathLike[str], *, include_markers: bool = False):
     """
     import arviz as az
 
-    reader = BinaryReader(os.fspath(path))
+    reader = DenseReader(os.fspath(path))
     payloads = reader.payloads()
 
     markers = None

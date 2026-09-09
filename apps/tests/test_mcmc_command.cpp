@@ -12,7 +12,7 @@
 #include "gelex/data/snp_lut_io.h"
 #include "gelex/exception.h"
 #include "gelex/genetic_mode.h"
-#include "gelex/io/binary_reader.h"
+#include "gelex/io/dense_reader.h"
 
 #include "bed_fixture.h"
 #include "cli/logging.h"
@@ -84,7 +84,7 @@ TEST_CASE(
 
     REQUIRE(mcmc_execute(config) == 0);
 
-    const gelex::BinaryReader draws(config.out + ".draws");
+    const gelex::DenseReader draws(config.out + ".draws");
     REQUIRE(draws.contains("random/Group/coefficients"));
     REQUIRE(draws.contains("random/random_slopes/coefficients"));
     REQUIRE(draws.to_map<float>("random/Group/coefficients").rows() == 2);
@@ -162,7 +162,7 @@ TEST_CASE(
 
         REQUIRE(mcmc_execute(config) == 0);
 
-        const gelex::BinaryReader draws(config.out + ".draws");
+        const gelex::DenseReader draws(config.out + ".draws");
         REQUIRE(draws.contains("genetic/A/coefficients"));
         REQUIRE(draws.contains("genetic/D/coefficients"));
         REQUIRE(draws.contains("genetic/D/annotation_coefficients"));
