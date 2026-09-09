@@ -158,7 +158,7 @@ auto run_mcmc(const cli::McmcConfig& config, const Recipe& recipe) -> int
     progress.finish();
 
     cli::printer().block(
-        cli::results_saved(config.out, ".draws, .snplut, .log"));
+        cli::results_saved(config.out, ".draws, .draws.csc, .snplut, .log"));
     return 0;
 }
 

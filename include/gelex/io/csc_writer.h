@@ -97,6 +97,7 @@ class CscWriter
     // destruction discards uncommitted output, including after a failed close,
     // and logs an error unless an exception is unwinding.
     auto close() -> void;
+    auto is_open() const noexcept -> bool { return !closed_; }
 
    private:
     template <detail::SupportedDtype>
