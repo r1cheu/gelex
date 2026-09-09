@@ -8,10 +8,13 @@
 #include <string>
 
 #include "gelex/bayes/builtin_method.h"
+#include "gelex/bayes/draws.h"
 #include "gelex/data/genotype_method.h"
 #include "gelex/data/snp_lut_io.h"
 #include "gelex/exception.h"
 #include "gelex/genetic_mode.h"
+#include "gelex/io/binary_format.h"
+#include "gelex/io/csc_reader.h"
 #include "gelex/io/dense_reader.h"
 
 #include "bed_fixture.h"
@@ -162,11 +165,13 @@ TEST_CASE(
 
         REQUIRE(mcmc_execute(config) == 0);
 
-        const gelex::DenseReader draws(config.out + ".draws");
-        REQUIRE(draws.contains("genetic/A/coefficients"));
-        REQUIRE(draws.contains("genetic/D/coefficients"));
+        const auto draws_path = config.out + ".draws";
+        const gelex::DenseReader draws(draws_path);
+        const gelex::CscReader sparse(gelex::sparse_draws_path(draws_path));
+        REQUIRE(sparse.contains("genetic/A/coefficients"));
+        REQUIRE(sparse.contains("genetic/D/coefficients"));
         REQUIRE(draws.contains("genetic/D/annotation_coefficients"));
-        REQUIRE(draws.contains("genetic/joint/assignment"));
+        REQUIRE(sparse.contains("genetic/joint/assignment"));
 
         REQUIRE(
             draws.to_map<float>("genetic/D/annotation_coefficients").rows()
@@ -175,7 +180,8 @@ TEST_CASE(
             draws.to_map<float>("genetic/D/annotation_coefficients").cols()
             == 2);
         REQUIRE(
-            draws.to_map<std::uint8_t>("genetic/joint/assignment").cols() == 2);
+            sparse.info("genetic/joint/assignment").shape
+            == (gelex::BinaryShape{3, 2}));
 
         const auto luts = gelex::load_snp_luts(config.out + ".snplut");
         REQUIRE(luts.size() == 2);
