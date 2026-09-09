@@ -11,7 +11,7 @@
 
 #include "gelex/exception.h"
 #include "gelex/genetic_mode.h"
-#include "gelex/io/binary_reader.h"
+#include "gelex/io/dense_reader.h"
 #include "gelex/io/dense_writer.h"
 
 namespace gelex
@@ -19,7 +19,7 @@ namespace gelex
 
 auto load_snp_luts(const std::filesystem::path& path) -> ModeMap<SnpLutMatrix>
 {
-    BinaryReader reader(path.string());
+    DenseReader reader(path.string());
     ModeMap<SnpLutMatrix> luts;
     for (const auto mode : all_genetic_modes)
     {

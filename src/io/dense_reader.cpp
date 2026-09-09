@@ -1,13 +1,11 @@
 // Copyright 2026 RuLei Chen
 // SPDX-License-Identifier: Apache-2.0
 
-#include "gelex/io/binary_reader.h"
+#include "gelex/io/dense_reader.h"
 
 #include <algorithm>
-#include <array>
 #include <cstddef>
 #include <cstdint>
-#include <cstring>
 #include <filesystem>
 #include <fmt/format.h>
 #include <span>
@@ -26,43 +24,6 @@ namespace gelex
 namespace
 {
 
-class BinaryCursor
-{
-   public:
-    BinaryCursor(
-        std::span<const std::byte> bytes,
-        std::string_view path) noexcept
-        : remaining_(bytes), path_(path)
-    {
-    }
-
-    auto read_bytes(std::size_t size, std::string_view field)
-        -> std::span<const std::byte>
-    {
-        if (size > remaining_.size())
-        {
-            throw GelexException(fmt::format("{}: truncated {}", path_, field));
-        }
-        const auto bytes = remaining_.first(size);
-        remaining_ = remaining_.subspan(size);
-        return bytes;
-    }
-
-    [[nodiscard]] auto size() const noexcept -> std::size_t
-    {
-        return remaining_.size();
-    }
-
-    [[nodiscard]] auto empty() const noexcept -> bool
-    {
-        return remaining_.empty();
-    }
-
-   private:
-    std::span<const std::byte> remaining_;
-    std::string_view path_;
-};
-
 struct Footer
 {
     std::uint64_t directory_offset;
@@ -78,22 +39,16 @@ auto parse_footer(std::span<const std::byte> file, std::string_view path)
             fmt::format("{}: file too small for container footer", path));
     }
 
-    const auto footer = file.last(detail::footer_size);
+    const auto footer_offset = file.size() - detail::footer_size;
+    detail::ByteCursor footer{file.subspan(footer_offset), path};
     if (!std::ranges::equal(
             detail::binary_format_magic,
-            footer.first(detail::binary_format_magic.size())))
+            footer.read_bytes(detail::binary_format_magic.size(), "magic")))
     {
         throw GelexException(fmt::format("{}: invalid container magic", path));
     }
-
-    std::array<std::uint64_t, 2> footer_values{};
-    std::memcpy(
-        footer_values.data(),
-        footer.subspan(detail::binary_format_magic.size()).data(),
-        sizeof(footer_values));
-    const auto directory_offset = footer_values[0];
-    const auto payload_count = footer_values[1];
-    const auto footer_offset = file.size() - detail::footer_size;
+    const auto directory_offset = footer.read<std::uint64_t>("footer");
+    const auto payload_count = footer.read<std::uint64_t>("footer");
     if (directory_offset % detail::payload_alignment != 0
         || directory_offset > footer_offset)
     {
@@ -105,34 +60,14 @@ auto parse_footer(std::span<const std::byte> file, std::string_view path)
 }
 
 auto parse_payload_entry(
-    BinaryCursor& cursor,
+    detail::ByteCursor& cursor,
     const Footer& footer,
     std::uint64_t index,
     std::string_view path) -> detail::MatrixEntry
 {
-    const auto identifier_size_bytes
-        = cursor.read_bytes(sizeof(std::uint32_t), "payload entry");
-    const auto identifier_size
-        = detail::read_integer<std::uint32_t>(identifier_size_bytes.data());
-    const auto identifier_bytes
-        = cursor.read_bytes(identifier_size, "payload identifier");
-    std::string identifier{
-        reinterpret_cast<const char*>(identifier_bytes.data()),
-        identifier_bytes.size()};
-
-    const auto encoded_type
-        = cursor.read_bytes(1, "payload descriptor").front();
-    const auto type = detail::decode_binary_type(encoded_type);
-    const auto descriptor_bytes
-        = cursor.read_bytes(4 * sizeof(std::uint64_t), "payload descriptor");
-    std::array<std::uint64_t, 4> descriptor_values{};
-    std::memcpy(
-        descriptor_values.data(),
-        descriptor_bytes.data(),
-        sizeof(descriptor_values));
-    const BinaryShape shape{descriptor_values[0], descriptor_values[1]};
-    const auto offset = descriptor_values[2];
-    const auto size = descriptor_values[3];
+    auto header = detail::read_matrix_header(cursor);
+    const auto offset = cursor.read<std::uint64_t>("payload offset");
+    const auto size = cursor.read<std::uint64_t>("payload size");
 
     if (offset % detail::payload_alignment != 0
         || offset > footer.directory_offset
@@ -143,10 +78,11 @@ auto parse_payload_entry(
                 "{}: payload {} is outside the data region", path, index));
     }
 
-    const auto element_count = detail::checked_product(shape[0], shape[1]);
+    const auto element_count
+        = detail::checked_product(header.shape[0], header.shape[1]);
     if (size
         != detail::checked_product(
-            element_count, detail::binary_type_size(type)))
+            element_count, detail::binary_type_size(header.type)))
     {
         throw GelexException(
             fmt::format(
@@ -154,15 +90,12 @@ auto parse_payload_entry(
     }
 
     return detail::MatrixEntry{
-        .header
-        = MatrixHeader{.identifier = std::move(identifier), .type = type, .shape = shape},
-        .offset = offset,
-        .size = size};
+        .header = std::move(header), .offset = offset, .size = size};
 }
 
 }  // namespace
 
-BinaryReader::BinaryReader(std::string_view file_path)
+DenseReader::DenseReader(std::string_view file_path)
     : path_(std::string(file_path))
 {
     std::error_code ec;
@@ -178,10 +111,10 @@ BinaryReader::BinaryReader(std::string_view file_path)
                 "{}: failed to mmap: {}", path_.string(), ec.message()));
     }
 
-    parse_footer_and_directory();
+    parse_footer_and_index();
 }
 
-auto BinaryReader::parse_footer_and_directory() -> void
+auto DenseReader::parse_footer_and_index() -> void
 {
     const std::span<const std::byte> file{mmap_.data(), mmap_.size()};
     const auto path_string = path_.string();
@@ -189,7 +122,7 @@ auto BinaryReader::parse_footer_and_directory() -> void
     const auto footer_offset = file.size() - detail::footer_size;
     const auto directory_offset
         = static_cast<std::size_t>(footer.directory_offset);
-    BinaryCursor directory{
+    detail::ByteCursor directory{
         file.subspan(directory_offset, footer_offset - directory_offset),
         path_string};
     if (footer.payload_count
@@ -236,7 +169,7 @@ auto BinaryReader::parse_footer_and_directory() -> void
     validate_payload_ranges(std::move(payload_ranges));
 }
 
-auto BinaryReader::validate_payload_ranges(
+auto DenseReader::validate_payload_ranges(
     std::vector<std::pair<std::uint64_t, std::uint64_t>> ranges) const -> void
 {
     std::ranges::sort(ranges);
@@ -250,23 +183,22 @@ auto BinaryReader::validate_payload_ranges(
     }
 }
 
-auto BinaryReader::contains(std::string_view identifier) const -> bool
+auto DenseReader::contains(std::string_view identifier) const -> bool
 {
     return index_.contains(identifier);
 }
 
-auto BinaryReader::size() const noexcept -> std::size_t
+auto DenseReader::size() const noexcept -> std::size_t
 {
     return payloads_.size();
 }
 
-auto BinaryReader::info(std::string_view identifier) const& -> const
-    MatrixHeader&
+auto DenseReader::info(std::string_view identifier) const -> const MatrixHeader&
 {
     return find_entry(identifier).header;
 }
 
-auto BinaryReader::payloads() const -> std::vector<MatrixHeader>
+auto DenseReader::payloads() const -> std::vector<MatrixHeader>
 {
     std::vector<MatrixHeader> result;
     result.reserve(payloads_.size());
@@ -278,7 +210,7 @@ auto BinaryReader::payloads() const -> std::vector<MatrixHeader>
     return result;
 }
 
-auto BinaryReader::find_entry(std::string_view identifier) const
+auto DenseReader::find_entry(std::string_view identifier) const
     -> const detail::MatrixEntry&
 {
     const auto iterator = index_.find(identifier);
@@ -291,7 +223,7 @@ auto BinaryReader::find_entry(std::string_view identifier) const
     return payloads_[iterator->second];
 }
 
-auto BinaryReader::payload_bytes(const detail::MatrixEntry& entry) const
+auto DenseReader::payload_bytes(const detail::MatrixEntry& entry) const
     -> std::span<const std::byte>
 {
     const std::span<const std::byte> file{mmap_.data(), mmap_.size()};

@@ -21,7 +21,7 @@
 
 #include "gelex/exception.h"
 #include "gelex/io/binary_format.h"
-#include "gelex/io/binary_reader.h"
+#include "gelex/io/dense_reader.h"
 #include "gelex/io/dense_writer.h"
 
 #include "gelex_py/register.h"
@@ -166,7 +166,7 @@ using PayloadArray = nb::ndarray<nb::numpy, nb::ro>;
 // as the array owner so Python keeps it alive for as long as any view exists.
 template <gelex::detail::SupportedDtype T>
 auto payload_view(
-    const gelex::BinaryReader& reader,
+    const gelex::DenseReader& reader,
     std::string_view identifier,
     nb::handle owner) -> PayloadArray
 {
@@ -178,11 +178,10 @@ auto payload_view(
     return PayloadArray{map.data(), 2, shape, owner, strides, nb::dtype<T>()};
 }
 
-auto payload(
-    nb::handle_t<gelex::BinaryReader> self,
-    std::string_view identifier) -> PayloadArray
+auto payload(nb::handle_t<gelex::DenseReader> self, std::string_view identifier)
+    -> PayloadArray
 {
-    const auto& reader = nb::cast<const gelex::BinaryReader&>(self);
+    const auto& reader = nb::cast<const gelex::DenseReader&>(self);
     switch (reader.info(identifier).type)
     {
         case gelex::BinaryType::float64:
@@ -197,28 +196,28 @@ auto payload(
 
 auto register_reader(nb::module_& m) -> void
 {
-    nb::class_<gelex::BinaryReader>(
+    nb::class_<gelex::DenseReader>(
         m,
-        "BinaryReader",
+        "DenseReader",
         "Memory-mapped reader for gelex binary containers such as the MCMC "
         ".draws output. Payloads are exposed as read-only, column-major "
         "(rows, columns) NumPy views that alias the mapped file.")
         .def(nb::init<std::string_view>(), nb::arg("path"))
-        .def("__len__", &gelex::BinaryReader::size)
+        .def("__len__", &gelex::DenseReader::size)
         .def(
             "__contains__",
-            &gelex::BinaryReader::contains,
+            &gelex::DenseReader::contains,
             nb::arg("identifier"))
         .def("__getitem__", &payload, nb::arg("identifier"))
         .def(
             "info",
-            [](const gelex::BinaryReader& reader, std::string_view identifier)
+            [](const gelex::DenseReader& reader, std::string_view identifier)
             { return reader.info(identifier); },
             nb::arg("identifier"))
-        .def("payloads", &gelex::BinaryReader::payloads)
+        .def("payloads", &gelex::DenseReader::payloads)
         .def(
             "keys",
-            [](const gelex::BinaryReader& reader)
+            [](const gelex::DenseReader& reader)
             {
                 std::vector<std::string> keys;
                 for (auto& info : reader.payloads())
