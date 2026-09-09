@@ -13,7 +13,7 @@
 #include <string_view>
 
 #include "gelex/exception.h"
-#include "gelex/io/binary_reader.h"
+#include "gelex/io/dense_reader.h"
 #include "gelex/io/dense_writer.h"
 #include "gelex/io/detail/binary_wire.h"
 
@@ -59,8 +59,8 @@ auto write_matrix(
 }  // namespace
 
 TEMPLATE_TEST_CASE(
-    "BinaryReader reads supported dtypes",
-    "[io][binary_reader]",
+    "DenseReader reads supported dtypes",
+    "[io][dense_reader]",
     double,
     float,
     std::uint8_t)
@@ -76,7 +76,7 @@ TEMPLATE_TEST_CASE(
         writer.close();
     }
 
-    gelex::BinaryReader reader(container_path.string());
+    gelex::DenseReader reader(container_path.string());
     const auto& info = reader.info("values");
     REQUIRE(info.type == expected_binary_type<TestType>());
     REQUIRE(info.shape == (gelex::BinaryShape{2, 3}));
@@ -93,7 +93,7 @@ TEMPLATE_TEST_CASE(
     REQUIRE(matrix.data() != view.data());
 }
 
-TEST_CASE("BinaryReader exposes payload metadata", "[io][binary_reader]")
+TEST_CASE("DenseReader exposes payload metadata", "[io][dense_reader]")
 {
     test::FileFixture fixture;
     const auto container_path = fixture.get_test_dir() / "metadata.samples";
@@ -105,7 +105,7 @@ TEST_CASE("BinaryReader exposes payload metadata", "[io][binary_reader]")
         writer.close();
     }
 
-    gelex::BinaryReader reader(container_path.string());
+    gelex::DenseReader reader(container_path.string());
     REQUIRE(reader.size() == 3);
     REQUIRE(reader.contains("alpha"));
     REQUIRE_FALSE(reader.contains("missing"));
@@ -123,7 +123,7 @@ TEST_CASE("BinaryReader exposes payload metadata", "[io][binary_reader]")
     REQUIRE_THROWS_AS(reader.info("missing"), gelex::GelexException);
 }
 
-TEST_CASE("BinaryReader rejects dtype mismatch", "[io][binary_reader]")
+TEST_CASE("DenseReader rejects dtype mismatch", "[io][dense_reader]")
 {
     test::FileFixture fixture;
     const auto container_path
@@ -134,12 +134,12 @@ TEST_CASE("BinaryReader rejects dtype mismatch", "[io][binary_reader]")
         writer.close();
     }
 
-    gelex::BinaryReader reader(container_path.string());
+    gelex::DenseReader reader(container_path.string());
     REQUIRE_THROWS_AS(
         reader.to_map<std::uint8_t>("value"), gelex::GelexException);
 }
 
-TEST_CASE("BinaryReader rejects malformed footer", "[io][binary_reader]")
+TEST_CASE("DenseReader rejects malformed footer", "[io][dense_reader]")
 {
     test::FileFixture fixture;
     const auto& directory = fixture.get_test_dir();
@@ -153,7 +153,7 @@ TEST_CASE("BinaryReader rejects malformed footer", "[io][binary_reader]")
         output.close();
 
         REQUIRE_THROWS_AS(
-            gelex::BinaryReader(path.string()), gelex::GelexException);
+            gelex::DenseReader(path.string()), gelex::GelexException);
     }
 
     SECTION("footer magic is invalid")
@@ -165,6 +165,6 @@ TEST_CASE("BinaryReader rejects malformed footer", "[io][binary_reader]")
         output.close();
 
         REQUIRE_THROWS_AS(
-            gelex::BinaryReader(path.string()), gelex::GelexException);
+            gelex::DenseReader(path.string()), gelex::GelexException);
     }
 }

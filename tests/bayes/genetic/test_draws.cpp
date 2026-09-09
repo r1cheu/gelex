@@ -21,7 +21,7 @@
 #include "gelex/bayes/stats/scaled_inv_chi2_log_kernel.h"
 #include "gelex/bayes/variance/budget.h"
 #include "gelex/genetic_mode.h"
-#include "gelex/io/binary_reader.h"
+#include "gelex/io/dense_reader.h"
 #include "gelex/io/dense_writer.h"
 
 #include "bayes/bayes_model_fixture.h"
@@ -81,7 +81,7 @@ auto check_mode_draws(const Spec& spec) -> void
         draws.append(state);
         writer.close();
     }
-    const gelex::BinaryReader reader{path};
+    const gelex::DenseReader reader{path};
     REQUIRE(reader.to_map<float>("genetic/A/coefficients")
                 .isApprox(Eigen::MatrixXf{{1.25F, 0.0F}, {0.0F, -2.5F}}));
     if constexpr (requires { state.assignments(); })
@@ -196,7 +196,7 @@ TEST_CASE(
             joint_draws.append(joint);
             writer.close();
         }
-        const gelex::BinaryReader reader{path};
+        const gelex::DenseReader reader{path};
         REQUIRE(reader.to_map<float>("genetic/D/coefficients")
                     .isApprox(Eigen::VectorXf{{1.5F, 0.0F}}));
         REQUIRE(reader.to_map<float>("genetic/D/annotation_coefficients")

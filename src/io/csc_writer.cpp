@@ -35,8 +35,6 @@ namespace
 // Blocks follow completion order; index entries follow reservation order.
 // Index entries: name length/name, dtype, rows/cols/nnz, three offsets.
 // Footer: magic, uint64 index offset, uint64 matrix count (little endian).
-constexpr std::string_view csc_magic = "GELEXSC1";
-
 enum class CscArray : std::uint8_t
 {
     values,
@@ -47,19 +45,9 @@ constexpr std::array csc_arrays{
     CscArray::values,
     CscArray::indices,
     CscArray::indptr};
-constexpr std::size_t array_count = csc_arrays.size();
+constexpr std::size_t array_count = detail::csc_array_count;
+static_assert(csc_arrays.size() == array_count);
 constexpr std::size_t copy_buffer_bytes = 64ULL * 1024;
-
-auto get_csc_array_sizes(
-    BinaryType type,
-    std::uint64_t columns,
-    std::uint64_t nnz) -> std::array<std::uint64_t, array_count>
-{
-    return {
-        nnz * detail::binary_type_size(type),
-        nnz * sizeof(std::int64_t),
-        (columns + 1) * sizeof(std::int64_t)};
-}
 
 auto merge_csc_array(
     const std::filesystem::path& path,
@@ -306,7 +294,7 @@ auto CscWriter::merge(std::size_t index) -> void
     auto& matrix = matrices_[index];
     const auto& header = matrix.header;
     const auto sizes
-        = get_csc_array_sizes(header.type, header.shape[1], matrix.nnz);
+        = detail::csc_array_sizes(header.type, header.shape[1], matrix.nnz);
     auto offset = offset_;
     for (const auto array : csc_arrays)
     {
@@ -363,7 +351,9 @@ auto CscWriter::write_index(std::uint64_t offset) -> void
 
 auto CscWriter::write_footer(std::uint64_t index_offset) -> void
 {
-    output_.write(csc_magic);
+    output_.write(
+        reinterpret_cast<const char*>(detail::csc_format_magic.data()),
+        static_cast<std::streamsize>(detail::csc_format_magic.size()));
     detail::write_integer(output_, index_offset);
     detail::write_integer(
         output_, static_cast<std::uint64_t>(matrices_.size()));

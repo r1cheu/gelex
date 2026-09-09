@@ -1,8 +1,8 @@
 // Copyright 2026 RuLei Chen
 // SPDX-License-Identifier: Apache-2.0
 
-#ifndef GELEX_IO_BINARY_READER_H_
-#define GELEX_IO_BINARY_READER_H_
+#ifndef GELEX_IO_DENSE_READER_H_
+#define GELEX_IO_DENSE_READER_H_
 
 #include <Eigen/Core>
 #include <cstddef>
@@ -23,46 +23,38 @@
 namespace gelex
 {
 
-class BinaryReader
+class DenseReader
 {
    public:
-    explicit BinaryReader(std::string_view file_path);
+    explicit DenseReader(std::string_view file_path);
 
-    BinaryReader(const BinaryReader&) = delete;
-    BinaryReader(BinaryReader&&) noexcept = default;
-    auto operator=(const BinaryReader&) -> BinaryReader& = delete;
-    auto operator=(BinaryReader&&) noexcept -> BinaryReader& = default;
-    ~BinaryReader() = default;
+    DenseReader(const DenseReader&) = delete;
+    DenseReader(DenseReader&&) noexcept = default;
+    auto operator=(const DenseReader&) -> DenseReader& = delete;
+    auto operator=(DenseReader&&) noexcept -> DenseReader& = default;
+    ~DenseReader() = default;
 
-    [[nodiscard]] auto contains(std::string_view identifier) const -> bool;
-    [[nodiscard]] auto info(std::string_view identifier) const& -> const
-        MatrixHeader&;
-    [[nodiscard]] auto info(std::string_view identifier) const&& -> const
-        MatrixHeader& = delete;
-    [[nodiscard]] auto payloads() const -> std::vector<MatrixHeader>;
+    auto contains(std::string_view identifier) const -> bool;
+    auto info(std::string_view identifier) const -> const MatrixHeader&;
+    auto payloads() const -> std::vector<MatrixHeader>;
+
+    // The map aliases the memory-mapped file and must not outlive the reader.
+    template <detail::SupportedDtype T>
+    auto to_map(std::string_view identifier) const
+        -> Eigen::Map<const Eigen::MatrixX<T>, Eigen::Aligned64>;
 
     template <detail::SupportedDtype T>
-    [[nodiscard]] auto to_map(std::string_view identifier)
-        const& -> Eigen::Map<const Eigen::MatrixX<T>, Eigen::Aligned64>;
+    auto to_mat(std::string_view identifier) const -> Eigen::MatrixX<T>;
 
-    template <detail::SupportedDtype T>
-    [[nodiscard]] auto to_map(std::string_view identifier)
-        const&& -> Eigen::Map<const Eigen::MatrixX<T>, Eigen::Aligned64>
-        = delete;
-
-    template <detail::SupportedDtype T>
-    [[nodiscard]] auto to_mat(std::string_view identifier) const
-        -> Eigen::MatrixX<T>;
-
-    [[nodiscard]] auto size() const noexcept -> std::size_t;
+    auto size() const noexcept -> std::size_t;
 
    private:
-    auto parse_footer_and_directory() -> void;
+    auto parse_footer_and_index() -> void;
 
-    [[nodiscard]] auto find_entry(std::string_view identifier) const
+    auto find_entry(std::string_view identifier) const
         -> const detail::MatrixEntry&;
 
-    [[nodiscard]] auto payload_bytes(const detail::MatrixEntry& entry) const
+    auto payload_bytes(const detail::MatrixEntry& entry) const
         -> std::span<const std::byte>;
 
     auto validate_payload_ranges(
@@ -76,8 +68,8 @@ class BinaryReader
 };
 
 template <detail::SupportedDtype T>
-auto BinaryReader::to_map(std::string_view identifier)
-    const& -> Eigen::Map<const Eigen::MatrixX<T>, Eigen::Aligned64>
+auto DenseReader::to_map(std::string_view identifier) const
+    -> Eigen::Map<const Eigen::MatrixX<T>, Eigen::Aligned64>
 {
     const auto& entry = find_entry(identifier);
     const auto& header = entry.header;
@@ -111,12 +103,11 @@ auto BinaryReader::to_map(std::string_view identifier)
 }
 
 template <detail::SupportedDtype T>
-auto BinaryReader::to_mat(std::string_view identifier) const
-    -> Eigen::MatrixX<T>
+auto DenseReader::to_mat(std::string_view identifier) const -> Eigen::MatrixX<T>
 {
     return Eigen::MatrixX<T>{to_map<T>(identifier)};
 }
 
 }  // namespace gelex
 
-#endif  // GELEX_IO_BINARY_READER_H_
+#endif  // GELEX_IO_DENSE_READER_H_

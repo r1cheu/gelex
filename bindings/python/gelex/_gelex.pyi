@@ -109,7 +109,7 @@ class DenseWriter:
 
     def __exit__(self, *args) -> None: ...
 
-class BinaryReader:
+class DenseReader:
     """
     Memory-mapped reader for gelex binary containers such as the MCMC .draws output. Payloads are exposed as read-only, column-major (rows, columns) NumPy views that alias the mapped file.
     """

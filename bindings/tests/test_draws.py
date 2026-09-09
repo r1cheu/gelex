@@ -71,7 +71,7 @@ def test_writer_round_trips_through_reader(tmp_path: Path):
     writer.close()
     assert not writer.is_open
 
-    reader = gelex.BinaryReader(str(path))
+    reader = gelex.DenseReader(str(path))
     np.testing.assert_array_equal(
         reader["appended"], np.array([[1, 3, 5], [2, 4, 6]], dtype=np.float32)
     )
@@ -99,7 +99,7 @@ def test_writer_validates_columns(tmp_path: Path):
 
 
 def test_reader_lists_payloads(draws_path: Path):
-    reader = gelex.BinaryReader(str(draws_path))
+    reader = gelex.DenseReader(str(draws_path))
 
     assert len(reader) == len(LAYOUT)
     assert set(reader.keys()) == {name for name, _, _ in LAYOUT}
@@ -114,7 +114,7 @@ def test_reader_lists_payloads(draws_path: Path):
 
 
 def test_reader_exposes_readonly_column_major_views(draws_path: Path):
-    reader = gelex.BinaryReader(str(draws_path))
+    reader = gelex.DenseReader(str(draws_path))
 
     for name, dtype, rows in LAYOUT:
         view = reader[name]
@@ -129,7 +129,7 @@ def test_reader_exposes_readonly_column_major_views(draws_path: Path):
 
 
 def test_views_keep_the_reader_alive(draws_path: Path):
-    view = gelex.BinaryReader(str(draws_path))["fixed/coefficients"]
+    view = gelex.DenseReader(str(draws_path))["fixed/coefficients"]
     np.testing.assert_array_equal(view, expected(2, np.float32))
 
 

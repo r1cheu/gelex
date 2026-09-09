@@ -13,7 +13,7 @@
 #include "gelex/bayes/variance/budget.h"
 #include "gelex/exception.h"
 #include "gelex/genetic_mode.h"
-#include "gelex/io/binary_reader.h"
+#include "gelex/io/dense_reader.h"
 
 #include "bayes_model_fixture.h"
 #include "file_fixture.h"
@@ -49,7 +49,7 @@ TEST_CASE("Bayes draws serialize state and publish on close", "[bayes][draws]")
         REQUIRE_FALSE(std::filesystem::exists(path));
         draws.close();
     }
-    const gelex::BinaryReader reader{path};
+    const gelex::DenseReader reader{path};
     REQUIRE(reader.to_map<double>("fixed/coefficients")
                 .isApprox(Eigen::MatrixXd{{1.25}}));
     REQUIRE(reader.to_map<float>("random/batch/coefficients")
@@ -85,7 +85,7 @@ TEST_CASE(
                 "\"fixed/coefficients\" overflow"));
         draws.close();
     }
-    const gelex::BinaryReader reader{path};
+    const gelex::DenseReader reader{path};
     REQUIRE(reader.to_map<float>("genetic/A/coefficients").cols() == 1);
     REQUIRE(reader.to_map<double>("residual/variance").cols() == 1);
 }

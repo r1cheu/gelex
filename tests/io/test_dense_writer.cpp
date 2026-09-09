@@ -16,7 +16,7 @@
 
 #include "gelex/exception.h"
 #include "gelex/infra/log.h"
-#include "gelex/io/binary_reader.h"
+#include "gelex/io/dense_reader.h"
 #include "gelex/io/dense_writer.h"
 
 #include "file_fixture.h"
@@ -81,7 +81,7 @@ TEST_CASE(
         }
         writer.close();
     }
-    const gelex::BinaryReader reader(path.string());
+    const gelex::DenseReader reader(path.string());
     REQUIRE(reader.to_map<double>("double").isApprox(expected_double));
     REQUIRE(reader.to_map<std::uint8_t>("uint8").isApprox(expected_uint8));
 }
@@ -98,7 +98,7 @@ TEST_CASE("DenseWriter writes whole matrices at once", "[io][dense_writer]")
         REQUIRE_THROWS_AS(stream << as_span(expected), gelex::GelexException);
         writer.close();
     }
-    const gelex::BinaryReader reader(path.string());
+    const gelex::DenseReader reader(path.string());
     REQUIRE(reader.to_map<float>("x").isApprox(expected));
 }
 
@@ -157,7 +157,7 @@ TEST_CASE("DenseStream transfers ownership on move", "[io][dense_writer]")
         moved << 1.0;
         writer.close();
     }
-    const gelex::BinaryReader reader(path.string());
+    const gelex::DenseReader reader(path.string());
     REQUIRE(reader.to_map<double>("fixed/coefficients")
                 .isApprox(Eigen::MatrixXd{{1.0}}));
 }
@@ -191,7 +191,7 @@ TEST_CASE("DenseWriter commits an empty container", "[io][dense_writer]")
         auto writer = gelex::open_dense_writer(path.string());
         writer.close();
     }
-    const gelex::BinaryReader reader(path.string());
+    const gelex::DenseReader reader(path.string());
     REQUIRE(reader.size() == 0);
 }
 
@@ -213,7 +213,7 @@ TEST_CASE(
         writer.reserve<double>("other", gelex::BinaryShape{1, 1}),
         Catch::Matchers::ContainsSubstring("is closed"));
     REQUIRE_NOTHROW(writer.close());
-    const gelex::BinaryReader reader(path.string());
+    const gelex::DenseReader reader(path.string());
     REQUIRE(reader.to_map<double>("value").isApprox(Eigen::MatrixXd{{1.0}}));
 }
 
@@ -290,7 +290,7 @@ TEST_CASE(
     REQUIRE(fs::exists(temporary_path(path)));
     stream << 2.0;
     writer.close();
-    const gelex::BinaryReader reader(path.string());
+    const gelex::DenseReader reader(path.string());
     REQUIRE(
         reader.to_map<double>("value").isApprox(Eigen::MatrixXd{{1.0, 2.0}}));
 }
