@@ -21,7 +21,6 @@ namespace gelex::detail
 static_assert(std::endian::native == std::endian::little);
 static_assert(sizeof(float) == 4 && std::numeric_limits<float>::is_iec559);
 static_assert(sizeof(double) == 8 && std::numeric_limits<double>::is_iec559);
-static_assert(sizeof(std::int32_t) == 4);
 static_assert(sizeof(std::uint8_t) == 1);
 
 inline constexpr std::array<std::byte, 8> binary_format_magic
@@ -39,9 +38,9 @@ inline constexpr std::size_t payload_entry_fixed_size
       + (4 * sizeof(std::uint64_t));
 inline constexpr std::uint64_t payload_alignment = 64;
 
-struct PayloadEntry
+struct MatrixEntry
 {
-    PayloadInfo info;
+    MatrixHeader header;
     std::uint64_t offset{};
     std::uint64_t size{};
 };
@@ -62,7 +61,6 @@ inline auto decode_binary_type(std::byte byte) -> BinaryType
     {
         case BinaryType::float64:
         case BinaryType::float32:
-        case BinaryType::int32:
         case BinaryType::uint8:
             return type;
     }
@@ -77,8 +75,6 @@ inline auto binary_type_size(BinaryType type) -> std::uint64_t
             return sizeof(double);
         case BinaryType::float32:
             return sizeof(float);
-        case BinaryType::int32:
-            return sizeof(std::int32_t);
         case BinaryType::uint8:
             return sizeof(std::uint8_t);
     }

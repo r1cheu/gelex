@@ -7,6 +7,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <exception>
 #include <filesystem>
 #include <fmt/format.h>
 #include <fstream>
@@ -19,6 +20,7 @@
 #include <vector>
 
 #include "gelex/exception.h"
+#include "gelex/infra/log.h"
 #include "gelex/io/binary_format.h"
 #include "gelex/io/detail/atomic_output_stream.h"
 #include "gelex/io/detail/binary_wire.h"
@@ -188,6 +190,20 @@ CscWriter::CscWriter(std::string_view output_path)
 CscWriter::~CscWriter() noexcept
 {
     discard_spools();
+    if (!closed_ && std::uncaught_exceptions() == 0)
+    {
+        try
+        {
+            error(
+                fmt::format(
+                    "{}: unclosed CSC writer destroyed, output "
+                    "discarded",
+                    output_.path().string()));
+        }
+        catch (...)  // NOLINT(bugprone-empty-catch): dtor must be noexcept
+        {
+        }
+    }
 }
 
 auto CscWriter::discard_spools() noexcept -> void

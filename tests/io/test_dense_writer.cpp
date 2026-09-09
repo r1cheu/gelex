@@ -15,6 +15,7 @@
 #include <vector>
 
 #include "gelex/exception.h"
+#include "gelex/infra/log.h"
 #include "gelex/io/binary_reader.h"
 #include "gelex/io/dense_writer.h"
 
@@ -222,6 +223,15 @@ TEST_CASE(
 {
     test::FileFixture fixture;
     const auto path = fixture.get_test_dir() / "discarded.samples";
+    std::vector<std::string> errors;
+    gelex::set_sink(
+        [&errors](gelex::Level level, std::string_view message)
+        {
+            if (level == gelex::Level::Error)
+            {
+                errors.emplace_back(message);
+            }
+        });
     {
         auto writer = gelex::open_dense_writer(path.string());
         writer.reserve<double>("value", gelex::BinaryShape{1, 1}) << 1.0;
@@ -229,6 +239,9 @@ TEST_CASE(
     }
     REQUIRE_FALSE(fs::exists(path));
     REQUIRE_FALSE(fs::exists(temporary_path(path)));
+    // Forgetting close() on a normal path is reported.
+    REQUIRE(errors.size() == 1);
+    CHECK_THAT(errors[0], Catch::Matchers::ContainsSubstring("unclosed"));
 
     REQUIRE_THROWS_AS(
         [&]
@@ -238,8 +251,11 @@ TEST_CASE(
             throw gelex::GelexException("stop writing");
         }(),
         gelex::GelexException);
+    gelex::set_sink({});
     REQUIRE_FALSE(fs::exists(path));
     REQUIRE_FALSE(fs::exists(temporary_path(path)));
+    // Unwinding discards silently.
+    REQUIRE(errors.size() == 1);
 }
 
 TEST_CASE(

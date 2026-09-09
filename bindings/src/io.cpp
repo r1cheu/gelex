@@ -22,7 +22,7 @@
 #include "gelex/exception.h"
 #include "gelex/io/binary_format.h"
 #include "gelex/io/binary_reader.h"
-#include "gelex/io/binary_writer.h"
+#include "gelex/io/dense_writer.h"
 
 #include "gelex_py/register.h"
 
@@ -41,32 +41,28 @@ auto register_format(nb::module_& m) -> void
     nb::enum_<gelex::BinaryType>(m, "BinaryType")
         .value("float64", gelex::BinaryType::float64)
         .value("float32", gelex::BinaryType::float32)
-        .value("int32", gelex::BinaryType::int32)
         .value("uint8", gelex::BinaryType::uint8);
 
-    nb::class_<gelex::PayloadInfo>(m, "PayloadInfo")
+    nb::class_<gelex::MatrixHeader>(m, "MatrixHeader")
         .def_prop_ro(
             "identifier",
-            [](const gelex::PayloadInfo& info) { return info.identifier; })
+            [](const gelex::MatrixHeader& header) { return header.identifier; })
         .def_prop_ro(
             "type",
-            [](const gelex::PayloadInfo& info) { return info.descriptor.type; })
+            [](const gelex::MatrixHeader& header) { return header.type; })
         .def_prop_ro(
             "shape",
-            [](const gelex::PayloadInfo& info)
-            {
-                return std::pair{
-                    info.descriptor.shape[0], info.descriptor.shape[1]};
-            })
+            [](const gelex::MatrixHeader& header)
+            { return std::pair{header.shape[0], header.shape[1]}; })
         .def(
             "__repr__",
-            [](const gelex::PayloadInfo& info)
+            [](const gelex::MatrixHeader& header)
             {
                 return fmt::format(
-                    "PayloadInfo(identifier='{}', shape=({}, {}))",
-                    info.identifier,
-                    info.descriptor.shape[0],
-                    info.descriptor.shape[1]);
+                    "MatrixHeader(identifier='{}', shape=({}, {}))",
+                    header.identifier,
+                    header.shape[0],
+                    header.shape[1]);
             });
 }
 
@@ -74,7 +70,7 @@ auto register_format(nb::module_& m) -> void
 
 // Inputs are not converted: a dtype or layout mismatch is a TypeError rather
 // than a silent copy. Column-major (rows, columns) is the on-disk layout, so
-// a whole payload is taken as an F-contiguous matrix.
+// a whole matrix is taken as an F-contiguous array.
 template <typename T>
 using ColumnArray
     = nb::ndarray<const T, nb::ndim<1>, nb::c_contig, nb::device::cpu>;
@@ -83,56 +79,40 @@ using MatrixArray
     = nb::ndarray<const T, nb::ndim<2>, nb::f_contig, nb::device::cpu>;
 
 template <gelex::detail::SupportedDtype T>
-auto register_payload_writer(nb::module_& m, const char* name) -> void
+auto register_dense_stream(nb::module_& m, const char* name) -> void
 {
-    using Writer = gelex::PayloadWriter<T>;
-    nb::class_<Writer>(
+    using Stream = gelex::DenseStream<T>;
+    nb::class_<Stream>(
         m,
         name,
-        "Handle to one reserved payload; append() adds one column (one draw) "
-        "and write() stores the whole payload at once.")
+        "Handle to one reserved matrix; append() adds one column (one draw) "
+        "and write() stores the whole matrix at once.")
         .def(
             "append",
-            [](Writer& self, const ColumnArray<T>& column)
-            {
-                if (column.shape(0) != self.rows())
-                {
-                    throw gelex::GelexException(
-                        "append expects one value per payload row");
-                }
-                self.append(std::span<const T>{column.data(), column.shape(0)});
-            },
+            [](Stream& self, const ColumnArray<T>& column)
+            { self << std::span<const T>{column.data(), column.shape(0)}; },
             nb::arg("column").noconvert())
         .def(
             "write",
-            [](Writer& self, const MatrixArray<T>& values)
+            [](Stream& self, const MatrixArray<T>& values)
             {
-                if (values.shape(0) != self.rows())
-                {
-                    throw gelex::GelexException(
-                        "write expects a (rows, columns) array with rows "
-                        "matching the payload");
-                }
-                self.write(
-                    std::span<const T>{
-                        values.data(), values.shape(0) * values.shape(1)});
+                self << std::span<const T>{
+                    values.data(), values.shape(0) * values.shape(1)};
             },
             nb::arg("values").noconvert())
-        .def_prop_ro("identifier", &Writer::identifier)
-        .def_prop_ro("rows", &Writer::rows);
+        .def_prop_ro("identifier", &Stream::identifier);
 }
 
-using AnyPayloadWriter = std::variant<
-    gelex::PayloadWriter<double>,
-    gelex::PayloadWriter<float>,
-    gelex::PayloadWriter<std::int32_t>,
-    gelex::PayloadWriter<std::uint8_t>>;
+using AnyDenseStream = std::variant<
+    gelex::DenseStream<double>,
+    gelex::DenseStream<float>,
+    gelex::DenseStream<std::uint8_t>>;
 
 auto reserve(
-    gelex::BinaryWriter& writer,
+    gelex::DenseWriter& writer,
     std::string_view identifier,
     gelex::BinaryType type,
-    gelex::BinaryShape shape) -> AnyPayloadWriter
+    gelex::BinaryShape shape) -> AnyDenseStream
 {
     switch (type)
     {
@@ -140,27 +120,25 @@ auto reserve(
             return writer.reserve<double>(identifier, shape);
         case gelex::BinaryType::float32:
             return writer.reserve<float>(identifier, shape);
-        case gelex::BinaryType::int32:
-            return writer.reserve<std::int32_t>(identifier, shape);
         case gelex::BinaryType::uint8:
             return writer.reserve<std::uint8_t>(identifier, shape);
     }
-    throw gelex::GelexException("unsupported payload dtype");
+    throw gelex::GelexException("unsupported matrix dtype");
 }
 
 auto register_writer(nb::module_& m) -> void
 {
-    register_payload_writer<double>(m, "PayloadWriterF64");
-    register_payload_writer<float>(m, "PayloadWriterF32");
-    register_payload_writer<std::int32_t>(m, "PayloadWriterI32");
-    register_payload_writer<std::uint8_t>(m, "PayloadWriterU8");
+    register_dense_stream<double>(m, "DenseStreamF64");
+    register_dense_stream<float>(m, "DenseStreamF32");
+    register_dense_stream<std::uint8_t>(m, "DenseStreamU8");
 
-    nb::class_<gelex::BinaryWriter>(
+    nb::class_<gelex::DenseWriter>(
         m,
-        "BinaryWriter",
-        "Writer for gelex binary containers. Reserve payloads with a dtype and "
+        "DenseWriter",
+        "Writer for gelex dense containers. Reserve matrices with a dtype and "
         "(rows, columns) shape, fill them column by column, then close() (or "
-        "leave the with-block) to finalise the file.")
+        "leave the with-block) to publish the file; every matrix must be "
+        "complete. An unclosed writer discards its output.")
         .def(nb::init<std::string_view>(), nb::arg("path"))
         .def(
             "reserve",
@@ -169,14 +147,14 @@ auto register_writer(nb::module_& m) -> void
             nb::arg("type"),
             nb::arg("shape"),
             nb::keep_alive<0, 1>())
-        .def("close", &gelex::BinaryWriter::close)
-        .def_prop_ro("is_open", &gelex::BinaryWriter::is_open)
+        .def("close", &gelex::DenseWriter::close)
+        .def_prop_ro("is_open", &gelex::DenseWriter::is_open)
         .def(
             "__enter__",
-            [](nb::handle_t<gelex::BinaryWriter> self) { return self; })
+            [](nb::handle_t<gelex::DenseWriter> self) { return self; })
         .def(
             "__exit__",
-            [](gelex::BinaryWriter& self, nb::args) { self.close(); },
+            [](gelex::DenseWriter& self, nb::args) { self.close(); },
             nb::arg("args"));
 }
 
@@ -205,14 +183,12 @@ auto payload(
     std::string_view identifier) -> PayloadArray
 {
     const auto& reader = nb::cast<const gelex::BinaryReader&>(self);
-    switch (reader.info(identifier).descriptor.type)
+    switch (reader.info(identifier).type)
     {
         case gelex::BinaryType::float64:
             return payload_view<double>(reader, identifier, self);
         case gelex::BinaryType::float32:
             return payload_view<float>(reader, identifier, self);
-        case gelex::BinaryType::int32:
-            return payload_view<std::int32_t>(reader, identifier, self);
         case gelex::BinaryType::uint8:
             return payload_view<std::uint8_t>(reader, identifier, self);
     }

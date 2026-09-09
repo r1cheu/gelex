@@ -54,6 +54,7 @@ class MCMCRunner
             }
             notify(observer, static_cast<std::size_t>(iteration + 1));
         }
+        draws.close();
     }
 
    private:

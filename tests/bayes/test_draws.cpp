@@ -3,6 +3,7 @@
 
 #include <Eigen/Core>
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
 #include <filesystem>
 
 #include "gelex/bayes/builtin_method.h"
@@ -25,9 +26,7 @@ constexpr auto mode_ad = gelex::GeneticMode::A | gelex::GeneticMode::D;
 
 }  // namespace
 
-TEST_CASE(
-    "Bayes draws serialize state and commit a short run",
-    "[bayes][draws]")
+TEST_CASE("Bayes draws serialize state and publish on close", "[bayes][draws]")
 {
     gelex::test::FileFixture fixture;
     const auto path = (fixture.get_test_dir() / "short.draws").string();
@@ -45,9 +44,10 @@ TEST_CASE(
     state.genetic().get<gelex::GeneticMode::A>().transition(0, 0.5);
     state.genetic().get<gelex::GeneticMode::D>().transition(1, -0.25);
     {
-        auto draws = gelex::BayesDraws{state, model, path, 3};
+        auto draws = gelex::BayesDraws{state, model, path, 1};
         draws.append(state);
         REQUIRE_FALSE(std::filesystem::exists(path));
+        draws.close();
     }
     const gelex::BinaryReader reader{path};
     REQUIRE(reader.to_map<double>("fixed/coefficients")
@@ -79,9 +79,32 @@ TEST_CASE(
     {
         auto draws = gelex::BayesDraws{state, model, path, 1};
         draws.append(state);
-        REQUIRE_THROWS_AS(draws.append(state), gelex::GelexException);
+        REQUIRE_THROWS_WITH(
+            draws.append(state),
+            Catch::Matchers::ContainsSubstring(
+                "\"fixed/coefficients\" overflow"));
+        draws.close();
     }
     const gelex::BinaryReader reader{path};
     REQUIRE(reader.to_map<float>("genetic/A/coefficients").cols() == 1);
     REQUIRE(reader.to_map<double>("residual/variance").cols() == 1);
+}
+
+TEST_CASE("Bayes draws refuse to publish a short run", "[bayes][draws]")
+{
+    gelex::test::FileFixture fixture;
+    const auto path = (fixture.get_test_dir() / "short.draws").string();
+    const auto model = gelex::test::make_random_effect_model(mode_a);
+    const auto prior = gelex::make_prior(
+        gelex::BuiltinBayesRecipe<mode_a, gelex::BayesMethod::RR>{
+            gelex::VarianceBudget{{.additive = 0.4, .random = 0.1}}},
+        model);
+    const auto state = gelex::make_state(prior, model);
+    {
+        auto draws = gelex::BayesDraws{state, model, path, 3};
+        draws.append(state);
+        REQUIRE_THROWS_AS(draws.close(), gelex::GelexException);
+    }
+    REQUIRE_FALSE(std::filesystem::exists(path));
+    REQUIRE_FALSE(std::filesystem::exists(path + ".tmp"));
 }

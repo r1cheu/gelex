@@ -41,11 +41,9 @@ class BinaryType(enum.Enum):
 
     float32 = 2
 
-    int32 = 3
-
     uint8 = 4
 
-class PayloadInfo:
+class MatrixHeader:
     @property
     def identifier(self) -> str: ...
 
@@ -57,9 +55,9 @@ class PayloadInfo:
 
     def __repr__(self) -> str: ...
 
-class PayloadWriterF64:
+class DenseStreamF64:
     """
-    Handle to one reserved payload; append() adds one column (one draw) and write() stores the whole payload at once.
+    Handle to one reserved matrix; append() adds one column (one draw) and write() stores the whole matrix at once.
     """
 
     def append(self, column: Annotated[NDArray[numpy.float64], dict(shape=(None,), order='C', device='cpu', writable=False)]) -> None: ...
@@ -69,12 +67,9 @@ class PayloadWriterF64:
     @property
     def identifier(self) -> str: ...
 
-    @property
-    def rows(self) -> int: ...
-
-class PayloadWriterF32:
+class DenseStreamF32:
     """
-    Handle to one reserved payload; append() adds one column (one draw) and write() stores the whole payload at once.
+    Handle to one reserved matrix; append() adds one column (one draw) and write() stores the whole matrix at once.
     """
 
     def append(self, column: Annotated[NDArray[numpy.float32], dict(shape=(None,), order='C', device='cpu', writable=False)]) -> None: ...
@@ -84,27 +79,9 @@ class PayloadWriterF32:
     @property
     def identifier(self) -> str: ...
 
-    @property
-    def rows(self) -> int: ...
-
-class PayloadWriterI32:
+class DenseStreamU8:
     """
-    Handle to one reserved payload; append() adds one column (one draw) and write() stores the whole payload at once.
-    """
-
-    def append(self, column: Annotated[NDArray[numpy.int32], dict(shape=(None,), order='C', device='cpu', writable=False)]) -> None: ...
-
-    def write(self, values: Annotated[NDArray[numpy.int32], dict(shape=(None, None), order='F', device='cpu', writable=False)]) -> None: ...
-
-    @property
-    def identifier(self) -> str: ...
-
-    @property
-    def rows(self) -> int: ...
-
-class PayloadWriterU8:
-    """
-    Handle to one reserved payload; append() adds one column (one draw) and write() stores the whole payload at once.
+    Handle to one reserved matrix; append() adds one column (one draw) and write() stores the whole matrix at once.
     """
 
     def append(self, column: Annotated[NDArray[numpy.uint8], dict(shape=(None,), order='C', device='cpu', writable=False)]) -> None: ...
@@ -114,24 +91,21 @@ class PayloadWriterU8:
     @property
     def identifier(self) -> str: ...
 
-    @property
-    def rows(self) -> int: ...
-
-class BinaryWriter:
+class DenseWriter:
     """
-    Writer for gelex binary containers. Reserve payloads with a dtype and (rows, columns) shape, fill them column by column, then close() (or leave the with-block) to finalise the file.
+    Writer for gelex dense containers. Reserve matrices with a dtype and (rows, columns) shape, fill them column by column, then close() (or leave the with-block) to publish the file; every matrix must be complete. An unclosed writer discards its output.
     """
 
     def __init__(self, path: str) -> None: ...
 
-    def reserve(self, identifier: str, type: BinaryType, shape: Sequence[int]) -> PayloadWriterF64 | PayloadWriterF32 | PayloadWriterI32 | PayloadWriterU8: ...
+    def reserve(self, identifier: str, type: BinaryType, shape: Sequence[int]) -> DenseStreamF64 | DenseStreamF32 | DenseStreamU8: ...
 
     def close(self) -> None: ...
 
     @property
     def is_open(self) -> bool: ...
 
-    def __enter__(self) -> BinaryWriter: ...
+    def __enter__(self) -> DenseWriter: ...
 
     def __exit__(self, *args) -> None: ...
 
@@ -148,8 +122,8 @@ class BinaryReader:
 
     def __getitem__(self, identifier: str) -> Annotated[NDArray, dict(writable=False)]: ...
 
-    def info(self, identifier: str) -> PayloadInfo: ...
+    def info(self, identifier: str) -> MatrixHeader: ...
 
-    def payloads(self) -> list[PayloadInfo]: ...
+    def payloads(self) -> list[MatrixHeader]: ...
 
     def keys(self) -> list[str]: ...
