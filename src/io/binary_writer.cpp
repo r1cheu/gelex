@@ -4,7 +4,6 @@
 #include "gelex/io/binary_writer.h"
 
 #include <cassert>
-#include <concepts>
 #include <cstddef>
 #include <cstdint>
 #include <exception>
@@ -22,19 +21,6 @@
 
 namespace gelex
 {
-
-namespace
-{
-
-template <std::unsigned_integral T>
-auto write_integer(detail::AtomicOutputStream& file, T value) -> void
-{
-    file.write(
-        reinterpret_cast<const char*>(&value),
-        static_cast<std::streamsize>(sizeof(value)));
-}
-
-}  // namespace
 
 BinaryWriter::BinaryWriter(std::string_view output_path)
     : file_(std::string(output_path))
@@ -248,7 +234,8 @@ auto BinaryWriter::write_payload_entry(const detail::PayloadEntry& entry)
     -> void
 {
     const auto& info = entry.info;
-    write_integer(file_, static_cast<std::uint32_t>(info.identifier.size()));
+    detail::write_integer(
+        file_, static_cast<std::uint32_t>(info.identifier.size()));
     file_.write(
         info.identifier.data(),
         static_cast<std::streamsize>(info.identifier.size()));
@@ -257,10 +244,10 @@ auto BinaryWriter::write_payload_entry(const detail::PayloadEntry& entry)
         = static_cast<std::byte>(std::to_underlying(info.descriptor.type));
     file_.write(reinterpret_cast<const char*>(&encoded_type), 1);
 
-    write_integer(file_, info.descriptor.shape[0]);
-    write_integer(file_, info.descriptor.shape[1]);
-    write_integer(file_, entry.offset);
-    write_integer(file_, entry.size);
+    detail::write_integer(file_, info.descriptor.shape[0]);
+    detail::write_integer(file_, info.descriptor.shape[1]);
+    detail::write_integer(file_, entry.offset);
+    detail::write_integer(file_, entry.size);
 }
 
 auto BinaryWriter::write_footer(
@@ -270,8 +257,8 @@ auto BinaryWriter::write_footer(
     file_.write(
         reinterpret_cast<const char*>(detail::binary_format_magic.data()),
         static_cast<std::streamsize>(detail::binary_format_magic.size()));
-    write_integer(file_, directory_offset);
-    write_integer(file_, payload_count);
+    detail::write_integer(file_, directory_offset);
+    detail::write_integer(file_, payload_count);
 }
 
 }  // namespace gelex

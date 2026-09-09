@@ -31,6 +31,10 @@ auto tmp_path_for(const std::filesystem::path& final_path)
 AtomicOutputStream::AtomicOutputStream(std::filesystem::path path)
     : path_(std::move(path)), tmp_path_(tmp_path_for(path_))
 {
+    if (path_.empty())
+    {
+        throw GelexException("output path is empty");
+    }
     if (std::filesystem::is_directory(path_))
     {
         throw GelexException(
