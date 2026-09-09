@@ -25,7 +25,7 @@
 #include "gelex/bayes/variance/calibration.h"
 #include "gelex/genetic_mode.h"
 #include "gelex/io/binary_format.h"
-#include "gelex/io/binary_writer.h"
+#include "gelex/io/dense_writer.h"
 #include "gelex/namespace.h"
 
 GELEX_NAMESPACE_BEGIN(gelex)
@@ -162,9 +162,9 @@ class ScaledMixtureDraws
     using probability_writer_type = probability_writer_t<WeightUpdate>;
 
     explicit ScaledMixtureDraws(
-        PayloadWriter<double> variance,
-        PayloadWriter<float> coefficients,
-        PayloadWriter<std::uint8_t> assignments,
+        DenseStream<double> variance,
+        DenseStream<float> coefficients,
+        DenseStream<std::uint8_t> assignments,
         probability_writer_type probabilities)
         : variance_{std::move(variance)},
           coefficients_{std::move(coefficients)},
@@ -175,27 +175,26 @@ class ScaledMixtureDraws
 
     auto append(const ScaledMixtureState<WeightUpdate>& state) -> void
     {
-        variance_.append(state.variance());
-        coefficients_.append(
-            state.coefficients().template cast<float>().eval());
-        assignments_.append(state.assignments());
+        variance_ << state.variance();
+        coefficients_ << state.coefficients().template cast<float>().eval();
+        assignments_ << state.assignments();
         if constexpr (WeightUpdate == MixtureWeightUpdate::Enabled)
         {
-            probabilities_.append(state.probabilities());
+            probabilities_ << state.probabilities();
         }
     }
 
    private:
-    PayloadWriter<double> variance_;
-    PayloadWriter<float> coefficients_;
-    PayloadWriter<std::uint8_t> assignments_;
+    DenseStream<double> variance_;
+    DenseStream<float> coefficients_;
+    DenseStream<std::uint8_t> assignments_;
     [[no_unique_address]] probability_writer_type probabilities_;
 };
 
 template <MixtureWeightUpdate WeightUpdate>
 [[nodiscard]] auto make_draws(
     const ScaledMixtureState<WeightUpdate>& state,
-    BinaryWriter& writer,
+    DenseWriter& writer,
     std::string_view prefix,
     std::size_t draw_count) -> ScaledMixtureDraws<WeightUpdate>
 {

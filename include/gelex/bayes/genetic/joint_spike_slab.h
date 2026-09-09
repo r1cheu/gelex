@@ -25,7 +25,7 @@
 #include "gelex/bayes/variance/calibration.h"
 #include "gelex/genetic_mode.h"
 #include "gelex/io/binary_format.h"
-#include "gelex/io/binary_writer.h"
+#include "gelex/io/dense_writer.h"
 #include "gelex/namespace.h"
 
 GELEX_NAMESPACE_BEGIN(gelex)
@@ -218,9 +218,9 @@ class HalfNormalDraws
 {
    public:
     explicit HalfNormalDraws(
-        PayloadWriter<double> variance,
-        PayloadWriter<float> coefficients,
-        PayloadWriter<float> annotation_coefficients)
+        DenseStream<double> variance,
+        DenseStream<float> coefficients,
+        DenseStream<float> annotation_coefficients)
         : variance_{std::move(variance)},
           coefficients_{std::move(coefficients)},
           annotation_coefficients_{std::move(annotation_coefficients)}
@@ -229,16 +229,16 @@ class HalfNormalDraws
 
     auto append(const HalfNormalState& state) -> void
     {
-        variance_.append(state.variance());
-        coefficients_.append(state.coefficients().cast<float>().eval());
-        annotation_coefficients_.append(
-            state.annotation_coefficients().cast<float>().eval());
+        variance_ << state.variance();
+        coefficients_ << state.coefficients().cast<float>().eval();
+        annotation_coefficients_
+            << state.annotation_coefficients().cast<float>().eval();
     }
 
    private:
-    PayloadWriter<double> variance_;
-    PayloadWriter<float> coefficients_;
-    PayloadWriter<float> annotation_coefficients_;
+    DenseStream<double> variance_;
+    DenseStream<float> coefficients_;
+    DenseStream<float> annotation_coefficients_;
 };
 
 template <MixtureWeightUpdate WeightUpdate>
@@ -248,7 +248,7 @@ class JointSpikeSlabDraws
     using probability_writer_type = probability_writer_t<WeightUpdate>;
 
     explicit JointSpikeSlabDraws(
-        PayloadWriter<std::uint8_t> assignments,
+        DenseStream<std::uint8_t> assignments,
         probability_writer_type probabilities)
         : assignments_{std::move(assignments)},
           probabilities_{std::move(probabilities)}
@@ -257,21 +257,21 @@ class JointSpikeSlabDraws
 
     auto append(const JointSpikeSlabState<WeightUpdate>& state) -> void
     {
-        assignments_.append(state.assignments());
+        assignments_ << state.assignments();
         if constexpr (WeightUpdate == MixtureWeightUpdate::Enabled)
         {
-            probabilities_.append(state.probabilities());
+            probabilities_ << state.probabilities();
         }
     }
 
    private:
-    PayloadWriter<std::uint8_t> assignments_;
+    DenseStream<std::uint8_t> assignments_;
     [[no_unique_address]] probability_writer_type probabilities_;
 };
 
 [[nodiscard]] inline auto make_draws(
     const HalfNormalState& state,
-    BinaryWriter& writer,
+    DenseWriter& writer,
     std::string_view prefix,
     std::size_t draw_count) -> HalfNormalDraws
 {
@@ -297,7 +297,7 @@ class JointSpikeSlabDraws
 template <MixtureWeightUpdate WeightUpdate>
 [[nodiscard]] auto make_draws(
     const JointSpikeSlabState<WeightUpdate>& state,
-    BinaryWriter& writer,
+    DenseWriter& writer,
     std::string_view prefix,
     std::size_t draw_count) -> JointSpikeSlabDraws<WeightUpdate>
 {

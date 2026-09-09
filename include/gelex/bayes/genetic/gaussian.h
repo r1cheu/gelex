@@ -19,7 +19,7 @@
 #include "gelex/bayes/spec.h"
 #include "gelex/bayes/variance/calibration.h"
 #include "gelex/genetic_mode.h"
-#include "gelex/io/binary_writer.h"
+#include "gelex/io/dense_writer.h"
 #include "gelex/namespace.h"
 
 GELEX_NAMESPACE_BEGIN(gelex)
@@ -87,34 +87,33 @@ class GaussianDraws
 
     explicit GaussianDraws(
         variance_writer_type variances,
-        PayloadWriter<float> coefficients)
+        DenseStream<float> coefficients)
         : variances_{std::move(variances)},
           coefficients_(std::move(coefficients))
     {
     }
     auto append(const GaussianState<Kind>& state) -> void
     {
-        coefficients_.append(
-            state.coefficients().template cast<float>().eval());
+        coefficients_ << state.coefficients().template cast<float>().eval();
         if constexpr (Kind == VarianceLayout::Pooled)
         {
-            variances_.append(state.variance());
+            variances_ << state.variance();
         }
         else
         {
-            variances_.append(state.variance().template cast<float>().eval());
+            variances_ << state.variance().template cast<float>().eval();
         }
     }
 
    private:
     variance_writer_type variances_{};
-    PayloadWriter<float> coefficients_;
+    DenseStream<float> coefficients_;
 };
 
 template <VarianceLayout Kind>
 [[nodiscard]] auto make_draws(
     const GaussianState<Kind>& state,
-    BinaryWriter& writer,
+    DenseWriter& writer,
     std::string_view prefix,
     std::size_t draw_count) -> GaussianDraws<Kind>
 {

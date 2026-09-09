@@ -96,7 +96,8 @@ class CscWriter
     }
 
     // Requires every matrix to be complete. Only close() publishes the file;
-    // destruction discards uncommitted output, including after a failed close.
+    // destruction discards uncommitted output, including after a failed close,
+    // and logs an error unless an exception is unwinding.
     auto close() -> void;
 
    private:

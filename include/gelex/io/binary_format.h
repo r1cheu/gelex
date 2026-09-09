@@ -19,24 +19,7 @@ enum class BinaryType : std::uint8_t
 {
     float64 = 1,
     float32 = 2,
-    int32 = 3,
     uint8 = 4,
-};
-
-struct PayloadDescriptor
-{
-    BinaryType type{};
-    BinaryShape shape{};
-
-    auto operator==(const PayloadDescriptor&) const -> bool = default;
-};
-
-struct PayloadInfo
-{
-    std::string identifier;
-    PayloadDescriptor descriptor;
-
-    auto operator==(const PayloadInfo&) const -> bool = default;
 };
 
 // One named matrix in a dense or CSC file: the index entry minus offsets.
@@ -55,7 +38,6 @@ namespace detail
 template <typename T>
 concept SupportedDtype = std::same_as<std::remove_cv_t<T>, double>
                          || std::same_as<std::remove_cv_t<T>, float>
-                         || std::same_as<std::remove_cv_t<T>, std::int32_t>
                          || std::same_as<std::remove_cv_t<T>, std::uint8_t>;
 
 template <SupportedDtype T>
@@ -69,10 +51,6 @@ inline constexpr BinaryType binary_type_for = []
     else if constexpr (std::same_as<Value, float>)
     {
         return BinaryType::float32;
-    }
-    else if constexpr (std::same_as<Value, std::int32_t>)
-    {
-        return BinaryType::int32;
     }
     else
     {

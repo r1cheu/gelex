@@ -5,13 +5,12 @@
 #include <catch2/catch_test_macros.hpp>
 #include <cstddef>
 #include <cstdint>
-#include <span>
 
 #include "gelex/data/snp_lut.h"
 #include "gelex/data/snp_lut_io.h"
 #include "gelex/exception.h"
 #include "gelex/genetic_mode.h"
-#include "gelex/io/binary_writer.h"
+#include "gelex/io/dense_writer.h"
 
 #include "file_fixture.h"
 
@@ -53,16 +52,14 @@ TEST_CASE("load_snp_luts rejects invalid LUT rows", "[data][snp_lut][io]")
     const Eigen::MatrixXd invalid = Eigen::MatrixXd::Zero(3, 2);
 
     {
-        gelex::BinaryWriter writer(path.string());
-        writer
-            .reserve<double>(
-                "A/lut",
-                gelex::BinaryShape{
-                    static_cast<std::uint64_t>(invalid.rows()),
-                    static_cast<std::uint64_t>(invalid.cols())})
-            .write(
-                std::span<const double>{
-                    invalid.data(), static_cast<std::size_t>(invalid.size())});
+        auto writer = gelex::open_dense_writer(path.string());
+        writer.reserve<double>(
+            "A/lut",
+            gelex::BinaryShape{
+                static_cast<std::uint64_t>(invalid.rows()),
+                static_cast<std::uint64_t>(invalid.cols())})
+            << invalid.reshaped();
+        writer.close();
     }
 
     REQUIRE_THROWS_AS(load_snp_luts(path), GelexException);

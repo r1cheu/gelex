@@ -11,7 +11,6 @@
 #include <fstream>
 #include <optional>
 #include <ranges>
-#include <span>
 #include <sstream>
 #include <string>
 #include <string_view>
@@ -31,7 +30,7 @@
 #include "gelex/data/snp_lut_io.h"
 #include "gelex/exception.h"
 #include "gelex/genetic_mode.h"
-#include "gelex/io/binary_writer.h"
+#include "gelex/io/dense_writer.h"
 
 #include "bed_fixture.h"
 #include "cli/predict/compute.h"
@@ -121,33 +120,28 @@ auto create_snp_luts(
         return luts;
     };
 
-    gelex::BinaryWriter writer(snp_lut_path.string());
+    auto writer = gelex::open_dense_writer(snp_lut_path.string());
     if (write_add)
     {
         const auto luts = fill(GeneticMode::A);
-        writer
-            .reserve<double>(
-                "A/lut",
-                gelex::BinaryShape{
-                    static_cast<std::uint64_t>(luts.rows()),
-                    static_cast<std::uint64_t>(luts.cols())})
-            .write(
-                std::span<const double>{
-                    luts.data(), static_cast<std::size_t>(luts.size())});
+        writer.reserve<double>(
+            "A/lut",
+            gelex::BinaryShape{
+                static_cast<std::uint64_t>(luts.rows()),
+                static_cast<std::uint64_t>(luts.cols())})
+            << luts.reshaped();
     }
     if (write_dom)
     {
         const auto luts = fill(GeneticMode::D);
-        writer
-            .reserve<double>(
-                "D/lut",
-                gelex::BinaryShape{
-                    static_cast<std::uint64_t>(luts.rows()),
-                    static_cast<std::uint64_t>(luts.cols())})
-            .write(
-                std::span<const double>{
-                    luts.data(), static_cast<std::size_t>(luts.size())});
+        writer.reserve<double>(
+            "D/lut",
+            gelex::BinaryShape{
+                static_cast<std::uint64_t>(luts.rows()),
+                static_cast<std::uint64_t>(luts.cols())})
+            << luts.reshaped();
     }
+    writer.close();
 }
 
 auto create_snp_effects_file(

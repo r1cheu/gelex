@@ -19,6 +19,7 @@
 #include <vector>
 
 #include "gelex/exception.h"
+#include "gelex/infra/log.h"
 #include "gelex/io/binary_format.h"
 #include "gelex/io/csc_writer.h"
 #include "gelex/io/mapped_file.h"
@@ -249,27 +250,25 @@ TEST_CASE(
     CHECK(dense.col(1).isApprox(second));
 }
 
-TEST_CASE(
-    "CscStream supports float and signed integer matrices",
-    "[io][csc_writer]")
+TEST_CASE("CscStream supports float and byte matrices", "[io][csc_writer]")
 {
     gelex::test::FileFixture fixture;
     const auto path = fixture.get_test_dir() / "types.csc";
     auto writer = gelex::open_csc_writer(path.string());
     auto floats = writer.reserve<float>("float", {3, 1});
-    auto integers = writer.reserve<std::int32_t>("integer", {3, 1});
+    auto bytes = writer.reserve<std::uint8_t>("byte", {3, 1});
     const Eigen::VectorXf x{{0.0F, -0.25F, 2.5F}};
-    const Eigen::VectorX<std::int32_t> y{{-3, 0, 7}};
+    const Eigen::VectorX<std::uint8_t> y{{3, 0, 7}};
     floats << x;
-    integers << y;
+    bytes << y;
     writer.close();
     const auto file = open_mapped(path);
     const auto matrices = read_index(file);
     REQUIRE(matrices.size() == 2);
     CHECK(matrices[0].type == std::to_underlying(gelex::BinaryType::float32));
-    CHECK(matrices[1].type == std::to_underlying(gelex::BinaryType::int32));
+    CHECK(matrices[1].type == std::to_underlying(gelex::BinaryType::uint8));
     CHECK(to_dense<float>(file, matrices[0]).isApprox(x));
-    CHECK(to_dense<std::int32_t>(file, matrices[1]).isApprox(y));
+    CHECK(to_dense<std::uint8_t>(file, matrices[1]) == y);
 }
 
 TEST_CASE("CscStream drops only exact zeros", "[io][csc_writer]")
@@ -468,15 +467,28 @@ TEST_CASE(
 {
     gelex::test::FileFixture fixture;
     const auto path = fixture.get_test_dir() / "discard.csc";
+    std::vector<std::string> errors;
+    gelex::set_sink(
+        [&errors](gelex::Level level, std::string_view message)
+        {
+            if (level == gelex::Level::Error)
+            {
+                errors.emplace_back(message);
+            }
+        });
     {
         auto writer = gelex::open_csc_writer(path.string());
         auto stream = writer.reserve<double>("x", {1, 1});
         stream << Eigen::VectorXd{{2}};
         CHECK_FALSE(std::filesystem::exists(path));
     }
+    gelex::set_sink({});
     CHECK_FALSE(std::filesystem::exists(path));
     CHECK_FALSE(std::filesystem::exists(path.string() + ".tmp"));
     check_spools_removed(path);
+    // Forgetting close() on a normal path is reported.
+    REQUIRE(errors.size() == 1);
+    CHECK(errors[0].contains("unclosed"));
 }
 
 TEST_CASE(

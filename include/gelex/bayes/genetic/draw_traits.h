@@ -14,18 +14,18 @@
 GELEX_NAMESPACE_BEGIN(gelex)
 
 template <detail::SupportedDtype>
-class PayloadWriter;
+class DenseStream;
 
 template <VarianceLayout Kind>
 using marker_variance_dtype_t
     = std::conditional_t<Kind == VarianceLayout::Pooled, double, float>;
 template <VarianceLayout Kind>
-using marker_variance_writer_t = PayloadWriter<marker_variance_dtype_t<Kind>>;
+using marker_variance_writer_t = DenseStream<marker_variance_dtype_t<Kind>>;
 
 template <MixtureWeightUpdate Update>
 using probability_writer_t = std::conditional_t<
     Update == MixtureWeightUpdate::Enabled,
-    PayloadWriter<double>,
+    DenseStream<double>,
     std::monostate>;
 
 GELEX_NAMESPACE_END(gelex)

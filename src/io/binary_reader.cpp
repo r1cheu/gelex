@@ -108,7 +108,7 @@ auto parse_payload_entry(
     BinaryCursor& cursor,
     const Footer& footer,
     std::uint64_t index,
-    std::string_view path) -> detail::PayloadEntry
+    std::string_view path) -> detail::MatrixEntry
 {
     const auto identifier_size_bytes
         = cursor.read_bytes(sizeof(std::uint32_t), "payload entry");
@@ -153,11 +153,11 @@ auto parse_payload_entry(
                 "{}: payload {} size does not match shape", path, index));
     }
 
-    PayloadInfo info{
-        .identifier = std::move(identifier),
-        .descriptor = PayloadDescriptor{.type = type, .shape = shape}};
-    return detail::PayloadEntry{
-        .info = std::move(info), .offset = offset, .size = size};
+    return detail::MatrixEntry{
+        .header
+        = MatrixHeader{.identifier = std::move(identifier), .type = type, .shape = shape},
+        .offset = offset,
+        .size = size};
 }
 
 }  // namespace
@@ -222,14 +222,14 @@ auto BinaryReader::parse_footer_and_directory() -> void
     for (const auto& payload : payloads_)
     {
         const auto [_, inserted]
-            = index_.emplace(payload.info.identifier, index_.size());
+            = index_.emplace(payload.header.identifier, index_.size());
         if (!inserted)
         {
             throw GelexException(
                 fmt::format(
                     "{}: duplicate payload identifier \"{}\"",
                     path_string,
-                    payload.info.identifier));
+                    payload.header.identifier));
         }
     }
 
@@ -261,25 +261,25 @@ auto BinaryReader::size() const noexcept -> std::size_t
 }
 
 auto BinaryReader::info(std::string_view identifier) const& -> const
-    PayloadInfo&
+    MatrixHeader&
 {
-    return find_entry(identifier).info;
+    return find_entry(identifier).header;
 }
 
-auto BinaryReader::payloads() const -> std::vector<PayloadInfo>
+auto BinaryReader::payloads() const -> std::vector<MatrixHeader>
 {
-    std::vector<PayloadInfo> result;
+    std::vector<MatrixHeader> result;
     result.reserve(payloads_.size());
     for (const auto& entry : payloads_)
     {
-        result.push_back(entry.info);
+        result.push_back(entry.header);
     }
-    std::ranges::sort(result, {}, &PayloadInfo::identifier);
+    std::ranges::sort(result, {}, &MatrixHeader::identifier);
     return result;
 }
 
 auto BinaryReader::find_entry(std::string_view identifier) const
-    -> const detail::PayloadEntry&
+    -> const detail::MatrixEntry&
 {
     const auto iterator = index_.find(identifier);
     if (iterator == index_.end())
@@ -291,7 +291,7 @@ auto BinaryReader::find_entry(std::string_view identifier) const
     return payloads_[iterator->second];
 }
 
-auto BinaryReader::payload_bytes(const detail::PayloadEntry& entry) const
+auto BinaryReader::payload_bytes(const detail::MatrixEntry& entry) const
     -> std::span<const std::byte>
 {
     const std::span<const std::byte> file{mmap_.data(), mmap_.size()};

@@ -36,10 +36,10 @@ class BinaryReader
 
     [[nodiscard]] auto contains(std::string_view identifier) const -> bool;
     [[nodiscard]] auto info(std::string_view identifier) const& -> const
-        PayloadInfo&;
+        MatrixHeader&;
     [[nodiscard]] auto info(std::string_view identifier) const&& -> const
-        PayloadInfo& = delete;
-    [[nodiscard]] auto payloads() const -> std::vector<PayloadInfo>;
+        MatrixHeader& = delete;
+    [[nodiscard]] auto payloads() const -> std::vector<MatrixHeader>;
 
     template <detail::SupportedDtype T>
     [[nodiscard]] auto to_map(std::string_view identifier)
@@ -60,9 +60,9 @@ class BinaryReader
     auto parse_footer_and_directory() -> void;
 
     [[nodiscard]] auto find_entry(std::string_view identifier) const
-        -> const detail::PayloadEntry&;
+        -> const detail::MatrixEntry&;
 
-    [[nodiscard]] auto payload_bytes(const detail::PayloadEntry& entry) const
+    [[nodiscard]] auto payload_bytes(const detail::MatrixEntry& entry) const
         -> std::span<const std::byte>;
 
     auto validate_payload_ranges(
@@ -71,7 +71,7 @@ class BinaryReader
 
     std::filesystem::path path_;
     MappedFile mmap_;
-    std::vector<detail::PayloadEntry> payloads_;
+    std::vector<detail::MatrixEntry> payloads_;
     std::unordered_map<std::string_view, std::size_t> index_;
 };
 
@@ -80,8 +80,8 @@ auto BinaryReader::to_map(std::string_view identifier)
     const& -> Eigen::Map<const Eigen::MatrixX<T>, Eigen::Aligned64>
 {
     const auto& entry = find_entry(identifier);
-    const auto& descriptor = entry.info.descriptor;
-    if (descriptor.type != detail::binary_type_for<T>)
+    const auto& header = entry.header;
+    if (header.type != detail::binary_type_for<T>)
     {
         throw GelexException(
             fmt::format(
@@ -89,11 +89,11 @@ auto BinaryReader::to_map(std::string_view identifier)
                 "requested={}",
                 path_.string(),
                 identifier,
-                std::to_underlying(descriptor.type),
+                std::to_underlying(header.type),
                 std::to_underlying(detail::binary_type_for<T>)));
     }
-    if (!std::in_range<Eigen::Index>(descriptor.shape[0])
-        || !std::in_range<Eigen::Index>(descriptor.shape[1]))
+    if (!std::in_range<Eigen::Index>(header.shape[0])
+        || !std::in_range<Eigen::Index>(header.shape[1]))
     {
         throw GelexException(
             fmt::format(
@@ -106,8 +106,8 @@ auto BinaryReader::to_map(std::string_view identifier)
     const auto* data = reinterpret_cast<const T*>(bytes.data());
     return Eigen::Map<const Eigen::MatrixX<T>, Eigen::Aligned64>(
         data,
-        static_cast<Eigen::Index>(descriptor.shape[0]),
-        static_cast<Eigen::Index>(descriptor.shape[1]));
+        static_cast<Eigen::Index>(header.shape[0]),
+        static_cast<Eigen::Index>(header.shape[1]));
 }
 
 template <detail::SupportedDtype T>

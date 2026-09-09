@@ -22,7 +22,7 @@
 #include "gelex/bayes/variance/budget.h"
 #include "gelex/genetic_mode.h"
 #include "gelex/io/binary_reader.h"
-#include "gelex/io/binary_writer.h"
+#include "gelex/io/dense_writer.h"
 
 #include "bayes/bayes_model_fixture.h"
 #include "file_fixture.h"
@@ -47,7 +47,7 @@ auto check_mode_draws(const Spec& spec) -> void
     const gelex::GeneticDimensions dimensions{.individual = 3, .marker = 2};
     auto state = gelex::make_state(prior, dimensions);
     {
-        gelex::BinaryWriter writer{path};
+        gelex::DenseWriter writer{path};
         auto draws = gelex::make_draws(
             state, writer, gelex::genetic_id<gelex::GeneticMode::A>, 2);
         if constexpr (requires { state.probability(); })
@@ -187,7 +187,7 @@ TEST_CASE(
         dominance.transition(0, 1.5);
         dominance.annotation_coefficients() = Eigen::Vector2d{{0.25, -0.5}};
         {
-            gelex::BinaryWriter writer{path};
+            gelex::DenseWriter writer{path};
             auto mode_draws = gelex::make_draws(
                 dominance, writer, gelex::genetic_id<gelex::GeneticMode::D>, 1);
             auto joint_draws

@@ -22,7 +22,7 @@
 #include "gelex/bayes/variance/calibration.h"
 #include "gelex/exception.h"
 #include "gelex/genetic_mode.h"
-#include "gelex/io/binary_writer.h"
+#include "gelex/io/dense_writer.h"
 
 namespace gelex
 {
@@ -98,7 +98,7 @@ using genetic_state_t = decltype(make_state(
 template <GeneticModeSet Modes, typename... States>
 [[nodiscard]] auto make_draws(
     const ModeValues<Modes, States...>& state,
-    BinaryWriter& writer,
+    DenseWriter& writer,
     std::uint64_t draw_count)
 {
     return transform_mode_values(
@@ -112,7 +112,7 @@ template <GeneticModeSet Modes, typename... States>
 template <typename ModeValuesType, typename JointState>
 [[nodiscard]] auto make_draws(
     const JointModeValues<ModeValuesType, JointState>& state,
-    BinaryWriter& writer,
+    DenseWriter& writer,
     std::uint64_t draw_count)
 {
     auto mode_draws = make_draws(state.mode_values(), writer, draw_count);
@@ -124,7 +124,7 @@ template <typename ModeValuesType, typename JointState>
 template <typename State>
 using genetic_draws_t = decltype(make_draws(
     std::declval<const State&>(),
-    std::declval<BinaryWriter&>(),
+    std::declval<DenseWriter&>(),
     std::declval<std::uint64_t>()));
 
 }  // namespace gelex

@@ -14,7 +14,7 @@
 #include <utility>
 
 #include "gelex/io/binary_format.h"
-#include "gelex/io/binary_writer.h"
+#include "gelex/io/dense_writer.h"
 #include "gelex/io/detail/binary_wire.h"
 
 #include "file_fixture.h"
@@ -53,8 +53,9 @@ TEST_CASE("GELEXBF2 has a stable wire layout", "[io][binary_format]")
     test::FileFixture fixture;
     const auto container_path = fixture.get_test_dir() / "layout.samples";
     {
-        gelex::BinaryWriter writer(container_path.string());
-        writer.reserve<double>("x", gelex::BinaryShape{1, 1}).append(1.0);
+        auto writer = gelex::open_dense_writer(container_path.string());
+        writer.reserve<double>("x", gelex::BinaryShape{1, 1}) << 1.0;
+        writer.close();
     }
 
     constexpr auto directory_offset = gelex::detail::payload_alignment;
@@ -94,12 +95,10 @@ TEST_CASE("GELEXBF2 dtype codes are stable", "[io][binary_format]")
 {
     STATIC_REQUIRE(std::to_underlying(gelex::BinaryType::float64) == 1);
     STATIC_REQUIRE(std::to_underlying(gelex::BinaryType::float32) == 2);
-    STATIC_REQUIRE(std::to_underlying(gelex::BinaryType::int32) == 3);
     STATIC_REQUIRE(std::to_underlying(gelex::BinaryType::uint8) == 4);
 
     REQUIRE(gelex::detail::binary_type_size(gelex::BinaryType::float64) == 8);
     REQUIRE(gelex::detail::binary_type_size(gelex::BinaryType::float32) == 4);
-    REQUIRE(gelex::detail::binary_type_size(gelex::BinaryType::int32) == 4);
     REQUIRE(gelex::detail::binary_type_size(gelex::BinaryType::uint8) == 1);
 }
 
@@ -109,9 +108,10 @@ TEST_CASE("GELEXBF2 stores variable-length identifiers", "[io][binary_format]")
     const auto container_path = fixture.get_test_dir() / "identifier.samples";
     const std::string identifier(300, 'a');
     {
-        gelex::BinaryWriter writer(container_path.string());
+        auto writer = gelex::open_dense_writer(container_path.string());
         writer.reserve<std::uint8_t>(identifier, gelex::BinaryShape{1, 1})
-            .append(std::uint8_t{7});
+            << std::uint8_t{7};
+        writer.close();
     }
 
     std::ifstream input(container_path, std::ios::binary);

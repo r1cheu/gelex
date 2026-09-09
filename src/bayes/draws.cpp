@@ -10,14 +10,14 @@
 #include "gelex/bayes/model.h"
 #include "gelex/bayes/random_design.h"
 #include "gelex/io/binary_format.h"
-#include "gelex/io/binary_writer.h"
+#include "gelex/io/dense_writer.h"
 
 namespace gelex::detail
 {
 
 auto make_random_draws(
     const BayesModel& model,
-    BinaryWriter& writer,
+    DenseWriter& writer,
     std::uint64_t draw_count) -> std::vector<RandomEffectDraws>
 {
     const auto designs = model.random();
