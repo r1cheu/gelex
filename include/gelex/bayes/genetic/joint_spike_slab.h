@@ -25,6 +25,7 @@
 #include "gelex/bayes/variance/calibration.h"
 #include "gelex/genetic_mode.h"
 #include "gelex/io/binary_format.h"
+#include "gelex/io/csc_writer.h"
 #include "gelex/io/dense_writer.h"
 #include "gelex/namespace.h"
 
@@ -214,12 +215,15 @@ auto make_state(
     return {prior.probabilities.initial, dimensions};
 }
 
+template <CoefficientLayout Layout>
 class HalfNormalDraws
 {
    public:
+    using coefficients_writer_type = coefficients_writer_t<Layout>;
+
     explicit HalfNormalDraws(
         DenseStream<double> variance,
-        DenseStream<float> coefficients,
+        coefficients_writer_type coefficients,
         DenseStream<float> annotation_coefficients)
         : variance_{std::move(variance)},
           coefficients_{std::move(coefficients)},
@@ -227,18 +231,23 @@ class HalfNormalDraws
     {
     }
 
-    auto append(const HalfNormalState& state) -> void
+    auto operator<<(const HalfNormalState& state) -> HalfNormalDraws&
     {
         variance_ << state.variance();
-        coefficients_ << state.coefficients().cast<float>().eval();
+        scratch_ = state.coefficients().cast<float>();
+        coefficients_ << scratch_;
+        // Fixed-size: the conversion stays on the stack.
         annotation_coefficients_
-            << state.annotation_coefficients().cast<float>().eval();
+            << Eigen::Vector2f{state.annotation_coefficients().cast<float>()};
+        return *this;
     }
 
    private:
     DenseStream<double> variance_;
-    DenseStream<float> coefficients_;
+    coefficients_writer_type coefficients_;
     DenseStream<float> annotation_coefficients_;
+    // Marker-length float conversion buffer, reused across draws.
+    Eigen::VectorXf scratch_;
 };
 
 template <MixtureWeightUpdate WeightUpdate>
@@ -248,47 +257,51 @@ class JointSpikeSlabDraws
     using probability_writer_type = probability_writer_t<WeightUpdate>;
 
     explicit JointSpikeSlabDraws(
-        DenseStream<std::uint8_t> assignments,
+        assignment_writer_t assignments,
         probability_writer_type probabilities)
         : assignments_{std::move(assignments)},
           probabilities_{std::move(probabilities)}
     {
     }
 
-    auto append(const JointSpikeSlabState<WeightUpdate>& state) -> void
+    auto operator<<(const JointSpikeSlabState<WeightUpdate>& state)
+        -> JointSpikeSlabDraws&
     {
         assignments_ << state.assignments();
         if constexpr (WeightUpdate == MixtureWeightUpdate::Enabled)
         {
             probabilities_ << state.probabilities();
         }
+        return *this;
     }
 
    private:
-    DenseStream<std::uint8_t> assignments_;
+    assignment_writer_t assignments_;
     [[no_unique_address]] probability_writer_type probabilities_;
 };
 
-[[nodiscard]] inline auto make_draws(
+template <CoefficientLayout Layout = CoefficientLayout::Dense>
+[[nodiscard]] auto make_draws(
     const HalfNormalState& state,
-    DenseWriter& writer,
+    DrawWriters writers,
     std::string_view prefix,
-    std::size_t draw_count) -> HalfNormalDraws
+    std::size_t draw_count) -> HalfNormalDraws<Layout>
 {
     const auto marker_count
         = static_cast<std::size_t>(state.coefficients().size());
-    auto variance = writer.reserve<double>(
+    auto variance = writers.dense.reserve<double>(
         fmt::format("{}/{}", prefix, variance_id), BinaryShape{1, draw_count});
-    auto coefficients = writer.reserve<float>(
+    auto coefficients = reserve_coefficients<Layout>(
+        writers,
         fmt::format("{}/{}", prefix, coefficients_id),
         BinaryShape{marker_count, draw_count});
-    auto annotation_coefficients = writer.reserve<float>(
+    auto annotation_coefficients = writers.dense.reserve<float>(
         fmt::format("{}/{}", prefix, annotation_coefficients_id),
         BinaryShape{
             static_cast<std::size_t>(state.annotation_coefficients().size()),
             draw_count});
 
-    return HalfNormalDraws{
+    return HalfNormalDraws<Layout>{
         std::move(variance),
         std::move(coefficients),
         std::move(annotation_coefficients)};
@@ -297,20 +310,20 @@ class JointSpikeSlabDraws
 template <MixtureWeightUpdate WeightUpdate>
 [[nodiscard]] auto make_draws(
     const JointSpikeSlabState<WeightUpdate>& state,
-    DenseWriter& writer,
+    DrawWriters writers,
     std::string_view prefix,
     std::size_t draw_count) -> JointSpikeSlabDraws<WeightUpdate>
 {
     const auto marker_count
         = static_cast<std::size_t>(state.assignments().size());
-    auto assignments = writer.reserve<std::uint8_t>(
+    auto assignments = writers.sparse.reserve<std::uint8_t>(
         fmt::format("{}/{}", prefix, assignment_id),
         BinaryShape{marker_count, draw_count});
     auto probabilities = [&]() -> probability_writer_t<WeightUpdate>
     {
         if constexpr (WeightUpdate == MixtureWeightUpdate::Enabled)
         {
-            return writer.reserve<double>(
+            return writers.dense.reserve<double>(
                 fmt::format("{}/{}", prefix, probabilities_id),
                 BinaryShape{
                     JointSpikeSlabState<WeightUpdate>::class_count,

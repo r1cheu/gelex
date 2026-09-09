@@ -11,6 +11,7 @@
 #include <cstdint>
 #include <utility>
 
+#include "gelex/bayes/genetic/draw_traits.h"
 #include "gelex/bayes/genetic/gaussian.h"
 #include "gelex/bayes/genetic/joint_spike_slab.h"
 #include "gelex/bayes/genetic/scaled_mixture.h"
@@ -22,7 +23,6 @@
 #include "gelex/bayes/variance/calibration.h"
 #include "gelex/exception.h"
 #include "gelex/genetic_mode.h"
-#include "gelex/io/dense_writer.h"
 
 namespace gelex
 {
@@ -98,33 +98,41 @@ using genetic_state_t = decltype(make_state(
 template <GeneticModeSet Modes, typename... States>
 [[nodiscard]] auto make_draws(
     const ModeValues<Modes, States...>& state,
-    DenseWriter& writer,
+    DrawWriters writers,
     std::uint64_t draw_count)
 {
     return transform_mode_values(
         state,
         [&]<GeneticMode Mode>(const auto& mode_state)
         {
-            return make_draws(mode_state, writer, genetic_id<Mode>, draw_count);
+            return make_draws(
+                mode_state, writers, genetic_id<Mode>, draw_count);
         });
 }
 
+// The joint assignment zeroes inactive mode coefficients, so they are sparse.
 template <typename ModeValuesType, typename JointState>
 [[nodiscard]] auto make_draws(
     const JointModeValues<ModeValuesType, JointState>& state,
-    DenseWriter& writer,
+    DrawWriters writers,
     std::uint64_t draw_count)
 {
-    auto mode_draws = make_draws(state.mode_values(), writer, draw_count);
+    auto mode_draws = transform_mode_values(
+        state.mode_values(),
+        [&]<GeneticMode Mode>(const auto& mode_state)
+        {
+            return make_draws<CoefficientLayout::Sparse>(
+                mode_state, writers, genetic_id<Mode>, draw_count);
+        });
     auto joint_draws
-        = make_draws(state.joint(), writer, joint_genetic_id, draw_count);
+        = make_draws(state.joint(), writers, joint_genetic_id, draw_count);
     return JointModeValues{std::move(mode_draws), std::move(joint_draws)};
 }
 
 template <typename State>
 using genetic_draws_t = decltype(make_draws(
     std::declval<const State&>(),
-    std::declval<DenseWriter&>(),
+    std::declval<DrawWriters>(),
     std::declval<std::uint64_t>()));
 
 }  // namespace gelex
