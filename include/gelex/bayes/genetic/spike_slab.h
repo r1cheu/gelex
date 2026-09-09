@@ -26,7 +26,7 @@
 #include "gelex/exception.h"
 #include "gelex/genetic_mode.h"
 #include "gelex/io/binary_format.h"
-#include "gelex/io/binary_writer.h"
+#include "gelex/io/dense_writer.h"
 #include "gelex/namespace.h"
 
 GELEX_NAMESPACE_BEGIN(gelex)
@@ -159,8 +159,8 @@ class SpikeSlabDraws
 
     explicit SpikeSlabDraws(
         variance_writer_type variances,
-        PayloadWriter<float> coefficients,
-        PayloadWriter<std::uint8_t> assignments,
+        DenseStream<float> coefficients,
+        DenseStream<std::uint8_t> assignments,
         probability_writer_type probability)
         : variances_{std::move(variances)},
           coefficients_{std::move(coefficients)},
@@ -173,32 +173,31 @@ class SpikeSlabDraws
     {
         if constexpr (Kind == VarianceLayout::Pooled)
         {
-            variances_.append(state.variance());
+            variances_ << state.variance();
         }
         else
         {
-            variances_.append(state.variance().template cast<float>().eval());
+            variances_ << state.variance().template cast<float>().eval();
         }
-        coefficients_.append(
-            state.coefficients().template cast<float>().eval());
-        assignments_.append(state.assignments());
+        coefficients_ << state.coefficients().template cast<float>().eval();
+        assignments_ << state.assignments();
         if constexpr (WeightUpdate == MixtureWeightUpdate::Enabled)
         {
-            probability_.append(state.probability());
+            probability_ << state.probability();
         }
     }
 
    private:
     variance_writer_type variances_;
-    PayloadWriter<float> coefficients_;
-    PayloadWriter<std::uint8_t> assignments_;
+    DenseStream<float> coefficients_;
+    DenseStream<std::uint8_t> assignments_;
     [[no_unique_address]] probability_writer_type probability_;
 };
 
 template <VarianceLayout Kind, MixtureWeightUpdate WeightUpdate>
 [[nodiscard]] auto make_draws(
     const SpikeSlabState<Kind, WeightUpdate>& state,
-    BinaryWriter& writer,
+    DenseWriter& writer,
     std::string_view prefix,
     std::size_t draw_count) -> SpikeSlabDraws<Kind, WeightUpdate>
 {

@@ -27,7 +27,6 @@ LAYOUT = [
 NUMPY_DTYPE = {
     gelex.BinaryType.float64: np.float64,
     gelex.BinaryType.float32: np.float32,
-    gelex.BinaryType.int32: np.int32,
     gelex.BinaryType.uint8: np.uint8,
 }
 
@@ -41,7 +40,7 @@ def expected(rows: int, dtype) -> np.ndarray:
 @pytest.fixture
 def draws_path(tmp_path: Path) -> Path:
     path = tmp_path / "fixture.draws"
-    with gelex.BinaryWriter(str(path)) as writer:
+    with gelex.DenseWriter(str(path)) as writer:
         payloads = [
             (
                 writer.reserve(name, dtype, (rows, DRAWS)),
@@ -57,13 +56,12 @@ def draws_path(tmp_path: Path) -> Path:
 
 def test_writer_round_trips_through_reader(tmp_path: Path):
     path = tmp_path / "roundtrip.draws"
-    writer = gelex.BinaryWriter(str(path))
-    appended = writer.reserve("appended", gelex.BinaryType.int32, (2, 3))
+    writer = gelex.DenseWriter(str(path))
+    appended = writer.reserve("appended", gelex.BinaryType.float32, (2, 3))
     whole = writer.reserve("whole", gelex.BinaryType.float64, (2, 3))
     assert appended.identifier == "appended"
-    assert appended.rows == 2
 
-    for column in np.array([[1, 2], [3, 4], [5, 6]], dtype=np.int32):
+    for column in np.array([[1, 2], [3, 4], [5, 6]], dtype=np.float32):
         appended.append(column)
     matrix = np.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])
     with pytest.raises(TypeError):
@@ -75,19 +73,19 @@ def test_writer_round_trips_through_reader(tmp_path: Path):
 
     reader = gelex.BinaryReader(str(path))
     np.testing.assert_array_equal(
-        reader["appended"], np.array([[1, 3, 5], [2, 4, 6]], dtype=np.int32)
+        reader["appended"], np.array([[1, 3, 5], [2, 4, 6]], dtype=np.float32)
     )
     np.testing.assert_array_equal(reader["whole"], matrix)
 
 
 def test_writer_validates_columns(tmp_path: Path):
-    writer = gelex.BinaryWriter(str(tmp_path / "invalid.draws"))
+    writer = gelex.DenseWriter(str(tmp_path / "invalid.draws"))
     payload = writer.reserve("p", gelex.BinaryType.float64, (2, 1))
 
-    assert isinstance(payload, gelex.PayloadWriterF64)
+    assert isinstance(payload, gelex.DenseStreamF64)
     with pytest.raises(TypeError):
         payload.append(np.zeros(2, dtype=np.float32))
-    with pytest.raises(Exception, match="one value per payload row"):
+    with pytest.raises(Exception, match="expected 2 column values"):
         payload.append(np.zeros(3))
     with pytest.raises(Exception, match="duplicate|already"):
         writer.reserve("p", gelex.BinaryType.float64, (1, 1))

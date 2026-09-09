@@ -8,12 +8,11 @@
 #include <cstdint>
 #include <filesystem>
 #include <fmt/format.h>
-#include <span>
 
 #include "gelex/exception.h"
 #include "gelex/genetic_mode.h"
 #include "gelex/io/binary_reader.h"
-#include "gelex/io/binary_writer.h"
+#include "gelex/io/dense_writer.h"
 
 namespace gelex
 {
@@ -45,19 +44,17 @@ auto write_snp_luts(
     const std::filesystem::path& path,
     const ModeMap<SnpLutMatrix>& luts) -> void
 {
-    BinaryWriter writer(path.string());
+    auto writer = open_dense_writer(path.string());
     for (const auto& [mode, lut] : luts)
     {
-        writer
-            .reserve<double>(
-                fmt::format("{}/lut", mode),
-                BinaryShape{
-                    static_cast<std::uint64_t>(lut.rows()),
-                    static_cast<std::uint64_t>(lut.cols())})
-            .write(
-                std::span<const double>{
-                    lut.data(), static_cast<std::size_t>(lut.size())});
+        writer.reserve<double>(
+            fmt::format("{}/lut", mode),
+            BinaryShape{
+                static_cast<std::uint64_t>(lut.rows()),
+                static_cast<std::uint64_t>(lut.cols())})
+            << lut.reshaped();
     }
+    writer.close();
 }
 
 }  // namespace gelex
