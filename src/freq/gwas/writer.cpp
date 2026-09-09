@@ -32,9 +32,7 @@ GwasWriter::GwasWriter(
       pos_(bim["BP"].as<std::int32_t>()),
       a1_(bim["A1"].as<std::string>()),
       a2_(bim["A2"].as<std::string>()),
-      ofs_(
-          std::string(out_prefix) + ".gwas.tsv",
-          std::ios::out | std::ios::binary)
+      ofs_(std::string(out_prefix) + ".gwas.tsv")
 {
     line_buffer_.reserve(buffer_flush_threshold);
 

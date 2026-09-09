@@ -37,7 +37,7 @@ auto write_integer(detail::AtomicOutputStream& file, T value) -> void
 }  // namespace
 
 BinaryWriter::BinaryWriter(std::string_view output_path)
-    : file_(std::string(output_path), std::ios::binary | std::ios::trunc)
+    : file_(std::string(output_path))
 {
 }
 

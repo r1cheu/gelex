@@ -28,9 +28,7 @@ auto tmp_path_for(const std::filesystem::path& final_path)
 
 }  // namespace
 
-AtomicOutputStream::AtomicOutputStream(
-    std::filesystem::path path,
-    std::ios::openmode mode)
+AtomicOutputStream::AtomicOutputStream(std::filesystem::path path)
     : path_(std::move(path)), tmp_path_(tmp_path_for(path_))
 {
     if (std::filesystem::is_directory(path_))
@@ -40,34 +38,20 @@ AtomicOutputStream::AtomicOutputStream(
                 "{}: is a directory, not a regular file", path_.string()));
     }
 
-    file_.open(tmp_path_, mode | std::ios::out);
+    file_.open(
+        tmp_path_, std::ios::out | std::ios::binary | std::ios::noreplace);
+
     if (!file_.is_open())
     {
         throw GelexException(
-            fmt::format("{}: failed to open file", tmp_path_.string()));
+            fmt::format(
+                "{}: failed to create temporary file", tmp_path_.string()));
     }
 }
 
 AtomicOutputStream::~AtomicOutputStream() noexcept
 {
-    if (committed_)
-    {
-        return;
-    }
-
-    try
-    {
-        if (file_.is_open())
-        {
-            file_.close();
-        }
-    }
-    catch (...)  // NOLINT(bugprone-empty-catch): dtor must be noexcept
-    {
-    }
-
-    std::error_code ec;
-    std::filesystem::remove(tmp_path_, ec);
+    discard();
 }
 
 auto AtomicOutputStream::write(const char* data, std::streamsize size) -> void
@@ -75,6 +59,7 @@ auto AtomicOutputStream::write(const char* data, std::streamsize size) -> void
     file_.write(data, size);
     if (!file_)
     {
+        discard();
         throw GelexException(
             fmt::format("{}: failed to write", path_.string()));
     }
@@ -90,36 +75,48 @@ auto AtomicOutputStream::seek(std::streamoff offset) -> void
     file_.seekp(offset);
     if (!file_)
     {
+        discard();
         throw GelexException(fmt::format("{}: failed to seek", path_.string()));
     }
 }
 
 auto AtomicOutputStream::commit() -> void
 {
-    if (committed_)
+    if (!file_.is_open())
     {
-        return;
+        throw GelexException(
+            fmt::format("{}: file is not open", path_.string()));
     }
-
+    std::error_code ec;
     file_.close();
     if (!file_)
     {
+        std::filesystem::remove(tmp_path_, ec);
         throw GelexException(
-            fmt::format("{}: failed to close file", tmp_path_.string()));
+            fmt::format("{}: failed to close file", path_.string()));
     }
-
-    std::error_code ec;
     std::filesystem::rename(tmp_path_, path_, ec);
     if (ec)
     {
+        const auto reason = ec.message();
+        std::filesystem::remove(tmp_path_, ec);
         throw GelexException(
             fmt::format(
-                "{}: failed to rename from \"{}\": {}",
+                "{}: failed to rename temporary file: {}",
                 path_.string(),
-                tmp_path_.string(),
-                ec.message()));
+                reason));
     }
-    committed_ = true;
+}
+
+auto AtomicOutputStream::discard() noexcept -> void
+{
+    if (!file_.is_open())
+    {
+        return;
+    }
+    file_.close();
+    std::error_code ec;
+    std::filesystem::remove(tmp_path_, ec);
 }
 
 }  // namespace gelex::detail
