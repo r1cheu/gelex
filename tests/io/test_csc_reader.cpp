@@ -154,7 +154,8 @@ TEST_CASE("CscReader reads empty and degenerate matrices", "[io][csc_reader]")
         auto no_rows = writer.reserve<double>("no_rows", {0, 2});
         no_rows << Eigen::VectorXd{} << Eigen::VectorXd{};
         auto zeros = writer.reserve<double>("zeros", {2, 2});
-        zeros << Eigen::VectorXd::Zero(2) << Eigen::VectorXd::Zero(2);
+        const Eigen::VectorXd zero_column = Eigen::VectorXd::Zero(2);
+        zeros << zero_column << zero_column;
         writer.close();
     }
     const gelex::CscReader reader(path.string());

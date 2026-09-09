@@ -19,6 +19,7 @@
 #include "gelex/bayes/spec.h"
 #include "gelex/bayes/variance/calibration.h"
 #include "gelex/genetic_mode.h"
+#include "gelex/io/binary_format.h"
 #include "gelex/io/dense_writer.h"
 #include "gelex/namespace.h"
 
@@ -79,57 +80,67 @@ auto make_state(const GaussianPrior<Kind>& prior, GeneticDimensions dimensions)
         dimensions};
 }
 
-template <VarianceLayout Kind>
+template <VarianceLayout Kind, CoefficientLayout Layout>
 class GaussianDraws
 {
    public:
     using variance_writer_type = marker_variance_writer_t<Kind>;
+    using coefficients_writer_type = coefficients_writer_t<Layout>;
 
     explicit GaussianDraws(
         variance_writer_type variances,
-        DenseStream<float> coefficients)
+        coefficients_writer_type coefficients)
         : variances_{std::move(variances)},
           coefficients_(std::move(coefficients))
     {
     }
-    auto append(const GaussianState<Kind>& state) -> void
+    auto operator<<(const GaussianState<Kind>& state) -> GaussianDraws&
     {
-        coefficients_ << state.coefficients().template cast<float>().eval();
+        scratch_ = state.coefficients().template cast<float>();
+        coefficients_ << scratch_;
         if constexpr (Kind == VarianceLayout::Pooled)
         {
             variances_ << state.variance();
         }
         else
         {
-            variances_ << state.variance().template cast<float>().eval();
+            scratch_ = state.variance().template cast<float>();
+            variances_ << scratch_;
         }
+        return *this;
     }
 
    private:
     variance_writer_type variances_{};
-    DenseStream<float> coefficients_;
+    coefficients_writer_type coefficients_;
+    // Marker-length float conversion buffer, reused across draws.
+    Eigen::VectorXf scratch_;
 };
 
-template <VarianceLayout Kind>
+template <
+    CoefficientLayout Layout = CoefficientLayout::Dense,
+    VarianceLayout Kind>
 [[nodiscard]] auto make_draws(
     const GaussianState<Kind>& state,
-    DenseWriter& writer,
+    DrawWriters writers,
     std::string_view prefix,
-    std::size_t draw_count) -> GaussianDraws<Kind>
+    std::size_t draw_count) -> GaussianDraws<Kind, Layout>
 {
     const auto marker_count
         = static_cast<std::size_t>(state.coefficients().size());
     const std::size_t variance_size
         = (Kind == VarianceLayout::Pooled) ? 1 : marker_count;
 
-    auto variances = writer.reserve<marker_variance_dtype_t<Kind>>(
+    auto variances = writers.dense.reserve<marker_variance_dtype_t<Kind>>(
         fmt::format("{}/{}", prefix, variance_id),
         BinaryShape{variance_size, draw_count});
-    auto coefficients = writer.reserve<float>(
+    auto coefficients = reserve_coefficients<Layout>(
+        writers,
         fmt::format("{}/{}", prefix, coefficients_id),
         BinaryShape{marker_count, draw_count});
 
-    return GaussianDraws<Kind>{std::move(variances), std::move(coefficients)};
+    return GaussianDraws<Kind, Layout>{
+        std::move(variances), std::move(coefficients)};
 }
 GELEX_NAMESPACE_END(gelex)
 

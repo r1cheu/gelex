@@ -26,6 +26,7 @@
 #include "gelex/exception.h"
 #include "gelex/genetic_mode.h"
 #include "gelex/io/binary_format.h"
+#include "gelex/io/csc_writer.h"
 #include "gelex/io/dense_writer.h"
 #include "gelex/namespace.h"
 
@@ -159,8 +160,8 @@ class SpikeSlabDraws
 
     explicit SpikeSlabDraws(
         variance_writer_type variances,
-        DenseStream<float> coefficients,
-        DenseStream<std::uint8_t> assignments,
+        CscStream<float> coefficients,
+        assignment_writer_t assignments,
         probability_writer_type probability)
         : variances_{std::move(variances)},
           coefficients_{std::move(coefficients)},
@@ -169,7 +170,8 @@ class SpikeSlabDraws
     {
     }
 
-    auto append(const SpikeSlabState<Kind, WeightUpdate>& state) -> void
+    auto operator<<(const SpikeSlabState<Kind, WeightUpdate>& state)
+        -> SpikeSlabDraws&
     {
         if constexpr (Kind == VarianceLayout::Pooled)
         {
@@ -177,27 +179,32 @@ class SpikeSlabDraws
         }
         else
         {
-            variances_ << state.variance().template cast<float>().eval();
+            scratch_ = state.variance().template cast<float>();
+            variances_ << scratch_;
         }
-        coefficients_ << state.coefficients().template cast<float>().eval();
+        scratch_ = state.coefficients().template cast<float>();
+        coefficients_ << scratch_;
         assignments_ << state.assignments();
         if constexpr (WeightUpdate == MixtureWeightUpdate::Enabled)
         {
             probability_ << state.probability();
         }
+        return *this;
     }
 
    private:
     variance_writer_type variances_;
-    DenseStream<float> coefficients_;
-    DenseStream<std::uint8_t> assignments_;
+    CscStream<float> coefficients_;
+    assignment_writer_t assignments_;
     [[no_unique_address]] probability_writer_type probability_;
+    // Marker-length float conversion buffer, reused across draws.
+    Eigen::VectorXf scratch_;
 };
 
 template <VarianceLayout Kind, MixtureWeightUpdate WeightUpdate>
 [[nodiscard]] auto make_draws(
     const SpikeSlabState<Kind, WeightUpdate>& state,
-    DenseWriter& writer,
+    DrawWriters writers,
     std::string_view prefix,
     std::size_t draw_count) -> SpikeSlabDraws<Kind, WeightUpdate>
 {
@@ -206,20 +213,20 @@ template <VarianceLayout Kind, MixtureWeightUpdate WeightUpdate>
     const std::size_t variance_size
         = (Kind == VarianceLayout::Pooled) ? 1 : marker_count;
 
-    auto variances = writer.reserve<marker_variance_dtype_t<Kind>>(
+    auto variances = writers.dense.reserve<marker_variance_dtype_t<Kind>>(
         fmt::format("{}/{}", prefix, variance_id),
         BinaryShape{variance_size, draw_count});
-    auto coefficients = writer.reserve<float>(
+    auto coefficients = writers.sparse.reserve<float>(
         fmt::format("{}/{}", prefix, coefficients_id),
         BinaryShape{marker_count, draw_count});
-    auto assignments = writer.reserve<std::uint8_t>(
+    auto assignments = writers.sparse.reserve<std::uint8_t>(
         fmt::format("{}/{}", prefix, assignment_id),
         BinaryShape{marker_count, draw_count});
     auto probability = [&]() -> probability_writer_t<WeightUpdate>
     {
         if constexpr (WeightUpdate == MixtureWeightUpdate::Enabled)
         {
-            return writer.reserve<double>(
+            return writers.dense.reserve<double>(
                 fmt::format("{}/{}", prefix, probability_id),
                 BinaryShape{1, draw_count});
         }
