@@ -25,6 +25,7 @@
 #include "gelex/bayes/variance/calibration.h"
 #include "gelex/genetic_mode.h"
 #include "gelex/io/binary_format.h"
+#include "gelex/io/csc_writer.h"
 #include "gelex/io/dense_writer.h"
 #include "gelex/namespace.h"
 
@@ -163,8 +164,8 @@ class ScaledMixtureDraws
 
     explicit ScaledMixtureDraws(
         DenseStream<double> variance,
-        DenseStream<float> coefficients,
-        DenseStream<std::uint8_t> assignments,
+        CscStream<float> coefficients,
+        assignment_writer_t assignments,
         probability_writer_type probabilities)
         : variance_{std::move(variance)},
           coefficients_{std::move(coefficients)},
@@ -173,46 +174,51 @@ class ScaledMixtureDraws
     {
     }
 
-    auto append(const ScaledMixtureState<WeightUpdate>& state) -> void
+    auto operator<<(const ScaledMixtureState<WeightUpdate>& state)
+        -> ScaledMixtureDraws&
     {
         variance_ << state.variance();
-        coefficients_ << state.coefficients().template cast<float>().eval();
+        scratch_ = state.coefficients().template cast<float>();
+        coefficients_ << scratch_;
         assignments_ << state.assignments();
         if constexpr (WeightUpdate == MixtureWeightUpdate::Enabled)
         {
             probabilities_ << state.probabilities();
         }
+        return *this;
     }
 
    private:
     DenseStream<double> variance_;
-    DenseStream<float> coefficients_;
-    DenseStream<std::uint8_t> assignments_;
+    CscStream<float> coefficients_;
+    assignment_writer_t assignments_;
     [[no_unique_address]] probability_writer_type probabilities_;
+    // Marker-length float conversion buffer, reused across draws.
+    Eigen::VectorXf scratch_;
 };
 
 template <MixtureWeightUpdate WeightUpdate>
 [[nodiscard]] auto make_draws(
     const ScaledMixtureState<WeightUpdate>& state,
-    DenseWriter& writer,
+    DrawWriters writers,
     std::string_view prefix,
     std::size_t draw_count) -> ScaledMixtureDraws<WeightUpdate>
 {
     const auto marker_count
         = static_cast<std::size_t>(state.coefficients().size());
-    auto variance = writer.reserve<double>(
+    auto variance = writers.dense.reserve<double>(
         fmt::format("{}/{}", prefix, variance_id), BinaryShape{1, draw_count});
-    auto coefficients = writer.reserve<float>(
+    auto coefficients = writers.sparse.reserve<float>(
         fmt::format("{}/{}", prefix, coefficients_id),
         BinaryShape{marker_count, draw_count});
-    auto assignments = writer.reserve<std::uint8_t>(
+    auto assignments = writers.sparse.reserve<std::uint8_t>(
         fmt::format("{}/{}", prefix, assignment_id),
         BinaryShape{marker_count, draw_count});
     auto probabilities = [&]() -> probability_writer_t<WeightUpdate>
     {
         if constexpr (WeightUpdate == MixtureWeightUpdate::Enabled)
         {
-            return writer.reserve<double>(
+            return writers.dense.reserve<double>(
                 fmt::format("{}/{}", prefix, probabilities_id),
                 BinaryShape{
                     ScaledMixtureState<WeightUpdate>::class_count, draw_count});

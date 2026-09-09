@@ -6,6 +6,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <cstdint>
 
+#include "gelex/bayes/genetic/draw_traits.h"
 #include "gelex/bayes/genetic/gaussian.h"
 #include "gelex/bayes/genetic/joint_spike_slab.h"
 #include "gelex/bayes/genetic/parameter.h"
@@ -21,6 +22,9 @@
 #include "gelex/bayes/stats/scaled_inv_chi2_log_kernel.h"
 #include "gelex/bayes/variance/budget.h"
 #include "gelex/genetic_mode.h"
+#include "gelex/io/binary_format.h"
+#include "gelex/io/csc_reader.h"
+#include "gelex/io/csc_writer.h"
 #include "gelex/io/dense_reader.h"
 #include "gelex/io/dense_writer.h"
 
@@ -44,12 +48,18 @@ auto check_mode_draws(const Spec& spec) -> void
         = full_prior.genetic().template get<gelex::GeneticMode::A>();
     gelex::test::FileFixture fixture;
     const auto path = (fixture.get_test_dir() / "mode.draws").string();
+    const auto sparse_path = path + ".csc";
     const gelex::GeneticDimensions dimensions{.individual = 3, .marker = 2};
     auto state = gelex::make_state(prior, dimensions);
+    constexpr bool sparse_coefficients = requires { state.assignments(); };
     {
-        gelex::DenseWriter writer{path};
+        gelex::DenseWriter dense{path};
+        gelex::CscWriter sparse{sparse_path};
         auto draws = gelex::make_draws(
-            state, writer, gelex::genetic_id<gelex::GeneticMode::A>, 2);
+            state,
+            gelex::DrawWriters{.dense = dense, .sparse = sparse},
+            gelex::genetic_id<gelex::GeneticMode::A>,
+            2);
         if constexpr (requires { state.probability(); })
         {
             state.transition(0, 1.25, true);
@@ -62,7 +72,7 @@ auto check_mode_draws(const Spec& spec) -> void
         {
             state.transition(0, 1.25);
         }
-        draws.append(state);
+        draws << state;
         if constexpr (requires { state.probability(); })
         {
             state.transition(0, 0.0, false);
@@ -78,17 +88,31 @@ auto check_mode_draws(const Spec& spec) -> void
             state.transition(0, 0.0);
             state.transition(1, -2.5);
         }
-        draws.append(state);
-        writer.close();
+        draws << state;
+        sparse.close();
+        dense.close();
     }
     const gelex::DenseReader reader{path};
-    REQUIRE(reader.to_map<float>("genetic/A/coefficients")
-                .isApprox(Eigen::MatrixXf{{1.25F, 0.0F}, {0.0F, -2.5F}}));
-    if constexpr (requires { state.assignments(); })
+    const gelex::CscReader sparse_reader{sparse_path};
+    const Eigen::MatrixXf coefficients{{1.25F, 0.0F}, {0.0F, -2.5F}};
+    REQUIRE(reader.contains("genetic/A/coefficients") != sparse_coefficients);
+    REQUIRE(
+        sparse_reader.contains("genetic/A/coefficients")
+        == sparse_coefficients);
+    if constexpr (sparse_coefficients)
     {
-        REQUIRE(reader.to_map<std::uint8_t>("genetic/A/assignment")
+        REQUIRE(sparse_reader.to_mat<float>("genetic/A/coefficients")
+                    .toDense()
+                    .isApprox(coefficients));
+        REQUIRE(sparse_reader.to_mat<std::uint8_t>("genetic/A/assignment")
+                    .toDense()
                     .cast<double>()
                     .isApprox(Eigen::MatrixXd{{1, 0}, {0, 1}}));
+    }
+    else
+    {
+        REQUIRE(reader.to_map<float>("genetic/A/coefficients")
+                    .isApprox(coefficients));
     }
     if constexpr (requires { state.variance().size(); })
     {
@@ -175,6 +199,7 @@ TEST_CASE(
     {
         gelex::test::FileFixture fixture;
         const auto path = (fixture.get_test_dir() / "joint.draws").string();
+        const auto sparse_path = path + ".csc";
         const gelex::GeneticDimensions dimensions{.individual = 3, .marker = 2};
         const gelex::HalfNormalPrior dominance_prior{
             .variance = {1.0, gelex::ScaledInvChi2LogKernel{4.0, 2.0}}};
@@ -187,23 +212,34 @@ TEST_CASE(
         dominance.transition(0, 1.5);
         dominance.annotation_coefficients() = Eigen::Vector2d{{0.25, -0.5}};
         {
-            gelex::DenseWriter writer{path};
-            auto mode_draws = gelex::make_draws(
-                dominance, writer, gelex::genetic_id<gelex::GeneticMode::D>, 1);
+            gelex::DenseWriter dense{path};
+            gelex::CscWriter sparse{sparse_path};
+            const gelex::DrawWriters writers{.dense = dense, .sparse = sparse};
+            auto mode_draws
+                = gelex::make_draws<gelex::CoefficientLayout::Sparse>(
+                    dominance,
+                    writers,
+                    gelex::genetic_id<gelex::GeneticMode::D>,
+                    1);
             auto joint_draws
-                = gelex::make_draws(joint, writer, gelex::joint_genetic_id, 1);
-            mode_draws.append(dominance);
-            joint_draws.append(joint);
-            writer.close();
+                = gelex::make_draws(joint, writers, gelex::joint_genetic_id, 1);
+            mode_draws << dominance;
+            joint_draws << joint;
+            sparse.close();
+            dense.close();
         }
         const gelex::DenseReader reader{path};
-        REQUIRE(reader.to_map<float>("genetic/D/coefficients")
+        const gelex::CscReader sparse_reader{sparse_path};
+        REQUIRE_FALSE(reader.contains("genetic/D/coefficients"));
+        REQUIRE(sparse_reader.to_mat<float>("genetic/D/coefficients")
+                    .toDense()
                     .isApprox(Eigen::VectorXf{{1.5F, 0.0F}}));
         REQUIRE(reader.to_map<float>("genetic/D/annotation_coefficients")
                     .isApprox(Eigen::Vector2f{{0.25F, -0.5F}}));
-        REQUIRE(reader.to_map<std::uint8_t>("genetic/joint/assignment")
-                    .cast<double>()
-                    .isApprox(Eigen::VectorXd::Zero(2)));
+        REQUIRE(sparse_reader.nnz("genetic/joint/assignment") == 0);
+        REQUIRE(
+            sparse_reader.info("genetic/joint/assignment").shape
+            == (gelex::BinaryShape{2, 1}));
 
         REQUIRE(
             reader.contains("genetic/joint/probabilities")

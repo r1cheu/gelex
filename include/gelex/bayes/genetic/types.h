@@ -22,6 +22,13 @@ enum class MixtureWeightUpdate : std::uint8_t
     Enabled,
 };
 
+// Whether marker coefficients are stored densely or as CSC columns.
+enum class CoefficientLayout : std::uint8_t
+{
+    Dense,
+    Sparse,
+};
+
 struct GeneticDimensions
 {
     std::size_t individual;

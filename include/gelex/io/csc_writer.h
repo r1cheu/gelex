@@ -4,7 +4,6 @@
 #ifndef GELEX_IO_CSC_WRITER_H_
 #define GELEX_IO_CSC_WRITER_H_
 
-#include <Eigen/Core>
 #include <cstddef>
 #include <cstdint>
 #include <fmt/format.h>
@@ -55,8 +54,7 @@ class CscStream
 
     // Writes one complete column, omitting exact zeros without scalar
     // conversion.
-    auto operator<<(
-        const Eigen::Ref<const Eigen::VectorX<T>>& column) & -> CscStream&;
+    auto operator<<(std::span<const T> column) -> CscStream&;
 
    private:
     friend class CscWriter;
@@ -135,8 +133,7 @@ class CscWriter
 [[nodiscard]] auto open_csc_writer(std::string_view output_path) -> CscWriter;
 
 template <detail::SupportedDtype T>
-auto CscStream<T>::operator<<(
-    const Eigen::Ref<const Eigen::VectorX<T>>& column) & -> CscStream&
+auto CscStream<T>::operator<<(std::span<const T> column) -> CscStream&
 {
     if (writer_ == nullptr)
     {
