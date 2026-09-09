@@ -4,6 +4,7 @@
 #ifndef GELEX_IO_DETAIL_ATOMIC_OUTPUT_STREAM_H_
 #define GELEX_IO_DETAIL_ATOMIC_OUTPUT_STREAM_H_
 
+#include <concepts>
 #include <filesystem>
 #include <fstream>
 #include <string_view>
@@ -17,7 +18,8 @@ class AtomicOutputStream
     explicit AtomicOutputStream(std::filesystem::path path);
 
     AtomicOutputStream(const AtomicOutputStream&) = delete;
-    AtomicOutputStream(AtomicOutputStream&&) = delete;
+    // The moved-from stream is closed and owns nothing.
+    AtomicOutputStream(AtomicOutputStream&&) noexcept = default;
     auto operator=(const AtomicOutputStream&) -> AtomicOutputStream& = delete;
     auto operator=(AtomicOutputStream&&) -> AtomicOutputStream& = delete;
 
@@ -40,6 +42,14 @@ class AtomicOutputStream
     std::filesystem::path tmp_path_;
     std::ofstream file_;
 };
+
+template <std::unsigned_integral T>
+auto write_integer(AtomicOutputStream& file, T value) -> void
+{
+    file.write(
+        reinterpret_cast<const char*>(&value),
+        static_cast<std::streamsize>(sizeof(value)));
+}
 
 }  // namespace gelex::detail
 
