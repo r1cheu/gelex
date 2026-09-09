@@ -101,7 +101,7 @@ auto write_grm(
     const Eigen::Ref<const Eigen::MatrixXd>& grm,
     std::span<const std::string> ids) -> void
 {
-    detail::AtomicOutputStream file(prefix + ".bin", std::ios::binary);
+    detail::AtomicOutputStream file(prefix + ".bin");
 
     auto n = grm.rows();
     auto m = grm.cols();

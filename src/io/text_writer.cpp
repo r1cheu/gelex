@@ -7,7 +7,6 @@
 #include <filesystem>
 #include <fmt/format.h>
 #include <initializer_list>
-#include <ios>
 #include <string_view>
 
 #include "gelex/infra/log.h"
@@ -15,10 +14,7 @@
 namespace gelex::detail
 {
 
-TextWriter::TextWriter(const std::filesystem::path& path)
-    : ofs_(path, std::ios::out)
-{
-}
+TextWriter::TextWriter(const std::filesystem::path& path) : ofs_(path) {}
 
 TextWriter::~TextWriter() noexcept
 {
