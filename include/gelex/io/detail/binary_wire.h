@@ -104,6 +104,12 @@ inline auto checked_add(std::uint64_t lhs, std::uint64_t rhs) -> std::uint64_t
     return lhs + rhs;
 }
 
+inline auto align_payload_offset(std::uint64_t offset) -> std::uint64_t
+{
+    const auto remainder = offset % payload_alignment;
+    return remainder == 0 ? offset : offset + payload_alignment - remainder;
+}
+
 }  // namespace gelex::detail
 
 #endif  // GELEX_IO_DETAIL_BINARY_WIRE_H_

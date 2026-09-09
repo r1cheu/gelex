@@ -39,6 +39,16 @@ struct PayloadInfo
     auto operator==(const PayloadInfo&) const -> bool = default;
 };
 
+// One named matrix in a dense or CSC file: the index entry minus offsets.
+struct MatrixHeader
+{
+    std::string identifier;
+    BinaryType type{};
+    BinaryShape shape{};
+
+    auto operator==(const MatrixHeader&) const -> bool = default;
+};
+
 namespace detail
 {
 
