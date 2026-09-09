@@ -6,6 +6,7 @@ from typing import Annotated
 
 import numpy
 from numpy.typing import NDArray
+import scipy.sparse
 
 
 class GeneticMode(enum.Enum):
@@ -109,6 +110,45 @@ class DenseWriter:
 
     def __exit__(self, *args) -> None: ...
 
+class CscStreamF64:
+    """
+    Handle to one reserved sparse matrix; append() adds one dense column (one draw) and stores its non-zero entries.
+    """
+
+    def append(self, column: Annotated[NDArray[numpy.float64], dict(shape=(None,), order='C', device='cpu', writable=False)]) -> None: ...
+
+class CscStreamF32:
+    """
+    Handle to one reserved sparse matrix; append() adds one dense column (one draw) and stores its non-zero entries.
+    """
+
+    def append(self, column: Annotated[NDArray[numpy.float32], dict(shape=(None,), order='C', device='cpu', writable=False)]) -> None: ...
+
+class CscStreamU8:
+    """
+    Handle to one reserved sparse matrix; append() adds one dense column (one draw) and stores its non-zero entries.
+    """
+
+    def append(self, column: Annotated[NDArray[numpy.uint8], dict(shape=(None,), order='C', device='cpu', writable=False)]) -> None: ...
+
+class CscWriter:
+    """
+    Writer for gelex CSC containers such as the MCMC .draws.csc output. Reserve matrices with a dtype and (rows, columns) shape, append dense columns whose zeros are dropped, then close() (or leave the with-block) to publish the file; every matrix must be complete. An unclosed writer discards its output.
+    """
+
+    def __init__(self, path: str) -> None: ...
+
+    def reserve(self, identifier: str, type: BinaryType, shape: Sequence[int]) -> CscStreamF64 | CscStreamF32 | CscStreamU8: ...
+
+    def close(self) -> None: ...
+
+    @property
+    def is_open(self) -> bool: ...
+
+    def __enter__(self) -> CscWriter: ...
+
+    def __exit__(self, *args) -> None: ...
+
 class DenseReader:
     """
     Memory-mapped reader for gelex binary containers such as the MCMC .draws output. Payloads are exposed as read-only, column-major (rows, columns) NumPy views that alias the mapped file.
@@ -127,3 +167,27 @@ class DenseReader:
     def payloads(self) -> list[MatrixHeader]: ...
 
     def keys(self) -> list[str]: ...
+
+class CscReader:
+    """
+    Memory-mapped reader for gelex CSC containers such as the MCMC .draws.csc output. Matrices are returned as scipy.sparse.csc_matrix copies of shape (rows, columns).
+    """
+
+    def __init__(self, path: str) -> None: ...
+
+    def __len__(self) -> int: ...
+
+    def __contains__(self, identifier: str) -> bool: ...
+
+    def __getitem__(self, identifier: str) -> scipy.sparse.csc_matrix[float] | scipy.sparse.csc_matrix[float] | scipy.sparse.csc_matrix[int]: ...
+
+    def info(self, identifier: str) -> MatrixHeader: ...
+
+    def nnz(self, identifier: str) -> int: ...
+
+    def payloads(self) -> list[MatrixHeader]: ...
+
+    def keys(self) -> list[str]: ...
+
+def sparse_draws_path(draws_path: str) -> str:
+    """Path of the CSC companion written next to a .draws file."""
