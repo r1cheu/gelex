@@ -6,7 +6,6 @@
 
 #include <filesystem>
 #include <fstream>
-#include <ios>
 #include <string_view>
 
 namespace gelex::detail
@@ -15,7 +14,7 @@ namespace gelex::detail
 class AtomicOutputStream
 {
    public:
-    AtomicOutputStream(std::filesystem::path path, std::ios::openmode mode);
+    explicit AtomicOutputStream(std::filesystem::path path);
 
     AtomicOutputStream(const AtomicOutputStream&) = delete;
     AtomicOutputStream(AtomicOutputStream&&) = delete;
@@ -35,10 +34,11 @@ class AtomicOutputStream
     }
 
    private:
+    auto discard() noexcept -> void;
+
     std::filesystem::path path_;
     std::filesystem::path tmp_path_;
     std::ofstream file_;
-    bool committed_{false};
 };
 
 }  // namespace gelex::detail
