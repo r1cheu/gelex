@@ -160,7 +160,7 @@ class SpikeSlabDraws
 
     explicit SpikeSlabDraws(
         variance_writer_type variances,
-        CscStream<float> coefficients,
+        CscStream<double> coefficients,
         assignment_writer_t assignments,
         probability_writer_type probability)
         : variances_{std::move(variances)},
@@ -177,13 +177,7 @@ class SpikeSlabDraws
         {
             variances_ << state.variance();
         }
-        else
-        {
-            scratch_ = state.variance().template cast<float>();
-            variances_ << scratch_;
-        }
-        scratch_ = state.coefficients().template cast<float>();
-        coefficients_ << scratch_;
+        coefficients_ << state.coefficients();
         assignments_ << state.assignments();
         if constexpr (WeightUpdate == MixtureWeightUpdate::Enabled)
         {
@@ -193,12 +187,10 @@ class SpikeSlabDraws
     }
 
    private:
-    variance_writer_type variances_;
-    CscStream<float> coefficients_;
+    [[no_unique_address]] variance_writer_type variances_;
+    CscStream<double> coefficients_;
     assignment_writer_t assignments_;
     [[no_unique_address]] probability_writer_type probability_;
-    // Marker-length float conversion buffer, reused across draws.
-    Eigen::VectorXf scratch_;
 };
 
 template <VarianceLayout Kind, MixtureWeightUpdate WeightUpdate>
@@ -210,13 +202,10 @@ template <VarianceLayout Kind, MixtureWeightUpdate WeightUpdate>
 {
     const auto marker_count
         = static_cast<std::size_t>(state.coefficients().size());
-    const std::size_t variance_size
-        = (Kind == VarianceLayout::Pooled) ? 1 : marker_count;
 
-    auto variances = writers.dense.reserve<marker_variance_dtype_t<Kind>>(
-        fmt::format("{}/{}", prefix, variance_id),
-        BinaryShape{variance_size, draw_count});
-    auto coefficients = writers.sparse.reserve<float>(
+    auto variances = reserve_marker_variance<Kind>(
+        writers, fmt::format("{}/{}", prefix, variance_id), draw_count);
+    auto coefficients = writers.sparse.reserve<double>(
         fmt::format("{}/{}", prefix, coefficients_id),
         BinaryShape{marker_count, draw_count});
     auto assignments = writers.sparse.reserve<std::uint8_t>(

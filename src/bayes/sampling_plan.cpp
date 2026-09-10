@@ -1,7 +1,7 @@
 // Copyright 2026 RuLei Chen
 // SPDX-License-Identifier: Apache-2.0
 
-#include "gelex/bayes/mcmc_runner.h"
+#include "gelex/bayes/sampling_plan.h"
 
 #include <fmt/format.h>
 
@@ -11,8 +11,8 @@ namespace gelex
 {
 
 // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
-MCMCRunner::MCMCRunner(int iterations, int burn_in, int thin)
-    : iterations_{iterations}, burn_in_{burn_in}, thin_{thin}
+SamplingPlan::SamplingPlan(int iterations, int burn_in, int thin, int seed)
+    : iterations_{iterations}, burn_in_{burn_in}, thin_{thin}, seed_{seed}
 {
     if (iterations_ <= 0)
     {

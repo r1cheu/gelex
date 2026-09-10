@@ -31,7 +31,7 @@ class RandomEffectDraws
 {
    public:
     RandomEffectDraws(
-        DenseStream<float> coefficients,
+        DenseStream<double> coefficients,
         DenseStream<double> variance)
         : coefficients_{std::move(coefficients)}, variance_{std::move(variance)}
     {
@@ -39,17 +39,14 @@ class RandomEffectDraws
 
     auto operator<<(const RandomEffectState& state) -> RandomEffectDraws&
     {
-        scratch_ = state.coefficients.cast<float>();
-        coefficients_ << scratch_;
+        coefficients_ << state.coefficients;
         variance_ << state.variance;
         return *this;
     }
 
    private:
-    DenseStream<float> coefficients_;
+    DenseStream<double> coefficients_;
     DenseStream<double> variance_;
-    // Level-length float conversion buffer, reused across draws.
-    Eigen::VectorXf scratch_;
 };
 
 // Marker-level sparse draws live next to the dense file.
@@ -72,7 +69,8 @@ class BayesDraws
     using genetic_draws_type = genetic_draws_t<genetic_state_t<GeneticPrior>>;
 
     // Dense payloads go to `output_path`, marker-level sparse payloads to
-    // sparse_draws_path(output_path).
+    // sparse_draws_path(output_path); every payload reserves one column per
+    // retained draw.
     BayesDraws(
         const BayesState<GeneticPrior>& state,
         const BayesModel& model,

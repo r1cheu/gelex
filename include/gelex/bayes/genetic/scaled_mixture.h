@@ -164,7 +164,7 @@ class ScaledMixtureDraws
 
     explicit ScaledMixtureDraws(
         DenseStream<double> variance,
-        CscStream<float> coefficients,
+        CscStream<double> coefficients,
         assignment_writer_t assignments,
         probability_writer_type probabilities)
         : variance_{std::move(variance)},
@@ -178,8 +178,7 @@ class ScaledMixtureDraws
         -> ScaledMixtureDraws&
     {
         variance_ << state.variance();
-        scratch_ = state.coefficients().template cast<float>();
-        coefficients_ << scratch_;
+        coefficients_ << state.coefficients();
         assignments_ << state.assignments();
         if constexpr (WeightUpdate == MixtureWeightUpdate::Enabled)
         {
@@ -190,11 +189,9 @@ class ScaledMixtureDraws
 
    private:
     DenseStream<double> variance_;
-    CscStream<float> coefficients_;
+    CscStream<double> coefficients_;
     assignment_writer_t assignments_;
     [[no_unique_address]] probability_writer_type probabilities_;
-    // Marker-length float conversion buffer, reused across draws.
-    Eigen::VectorXf scratch_;
 };
 
 template <MixtureWeightUpdate WeightUpdate>
@@ -208,7 +205,7 @@ template <MixtureWeightUpdate WeightUpdate>
         = static_cast<std::size_t>(state.coefficients().size());
     auto variance = writers.dense.reserve<double>(
         fmt::format("{}/{}", prefix, variance_id), BinaryShape{1, draw_count});
-    auto coefficients = writers.sparse.reserve<float>(
+    auto coefficients = writers.sparse.reserve<double>(
         fmt::format("{}/{}", prefix, coefficients_id),
         BinaryShape{marker_count, draw_count});
     auto assignments = writers.sparse.reserve<std::uint8_t>(

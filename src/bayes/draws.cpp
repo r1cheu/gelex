@@ -26,7 +26,7 @@ auto make_random_draws(
     for (const auto& design : designs)
     {
         random.emplace_back(
-            writer.reserve<float>(
+            writer.reserve<double>(
                 fmt::format("random/{}/coefficients", design.name()),
                 BinaryShape{
                     static_cast<std::uint64_t>(design.X().cols()), draw_count}),

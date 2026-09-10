@@ -224,7 +224,7 @@ class HalfNormalDraws
     explicit HalfNormalDraws(
         DenseStream<double> variance,
         coefficients_writer_type coefficients,
-        DenseStream<float> annotation_coefficients)
+        DenseStream<double> annotation_coefficients)
         : variance_{std::move(variance)},
           coefficients_{std::move(coefficients)},
           annotation_coefficients_{std::move(annotation_coefficients)}
@@ -234,20 +234,15 @@ class HalfNormalDraws
     auto operator<<(const HalfNormalState& state) -> HalfNormalDraws&
     {
         variance_ << state.variance();
-        scratch_ = state.coefficients().cast<float>();
-        coefficients_ << scratch_;
-        // Fixed-size: the conversion stays on the stack.
-        annotation_coefficients_
-            << Eigen::Vector2f{state.annotation_coefficients().cast<float>()};
+        coefficients_ << state.coefficients();
+        annotation_coefficients_ << state.annotation_coefficients();
         return *this;
     }
 
    private:
     DenseStream<double> variance_;
     coefficients_writer_type coefficients_;
-    DenseStream<float> annotation_coefficients_;
-    // Marker-length float conversion buffer, reused across draws.
-    Eigen::VectorXf scratch_;
+    DenseStream<double> annotation_coefficients_;
 };
 
 template <MixtureWeightUpdate WeightUpdate>
@@ -295,7 +290,7 @@ template <CoefficientLayout Layout = CoefficientLayout::Dense>
         writers,
         fmt::format("{}/{}", prefix, coefficients_id),
         BinaryShape{marker_count, draw_count});
-    auto annotation_coefficients = writers.dense.reserve<float>(
+    auto annotation_coefficients = writers.dense.reserve<double>(
         fmt::format("{}/{}", prefix, annotation_coefficients_id),
         BinaryShape{
             static_cast<std::size_t>(state.annotation_coefficients().size()),
