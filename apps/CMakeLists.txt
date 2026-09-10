@@ -46,6 +46,7 @@ if(GELEX_CLI_BUILD_TESTS OR GELEX_BUILD_TESTS)
     tests/test_predict_engine.cpp
     tests/test_table.cpp
     tests/test_completion_generator.cpp
+    tests/test_diagnostics_reporter.cpp
     tests/test_mcmc_command.cpp
     tests/test_mcmc_data.cpp
     tests/test_mcmc_recipe.cpp
@@ -60,6 +61,7 @@ if(GELEX_CLI_BUILD_TESTS OR GELEX_BUILD_TESTS)
     cli/mcmc/command.cpp
     cli/mcmc/config.cpp
     cli/mcmc/data.cpp
+    cli/mcmc/diagnostics_reporter.cpp
     cli/mcmc/progress.cpp
     cli/progress.cpp
     cli/random_design_data.cpp

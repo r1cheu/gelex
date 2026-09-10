@@ -14,6 +14,7 @@
 #include <string_view>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
 #include "gelex/bayes/genetic/detail/marker_variance.h"
 #include "gelex/bayes/genetic/diagnostics_traits.h"
@@ -257,6 +258,20 @@ template <MixtureWeightUpdate WeightUpdate>
             readers.dense, fmt::format("{}/{}", prefix, variance_id), prob),
         .probabilities = diagnose_probabilities<WeightUpdate>(
             readers, fmt::format("{}/{}", prefix, probabilities_id), prob)};
+}
+
+template <MixtureWeightUpdate WeightUpdate>
+auto append_diagnostic_entries(
+    std::vector<DiagnosticEntry>& out,
+    const ScaledMixtureDiagnostics<WeightUpdate>& diagnostics,
+    std::string_view prefix) -> void
+{
+    append_entry(
+        out, fmt::format("{}/{}", prefix, variance_id), diagnostics.variance);
+    append_entries(
+        out,
+        fmt::format("{}/{}", prefix, probabilities_id),
+        diagnostics.probabilities);
 }
 
 GELEX_NAMESPACE_END(gelex)

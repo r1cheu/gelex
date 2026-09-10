@@ -9,8 +9,10 @@
 #include <Eigen/Core>
 #include <cstddef>
 #include <cstdint>
+#include <string_view>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
 #include "gelex/bayes/genetic/diagnostics_traits.h"
 #include "gelex/bayes/genetic/draw_traits.h"
@@ -171,6 +173,28 @@ template <typename ModeDraws, typename JointDraws>
         std::type_identity<JointDraws>{}, readers, joint_genetic_id, prob);
     return JointModeValues{
         std::move(mode_diagnostics), std::move(joint_diagnostics)};
+}
+
+template <GeneticModeSet Modes, typename... Diagnostics>
+auto append_diagnostic_entries(
+    std::vector<DiagnosticEntry>& out,
+    const ModeValues<Modes, Diagnostics...>& diagnostics) -> void
+{
+    diagnostics.for_each(
+        [&]<GeneticMode Mode>(const auto& mode_diagnostics)
+        {
+            append_diagnostic_entries(out, mode_diagnostics, genetic_id<Mode>);
+        });
+}
+
+template <typename ModeDiagnostics, typename JointDiagnostics>
+auto append_diagnostic_entries(
+    std::vector<DiagnosticEntry>& out,
+    const JointModeValues<ModeDiagnostics, JointDiagnostics>& diagnostics)
+    -> void
+{
+    append_diagnostic_entries(out, diagnostics.mode_values());
+    append_diagnostic_entries(out, diagnostics.joint(), joint_genetic_id);
 }
 
 template <typename Draws>
