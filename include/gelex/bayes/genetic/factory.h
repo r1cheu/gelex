@@ -9,8 +9,10 @@
 #include <Eigen/Core>
 #include <cstddef>
 #include <cstdint>
+#include <type_traits>
 #include <utility>
 
+#include "gelex/bayes/genetic/diagnostics_traits.h"
 #include "gelex/bayes/genetic/draw_traits.h"
 #include "gelex/bayes/genetic/gaussian.h"
 #include "gelex/bayes/genetic/joint_spike_slab.h"
@@ -134,6 +136,48 @@ using genetic_draws_t = decltype(make_draws(
     std::declval<const State&>(),
     std::declval<DrawWriters>(),
     std::declval<std::uint64_t>()));
+
+// ---- diagnostics
+
+template <GeneticModeSet Modes, typename... Draws>
+[[nodiscard]] auto make_diagnostics(
+    std::type_identity<ModeValues<Modes, Draws...>> /*draws*/,
+    DrawReaders readers,
+    double prob)
+{
+    return generate_mode_values<Modes>(
+        [&]<GeneticMode Mode>()
+        {
+            using draws_type =
+                typename ModeValues<Modes, Draws...>::template mode_value_type<
+                    Mode>;
+            return make_diagnostics(
+                std::type_identity<draws_type>{},
+                readers,
+                genetic_id<Mode>,
+                prob);
+        });
+}
+
+template <typename ModeDraws, typename JointDraws>
+[[nodiscard]] auto make_diagnostics(
+    std::type_identity<JointModeValues<ModeDraws, JointDraws>> /*draws*/,
+    DrawReaders readers,
+    double prob)
+{
+    auto mode_diagnostics
+        = make_diagnostics(std::type_identity<ModeDraws>{}, readers, prob);
+    auto joint_diagnostics = make_diagnostics(
+        std::type_identity<JointDraws>{}, readers, joint_genetic_id, prob);
+    return JointModeValues{
+        std::move(mode_diagnostics), std::move(joint_diagnostics)};
+}
+
+template <typename Draws>
+using genetic_diagnostics_t = decltype(make_diagnostics(
+    std::type_identity<Draws>{},
+    std::declval<DrawReaders>(),
+    std::declval<double>()));
 
 }  // namespace gelex
 

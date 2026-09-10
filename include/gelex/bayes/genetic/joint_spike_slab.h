@@ -11,8 +11,11 @@
 #include <cstdint>
 #include <fmt/format.h>
 #include <string_view>
+#include <type_traits>
 #include <utility>
+#include <vector>
 
+#include "gelex/bayes/genetic/diagnostics_traits.h"
 #include "gelex/bayes/genetic/draw_traits.h"
 #include "gelex/bayes/genetic/gaussian.h"
 #include "gelex/bayes/genetic/parameter.h"
@@ -220,6 +223,7 @@ class HalfNormalDraws
 {
    public:
     using coefficients_writer_type = coefficients_writer_t<Layout>;
+    static constexpr CoefficientLayout coefficient_layout = Layout;
 
     explicit HalfNormalDraws(
         DenseStream<double> variance,
@@ -332,6 +336,47 @@ template <MixtureWeightUpdate WeightUpdate>
 
     return JointSpikeSlabDraws<WeightUpdate>{
         std::move(assignments), std::move(probabilities)};
+}
+
+struct HalfNormalDiagnostics
+{
+    ChainDiagnostics variance;
+    std::vector<ChainDiagnostics> annotation_coefficients;
+};
+
+template <MixtureWeightUpdate WeightUpdate>
+struct JointSpikeSlabDiagnostics
+{
+    [[no_unique_address]] probabilities_diagnostics_t<WeightUpdate>
+        probabilities;
+};
+
+template <CoefficientLayout Layout>
+[[nodiscard]] auto make_diagnostics(
+    std::type_identity<HalfNormalDraws<Layout>> /*draws*/,
+    DrawReaders readers,
+    std::string_view prefix,
+    double prob) -> HalfNormalDiagnostics
+{
+    return {
+        .variance = detail::diagnose_scalar(
+            readers.dense, fmt::format("{}/{}", prefix, variance_id), prob),
+        .annotation_coefficients = detail::diagnose_rows(
+            readers.dense,
+            fmt::format("{}/{}", prefix, annotation_coefficients_id),
+            prob)};
+}
+
+template <MixtureWeightUpdate WeightUpdate>
+[[nodiscard]] auto make_diagnostics(
+    std::type_identity<JointSpikeSlabDraws<WeightUpdate>> /*draws*/,
+    DrawReaders readers,
+    std::string_view prefix,
+    double prob) -> JointSpikeSlabDiagnostics<WeightUpdate>
+{
+    return {
+        .probabilities = diagnose_probabilities<WeightUpdate>(
+            readers, fmt::format("{}/{}", prefix, probabilities_id), prob)};
 }
 
 GELEX_NAMESPACE_END(gelex)
