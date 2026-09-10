@@ -94,14 +94,14 @@ auto check_mode_draws(const Spec& spec) -> void
     }
     const gelex::DenseReader reader{path};
     const gelex::CscReader sparse_reader{sparse_path};
-    const Eigen::MatrixXf coefficients{{1.25F, 0.0F}, {0.0F, -2.5F}};
+    const Eigen::MatrixXd coefficients{{1.25, 0.0}, {0.0, -2.5}};
     REQUIRE(reader.contains("genetic/A/coefficients") != sparse_coefficients);
     REQUIRE(
         sparse_reader.contains("genetic/A/coefficients")
         == sparse_coefficients);
     if constexpr (sparse_coefficients)
     {
-        REQUIRE(sparse_reader.to_mat<float>("genetic/A/coefficients")
+        REQUIRE(sparse_reader.to_mat<double>("genetic/A/coefficients")
                     .toDense()
                     .isApprox(coefficients));
         REQUIRE(sparse_reader.to_mat<std::uint8_t>("genetic/A/assignment")
@@ -111,15 +111,12 @@ auto check_mode_draws(const Spec& spec) -> void
     }
     else
     {
-        REQUIRE(reader.to_map<float>("genetic/A/coefficients")
+        REQUIRE(reader.to_map<double>("genetic/A/coefficients")
                     .isApprox(coefficients));
     }
     if constexpr (requires { state.variance().size(); })
     {
-        REQUIRE(reader.to_map<float>("genetic/A/variance")
-                    .isApprox(
-                        Eigen::MatrixXf::Constant(
-                            2, 2, static_cast<float>(prior.variance.initial))));
+        REQUIRE_FALSE(reader.contains("genetic/A/variance"));
     }
     else
     {
@@ -159,7 +156,7 @@ auto check_mode_draws(const Spec& spec) -> void
 }  // namespace
 
 TEST_CASE(
-    "Gaussian draws preserve scalar and marker variance layouts",
+    "Gaussian draws keep the pooled variance and drop marker variances",
     "[bayes][genetic][draws]")
 {
     check_mode_draws(gelex::GaussianSpec<gelex::VarianceLayout::Pooled>{});
@@ -231,11 +228,11 @@ TEST_CASE(
         const gelex::DenseReader reader{path};
         const gelex::CscReader sparse_reader{sparse_path};
         REQUIRE_FALSE(reader.contains("genetic/D/coefficients"));
-        REQUIRE(sparse_reader.to_mat<float>("genetic/D/coefficients")
+        REQUIRE(sparse_reader.to_mat<double>("genetic/D/coefficients")
                     .toDense()
-                    .isApprox(Eigen::VectorXf{{1.5F, 0.0F}}));
-        REQUIRE(reader.to_map<float>("genetic/D/annotation_coefficients")
-                    .isApprox(Eigen::Vector2f{{0.25F, -0.5F}}));
+                    .isApprox(Eigen::VectorXd{{1.5, 0.0}}));
+        REQUIRE(reader.to_map<double>("genetic/D/annotation_coefficients")
+                    .isApprox(Eigen::Vector2d{{0.25, -0.5}}));
         REQUIRE(sparse_reader.nnz("genetic/joint/assignment") == 0);
         REQUIRE(
             sparse_reader.info("genetic/joint/assignment").shape

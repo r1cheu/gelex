@@ -90,18 +90,18 @@ TEST_CASE(
     const gelex::DenseReader draws(config.out + ".draws");
     REQUIRE(draws.contains("random/Group/coefficients"));
     REQUIRE(draws.contains("random/random_slopes/coefficients"));
-    REQUIRE(draws.to_map<float>("random/Group/coefficients").rows() == 2);
-    REQUIRE(draws.to_map<float>("random/Group/coefficients").cols() == 2);
+    REQUIRE(draws.to_map<double>("random/Group/coefficients").rows() == 2);
+    REQUIRE(draws.to_map<double>("random/Group/coefficients").cols() == 2);
     REQUIRE(
-        draws.to_map<float>("random/random_slopes/coefficients").rows() == 1);
+        draws.to_map<double>("random/random_slopes/coefficients").rows() == 1);
     REQUIRE(
-        draws.to_map<float>("random/random_slopes/coefficients").cols() == 2);
+        draws.to_map<double>("random/random_slopes/coefficients").cols() == 2);
 
     REQUIRE(draws.to_map<double>("fixed/coefficients").cols() == 2);
     REQUIRE(draws.to_map<double>("random/Group/variance").allFinite());
     REQUIRE(draws.to_map<double>("random/random_slopes/variance").allFinite());
-    REQUIRE(draws.to_map<float>("genetic/A/coefficients").rows() == 3);
-    REQUIRE(draws.to_map<float>("genetic/A/coefficients").cols() == 2);
+    REQUIRE(draws.to_map<double>("genetic/A/coefficients").rows() == 3);
+    REQUIRE(draws.to_map<double>("genetic/A/coefficients").cols() == 2);
 
     const auto luts = gelex::load_snp_luts(config.out + ".snplut");
     REQUIRE(luts.size() == 1);
@@ -174,10 +174,10 @@ TEST_CASE(
         REQUIRE(sparse.contains("genetic/joint/assignment"));
 
         REQUIRE(
-            draws.to_map<float>("genetic/D/annotation_coefficients").rows()
+            draws.to_map<double>("genetic/D/annotation_coefficients").rows()
             == 2);
         REQUIRE(
-            draws.to_map<float>("genetic/D/annotation_coefficients").cols()
+            draws.to_map<double>("genetic/D/annotation_coefficients").cols()
             == 2);
         REQUIRE(
             sparse.info("genetic/joint/assignment").shape

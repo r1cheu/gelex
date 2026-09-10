@@ -12,8 +12,8 @@
 #include "gelex/bayes/mode_values.h"
 #include "gelex/bayes/prior.h"
 #include "gelex/bayes/recipe.h"
+#include "gelex/bayes/sampling_plan.h"
 #include "gelex/bayes/spec.h"
-#include "gelex/exception.h"
 #include "gelex/genetic_mode.h"
 #include "gelex/io/dense_reader.h"
 
@@ -43,7 +43,7 @@ TEST_CASE(
             defaults(),
         model);
     constexpr int iterations = 4;
-    gelex::MCMCRunner runner{iterations, 0, 1};
+    gelex::MCMCRunner runner{gelex::SamplingPlan{iterations, 0, 1, 123}};
     gelex::test::FileFixture fixture;
     const auto path = fixture.get_test_dir() / "progress.draws";
     std::vector<std::size_t> completed_iterations;
@@ -52,7 +52,7 @@ TEST_CASE(
 
     static_assert(
         std::is_void_v<decltype(runner.run(model, prior, path.string()))>);
-    runner.run(model, prior, path.string(), 123, observer);
+    runner.run(model, prior, path.string(), observer);
 
     REQUIRE(completed_iterations == std::vector<std::size_t>{1, 2, 3, 4});
     const gelex::DenseReader reader{path.string()};
@@ -78,11 +78,11 @@ TEST_CASE(
     const auto full_path = fixture.get_test_dir() / "full.draws";
     const auto retained_path = fixture.get_test_dir() / "retained.draws";
 
-    gelex::MCMCRunner full_runner{5, 0, 1};
-    full_runner.run(model, prior, full_path.string(), 123);
-    gelex::MCMCRunner retained_runner{5, 1, 2};
-    REQUIRE(retained_runner.draw_count() == 2);
-    retained_runner.run(model, prior, retained_path.string(), 123);
+    gelex::MCMCRunner full_runner{gelex::SamplingPlan{5, 0, 1, 123}};
+    full_runner.run(model, prior, full_path.string());
+    gelex::MCMCRunner retained_runner{gelex::SamplingPlan{5, 1, 2, 123}};
+    REQUIRE(retained_runner.plan().draw_count() == 2);
+    retained_runner.run(model, prior, retained_path.string());
 
     const gelex::DenseReader full_reader(full_path.string());
     const gelex::DenseReader retained_reader(retained_path.string());
@@ -90,15 +90,4 @@ TEST_CASE(
     const auto retained = retained_reader.to_map<double>("residual/variance");
     const Eigen::MatrixXd expected{{full(0, 2), full(0, 4)}};
     REQUIRE(retained.isApprox(expected));
-}
-
-TEST_CASE("MCMC runner rejects invalid schedules", "[bayes][mcmc][runner]")
-{
-    REQUIRE_THROWS_AS(gelex::MCMCRunner(0, 0, 1), gelex::GelexException);
-    REQUIRE_THROWS_AS(gelex::MCMCRunner(-1, 0, 1), gelex::GelexException);
-    REQUIRE_THROWS_AS(gelex::MCMCRunner(4, -1, 1), gelex::GelexException);
-    REQUIRE_THROWS_AS(gelex::MCMCRunner(4, 4, 1), gelex::GelexException);
-    REQUIRE_THROWS_AS(gelex::MCMCRunner(4, 0, 0), gelex::GelexException);
-    REQUIRE_THROWS_AS(gelex::MCMCRunner(4, 0, -1), gelex::GelexException);
-    REQUIRE_THROWS_AS(gelex::MCMCRunner(4, 1, 2), gelex::GelexException);
 }

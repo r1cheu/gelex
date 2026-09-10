@@ -18,6 +18,7 @@
 #include "gelex/bayes/mcmc_runner.h"
 #include "gelex/bayes/model.h"
 #include "gelex/bayes/prior.h"
+#include "gelex/bayes/sampling_plan.h"
 #include "gelex/data/bed.h"
 #include "gelex/data/snp_lut.h"
 #include "gelex/data/snp_lut_io.h"
@@ -130,7 +131,8 @@ auto make_model_summary(const gelex::BayesModel& model) -> cli::Summary
 template <typename Recipe>
 auto run_mcmc(const cli::McmcConfig& config, const Recipe& recipe) -> int
 {
-    gelex::MCMCRunner runner{config.iters, config.burn_in, config.thin};
+    gelex::MCMCRunner runner{gelex::SamplingPlan{
+        config.iters, config.burn_in, config.thin, config.seed}};
     auto loaded = load_mcmc_model(config);
     auto& model = loaded.model;
 
@@ -153,8 +155,7 @@ auto run_mcmc(const cli::McmcConfig& config, const Recipe& recipe) -> int
     cli::printer().block(cli::section("MCMC Sampling:"));
     const auto total_iterations = static_cast<std::size_t>(config.iters);
     cli::McmcProgress progress{total_iterations, config.burn_in};
-    runner.run(
-        model, prior, config.out + ".draws", config.seed, std::ref(progress));
+    runner.run(model, prior, config.out + ".draws", std::ref(progress));
     progress.finish();
 
     cli::printer().block(
