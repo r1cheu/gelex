@@ -1,100 +1,63 @@
 // Copyright 2026 RuLei Chen
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- * @file diagnostics.h
- * @brief Diagnostics for MCMC process. refer to
- * https://github.com/pyro-ppl/numpyro/blob/master/numpyro/diagnostics.py
- */
-
 #ifndef GELEX_BAYES_STATS_DIAGNOSTICS_H_
 #define GELEX_BAYES_STATS_DIAGNOSTICS_H_
+
 #include <Eigen/Core>
-#include <utility>
-#include <vector>
 
 namespace gelex
 {
 
-// Each MatrixXd in Chains has shape (n_params, n_draws); vector length =
-// n_chains.
-using Chains = std::vector<Eigen::MatrixXd>;
+// Read-only (n_draws, n_chains) view with arbitrary strides: each column is
+// one chain. Binds a VectorXd, mat.col(i), mat.row(i).transpose(), a block or
+// a transposed matrix without copying.
+using ChainsView = Eigen::Ref<
+    const Eigen::MatrixXd,
+    0,
+    Eigen::Stride<Eigen::Dynamic, Eigen::Dynamic>>;
+
+struct ChainDiagnostics
+{
+    double mean;
+    double sd;
+    double median;
+    double hpdi_lower;
+    double hpdi_upper;
+    double ess;
+    double mcse;
+    double split_rhat;
+};
 
 /**
- * @brief find the smallest number >= N such that only divisor are 2, 3, 5.
- * Works just like scipy.fftpack.next_fast_len.
- * @param target N
- * @return the smallest number >= target such that only divisors are 2, 3, 5.
- */
-Eigen::Index fft_next_fast_len(Eigen::Index target);
-
-/**
- * @brief Computes R-hat over chains of samples. The samples are stored as a
- * vector of matrices where each matrix is (n_params, n_draws) and the vector
- * length is n_chains. It's required that n_chains >= 2 and n_draws >= 2.
- * Parameters that never move within a chain get NaN.
+ * @brief Computes every diagnostic of one parameter from its chains, each
+ * stored as a column: pooled sample mean and standard deviation, median,
+ * HPDI bounds (narrowest interval with probability mass `prob`), effective
+ * sample size (Geyer initial monotone sequence), Monte Carlo standard error,
+ * and split R-hat over the halves of every chain. Requires at least 4 draws
+ * per chain; a chain that never moves gets NaN for ess, mcse and split_rhat.
  *
- * @param samples MCMC samples
- * @return R-hat statistic for each parameter
+ * @param draws (n_draws, n_chains); left untouched
+ * @param prob probability mass of the HPDI, in (0, 1]
  */
-Eigen::VectorXd gelman_rubin(const Chains& samples);
+auto diagnose_chain(const ChainsView& draws, double prob = 0.95)
+    -> ChainDiagnostics;
 
-/**
- * @brief Computes split R-hat over chains of samples. The samples are stored as
- * a vector of matrices where each matrix is (n_params, n_draws) and the vector
- * length is n_chains. It's required that n_draws >= 4
- *
- * @param samples
- * @return split R-hat statistic for each parameter
- */
-Eigen::VectorXd split_gelman_rubin(const Chains& samples);
+template <typename Derived>
+auto diagnose_chain(const Eigen::DenseBase<Derived>& draws, double prob = 0.95)
+    -> ChainDiagnostics
+{
+    if constexpr (
+        Derived::IsVectorAtCompileTime && Derived::RowsAtCompileTime == 1)
+    {
+        return diagnose_chain(ChainsView{draws.derived().transpose()}, prob);
+    }
+    else
+    {
+        return diagnose_chain(ChainsView{draws.derived()}, prob);
+    }
+}
 
-/**
- * @brief Compute the autocorrelation the samples at dimension n_draws
- *
- * @param x MCMC samples
- * @param bias whether to use a biased estimator
- * @return the autocorrelation of the samples
- */
-Chains autocorrelation(const Chains& x, bool bias = true);
-
-/**
- * @brief Computes the autocovariance of the samples at dimension n_draws.
- *
- * @param x MCMC Samples
- * @param bias whether to use a biased estimator
- */
-Chains autocovariance(const Chains& x, bool bias = true);
-
-/**
- * @brief Compute the effective sample size of the samples at dimension n_draws.
- * Parameters that never move get NaN.
- *
- * @param x MCMC samples, stored as a vector of matrices where each matrix is
- * (n_params, n_draws) and the vector length is n_chains
- * @param bias whether to use a biased estimator
- */
-Eigen::VectorXd effect_sample_size(const Chains& x, bool bias = true);
-
-/**
- * @brief Monte Carlo standard error of the posterior mean: the sample
- * standard deviation over every draw divided by sqrt(effective sample size).
- */
-Eigen::VectorXd monte_carlo_standard_error(const Chains& x, bool bias = true);
-
-/**
- * @brief Computes "highest posterior density interval" (HPDI) which is the
- * narrowest interval with probability mass `prob`.
- *
- * @param samples MCMC samples as a vector; left untouched
- * @param prob probability mass of the interval, in (0, 1]
- */
-std::pair<double, double> hpdi(
-    const Eigen::Ref<const Eigen::VectorXd>& samples,
-    double prob);
-
-auto hpdi(const Chains& chains, double prob)
-    -> std::pair<Eigen::MatrixXd, Eigen::VectorXd>;
 }  // namespace gelex
 
 #endif  // GELEX_BAYES_STATS_DIAGNOSTICS_H_
