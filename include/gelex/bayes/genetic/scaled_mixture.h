@@ -12,9 +12,11 @@
 #include <fmt/format.h>
 #include <ranges>
 #include <string_view>
+#include <type_traits>
 #include <utility>
 
 #include "gelex/bayes/genetic/detail/marker_variance.h"
+#include "gelex/bayes/genetic/diagnostics_traits.h"
 #include "gelex/bayes/genetic/draw_traits.h"
 #include "gelex/bayes/genetic/parameter.h"
 #include "gelex/bayes/genetic/types.h"
@@ -161,6 +163,8 @@ class ScaledMixtureDraws
 {
    public:
     using probability_writer_type = probability_writer_t<WeightUpdate>;
+    static constexpr CoefficientLayout coefficient_layout
+        = CoefficientLayout::Sparse;
 
     explicit ScaledMixtureDraws(
         DenseStream<double> variance,
@@ -231,6 +235,28 @@ template <MixtureWeightUpdate WeightUpdate>
         std::move(coefficients),
         std::move(assignments),
         std::move(probabilities)};
+}
+
+template <MixtureWeightUpdate WeightUpdate>
+struct ScaledMixtureDiagnostics
+{
+    ChainDiagnostics variance;
+    [[no_unique_address]] probabilities_diagnostics_t<WeightUpdate>
+        probabilities;
+};
+
+template <MixtureWeightUpdate WeightUpdate>
+[[nodiscard]] auto make_diagnostics(
+    std::type_identity<ScaledMixtureDraws<WeightUpdate>> /*draws*/,
+    DrawReaders readers,
+    std::string_view prefix,
+    double prob) -> ScaledMixtureDiagnostics<WeightUpdate>
+{
+    return {
+        .variance = detail::diagnose_scalar(
+            readers.dense, fmt::format("{}/{}", prefix, variance_id), prob),
+        .probabilities = diagnose_probabilities<WeightUpdate>(
+            readers, fmt::format("{}/{}", prefix, probabilities_id), prob)};
 }
 
 GELEX_NAMESPACE_END(gelex)
