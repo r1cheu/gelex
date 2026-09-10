@@ -9,9 +9,11 @@
 #include <cstddef>
 #include <fmt/format.h>
 #include <string_view>
+#include <type_traits>
 #include <utility>
 
 #include "gelex/bayes/genetic/detail/marker_variance.h"
+#include "gelex/bayes/genetic/diagnostics_traits.h"
 #include "gelex/bayes/genetic/draw_traits.h"
 #include "gelex/bayes/genetic/types.h"
 #include "gelex/bayes/parameter.h"
@@ -86,6 +88,7 @@ class GaussianDraws
    public:
     using variance_writer_type = marker_variance_writer_t<Kind>;
     using coefficients_writer_type = coefficients_writer_t<Layout>;
+    static constexpr CoefficientLayout coefficient_layout = Layout;
 
     explicit GaussianDraws(
         variance_writer_type variances,
@@ -130,6 +133,24 @@ template <
 
     return GaussianDraws<Kind, Layout>{
         std::move(variances), std::move(coefficients)};
+}
+
+template <VarianceLayout Kind>
+struct GaussianDiagnostics
+{
+    [[no_unique_address]] marker_variance_diagnostics_t<Kind> variance;
+};
+
+template <VarianceLayout Kind, CoefficientLayout Layout>
+[[nodiscard]] auto make_diagnostics(
+    std::type_identity<GaussianDraws<Kind, Layout>> /*draws*/,
+    DrawReaders readers,
+    std::string_view prefix,
+    double prob) -> GaussianDiagnostics<Kind>
+{
+    return {
+        .variance = diagnose_marker_variance<Kind>(
+            readers, fmt::format("{}/{}", prefix, variance_id), prob)};
 }
 
 GELEX_NAMESPACE_END(gelex)

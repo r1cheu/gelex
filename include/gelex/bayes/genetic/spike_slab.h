@@ -12,9 +12,11 @@
 #include <cstdint>
 #include <fmt/format.h>
 #include <string_view>
+#include <type_traits>
 #include <utility>
 
 #include "gelex/bayes/genetic/detail/marker_variance.h"
+#include "gelex/bayes/genetic/diagnostics_traits.h"
 #include "gelex/bayes/genetic/draw_traits.h"
 #include "gelex/bayes/genetic/parameter.h"
 #include "gelex/bayes/genetic/types.h"
@@ -157,6 +159,8 @@ class SpikeSlabDraws
    public:
     using variance_writer_type = marker_variance_writer_t<Kind>;
     using probability_writer_type = probability_writer_t<WeightUpdate>;
+    static constexpr CoefficientLayout coefficient_layout
+        = CoefficientLayout::Sparse;
 
     explicit SpikeSlabDraws(
         variance_writer_type variances,
@@ -230,6 +234,27 @@ template <VarianceLayout Kind, MixtureWeightUpdate WeightUpdate>
         std::move(coefficients),
         std::move(assignments),
         std::move(probability)};
+}
+
+template <VarianceLayout Kind, MixtureWeightUpdate WeightUpdate>
+struct SpikeSlabDiagnostics
+{
+    [[no_unique_address]] marker_variance_diagnostics_t<Kind> variance;
+    [[no_unique_address]] probability_diagnostics_t<WeightUpdate> probability;
+};
+
+template <VarianceLayout Kind, MixtureWeightUpdate WeightUpdate>
+[[nodiscard]] auto make_diagnostics(
+    std::type_identity<SpikeSlabDraws<Kind, WeightUpdate>> /*draws*/,
+    DrawReaders readers,
+    std::string_view prefix,
+    double prob) -> SpikeSlabDiagnostics<Kind, WeightUpdate>
+{
+    return {
+        .variance = diagnose_marker_variance<Kind>(
+            readers, fmt::format("{}/{}", prefix, variance_id), prob),
+        .probability = diagnose_probability<WeightUpdate>(
+            readers, fmt::format("{}/{}", prefix, probability_id), prob)};
 }
 
 GELEX_NAMESPACE_END(gelex)
