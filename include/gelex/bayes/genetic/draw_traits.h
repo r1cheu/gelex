@@ -25,17 +25,36 @@ struct DrawWriters
     CscWriter& sparse;
 };
 
+// Only the pooled marker variance is a model parameter worth keeping;
+// unpooled variances are marker-level nuisance draws and are not stored.
 template <VarianceLayout Kind>
-using marker_variance_dtype_t
-    = std::conditional_t<Kind == VarianceLayout::Pooled, double, float>;
+using marker_variance_writer_t = std::conditional_t<
+    Kind == VarianceLayout::Pooled,
+    DenseStream<double>,
+    std::monostate>;
+
 template <VarianceLayout Kind>
-using marker_variance_writer_t = DenseStream<marker_variance_dtype_t<Kind>>;
+auto reserve_marker_variance(
+    DrawWriters writers,
+    std::string_view identifier,
+    std::uint64_t draw_count) -> marker_variance_writer_t<Kind>
+{
+    if constexpr (Kind == VarianceLayout::Pooled)
+    {
+        return writers.dense.reserve<double>(
+            identifier, BinaryShape{1, draw_count});
+    }
+    else
+    {
+        return {};
+    }
+}
 
 template <CoefficientLayout Layout>
 using coefficients_writer_t = std::conditional_t<
     Layout == CoefficientLayout::Dense,
-    DenseStream<float>,
-    CscStream<float>>;
+    DenseStream<double>,
+    CscStream<double>>;
 
 using assignment_writer_t = CscStream<std::uint8_t>;
 
@@ -53,11 +72,11 @@ auto reserve_coefficients(
 {
     if constexpr (Layout == CoefficientLayout::Dense)
     {
-        return writers.dense.reserve<float>(identifier, shape);
+        return writers.dense.reserve<double>(identifier, shape);
     }
     else
     {
-        return writers.sparse.reserve<float>(identifier, shape);
+        return writers.sparse.reserve<double>(identifier, shape);
     }
 }
 

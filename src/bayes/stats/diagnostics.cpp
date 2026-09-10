@@ -6,10 +6,12 @@
 #include <Eigen/Core>
 #include <algorithm>
 #include <cstddef>
-#include <stdexcept>
+#include <fmt/format.h>
+#include <limits>
 #include <unsupported/Eigen/FFT>
 #include <utility>
 
+#include "gelex/exception.h"
 #include "gelex/infra/var.h"
 
 namespace gelex
@@ -20,6 +22,36 @@ using Eigen::Index;
 using Eigen::MatrixXd;
 using Eigen::Ref;
 using Eigen::VectorXd;
+
+namespace
+{
+
+constexpr double nan = std::numeric_limits<double>::quiet_NaN();
+
+auto validate_chains(const Chains& x, Index min_draws) -> void
+{
+    if (x.empty())
+    {
+        throw GelexException("at least 1 chain is required");
+    }
+    const Index n_params = x[0].rows();
+    const Index n_draws = x[0].cols();
+    if (n_draws < min_draws)
+    {
+        throw GelexException(
+            fmt::format(
+                "at least {} draws are required, got {}", min_draws, n_draws));
+    }
+    for (const auto& chain : x)
+    {
+        if (chain.rows() != n_params || chain.cols() != n_draws)
+        {
+            throw GelexException("every chain must have the same shape");
+        }
+    }
+}
+
+}  // namespace
 
 std::pair<VectorXd, VectorXd> compute_chain_variance_stats(const Chains& x)
 {
@@ -81,15 +113,19 @@ Index fft_next_fast_len(Index target)
     }
 }
 
-MatrixXd gelman_rubin(const Chains& samples)
+VectorXd gelman_rubin(const Chains& samples)
 {
+    validate_chains(samples, 2);
     auto [var_within, var_estimator] = compute_chain_variance_stats(samples);
-    MatrixXd rhat = (var_estimator.array() / var_within.array()).sqrt();
+    VectorXd rhat
+        = (var_within.array() > 0.0)
+              .select((var_estimator.array() / var_within.array()).sqrt(), nan);
     return rhat;
 }
 
-MatrixXd split_gelman_rubin(const Chains& samples)
+VectorXd split_gelman_rubin(const Chains& samples)
 {
+    validate_chains(samples, 4);
     Chains new_samples;
     new_samples.reserve(samples.size() * 2);
 
@@ -112,10 +148,12 @@ MatrixXd autocorrelation(const Ref<const MatrixXd>& x, bool bias)
     const Index M2 = 2 * M;
 
     MatrixXd autocorr(n_params, n_draws);
-    Eigen::FFT<double> fft;
 
+#pragma omp parallel for default(none) \
+    shared(x, autocorr, n_params, n_draws, M2, bias)
     for (Index i = 0; i < n_params; ++i)
     {
+        Eigen::FFT<double> fft;
         // Extract and centralize the parameter time series
         VectorXd signal = x.row(i);
         signal.array() -= signal.mean();
@@ -141,8 +179,16 @@ MatrixXd autocorrelation(const Ref<const MatrixXd>& x, bool bias)
                        .array();
         }
 
-        double variance = autocorr_param(0);
-        autocorr_param /= variance;
+        const double variance = autocorr_param(0);
+        if (variance > 0.0)
+        {
+            autocorr_param /= variance;
+        }
+        else
+        {
+            autocorr_param.setConstant(
+                std::numeric_limits<double>::quiet_NaN());
+        }
         autocorr.row(i) = autocorr_param;
     }
 
@@ -184,19 +230,10 @@ Chains autocovariance(const Chains& x, bool bias)
 
 Eigen::VectorXd effect_sample_size(const Chains& x, bool bias)
 {
+    validate_chains(x, 2);
     const auto n_chains = static_cast<Index>(x.size());
-    if (n_chains == 0)
-    {
-        throw std::invalid_argument("At least 1 chain is required");
-    }
-
     const Index n_params = x[0].rows();
     const Index n_draws = x[0].cols();
-
-    if (n_draws < 2)
-    {
-        throw std::invalid_argument("At least 2 draws are required");
-    }
 
     Chains gamma_k_c = autocovariance(x, bias);
 
@@ -247,33 +284,57 @@ Eigen::VectorXd effect_sample_size(const Chains& x, bool bias)
     Eigen::VectorXd Rho_sum = Rho_mono.rowwise().sum();
     Eigen::VectorXd s2 = (2.0 * Rho_sum).array() - 1.0;
     auto total_samples = static_cast<double>(n_chains * n_draws);
-    Eigen::VectorXd n_eff = total_samples / s2.array();
+    Eigen::VectorXd n_eff
+        = (var_estimator.array() > 0.0).select(total_samples / s2.array(), nan);
 
     return n_eff;
 }
 
-std::pair<double, double> hpdi(Ref<VectorXd> samples, double prob)
+Eigen::VectorXd monte_carlo_standard_error(const Chains& x, bool bias)
 {
-    std::sort(samples.begin(), samples.end());
+    const VectorXd n_eff = effect_sample_size(x, bias);
+    const auto n_chains = static_cast<Index>(x.size());
+    const Index n_params = x[0].rows();
+    const Index n_draws = x[0].cols();
+    MatrixXd pooled(n_params, n_chains * n_draws);
+    for (Index c = 0; c < n_chains; ++c)
+    {
+        pooled.middleCols(c * n_draws, n_draws) = x[c];
+    }
+    const VectorXd variance = matvar<1>(pooled, VarNormType::Sample);
+    return (variance.array() / n_eff.array()).sqrt();
+}
+
+std::pair<double, double> hpdi(const Ref<const VectorXd>& samples, double prob)
+{
+    if (samples.size() == 0)
+    {
+        throw GelexException("hpdi requires at least one sample");
+    }
+    if (!(prob > 0.0 && prob <= 1.0))
+    {
+        throw GelexException(
+            fmt::format("hpdi probability must lie in (0, 1], got {}", prob));
+    }
+    VectorXd sorted = samples;
+    std::sort(sorted.begin(), sorted.end());
     if (prob == 1)
     {
-        return {samples(0), samples(samples.size() - 1)};
+        return {sorted(0), sorted(sorted.size() - 1)};
     }
-    Index mass = samples.size();
+    Index mass = sorted.size();
     auto index_length = static_cast<Index>(prob * static_cast<double>(mass));
     Index tails = mass - index_length;
 
-    VectorXd intervals_left = samples.head(tails);
-    VectorXd intervals_right = samples.tail(tails);
-
-    VectorXd intervals = intervals_right - intervals_left;
+    VectorXd intervals
+        = sorted.tail(tails).array() - sorted.head(tails).array();
 
     Index index_start{};
     intervals.minCoeff(&index_start);
 
     Index index_end = index_start + index_length;
 
-    return {samples(index_start), samples(index_end)};
+    return {sorted(index_start), sorted(index_end)};
 }
 
 auto hpdi(const Chains& chains, double prob) -> std::pair<MatrixXd, VectorXd>
@@ -297,7 +358,7 @@ auto hpdi(const Chains& chains, double prob) -> std::pair<MatrixXd, VectorXd>
         intervals(p, 0) = lo;
         intervals(p, 1) = hi;
 
-        // all_draws is sorted after hpdi call
+        std::sort(all_draws.begin(), all_draws.end());
         Index mid = total / 2;
         medians(p) = (total % 2 == 0)
                          ? (all_draws(mid - 1) + all_draws(mid)) / 2.0

@@ -56,16 +56,16 @@ TEST_CASE("Bayes draws serialize state and publish on close", "[bayes][draws]")
     const gelex::DenseReader reader{path};
     REQUIRE(reader.to_map<double>("fixed/coefficients")
                 .isApprox(Eigen::MatrixXd{{1.25}}));
-    REQUIRE(reader.to_map<float>("random/batch/coefficients")
-                .isApprox(Eigen::VectorXf{{2.0F, -3.0F}}));
+    REQUIRE(reader.to_map<double>("random/batch/coefficients")
+                .isApprox(Eigen::VectorXd{{2.0, -3.0}}));
     REQUIRE(reader.to_map<double>("random/batch/variance")
                 .isApprox(Eigen::MatrixXd{{4.0}}));
     REQUIRE(reader.to_map<double>("residual/variance")
                 .isApprox(Eigen::MatrixXd{{5.0}}));
-    REQUIRE(reader.to_map<float>("genetic/A/coefficients")
-                .isApprox(Eigen::VectorXf{{0.5F, 0.0F}}));
-    REQUIRE(reader.to_map<float>("genetic/D/coefficients")
-                .isApprox(Eigen::VectorXf{{0.0F, -0.25F}}));
+    REQUIRE(reader.to_map<double>("genetic/A/coefficients")
+                .isApprox(Eigen::VectorXd{{0.5, 0.0}}));
+    REQUIRE(reader.to_map<double>("genetic/D/coefficients")
+                .isApprox(Eigen::VectorXd{{0.0, -0.25}}));
     REQUIRE(gelex::CscReader{sparse_path}.size() == 0);
 }
 
@@ -98,12 +98,12 @@ TEST_CASE(
     REQUIRE_FALSE(dense.contains("genetic/D/coefficients"));
     REQUIRE(dense.contains("genetic/A/variance"));
     REQUIRE(dense.contains("genetic/joint/probabilities"));
-    REQUIRE(sparse.to_mat<float>("genetic/A/coefficients")
+    REQUIRE(sparse.to_mat<double>("genetic/A/coefficients")
                 .toDense()
-                .isApprox(Eigen::VectorXf{{0.5F, 0.0F}}));
-    REQUIRE(sparse.to_mat<float>("genetic/D/coefficients")
+                .isApprox(Eigen::VectorXd{{0.5, 0.0}}));
+    REQUIRE(sparse.to_mat<double>("genetic/D/coefficients")
                 .toDense()
-                .isApprox(Eigen::VectorXf{{0.0F, -0.25F}}));
+                .isApprox(Eigen::VectorXd{{0.0, -0.25}}));
     REQUIRE(sparse.to_mat<std::uint8_t>("genetic/joint/assignment")
                 .toDense()
                 .cast<double>()
@@ -132,7 +132,7 @@ TEST_CASE(
         draws.close();
     }
     const gelex::DenseReader reader{path};
-    REQUIRE(reader.to_map<float>("genetic/A/coefficients").cols() == 1);
+    REQUIRE(reader.to_map<double>("genetic/A/coefficients").cols() == 1);
     REQUIRE(reader.to_map<double>("residual/variance").cols() == 1);
 }
 

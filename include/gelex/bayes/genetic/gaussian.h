@@ -96,25 +96,17 @@ class GaussianDraws
     }
     auto operator<<(const GaussianState<Kind>& state) -> GaussianDraws&
     {
-        scratch_ = state.coefficients().template cast<float>();
-        coefficients_ << scratch_;
+        coefficients_ << state.coefficients();
         if constexpr (Kind == VarianceLayout::Pooled)
         {
             variances_ << state.variance();
-        }
-        else
-        {
-            scratch_ = state.variance().template cast<float>();
-            variances_ << scratch_;
         }
         return *this;
     }
 
    private:
-    variance_writer_type variances_{};
+    [[no_unique_address]] variance_writer_type variances_;
     coefficients_writer_type coefficients_;
-    // Marker-length float conversion buffer, reused across draws.
-    Eigen::VectorXf scratch_;
 };
 
 template <
@@ -128,12 +120,9 @@ template <
 {
     const auto marker_count
         = static_cast<std::size_t>(state.coefficients().size());
-    const std::size_t variance_size
-        = (Kind == VarianceLayout::Pooled) ? 1 : marker_count;
 
-    auto variances = writers.dense.reserve<marker_variance_dtype_t<Kind>>(
-        fmt::format("{}/{}", prefix, variance_id),
-        BinaryShape{variance_size, draw_count});
+    auto variances = reserve_marker_variance<Kind>(
+        writers, fmt::format("{}/{}", prefix, variance_id), draw_count);
     auto coefficients = reserve_coefficients<Layout>(
         writers,
         fmt::format("{}/{}", prefix, coefficients_id),
@@ -142,6 +131,7 @@ template <
     return GaussianDraws<Kind, Layout>{
         std::move(variances), std::move(coefficients)};
 }
+
 GELEX_NAMESPACE_END(gelex)
 
 #endif  // GELEX_BAYES_GENETIC_GAUSSIAN_H_

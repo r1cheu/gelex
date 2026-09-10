@@ -10,6 +10,7 @@
 #ifndef GELEX_BAYES_STATS_DIAGNOSTICS_H_
 #define GELEX_BAYES_STATS_DIAGNOSTICS_H_
 #include <Eigen/Core>
+#include <utility>
 #include <vector>
 
 namespace gelex
@@ -30,12 +31,13 @@ Eigen::Index fft_next_fast_len(Eigen::Index target);
 /**
  * @brief Computes R-hat over chains of samples. The samples are stored as a
  * vector of matrices where each matrix is (n_params, n_draws) and the vector
- * length is n_chains. It's required that n_chains >= 2 and n_draws >= 2
+ * length is n_chains. It's required that n_chains >= 2 and n_draws >= 2.
+ * Parameters that never move within a chain get NaN.
  *
  * @param samples MCMC samples
- * @return R-hat statistic for each parameter, shape (n_params, 1)
+ * @return R-hat statistic for each parameter
  */
-Eigen::MatrixXd gelman_rubin(const Chains& samples);
+Eigen::VectorXd gelman_rubin(const Chains& samples);
 
 /**
  * @brief Computes split R-hat over chains of samples. The samples are stored as
@@ -43,9 +45,9 @@ Eigen::MatrixXd gelman_rubin(const Chains& samples);
  * length is n_chains. It's required that n_draws >= 4
  *
  * @param samples
- * @return split R-hat statistic for each parameter, shape (n_params, 1)
+ * @return split R-hat statistic for each parameter
  */
-Eigen::MatrixXd split_gelman_rubin(const Chains& samples);
+Eigen::VectorXd split_gelman_rubin(const Chains& samples);
 
 /**
  * @brief Compute the autocorrelation the samples at dimension n_draws
@@ -65,7 +67,8 @@ Chains autocorrelation(const Chains& x, bool bias = true);
 Chains autocovariance(const Chains& x, bool bias = true);
 
 /**
- * @brief Compute the effective sample size of the samples at dimension n_draws
+ * @brief Compute the effective sample size of the samples at dimension n_draws.
+ * Parameters that never move get NaN.
  *
  * @param x MCMC samples, stored as a vector of matrices where each matrix is
  * (n_params, n_draws) and the vector length is n_chains
@@ -74,14 +77,20 @@ Chains autocovariance(const Chains& x, bool bias = true);
 Eigen::VectorXd effect_sample_size(const Chains& x, bool bias = true);
 
 /**
+ * @brief Monte Carlo standard error of the posterior mean: the sample
+ * standard deviation over every draw divided by sqrt(effective sample size).
+ */
+Eigen::VectorXd monte_carlo_standard_error(const Chains& x, bool bias = true);
+
+/**
  * @brief Computes "highest posterior density interval" (HPDI) which is the
- narrowest interval with probability mass prob`` at dimension n_draws
+ * narrowest interval with probability mass `prob`.
  *
- * @param samples MCMC samples as a vector
- * @param prob quantiles of `samples` at `(1 - prob) / 2` and `(1 + prob) / 2`.
+ * @param samples MCMC samples as a vector; left untouched
+ * @param prob probability mass of the interval, in (0, 1]
  */
 std::pair<double, double> hpdi(
-    Eigen::Ref<Eigen::VectorXd> samples,
+    const Eigen::Ref<const Eigen::VectorXd>& samples,
     double prob);
 
 auto hpdi(const Chains& chains, double prob)

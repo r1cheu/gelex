@@ -32,9 +32,9 @@ def read_draws(path: str | os.PathLike[str], *, include_markers: bool = False):
     Every payload becomes a ``posterior`` variable with ``/`` replaced by
     ``.`` (xarray forbids ``/``) and a single chain: ``(1, draws)`` for
     scalar terms and ``(1, draws, rows)`` for vectors. Marker-level payloads
-    (coefficients, assignments, unpooled marker variances) are skipped unless
-    ``include_markers`` is set, because their footprint is ``markers x draws``;
-    the sparse ones are densified from the ``.csc`` companion when included.
+    (coefficients, assignments) are skipped unless ``include_markers`` is
+    set, because their footprint is ``markers x draws``; the sparse ones are
+    densified from the ``.csc`` companion when included.
     """
     import arviz as az
 
