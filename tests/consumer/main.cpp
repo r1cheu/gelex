@@ -15,7 +15,10 @@ auto main() -> int
         genotypes, gelex::GeneticMode::A, gelex::GenotypeMethod::Center);
     const Eigen::MatrixXd expected{{-1.0}, {0.0}, {1.0}};
 
-    return modes.size() == 2 && gelex::fft_next_fast_len(7) == 8
+    const Eigen::VectorXd draws = Eigen::VectorXd::LinSpaced(8, 0.0, 7.0);
+    const auto diagnostics = gelex::diagnose_chain(draws);
+
+    return modes.size() == 2 && diagnostics.mean == 3.5
                    && genotypes.isApprox(expected)
                ? 0
                : 1;

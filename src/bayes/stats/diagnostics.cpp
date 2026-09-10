@@ -5,7 +5,7 @@
 
 #include <Eigen/Core>
 #include <algorithm>
-#include <cstddef>
+#include <cmath>
 #include <fmt/format.h>
 #include <limits>
 #include <unsupported/Eigen/FFT>
@@ -18,9 +18,7 @@ namespace gelex
 {
 
 using Eigen::Index;
-
 using Eigen::MatrixXd;
-using Eigen::Ref;
 using Eigen::VectorXd;
 
 namespace
@@ -28,63 +26,9 @@ namespace
 
 constexpr double nan = std::numeric_limits<double>::quiet_NaN();
 
-auto validate_chains(const Chains& x, Index min_draws) -> void
-{
-    if (x.empty())
-    {
-        throw GelexException("at least 1 chain is required");
-    }
-    const Index n_params = x[0].rows();
-    const Index n_draws = x[0].cols();
-    if (n_draws < min_draws)
-    {
-        throw GelexException(
-            fmt::format(
-                "at least {} draws are required, got {}", min_draws, n_draws));
-    }
-    for (const auto& chain : x)
-    {
-        if (chain.rows() != n_params || chain.cols() != n_draws)
-        {
-            throw GelexException("every chain must have the same shape");
-        }
-    }
-}
-
-}  // namespace
-
-std::pair<VectorXd, VectorXd> compute_chain_variance_stats(const Chains& x)
-{
-    const auto n_chains = static_cast<Index>(x.size());
-    const auto n_draws = x[0].cols();
-    const auto n_params = x[0].rows();
-
-    MatrixXd chain_vars(n_params, n_chains);
-    MatrixXd chain_means(n_params, n_chains);
-
-    for (Index c = 0; c < n_chains; ++c)
-    {
-        chain_means.col(c) = x[c].rowwise().mean();
-        chain_vars.col(c) = matvar<1>(x[c], VarNormType::Sample);
-    }
-
-    VectorXd var_within = chain_vars.rowwise().mean();
-    VectorXd var_estimator = var_within * (n_draws - 1) / n_draws;
-
-    if (n_chains > 1)
-    {
-        MatrixXd var_between = matvar<1>(chain_means, VarNormType::Sample);
-        var_estimator += var_between;
-    }
-    else
-    {
-        var_within = var_estimator;
-    }
-
-    return {var_within, var_estimator};
-}
-
-Index fft_next_fast_len(Index target)
+// Smallest number >= target whose only prime factors are 2, 3 and 5, like
+// scipy.fftpack.next_fast_len.
+auto fft_next_fast_len(Index target) -> Index
 {
     if (target <= 2)
     {
@@ -92,7 +36,7 @@ Index fft_next_fast_len(Index target)
     }
     while (true)
     {
-        size_t m = target;
+        Index m = target;
         while (m % 2 == 0)
         {
             m /= 2;
@@ -113,259 +57,173 @@ Index fft_next_fast_len(Index target)
     }
 }
 
-VectorXd gelman_rubin(const Chains& samples)
+// Biased autocovariance of one series via FFT: lag k is
+// sum_t (x_t - mean)(x_{t+k} - mean) / n.
+auto autocovariance(const ChainsView::ConstColXpr& x) -> VectorXd
 {
-    validate_chains(samples, 2);
-    auto [var_within, var_estimator] = compute_chain_variance_stats(samples);
-    VectorXd rhat
-        = (var_within.array() > 0.0)
-              .select((var_estimator.array() / var_within.array()).sqrt(), nan);
-    return rhat;
+    const Index n_draws = x.size();
+    const Index M2 = 2 * fft_next_fast_len(n_draws);
+
+    VectorXd padding_signal = VectorXd::Zero(M2);
+    padding_signal.head(n_draws) = x.array() - x.mean();
+
+    Eigen::FFT<double> fft;
+    Eigen::VectorXcd freqvec;
+    fft.fwd(freqvec, padding_signal);
+
+    Eigen::VectorXcd freqvec_gram
+        = freqvec.array() * freqvec.conjugate().array();
+
+    Eigen::VectorXcd autocov_cx;
+    fft.inv(autocov_cx, freqvec_gram);
+
+    return autocov_cx.real().head(n_draws) / static_cast<double>(n_draws);
 }
 
-VectorXd split_gelman_rubin(const Chains& samples)
+// Geyer's initial monotone sequence: sum adjacent lag pairs, clip at zero,
+// force monotone decrease, and return 2 * sum - 1 (the integrated
+// autocorrelation time).
+auto geyer_sum(const VectorXd& rho) -> double
 {
-    validate_chains(samples, 4);
-    Chains new_samples;
-    new_samples.reserve(samples.size() * 2);
-
-    const Index n_half = samples[0].cols() / 2;
-
-    for (const auto& chain : samples)
+    const Index n_pairs = rho.size() / 2;
+    double current_min = rho(0) + rho(1);
+    double sum = current_min;
+    for (Index j = 1; j < n_pairs; ++j)
     {
-        new_samples.emplace_back(chain.leftCols(n_half));
-        new_samples.emplace_back(chain.rightCols(n_half));
+        double val = std::max(rho(2 * j) + rho((2 * j) + 1), 0.0);
+        val = std::min(val, current_min);
+        current_min = val;
+        sum += val;
     }
-
-    return gelman_rubin(new_samples);
+    return (2.0 * sum) - 1.0;
 }
 
-MatrixXd autocorrelation(const Ref<const MatrixXd>& x, bool bias)
+// Gelman & Rubin pooled variance over the columns of `chains`: mean
+// within-chain sample variance and the between-corrected total estimate.
+struct PooledVariance
 {
-    const Index n_draws = x.cols();
-    const Index n_params = x.rows();
-    const Index M = fft_next_fast_len(n_draws);
-    const Index M2 = 2 * M;
+    double within;
+    double total;
+};
 
-    MatrixXd autocorr(n_params, n_draws);
-
-#pragma omp parallel for default(none) \
-    shared(x, autocorr, n_params, n_draws, M2, bias)
-    for (Index i = 0; i < n_params; ++i)
+template <typename Derived>
+auto pooled_variance(const Eigen::DenseBase<Derived>& chains) -> PooledVariance
+{
+    const auto n_draws = static_cast<double>(chains.rows());
+    const Eigen::RowVectorXd vars = matvar<0>(chains, VarNormType::Sample);
+    const double within = vars.mean();
+    const double population = within * (n_draws - 1.0) / n_draws;
+    if (chains.cols() == 1)
     {
-        Eigen::FFT<double> fft;
-        // Extract and centralize the parameter time series
-        VectorXd signal = x.row(i);
-        signal.array() -= signal.mean();
-
-        VectorXd padding_signal = VectorXd::Zero(M2);
-        padding_signal.head(n_draws) = signal;
-
-        Eigen::VectorXcd freqvec;
-        fft.fwd(freqvec, padding_signal);
-
-        Eigen::VectorXcd freqvec_gram
-            = freqvec.array() * freqvec.conjugate().array();
-
-        Eigen::VectorXcd autocorr_cx;
-        fft.inv(autocorr_cx, freqvec_gram);
-
-        VectorXd autocorr_param = autocorr_cx.real().head(n_draws);
-
-        if (!bias)
-        {
-            autocorr_param.array()
-                /= VectorXd::LinSpaced(n_draws, static_cast<double>(n_draws), 1)
-                       .array();
-        }
-
-        const double variance = autocorr_param(0);
-        if (variance > 0.0)
-        {
-            autocorr_param /= variance;
-        }
-        else
-        {
-            autocorr_param.setConstant(
-                std::numeric_limits<double>::quiet_NaN());
-        }
-        autocorr.row(i) = autocorr_param;
+        return {population, population};
     }
-
-    return autocorr;
+    const Eigen::RowVectorXd means = chains.colwise().mean();
+    return {within, population + vecvar(means, VarNormType::Sample)};
 }
 
-Chains autocorrelation(const Chains& x, bool bias)
+auto effective_sample_size(const ChainsView& draws) -> double
 {
-    Chains result;
-    result.reserve(x.size());
-    for (const auto& chain : x)
+    const Index n_draws = draws.rows();
+    const Index n_chains = draws.cols();
+
+    VectorXd gamma_mean = VectorXd::Zero(n_draws);
+    for (Index chain = 0; chain < n_chains; ++chain)
     {
-        result.emplace_back(autocorrelation(chain, bias));
+        gamma_mean += autocovariance(draws.col(chain));
     }
-    return result;
+    gamma_mean /= static_cast<double>(n_chains);
+
+    const auto [within, total] = pooled_variance(draws);
+    if (!(total > 0.0))
+    {
+        return nan;
+    }
+    VectorXd rho = 1.0 - (within - gamma_mean.array()) / total;
+    rho(0) = 1.0;
+    return static_cast<double>(n_chains * n_draws) / geyer_sum(rho);
 }
 
-Chains autocovariance(const Chains& x, bool bias)
+auto split_rhat(const ChainsView& draws) -> double
 {
-    Chains result = autocorrelation(x, bias);
-    MatrixXd x_var(x[0].rows(), x.size());
+    const Index n_half = draws.rows() / 2;
+    const Index n_chains = draws.cols();
+    MatrixXd halves(n_half, 2 * n_chains);
+    halves.leftCols(n_chains) = draws.topRows(n_half);
+    halves.rightCols(n_chains) = draws.middleRows(n_half, n_half);
 
-    const auto n_chains = static_cast<Index>(result.size());
-
-    for (Index i = 0; i < n_chains; i++)
-    {
-        x_var.col(i) = matvar<1>(x[i], VarNormType::Population);
-    }
-
-    for (Index i = 0; i < n_chains; ++i)
-    {
-        for (Eigen::Index j = 0; j < result[i].cols(); ++j)
-        {
-            result[i].col(j).array() *= x_var.col(i).array();
-        }
-    }
-    return result;
+    const auto [within, total] = pooled_variance(halves);
+    return within > 0.0 ? std::sqrt(total / within) : nan;
 }
 
-Eigen::VectorXd effect_sample_size(const Chains& x, bool bias)
+auto hpdi_sorted(const VectorXd& sorted, double prob)
+    -> std::pair<double, double>
 {
-    validate_chains(x, 2);
-    const auto n_chains = static_cast<Index>(x.size());
-    const Index n_params = x[0].rows();
-    const Index n_draws = x[0].cols();
-
-    Chains gamma_k_c = autocovariance(x, bias);
-
-    // Compute mean across chains for each parameter and lag
-    Eigen::MatrixXd gamma_k_c_mean = Eigen::MatrixXd::Zero(n_params, n_draws);
-    for (const auto& mat : gamma_k_c)
-    {
-        gamma_k_c_mean += mat;
-    }
-    gamma_k_c_mean /= static_cast<double>(n_chains);
-
-    auto [var_within, var_estimator] = compute_chain_variance_stats(x);
-
-    Eigen::MatrixXd var_within_broadcast
-        = var_within * Eigen::RowVectorXd::Ones(n_draws);
-    Eigen::MatrixXd var_estimator_broadcast
-        = var_estimator * Eigen::RowVectorXd::Ones(n_draws);
-
-    Eigen::MatrixXd rho_k = MatrixXd::Ones(n_params, n_draws);
-    rho_k -= ((var_within_broadcast - gamma_k_c_mean).array()
-              / var_estimator_broadcast.array())
-                 .matrix();
-    rho_k.col(0).setOnes();
-
-    const Index n_pairs = n_draws / 2;
-    Eigen::MatrixXd Rho_k(n_params, n_pairs);
-
-    for (Index j = 0; j < n_pairs; ++j)
-    {
-        Rho_k.col(j) = rho_k.col(2 * j) + rho_k.col((2 * j) + 1);
-    }
-
-    Eigen::MatrixXd Rho_mono = Rho_k;
-
-    for (Index i = 0; i < n_params; ++i)
-    {
-        double current_min = Rho_k(i, 0);
-
-        for (Index j = 1; j < n_pairs; ++j)
-        {
-            double val = std::max(Rho_k(i, j), 0.0);
-            val = std::min(val, current_min);
-            current_min = val;
-            Rho_mono(i, j) = val;
-        }
-    }
-
-    Eigen::VectorXd Rho_sum = Rho_mono.rowwise().sum();
-    Eigen::VectorXd s2 = (2.0 * Rho_sum).array() - 1.0;
-    auto total_samples = static_cast<double>(n_chains * n_draws);
-    Eigen::VectorXd n_eff
-        = (var_estimator.array() > 0.0).select(total_samples / s2.array(), nan);
-
-    return n_eff;
-}
-
-Eigen::VectorXd monte_carlo_standard_error(const Chains& x, bool bias)
-{
-    const VectorXd n_eff = effect_sample_size(x, bias);
-    const auto n_chains = static_cast<Index>(x.size());
-    const Index n_params = x[0].rows();
-    const Index n_draws = x[0].cols();
-    MatrixXd pooled(n_params, n_chains * n_draws);
-    for (Index c = 0; c < n_chains; ++c)
-    {
-        pooled.middleCols(c * n_draws, n_draws) = x[c];
-    }
-    const VectorXd variance = matvar<1>(pooled, VarNormType::Sample);
-    return (variance.array() / n_eff.array()).sqrt();
-}
-
-std::pair<double, double> hpdi(const Ref<const VectorXd>& samples, double prob)
-{
-    if (samples.size() == 0)
-    {
-        throw GelexException("hpdi requires at least one sample");
-    }
-    if (!(prob > 0.0 && prob <= 1.0))
-    {
-        throw GelexException(
-            fmt::format("hpdi probability must lie in (0, 1], got {}", prob));
-    }
-    VectorXd sorted = samples;
-    std::sort(sorted.begin(), sorted.end());
     if (prob == 1)
     {
         return {sorted(0), sorted(sorted.size() - 1)};
     }
-    Index mass = sorted.size();
-    auto index_length = static_cast<Index>(prob * static_cast<double>(mass));
-    Index tails = mass - index_length;
+    const Index mass = sorted.size();
+    const auto index_length
+        = static_cast<Index>(prob * static_cast<double>(mass));
+    const Index tails = mass - index_length;
 
-    VectorXd intervals
+    const VectorXd intervals
         = sorted.tail(tails).array() - sorted.head(tails).array();
 
     Index index_start{};
     intervals.minCoeff(&index_start);
 
-    Index index_end = index_start + index_length;
-
-    return {sorted(index_start), sorted(index_end)};
+    return {sorted(index_start), sorted(index_start + index_length)};
 }
 
-auto hpdi(const Chains& chains, double prob) -> std::pair<MatrixXd, VectorXd>
+auto median_sorted(const VectorXd& sorted) -> double
 {
-    const auto n_chains = static_cast<Index>(chains.size());
-    const Index n_params = chains[0].rows();
-    const Index n_draws = chains[0].cols();
-    const Index total = n_chains * n_draws;
+    const Index n = sorted.size();
+    const Index mid = n / 2;
+    return (n % 2 == 0) ? (sorted(mid - 1) + sorted(mid)) / 2.0 : sorted(mid);
+}
 
-    MatrixXd intervals(n_params, 2);
-    VectorXd medians(n_params);
+}  // namespace
 
-    for (Index p = 0; p < n_params; ++p)
+auto diagnose_chain(const ChainsView& draws, double prob) -> ChainDiagnostics
+{
+    if (draws.rows() < 4 || draws.cols() < 1)
     {
-        VectorXd all_draws(total);
-        for (Index c = 0; c < n_chains; ++c)
-        {
-            all_draws.segment(c * n_draws, n_draws) = chains[c].row(p);
-        }
-        auto [lo, hi] = hpdi(all_draws, prob);
-        intervals(p, 0) = lo;
-        intervals(p, 1) = hi;
-
-        std::sort(all_draws.begin(), all_draws.end());
-        Index mid = total / 2;
-        medians(p) = (total % 2 == 0)
-                         ? (all_draws(mid - 1) + all_draws(mid)) / 2.0
-                         : all_draws(mid);
+        throw GelexException(
+            fmt::format(
+                "diagnose_chain requires at least 4 draws per chain and one "
+                "chain, got ({}, {})",
+                draws.rows(),
+                draws.cols()));
+    }
+    if (prob <= 0.0 || prob > 1.0)
+    {
+        throw GelexException(
+            fmt::format("hpdi probability must lie in (0, 1], got {}", prob));
     }
 
-    return {std::move(intervals), std::move(medians)};
+    VectorXd sorted(draws.size());
+    for (Index chain = 0; chain < draws.cols(); ++chain)
+    {
+        sorted.segment(chain * draws.rows(), draws.rows()) = draws.col(chain);
+    }
+    std::sort(sorted.begin(), sorted.end());
+    const auto [hpdi_lower, hpdi_upper] = hpdi_sorted(sorted, prob);
+
+    const double mean = sorted.mean();
+    const double sd = std::sqrt(vecvar(sorted, VarNormType::Sample));
+    const double ess = effective_sample_size(draws);
+
+    return ChainDiagnostics{
+        .mean = mean,
+        .sd = sd,
+        .median = median_sorted(sorted),
+        .hpdi_lower = hpdi_lower,
+        .hpdi_upper = hpdi_upper,
+        .ess = ess,
+        .mcse = sd / std::sqrt(ess),
+        .split_rhat = split_rhat(draws),
+    };
 }
 
 }  // namespace gelex
