@@ -2,10 +2,14 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include <Eigen/Core>
+#include <algorithm>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <cstddef>
+#include <fstream>
+#include <string>
 #include <type_traits>
+#include <vector>
 
 #include "gelex/bayes/builtin_method.h"
 #include "gelex/bayes/diagnostics.h"
@@ -145,6 +149,61 @@ TEST_CASE(
         REQUIRE(result.total_genetic_variance().heritability.mean > 0.0);
         REQUIRE(result.total_genetic_variance().heritability.mean < 1.0);
     }
+
+    SECTION("entries list every parameter under its payload id")
+    {
+        const auto entries = gelex::diagnostic_entries(result);
+        std::vector<std::string> ids;
+        for (const auto& entry : entries)
+        {
+            ids.push_back(entry.id);
+        }
+        const std::string random_name{model.random()[0].name()};
+        const std::vector<std::string> expected{
+            "fixed/coefficients",
+            "random/" + random_name + "/coefficients",
+            "random/" + random_name + "/coefficients",
+            "random/" + random_name + "/variance",
+            "genetic/A/variance",
+            "genetic/D/variance",
+            "genetic/A/explained_variance",
+            "genetic/A/heritability",
+            "genetic/D/explained_variance",
+            "genetic/D/heritability",
+            "genetic/total/explained_variance",
+            "genetic/total/heritability",
+            "residual/variance"};
+        REQUIRE(ids == expected);
+        REQUIRE(entries[2].index == 1);
+        REQUIRE(
+            entries[2].stats.mean == result.random()[0].coefficients[1].mean);
+        REQUIRE(entries.back().stats.mean == result.residual().mean);
+        REQUIRE(
+            entries[11].stats.mean
+            == result.total_genetic_variance().heritability.mean);
+    }
+
+    SECTION("write_diagnostics emits a header and one row per entry")
+    {
+        const auto entries = gelex::diagnostic_entries(result);
+        const auto summary_path
+            = (fixture.get_test_dir() / "rr.summary").string();
+        gelex::write_diagnostics(summary_path, entries);
+
+        std::ifstream file{summary_path};
+        std::vector<std::string> lines;
+        for (std::string line; std::getline(file, line);)
+        {
+            lines.push_back(line);
+        }
+        REQUIRE(lines.size() == entries.size() + 1);
+        REQUIRE(
+            lines[0]
+            == "id\tindex\tmean\tsd\tmedian\thpdi_lower\thpdi_upper\tess\tmcse"
+               "\tsplit_rhat");
+        REQUIRE(lines[1].starts_with("fixed/coefficients\t0\t2.5\t"));
+        REQUIRE(lines.back().starts_with("residual/variance\t0\t5\t"));
+    }
 }
 
 TEST_CASE(
@@ -178,6 +237,17 @@ TEST_CASE(
     }
 
     const auto result = gelex::read_diagnostics<prior_type>(path, model);
+    const auto entries = gelex::diagnostic_entries(result);
+    REQUIRE(
+        std::ranges::count(
+            entries, "genetic/joint/probabilities", &gelex::DiagnosticEntry::id)
+        == 4);
+    REQUIRE(
+        std::ranges::count(
+            entries,
+            "genetic/D/annotation_coefficients",
+            &gelex::DiagnosticEntry::id)
+        == 2);
     REQUIRE(result.genetic().joint().probabilities.size() == 4);
     REQUIRE(
         result.genetic()

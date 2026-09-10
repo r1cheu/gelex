@@ -79,8 +79,8 @@ TEST_CASE(
     config.random_pve = 0.1;
     config.bfile = bfile.string();
     config.out = output.string();
-    config.iters = 4;
-    config.burn_in = 2;
+    config.iters = 8;
+    config.burn_in = 4;
     config.thin = 1;
     config.threads = 1;
     cli::logging::initialize(config.out);
@@ -91,17 +91,19 @@ TEST_CASE(
     REQUIRE(draws.contains("random/Group/coefficients"));
     REQUIRE(draws.contains("random/random_slopes/coefficients"));
     REQUIRE(draws.to_map<double>("random/Group/coefficients").rows() == 2);
-    REQUIRE(draws.to_map<double>("random/Group/coefficients").cols() == 2);
+    REQUIRE(draws.to_map<double>("random/Group/coefficients").cols() == 4);
     REQUIRE(
         draws.to_map<double>("random/random_slopes/coefficients").rows() == 1);
     REQUIRE(
-        draws.to_map<double>("random/random_slopes/coefficients").cols() == 2);
+        draws.to_map<double>("random/random_slopes/coefficients").cols() == 4);
 
-    REQUIRE(draws.to_map<double>("fixed/coefficients").cols() == 2);
+    REQUIRE(draws.to_map<double>("fixed/coefficients").cols() == 4);
     REQUIRE(draws.to_map<double>("random/Group/variance").allFinite());
     REQUIRE(draws.to_map<double>("random/random_slopes/variance").allFinite());
     REQUIRE(draws.to_map<double>("genetic/A/coefficients").rows() == 3);
-    REQUIRE(draws.to_map<double>("genetic/A/coefficients").cols() == 2);
+    REQUIRE(draws.to_map<double>("genetic/A/coefficients").cols() == 4);
+
+    REQUIRE(std::filesystem::exists(config.out + ".summary"));
 
     const auto luts = gelex::load_snp_luts(config.out + ".snplut");
     REQUIRE(luts.size() == 1);
@@ -146,8 +148,8 @@ TEST_CASE(
     config.mode = gelex::GeneticMode::A | gelex::GeneticMode::D;
     config.method = gelex::BayesMethod::CD;
     config.geno_method = gelex::GenotypeMethod::NOIACenter;
-    config.iters = 4;
-    config.burn_in = 2;
+    config.iters = 8;
+    config.burn_in = 4;
     config.thin = 1;
     config.threads = 1;
     cli::logging::initialize(config.out);
@@ -178,10 +180,10 @@ TEST_CASE(
             == 2);
         REQUIRE(
             draws.to_map<double>("genetic/D/annotation_coefficients").cols()
-            == 2);
+            == 4);
         REQUIRE(
             sparse.info("genetic/joint/assignment").shape
-            == (gelex::BinaryShape{3, 2}));
+            == (gelex::BinaryShape{3, 4}));
 
         const auto luts = gelex::load_snp_luts(config.out + ".snplut");
         REQUIRE(luts.size() == 2);

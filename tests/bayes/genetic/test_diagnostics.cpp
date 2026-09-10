@@ -5,8 +5,11 @@
 #include <array>
 #include <catch2/catch_test_macros.hpp>
 #include <cstddef>
+#include <ranges>
+#include <string>
 #include <type_traits>
 #include <variant>
+#include <vector>
 
 #include "gelex/bayes/genetic/diagnostics_traits.h"
 #include "gelex/bayes/genetic/draw_traits.h"
@@ -140,6 +143,41 @@ auto check_mode_diagnostics(const Spec& spec) -> void
             REQUIRE(result.probabilities[1].mean == state.probabilities()[1]);
         }
     }
+
+    std::vector<gelex::DiagnosticEntry> entries;
+    gelex::append_diagnostic_entries(
+        entries, result, gelex::genetic_id<gelex::GeneticMode::A>);
+    std::vector<std::string> ids;
+    for (const auto& entry : entries)
+    {
+        ids.push_back(entry.id);
+    }
+    std::vector<std::string> expected_ids;
+    if constexpr (pooled)
+    {
+        expected_ids.emplace_back("genetic/A/variance");
+        REQUIRE(entries.front().stats.mean == result.variance.mean);
+    }
+    if constexpr (requires { result.probability.mean; })
+    {
+        expected_ids.emplace_back("genetic/A/probability");
+    }
+    if constexpr (requires { result.probabilities.size(); })
+    {
+        for (const auto& [index, entry] :
+             std::views::enumerate(result.probabilities))
+        {
+            expected_ids.emplace_back("genetic/A/probabilities");
+            REQUIRE(
+                entries[ids.size() - result.probabilities.size() + index].index
+                == index);
+            REQUIRE(
+                entries[ids.size() - result.probabilities.size() + index]
+                    .stats.mean
+                == entry.mean);
+        }
+    }
+    REQUIRE(ids == expected_ids);
 }
 
 }  // namespace
@@ -244,4 +282,19 @@ TEST_CASE(
         0.9);
     REQUIRE(joint_result.probabilities.size() == 4);
     REQUIRE(joint_result.probabilities[3].mean == 0.25);
+
+    std::vector<gelex::DiagnosticEntry> entries;
+    gelex::append_diagnostic_entries(
+        entries, dominance_result, gelex::genetic_id<gelex::GeneticMode::D>);
+    gelex::append_diagnostic_entries(
+        entries, joint_result, gelex::joint_genetic_id);
+    REQUIRE(entries.size() == 7);
+    REQUIRE(entries[0].id == "genetic/D/variance");
+    REQUIRE(entries[1].id == "genetic/D/annotation_coefficients");
+    REQUIRE(entries[2].id == "genetic/D/annotation_coefficients");
+    REQUIRE(entries[2].index == 1);
+    REQUIRE(entries[2].stats.mean == -2.5);
+    REQUIRE(entries[3].id == "genetic/joint/probabilities");
+    REQUIRE(entries[6].id == "genetic/joint/probabilities");
+    REQUIRE(entries[6].index == 3);
 }
