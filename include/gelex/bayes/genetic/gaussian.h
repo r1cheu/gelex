@@ -16,6 +16,7 @@
 #include "gelex/bayes/genetic/detail/marker_variance.h"
 #include "gelex/bayes/genetic/diagnostics_traits.h"
 #include "gelex/bayes/genetic/draw_traits.h"
+#include "gelex/bayes/genetic/marker_effect_traits.h"
 #include "gelex/bayes/genetic/types.h"
 #include "gelex/bayes/parameter.h"
 #include "gelex/bayes/serialization_ids.h"
@@ -162,6 +163,17 @@ auto append_diagnostic_entries(
 {
     append_entry(
         out, fmt::format("{}/{}", prefix, variance_id), diagnostics.variance);
+}
+
+template <VarianceLayout Kind, CoefficientLayout Layout>
+[[nodiscard]] auto make_marker_effects(
+    std::type_identity<GaussianDraws<Kind, Layout>> /*draws*/,
+    DrawReaders readers,
+    std::string_view prefix) -> CoefficientMarkerEffects
+{
+    return {
+        .coefficients = summarize_coefficients<Layout>(
+            readers, fmt::format("{}/{}", prefix, coefficients_id))};
 }
 
 GELEX_NAMESPACE_END(gelex)

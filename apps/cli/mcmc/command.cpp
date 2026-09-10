@@ -17,6 +17,7 @@
 #include "gelex/bayes/genetic/marker_covariate.h"
 #include "gelex/bayes/genetic/marker_covariate_io.h"
 #include "gelex/bayes/genotype/design.h"
+#include "gelex/bayes/marker_effects.h"
 #include "gelex/bayes/mcmc_runner.h"
 #include "gelex/bayes/model.h"
 #include "gelex/bayes/prior.h"
@@ -171,10 +172,15 @@ auto run_mcmc(const cli::McmcConfig& config, const Recipe& recipe) -> int
     const auto entries = gelex::diagnostic_entries(diagnostics);
     gelex::write_diagnostics(config.out + ".summary", entries);
     cli::show_diagnostics(entries);
+    const auto marker_effects
+        = gelex::read_marker_effects<prior_type>(draws_path, model);
+    gelex::write_marker_effects(
+        config.out + ".snpeff", model.genetic(), marker_effects);
 
     cli::printer().block(
         cli::results_saved(
-            config.out, ".draws, .draws.csc, .snplut, .summary, .log"));
+            config.out,
+            ".draws, .draws.csc, .snplut, .summary, .snpeff, .log"));
     return 0;
 }
 

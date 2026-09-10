@@ -249,15 +249,7 @@ class JointSpikeSlabKernel
     [[nodiscard]] static constexpr auto is_active(
         std::size_t class_index) noexcept -> bool
     {
-        assert(class_index < class_count);
-        if constexpr (Mode == GeneticMode::A)
-        {
-            return class_index == 1 || class_index == 3;
-        }
-        else
-        {
-            return class_index == 2 || class_index == 3;
-        }
+        return joint_class_activates(class_index, Mode);
     }
 
     [[nodiscard]] static auto make_dominance_posterior(

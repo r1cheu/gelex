@@ -19,6 +19,7 @@
 #include "gelex/bayes/genetic/detail/marker_variance.h"
 #include "gelex/bayes/genetic/diagnostics_traits.h"
 #include "gelex/bayes/genetic/draw_traits.h"
+#include "gelex/bayes/genetic/marker_effect_traits.h"
 #include "gelex/bayes/genetic/parameter.h"
 #include "gelex/bayes/genetic/types.h"
 #include "gelex/bayes/parameter.h"
@@ -272,6 +273,21 @@ auto append_diagnostic_entries(
         out,
         fmt::format("{}/{}", prefix, probabilities_id),
         diagnostics.probabilities);
+}
+
+template <MixtureWeightUpdate WeightUpdate>
+[[nodiscard]] auto make_marker_effects(
+    std::type_identity<ScaledMixtureDraws<WeightUpdate>> /*draws*/,
+    DrawReaders readers,
+    std::string_view prefix) -> MixtureMarkerEffects
+{
+    return {
+        .coefficients = summarize_coefficients<CoefficientLayout::Sparse>(
+            readers, fmt::format("{}/{}", prefix, coefficients_id)),
+        .pip = inclusion_probability(
+            readers.sparse,
+            fmt::format("{}/{}", prefix, assignment_id),
+            [](std::uint8_t assignment) { return assignment != 0; })};
 }
 
 GELEX_NAMESPACE_END(gelex)

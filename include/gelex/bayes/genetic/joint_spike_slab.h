@@ -18,6 +18,7 @@
 #include "gelex/bayes/genetic/diagnostics_traits.h"
 #include "gelex/bayes/genetic/draw_traits.h"
 #include "gelex/bayes/genetic/gaussian.h"
+#include "gelex/bayes/genetic/marker_effect_traits.h"
 #include "gelex/bayes/genetic/parameter.h"
 #include "gelex/bayes/genetic/types.h"
 #include "gelex/bayes/mode_values.h"
@@ -402,6 +403,78 @@ auto append_diagnostic_entries(
         out,
         fmt::format("{}/{}", prefix, probabilities_id),
         diagnostics.probabilities);
+}
+
+template <CoefficientLayout Layout>
+[[nodiscard]] auto make_marker_effects(
+    std::type_identity<HalfNormalDraws<Layout>> /*draws*/,
+    DrawReaders readers,
+    std::string_view prefix) -> CoefficientMarkerEffects
+{
+    return {
+        .coefficients = summarize_coefficients<Layout>(
+            readers, fmt::format("{}/{}", prefix, coefficients_id))};
+}
+
+// Joint classes: 0 = neither, 1 = additive, 2 = dominance, 3 = both.
+[[nodiscard]] constexpr auto joint_class_activates(
+    std::size_t class_index,
+    GeneticMode mode) noexcept -> bool
+{
+    assert(class_index < JointSpikeSlabSpec<>::class_count);
+    assert(mode == GeneticMode::A || mode == GeneticMode::D);
+    return mode == GeneticMode::A ? (class_index == 1 || class_index == 3)
+                                  : (class_index == 2 || class_index == 3);
+}
+
+struct JointSpikeSlabMarkerEffects
+{
+    HomogeneousModeValues<GeneticMode::A | GeneticMode::D, Eigen::VectorXd>
+        mode_pip;
+    Eigen::VectorXd pip;
+};
+
+template <MixtureWeightUpdate WeightUpdate>
+[[nodiscard]] auto make_marker_effects(
+    std::type_identity<JointSpikeSlabDraws<WeightUpdate>> /*draws*/,
+    DrawReaders readers,
+    std::string_view prefix) -> JointSpikeSlabMarkerEffects
+{
+    const auto identifier = fmt::format("{}/{}", prefix, assignment_id);
+    return {
+        .mode_pip = generate_mode_values<GeneticMode::A | GeneticMode::D>(
+            [&]<GeneticMode Mode>()
+            {
+                return inclusion_probability(
+                    readers.sparse,
+                    identifier,
+                    [](std::uint8_t assignment)
+                    { return joint_class_activates(assignment, Mode); });
+            }),
+        .pip = inclusion_probability(
+            readers.sparse,
+            identifier,
+            [](std::uint8_t assignment) { return assignment != 0; })};
+}
+
+// PIP_<mode>.
+inline auto append_marker_columns(
+    MarkerEffectTable& out,
+    const JointSpikeSlabMarkerEffects& effects,
+    GeneticMode mode) -> void
+{
+    const auto& pip = mode == GeneticMode::A
+                          ? effects.mode_pip.get<GeneticMode::A>()
+                          : effects.mode_pip.get<GeneticMode::D>();
+    out.add(fmt::format("PIP_{}", mode), pip);
+}
+
+// PIP: any effect active.
+inline auto append_marker_columns(
+    MarkerEffectTable& out,
+    const JointSpikeSlabMarkerEffects& effects) -> void
+{
+    out.add("PIP", effects.pip);
 }
 
 GELEX_NAMESPACE_END(gelex)
