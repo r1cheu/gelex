@@ -5,6 +5,8 @@
 #define GELEX_BAYES_SERIALIZATION_IDS_H_
 
 #include <fmt/compile.h>
+#include <fmt/format.h>
+#include <string>
 #include <string_view>
 
 #include "gelex/genetic_mode.h"
@@ -14,6 +16,16 @@ GELEX_NAMESPACE_BEGIN(gelex)
 
 inline constexpr std::string_view fixed_coefficients_id = "fixed/coefficients";
 inline constexpr std::string_view residual_variance_id = "residual/variance";
+
+inline auto random_coefficients_id(std::string_view name) -> std::string
+{
+    return fmt::format("random/{}/coefficients", name);
+}
+
+inline auto random_variance_id(std::string_view name) -> std::string
+{
+    return fmt::format("random/{}/variance", name);
+}
 
 GELEX_NAMESPACE_BEGIN(detail)
 template <GeneticMode Mode>
