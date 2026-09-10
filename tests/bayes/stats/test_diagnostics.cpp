@@ -2,147 +2,135 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include <Eigen/Core>
-#include <Eigen/Dense>
+#include <algorithm>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
-#include <cstdlib>
-#include <iostream>
+#include <cmath>
 #include <random>
 
 #include "gelex/bayes/stats/diagnostics.h"
+#include "gelex/exception.h"
 
 extern "C" const char* __lsan_default_suppressions()
 {
-    return "leak:___kmp_allocate_align\n"  // 屏蔽 OpenMP 的特定分配函数
-           "leak:libomp\n"                 // 屏蔽整个 libomp 库（LLVM OpenMP）
-           "leak:libiomp5";  // 屏蔽整个 libiomp5 库（Intel OpenMP）
+    return "leak:___kmp_allocate_align\n"
+           "leak:libomp\n"
+           "leak:libiomp5";
 }
 
 using Catch::Matchers::WithinAbs;
-using Eigen::RowVectorXd;
 
-TEST_CASE("gelman rubin", "[bayes][stats][diagnostics]")
+TEST_CASE("diagnose chain", "[bayes][stats][diagnostics]")
 {
-    gelex::Chains samples(2);
-    samples[0] = Eigen::RowVectorXd::LinSpaced(10, 0, 9);
-    samples[1] = Eigen::RowVectorXd::LinSpaced(10, 0, 9).array() + 1;
+    std::mt19937_64 rng(7);
+    std::normal_distribution<double> dist(1.0, 2.0);
+    const Eigen::VectorXd draws
+        = Eigen::VectorXd::NullaryExpr(200, [&]() { return dist(rng); });
 
-    double rhat = gelex::gelman_rubin(samples)(0);
-    REQUIRE_THAT(rhat, WithinAbs(0.98, 0.01));
-}
+    const auto result = gelex::diagnose_chain(draws, 0.9);
 
-TEST_CASE("split gelman rubin", "[bayes][stats][diagnostics]")
-{
-    std::mt19937_64 rng(42);
-    std::normal_distribution<double> dist(0, 1);
-
-    gelex::Chains samples(2);
-    samples[0]
-        = Eigen::RowVectorXd::NullaryExpr(10, [&]() { return dist(rng); });
-    samples[1]
-        = Eigen::RowVectorXd::NullaryExpr(10, [&]() { return dist(rng); });
-    gelex::Chains repeated_samples(4);
-
-    for (Eigen::Index i = 0; i < 2; ++i)
+    SECTION("descriptive statistics")
     {
-        repeated_samples[2 * i] = samples[i].leftCols(5);
-        repeated_samples[(2 * i) + 1] = samples[i].rightCols(5);
+        Eigen::VectorXd sorted = draws;
+        std::sort(sorted.begin(), sorted.end());
+        const double sd
+            = std::sqrt((draws.array() - draws.mean()).square().sum() / 199.0);
+        REQUIRE_THAT(result.mean, WithinAbs(draws.mean(), 1e-12));
+        REQUIRE_THAT(result.sd, WithinAbs(sd, 1e-12));
+        REQUIRE_THAT(
+            result.median, WithinAbs((sorted(99) + sorted(100)) / 2.0, 1e-12));
+        REQUIRE_THAT(result.mcse, WithinAbs(sd / std::sqrt(result.ess), 1e-12));
+        REQUIRE(result.hpdi_lower < result.median);
+        REQUIRE(result.median < result.hpdi_upper);
     }
 
-    auto r_hat1 = gelex::gelman_rubin(repeated_samples);
-    auto r_hat2 = gelex::split_gelman_rubin(samples);
-
-    REQUIRE(r_hat1.isApprox(r_hat2, 1e-7));
-}
-
-TEST_CASE("autocorrelation", "[bayes][stats][diagnostics]")
-{
-    gelex::Chains x(1);
-    x[0] = Eigen::RowVectorXd::LinSpaced(10, 0, 9);
-
-    gelex::Chains random_x(1);
-    std::mt19937_64 rng(42);
-    std::normal_distribution<double> dist(0, 1);
-    random_x[0]
-        = Eigen::RowVectorXd::NullaryExpr(20000, [&]() { return dist(rng); });
-
-    SECTION("autocorrelation with unbiased estimator")
+    SECTION("hpdi of a full probability mass is the sample range")
     {
-        Eigen::RowVectorXd expected{
-            {1, 0.78, 0.52, 0.21, -0.13, -0.52, -0.94, -1.4, -1.91, -2.45}};
-
-        auto result = gelex::autocorrelation(x, false);
-        REQUIRE(result[0].isApprox(expected, 0.01));
+        const auto full = gelex::diagnose_chain(draws, 1.0);
+        REQUIRE(full.hpdi_lower == draws.minCoeff());
+        REQUIRE(full.hpdi_upper == draws.maxCoeff());
     }
 
-    SECTION("autocorrelation with biased estimator")
+    SECTION("hpdi is the narrowest interval")
     {
-        Eigen::RowVectorXd expected{
-            {1, 0.78, 0.52, 0.21, -0.13, -0.52, -0.94, -1.4, -1.91, -2.45}};
-
-        RowVectorXd weights = Eigen::VectorXd::LinSpaced(10, 10, 1);
-        expected = expected.array() * weights.array() / 10.0;
-
-        auto result = gelex::autocorrelation(x, true);
-        REQUIRE(result[0].isApprox(expected, 0.01));
+        std::exponential_distribution<double> exponential;
+        const Eigen::VectorXd skewed = Eigen::VectorXd::NullaryExpr(
+            20000, [&]() { return exponential(rng); });
+        const auto tail = gelex::diagnose_chain(skewed, 0.2);
+        REQUIRE_THAT(tail.hpdi_lower, WithinAbs(0.0, 0.01));
+        REQUIRE_THAT(tail.hpdi_upper, WithinAbs(0.22, 0.01));
     }
 
-    SECTION("autocorrelation with random data and unbiased estimator")
+    SECTION("effective sample size of a linear trend over chains")
     {
-        auto result = gelex::autocorrelation(random_x, false);
-        Eigen::RowVectorXd ac = result[0].rightCols(100);
-        REQUIRE(ac.array().abs().maxCoeff() > 0.1);
+        const Eigen::VectorXd trend = Eigen::VectorXd::LinSpaced(1000, 0, 999);
+        const Eigen::MatrixXd chains = trend.reshaped(10, 100);
+        REQUIRE_THAT(gelex::diagnose_chain(chains).ess, WithinAbs(52.64, 0.2));
     }
 
-    SECTION("autocorrelation with random data and biased estimator")
+    SECTION("independent draws have ess near the draw count")
     {
-        auto result = gelex::autocorrelation(random_x, true);
-        Eigen::RowVectorXd ac = result[0].rightCols(100);
-
-        REQUIRE(ac.array().abs().maxCoeff() < 0.01);
-    }
-}
-
-TEST_CASE("autovariance", "[bayes][stats][diagnostics]")
-{
-    gelex::Chains x;
-    x.emplace_back(Eigen::RowVectorXd::LinSpaced(10, 0, 9));
-    auto actual = gelex::autocovariance(x, false);
-
-    Eigen::RowVectorXd expected{
-        {8.25, 6.42, 4.25, 1.75, -1.08, -4.25, -7.75, -11.58, -15.75, -20.25}};
-
-    std::cout << expected << "\n";
-    std::cout << actual[0].row(0) << "\n";
-    REQUIRE(actual[0].row(0).isApprox(expected, 0.01));
-}
-
-TEST_CASE("effective sample size", "[bayes][stats][diagnostics]")
-{
-    gelex::Chains x;
-
-    Eigen::RowVectorXd raw_x = Eigen::RowVectorXd::LinSpaced(1000, 0, 999);
-    for (Eigen::Index i = 0; i < 100; ++i)
-    {
-        x.emplace_back(raw_x.segment(i * 10, 10));
+        REQUIRE(result.ess > 150.0);
+        REQUIRE(result.ess < 260.0);
     }
 
-    auto result = gelex::effect_sample_size(x, false);
-    REQUIRE(std::abs(result(0) - 52.64) < 0.01);
-}
-
-TEST_CASE("hpdi", "[bayes][stats][diagnostics]")
-{
-    Eigen::VectorXd x(20000);
-    std::mt19937_64 rng(42);
-    std::exponential_distribution<double> dist;
-    for (int i = 0; i < x.size(); ++i)
+    SECTION("split rhat of a stationary chain is near one")
     {
-        x(i) = dist(rng);
+        REQUIRE_THAT(result.split_rhat, WithinAbs(1.0, 0.05));
     }
 
-    auto [left, right] = gelex::hpdi(x, 0.2);
-    REQUIRE_THAT(left, WithinAbs(0.0, 0.01));
-    REQUIRE_THAT(right, WithinAbs(0.22, 0.01));
+    SECTION("split rhat detects a shifted chain")
+    {
+        Eigen::MatrixXd chains(200, 2);
+        chains.col(0) = draws;
+        chains.col(1) = draws.array() + 10.0;
+        REQUIRE(gelex::diagnose_chain(chains).split_rhat > 2.0);
+    }
+
+    SECTION("accepts any vector orientation and column layout")
+    {
+        Eigen::MatrixXd mat = Eigen::MatrixXd::Zero(3, 200);
+        mat.row(1) = draws.transpose();
+        const Eigen::RowVectorXd row = draws.transpose();
+
+        const auto from_row = gelex::diagnose_chain(row, 0.9);
+        const auto from_mat_row = gelex::diagnose_chain(mat.row(1), 0.9);
+        const auto from_mat_col
+            = gelex::diagnose_chain(mat.transpose().col(1), 0.9);
+        for (const auto& other : {from_row, from_mat_row, from_mat_col})
+        {
+            REQUIRE(other.mean == result.mean);
+            REQUIRE(other.ess == result.ess);
+            REQUIRE(other.split_rhat == result.split_rhat);
+            REQUIRE(other.hpdi_upper == result.hpdi_upper);
+        }
+    }
+
+    SECTION("constant chain yields NaN diagnostics")
+    {
+        const Eigen::VectorXd constant = Eigen::VectorXd::Constant(10, 3.0);
+        const auto flat = gelex::diagnose_chain(constant);
+        REQUIRE(flat.mean == 3.0);
+        REQUIRE(flat.sd == 0.0);
+        REQUIRE(flat.hpdi_lower == 3.0);
+        REQUIRE(flat.hpdi_upper == 3.0);
+        REQUIRE(std::isnan(flat.ess));
+        REQUIRE(std::isnan(flat.mcse));
+        REQUIRE(std::isnan(flat.split_rhat));
+    }
+
+    SECTION("rejects invalid input")
+    {
+        REQUIRE_THROWS_AS(
+            gelex::diagnose_chain(Eigen::VectorXd{{1.0, 2.0, 3.0}}),
+            gelex::GelexException);
+        REQUIRE_THROWS_AS(
+            gelex::diagnose_chain(Eigen::MatrixXd(10, 0)),
+            gelex::GelexException);
+        REQUIRE_THROWS_AS(
+            gelex::diagnose_chain(draws, 0.0), gelex::GelexException);
+        REQUIRE_THROWS_AS(
+            gelex::diagnose_chain(draws, 1.5), gelex::GelexException);
+    }
 }
