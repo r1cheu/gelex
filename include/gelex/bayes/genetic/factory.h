@@ -18,6 +18,7 @@
 #include "gelex/bayes/genetic/draw_traits.h"
 #include "gelex/bayes/genetic/gaussian.h"
 #include "gelex/bayes/genetic/joint_spike_slab.h"
+#include "gelex/bayes/genetic/marker_effect_traits.h"
 #include "gelex/bayes/genetic/scaled_mixture.h"
 #include "gelex/bayes/genetic/spike_slab.h"
 #include "gelex/bayes/genetic/types.h"
@@ -195,6 +196,77 @@ auto append_diagnostic_entries(
 {
     append_diagnostic_entries(out, diagnostics.mode_values());
     append_diagnostic_entries(out, diagnostics.joint(), joint_genetic_id);
+}
+
+// ---- marker effects
+
+template <GeneticModeSet Modes, typename... Draws>
+[[nodiscard]] auto make_marker_effects(
+    std::type_identity<ModeValues<Modes, Draws...>> /*draws*/,
+    DrawReaders readers)
+{
+    return generate_mode_values<Modes>(
+        [&]<GeneticMode Mode>()
+        {
+            using draws_type =
+                typename ModeValues<Modes, Draws...>::template mode_value_type<
+                    Mode>;
+            return make_marker_effects(
+                std::type_identity<draws_type>{}, readers, genetic_id<Mode>);
+        });
+}
+
+template <typename ModeDraws, typename JointDraws>
+[[nodiscard]] auto make_marker_effects(
+    std::type_identity<JointModeValues<ModeDraws, JointDraws>> /*draws*/,
+    DrawReaders readers)
+{
+    auto mode_effects
+        = make_marker_effects(std::type_identity<ModeDraws>{}, readers);
+    auto joint_effects = make_marker_effects(
+        std::type_identity<JointDraws>{}, readers, joint_genetic_id);
+    return JointModeValues{std::move(mode_effects), std::move(joint_effects)};
+}
+
+template <typename Draws>
+using genetic_marker_effects_t = decltype(make_marker_effects(
+    std::type_identity<Draws>{},
+    std::declval<DrawReaders>()));
+
+template <GeneticModeSet Modes, typename... Effects, typename... Scales>
+auto append_marker_columns(
+    MarkerEffectTable& out,
+    const ModeValues<Modes, Effects...>& effects,
+    const ModeValues<Modes, Scales...>& scales) -> void
+{
+    effects.for_each(
+        [&]<GeneticMode Mode>(const auto& mode_effects)
+        {
+            append_marker_columns(
+                out, mode_effects, Mode, scales.template get<Mode>());
+        });
+}
+
+// Per mode: coefficient columns, then that mode's PIP from the shared
+// assignment; finally the any-effect PIP.
+template <
+    typename ModeEffects,
+    typename JointEffects,
+    GeneticModeSet Modes,
+    typename... Scales>
+auto append_marker_columns(
+    MarkerEffectTable& out,
+    const JointModeValues<ModeEffects, JointEffects>& effects,
+    const ModeValues<Modes, Scales...>& scales) -> void
+{
+    effects.mode_values().for_each(
+        [&]<GeneticMode Mode>(const auto& mode_effects)
+        {
+            append_marker_columns(
+                out, mode_effects, Mode, scales.template get<Mode>());
+            append_marker_columns(out, effects.joint(), Mode);
+        });
+    append_marker_columns(out, effects.joint());
 }
 
 template <typename Draws>

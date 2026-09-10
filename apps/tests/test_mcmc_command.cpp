@@ -104,6 +104,7 @@ TEST_CASE(
     REQUIRE(draws.to_map<double>("genetic/A/coefficients").cols() == 4);
 
     REQUIRE(std::filesystem::exists(config.out + ".summary"));
+    REQUIRE(std::filesystem::exists(config.out + ".snpeff"));
 
     const auto luts = gelex::load_snp_luts(config.out + ".snplut");
     REQUIRE(luts.size() == 1);
