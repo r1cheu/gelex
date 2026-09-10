@@ -5,7 +5,10 @@
 #define GELEX_BAYES_DIAGNOSTICS_H_
 
 #include <Eigen/Core>
+#include <cstddef>
 #include <fmt/format.h>
+#include <span>
+#include <string>
 #include <string_view>
 #include <type_traits>
 #include <utility>
@@ -219,6 +222,61 @@ template <typename GeneticPrior>
         diagnose_variance(explained.total),
         diagnose_residual(dense, prob)};
 }
+
+// Every diagnosed parameter in a fixed order: fixed coefficients, each random
+// effect's coefficients then variance, the genetic family payloads per mode,
+// each mode's explained variance and heritability, the A + D totals when both
+// modes are present, and the residual variance.
+template <typename GeneticPrior>
+[[nodiscard]] auto diagnostic_entries(
+    const BayesDiagnostics<GeneticPrior>& diagnostics)
+    -> std::vector<DiagnosticEntry>
+{
+    constexpr auto modes = BayesDiagnostics<GeneticPrior>::modes;
+    std::vector<DiagnosticEntry> entries;
+    append_entries(
+        entries, std::string{fixed_coefficients_id}, diagnostics.fixed());
+    for (const auto& random : diagnostics.random())
+    {
+        append_entries(
+            entries, random_coefficients_id(random.name), random.coefficients);
+        append_entry(entries, random_variance_id(random.name), random.variance);
+    }
+    append_diagnostic_entries(entries, diagnostics.genetic());
+
+    const auto append_variance =
+        [&](std::string_view prefix, const GeneticVarianceDiagnostics& variance)
+    {
+        append_entry(
+            entries,
+            fmt::format("{}/{}", prefix, explained_variance_id),
+            variance.explained_variance);
+        append_entry(
+            entries,
+            fmt::format("{}/{}", prefix, heritability_id),
+            variance.heritability);
+    };
+    [&]<std::size_t... Index>(std::index_sequence<Index...>)
+    {
+        (append_variance(
+             genetic_id<modes.at(Index)>,
+             diagnostics.template genetic_variance<modes.at(Index)>()),
+         ...);
+    }(std::make_index_sequence<modes.size()>{});
+    if constexpr (modes.size() > 1)
+    {
+        append_variance(total_genetic_id, diagnostics.total_genetic_variance());
+    }
+    append_entry(
+        entries, std::string{residual_variance_id}, diagnostics.residual());
+    return entries;
+}
+
+// Tab-separated table with one row per entry: id, index, mean, sd, median,
+// hpdi_lower, hpdi_upper, ess, mcse, split_rhat.
+auto write_diagnostics(
+    std::string_view path,
+    std::span<const DiagnosticEntry> entries) -> void;
 
 GELEX_NAMESPACE_END(gelex)
 

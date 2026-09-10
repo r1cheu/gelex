@@ -367,6 +367,19 @@ template <CoefficientLayout Layout>
             prob)};
 }
 
+inline auto append_diagnostic_entries(
+    std::vector<DiagnosticEntry>& out,
+    const HalfNormalDiagnostics& diagnostics,
+    std::string_view prefix) -> void
+{
+    append_entry(
+        out, fmt::format("{}/{}", prefix, variance_id), diagnostics.variance);
+    append_entries(
+        out,
+        fmt::format("{}/{}", prefix, annotation_coefficients_id),
+        diagnostics.annotation_coefficients);
+}
+
 template <MixtureWeightUpdate WeightUpdate>
 [[nodiscard]] auto make_diagnostics(
     std::type_identity<JointSpikeSlabDraws<WeightUpdate>> /*draws*/,
@@ -377,6 +390,18 @@ template <MixtureWeightUpdate WeightUpdate>
     return {
         .probabilities = diagnose_probabilities<WeightUpdate>(
             readers, fmt::format("{}/{}", prefix, probabilities_id), prob)};
+}
+
+template <MixtureWeightUpdate WeightUpdate>
+auto append_diagnostic_entries(
+    std::vector<DiagnosticEntry>& out,
+    const JointSpikeSlabDiagnostics<WeightUpdate>& diagnostics,
+    std::string_view prefix) -> void
+{
+    append_entries(
+        out,
+        fmt::format("{}/{}", prefix, probabilities_id),
+        diagnostics.probabilities);
 }
 
 GELEX_NAMESPACE_END(gelex)

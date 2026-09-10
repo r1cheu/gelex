@@ -10,8 +10,10 @@
 #include <optional>
 #include <ranges>
 #include <string>
+#include <type_traits>
 #include <utility>
 
+#include "gelex/bayes/diagnostics.h"
 #include "gelex/bayes/genetic/marker_covariate.h"
 #include "gelex/bayes/genetic/marker_covariate_io.h"
 #include "gelex/bayes/genotype/design.h"
@@ -27,6 +29,7 @@
 #include "cli/common_data.h"
 #include "cli/formatter.h"
 #include "cli/mcmc/data.h"
+#include "cli/mcmc/diagnostics_reporter.h"
 #include "cli/mcmc/progress.h"
 #include "cli/report_printer.h"
 #include "cli/runtime.h"
@@ -35,6 +38,8 @@
 
 namespace
 {
+
+constexpr double hpdi_prob = 0.95;
 
 struct LoadedMcmcModel
 {
@@ -155,11 +160,21 @@ auto run_mcmc(const cli::McmcConfig& config, const Recipe& recipe) -> int
     cli::printer().block(cli::section("MCMC Sampling:"));
     const auto total_iterations = static_cast<std::size_t>(config.iters);
     cli::McmcProgress progress{total_iterations, config.burn_in};
-    runner.run(model, prior, config.out + ".draws", std::ref(progress));
+    const auto draws_path = config.out + ".draws";
+    runner.run(model, prior, draws_path, std::ref(progress));
     progress.finish();
 
+    using prior_type =
+        typename std::remove_cvref_t<decltype(prior)>::genetic_prior_type;
+    const auto diagnostics
+        = gelex::read_diagnostics<prior_type>(draws_path, model, hpdi_prob);
+    const auto entries = gelex::diagnostic_entries(diagnostics);
+    gelex::write_diagnostics(config.out + ".summary", entries);
+    cli::show_diagnostics(entries);
+
     cli::printer().block(
-        cli::results_saved(config.out, ".draws, .draws.csc, .snplut, .log"));
+        cli::results_saved(
+            config.out, ".draws, .draws.csc, .snplut, .summary, .log"));
     return 0;
 }
 

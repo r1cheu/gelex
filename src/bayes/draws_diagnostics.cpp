@@ -6,6 +6,7 @@
 #include <Eigen/Core>
 #include <cstddef>
 #include <fmt/format.h>
+#include <string>
 #include <string_view>
 #include <vector>
 
@@ -66,6 +67,7 @@ auto diagnose_random(
     double prob) -> RandomEffectDiagnostics
 {
     return RandomEffectDiagnostics{
+        .name = std::string{name},
         .coefficients
         = detail::diagnose_rows(draws, random_coefficients_id(name), prob),
         .variance

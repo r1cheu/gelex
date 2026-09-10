@@ -38,6 +38,7 @@ inline const std::string_view genetic_id{
     detail::genetic_id_storage<Mode>.c_str()};
 
 inline constexpr std::string_view joint_genetic_id = "genetic/joint";
+inline constexpr std::string_view total_genetic_id = "genetic/total";
 inline constexpr std::string_view coefficients_id = "coefficients";
 inline constexpr std::string_view variance_id = "variance";
 inline constexpr std::string_view assignment_id = "assignment";
@@ -48,6 +49,8 @@ inline constexpr std::string_view annotation_coefficients_id
 inline constexpr std::string_view fitted_values_id = "fitted_values";
 inline constexpr std::string_view component_explained_variance_id
     = "component_explained_variance";
+inline constexpr std::string_view explained_variance_id = "explained_variance";
+inline constexpr std::string_view heritability_id = "heritability";
 
 GELEX_NAMESPACE_END(gelex)
 

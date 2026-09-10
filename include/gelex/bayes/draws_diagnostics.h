@@ -4,6 +4,7 @@
 #ifndef GELEX_BAYES_DRAWS_DIAGNOSTICS_H_
 #define GELEX_BAYES_DRAWS_DIAGNOSTICS_H_
 
+#include <string>
 #include <string_view>
 #include <vector>
 
@@ -32,6 +33,7 @@ auto diagnose_scalar(
 
 struct RandomEffectDiagnostics
 {
+    std::string name;
     // One entry per level, in payload row order.
     std::vector<ChainDiagnostics> coefficients;
     ChainDiagnostics variance;
