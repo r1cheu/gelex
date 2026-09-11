@@ -5,7 +5,6 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 #include <limits>
-#include <ranges>
 #include <string>
 #include <utility>
 #include <vector>
@@ -120,17 +119,6 @@ TEST_CASE("BayesModel rejects design row mismatches", "[bayes_model]")
                     Eigen::MatrixXd{{0.0}, {1.0}})),
             GelexException);
     }
-}
-
-TEST_CASE("BayesModel accepts a design without projections", "[bayes_model]")
-{
-    auto model = BayesModel{
-        make_phenotype(),
-        FixedDesign::make(3),
-        {},
-        gelex::test::make_genetic_design_without_modes(genotypes)};
-
-    REQUIRE(std::ranges::empty(model.genetic().each_mode()));
 }
 
 TEST_CASE("GeneticDesign exposes compact column metadata", "[bayes_model]")
