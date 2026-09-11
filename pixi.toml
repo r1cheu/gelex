@@ -97,6 +97,7 @@ rattler-build = ">=0.72.2,<0.73"
 
 [feature.package.tasks]
 # --experimental enables `load_from_file` for the VERSION file.
+build-conda-python = "rattler-build build --no-build-id --recipe bindings/recipe.yml --experimental --output-dir /tmp/rb-python-output"
 build-conda = "rattler-build build --no-build-id --recipe apps/recipe.yml --experimental --output-dir /tmp/rb-output"
 
 [feature.docs.dependencies]

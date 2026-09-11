@@ -1,0 +1,64 @@
+# Copyright 2026 RuLei Chen
+# SPDX-License-Identifier: Apache-2.0
+
+context:
+  version: ${{ load_from_file("VERSION") | trim }}
+
+package:
+  name: gelexy
+  version: ${{ version }}
+
+source:
+  path: ..
+
+build:
+  number: 0
+  script:
+    - cmake --preset python ${CMAKE_ARGS} -DCMAKE_INSTALL_PREFIX=$PREFIX
+    - cmake --build --preset python --parallel ${CPU_COUNT}
+    - cmake --install build/python --component python
+
+requirements:
+  build:
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - ninja
+  host:
+    - python 3.14.*
+    - nanobind >=2.13,<3
+    - numpy >=2,<3
+    - scipy
+    - eigen >=5,<6
+    - fmt >=12,<12.2
+    - libblas * *netlib
+    - liblapacke * *netlib
+    - if: linux
+      then: libgomp
+      else: llvm-openmp
+  run:
+    - python
+    - numpy >=2,<3
+    - scipy
+    - arviz >=0.20
+
+tests:
+  - python:
+      imports:
+        - gelexy
+      pip_check: false
+  - script:
+      - python -m pytest bindings/tests -q
+    requirements:
+      run:
+        - pytest >=8,<9
+    files:
+      source:
+        - bindings/tests/
+
+about:
+  homepage: https://github.com/r1cheu/gelex
+  license: Apache-2.0
+  license_file: LICENSE
+  summary: Python bindings for GELEX genotype encoding and posterior draws
+  repository: https://github.com/r1cheu/gelex

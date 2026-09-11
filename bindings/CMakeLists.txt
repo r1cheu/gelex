@@ -28,7 +28,7 @@ nanobind_add_module(_gelex STABLE_ABI NB_STATIC ${BINDING_SOURCES})
 target_include_directories(_gelex PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_link_libraries(_gelex PRIVATE gelex::gelex)
 
-set(GELEX_PY_PACKAGE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/python/gelex)
+set(GELEX_PY_PACKAGE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/python/gelexy)
 set_target_properties(_gelex PROPERTIES LIBRARY_OUTPUT_DIRECTORY
                                         ${GELEX_PY_PACKAGE_DIR})
 
@@ -48,7 +48,7 @@ if(GELEX_PY_GENERATE_STUBS)
 endif()
 
 # Install the package into the environment's site-packages so that a conda
-# package built from this project exposes `import gelex` natively -- no
+# package built from this project exposes `import gelexy` natively -- no
 # PYTHONPATH, no pip. The destination is resolved relative to the install prefix
 # to stay correct inside the pixi-build sandbox.
 execute_process(
@@ -58,12 +58,16 @@ execute_process(
   OUTPUT_STRIP_TRAILING_WHITESPACE
   OUTPUT_VARIABLE GELEX_PY_SITELIB)
 
-install(TARGETS _gelex LIBRARY DESTINATION ${GELEX_PY_SITELIB}/gelex)
-install(FILES ${GELEX_PY_PACKAGE_DIR}/__init__.py
-              ${GELEX_PY_PACKAGE_DIR}/draws.py
-        DESTINATION ${GELEX_PY_SITELIB}/gelex)
+install(TARGETS _gelex LIBRARY DESTINATION ${GELEX_PY_SITELIB}/gelexy
+                               COMPONENT python)
+install(
+  FILES ${GELEX_PY_PACKAGE_DIR}/__init__.py ${GELEX_PY_PACKAGE_DIR}/draws.py
+  DESTINATION ${GELEX_PY_SITELIB}/gelexy
+  COMPONENT python)
 
 if(GELEX_PY_GENERATE_STUBS)
-  install(FILES ${GELEX_PY_PACKAGE_DIR}/_gelex.pyi
-          DESTINATION ${GELEX_PY_SITELIB}/gelex)
+  install(
+    FILES ${GELEX_PY_PACKAGE_DIR}/_gelex.pyi
+    DESTINATION ${GELEX_PY_SITELIB}/gelexy
+    COMPONENT python)
 endif()

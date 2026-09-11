@@ -1,11 +1,17 @@
-import gelex
+import gelexy
 import numpy as np
 import pytest
 
 
+def test_writers_are_not_public():
+    for name in ("DenseWriter", "CscWriter", "DenseStreamF64", "CscStreamF64"):
+        assert not hasattr(gelexy, name)
+        assert name not in gelexy.__all__
+
+
 def test_enums_exposed():
-    assert gelex.GeneticMode.A != gelex.GeneticMode.D
-    assert gelex.GenotypeMethod.Standardize is not None
+    assert gelexy.GeneticMode.A != gelexy.GeneticMode.D
+    assert gelexy.GenotypeMethod.Standardize is not None
 
 
 def test_encode_inplace_uses_gelex_encoding():
@@ -13,10 +19,10 @@ def test_encode_inplace_uses_gelex_encoding():
         np.array([[0.0], [1.0], [2.0]], dtype=np.float64)
     )
 
-    result = gelex.encode_inplace(
+    result = gelexy.encode_inplace(
         genotypes,
-        gelex.GeneticMode.A,
-        gelex.GenotypeMethod.Center,
+        gelexy.GeneticMode.A,
+        gelexy.GenotypeMethod.Center,
     )
 
     assert result is None
@@ -31,8 +37,8 @@ def test_encode_inplace_rejects_incompatible_arrays():
 
     for genotypes in (c_order, float32, readonly):
         with pytest.raises(TypeError):
-            gelex.encode_inplace(
+            gelexy.encode_inplace(
                 genotypes,
-                gelex.GeneticMode.A,
-                gelex.GenotypeMethod.Center,
+                gelexy.GeneticMode.A,
+                gelexy.GenotypeMethod.Center,
             )
