@@ -130,7 +130,8 @@
             "inherits": "base",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Release",
-                "GELEX_BUILD_PYTHON": "ON"
+                "GELEX_BUILD_PYTHON": "ON",
+                "GELEX_NATIVE_OPTIMIZATION": "OFF"
             }
         },
         {

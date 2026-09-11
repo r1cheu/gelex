@@ -1,7 +1,8 @@
 from pathlib import Path
 
 import arviz as az
-import gelex
+import gelexy
+from gelexy import _gelex
 import numpy as np
 import pytest
 import scipy.sparse
@@ -13,27 +14,27 @@ DRAWS = 20
 # coefficients and assignments live in the CSC companion, unpooled marker
 # variances stay dense.
 LAYOUT = [
-    ("fixed/coefficients", gelex.BinaryType.float32, 2),
-    ("random/batch/coefficients", gelex.BinaryType.float32, 3),
-    ("random/batch/variance", gelex.BinaryType.float64, 1),
-    ("genetic/A/variance", gelex.BinaryType.float32, 5),
-    ("genetic/A/probability", gelex.BinaryType.float64, 1),
-    ("residual/variance", gelex.BinaryType.float64, 1),
-    ("genetic/A/explained_variance", gelex.BinaryType.float64, 1),
-    ("genetic/A/heritability", gelex.BinaryType.float64, 1),
-    ("genetic/total/explained_variance", gelex.BinaryType.float64, 1),
-    ("genetic/total/heritability", gelex.BinaryType.float64, 1),
+    ("fixed/coefficients", gelexy.BinaryType.float32, 2),
+    ("random/batch/coefficients", gelexy.BinaryType.float32, 3),
+    ("random/batch/variance", gelexy.BinaryType.float64, 1),
+    ("genetic/A/variance", gelexy.BinaryType.float32, 5),
+    ("genetic/A/probability", gelexy.BinaryType.float64, 1),
+    ("residual/variance", gelexy.BinaryType.float64, 1),
+    ("genetic/A/explained_variance", gelexy.BinaryType.float64, 1),
+    ("genetic/A/heritability", gelexy.BinaryType.float64, 1),
+    ("genetic/total/explained_variance", gelexy.BinaryType.float64, 1),
+    ("genetic/total/heritability", gelexy.BinaryType.float64, 1),
 ]
 
 SPARSE_LAYOUT = [
-    ("genetic/A/coefficients", gelex.BinaryType.float32, 5),
-    ("genetic/A/assignment", gelex.BinaryType.uint8, 5),
+    ("genetic/A/coefficients", gelexy.BinaryType.float32, 5),
+    ("genetic/A/assignment", gelexy.BinaryType.uint8, 5),
 ]
 
 NUMPY_DTYPE = {
-    gelex.BinaryType.float64: np.float64,
-    gelex.BinaryType.float32: np.float32,
-    gelex.BinaryType.uint8: np.uint8,
+    gelexy.BinaryType.float64: np.float64,
+    gelexy.BinaryType.float32: np.float32,
+    gelexy.BinaryType.uint8: np.uint8,
 }
 
 
@@ -46,7 +47,7 @@ def expected(rows: int, dtype) -> np.ndarray:
 @pytest.fixture
 def draws_path(tmp_path: Path) -> Path:
     path = tmp_path / "fixture.draws"
-    with gelex.DenseWriter(str(path)) as writer:
+    with _gelex.DenseWriter(str(path)) as writer:
         payloads = [
             (
                 writer.reserve(name, dtype, (rows, DRAWS)),
@@ -57,7 +58,7 @@ def draws_path(tmp_path: Path) -> Path:
         for draw in range(DRAWS):
             for payload, values in payloads:
                 payload.append(values[:, draw])
-    with gelex.CscWriter(gelex.sparse_draws_path(str(path))) as writer:
+    with _gelex.CscWriter(gelexy.sparse_draws_path(str(path))) as writer:
         payloads = [
             (
                 writer.reserve(name, dtype, (rows, DRAWS)),
@@ -73,9 +74,9 @@ def draws_path(tmp_path: Path) -> Path:
 
 def test_writer_round_trips_through_reader(tmp_path: Path):
     path = tmp_path / "roundtrip.draws"
-    writer = gelex.DenseWriter(str(path))
-    appended = writer.reserve("appended", gelex.BinaryType.float32, (2, 3))
-    whole = writer.reserve("whole", gelex.BinaryType.float64, (2, 3))
+    writer = _gelex.DenseWriter(str(path))
+    appended = writer.reserve("appended", gelexy.BinaryType.float32, (2, 3))
+    whole = writer.reserve("whole", gelexy.BinaryType.float64, (2, 3))
     assert appended.identifier == "appended"
 
     for column in np.array([[1, 2], [3, 4], [5, 6]], dtype=np.float32):
@@ -88,7 +89,7 @@ def test_writer_round_trips_through_reader(tmp_path: Path):
     writer.close()
     assert not writer.is_open
 
-    reader = gelex.DenseReader(str(path))
+    reader = gelexy.DenseReader(str(path))
     np.testing.assert_array_equal(
         reader["appended"], np.array([[1, 3, 5], [2, 4, 6]], dtype=np.float32)
     )
@@ -97,11 +98,11 @@ def test_writer_round_trips_through_reader(tmp_path: Path):
 
 def test_csc_writer_round_trips_through_reader(tmp_path: Path):
     path = tmp_path / "roundtrip.draws.csc"
-    writer = gelex.CscWriter(str(path))
-    values = writer.reserve("values", gelex.BinaryType.float64, (3, 2))
-    classes = writer.reserve("classes", gelex.BinaryType.uint8, (3, 2))
-    assert isinstance(values, gelex.CscStreamF64)
-    assert isinstance(classes, gelex.CscStreamU8)
+    writer = _gelex.CscWriter(str(path))
+    values = writer.reserve("values", gelexy.BinaryType.float64, (3, 2))
+    classes = writer.reserve("classes", gelexy.BinaryType.uint8, (3, 2))
+    assert isinstance(values, _gelex.CscStreamF64)
+    assert isinstance(classes, _gelex.CscStreamU8)
 
     matrix = np.array([[0.0, 2.0], [1.5, 0.0], [0.0, 0.0]])
     for column in matrix.T:
@@ -116,14 +117,14 @@ def test_csc_writer_round_trips_through_reader(tmp_path: Path):
     writer.close()
     assert not writer.is_open
 
-    reader = gelex.CscReader(str(path))
+    reader = gelexy.CscReader(str(path))
     assert len(reader) == 2
     assert reader.keys() == ["classes", "values"]
     assert "values" in reader
     assert "missing" not in reader
     assert reader.nnz("values") == 2
     assert reader.info("classes").shape == (3, 2)
-    assert reader.info("classes").type == gelex.BinaryType.uint8
+    assert reader.info("classes").type == gelexy.BinaryType.uint8
 
     sparse = reader["values"]
     assert scipy.sparse.isspmatrix_csc(sparse)
@@ -137,27 +138,27 @@ def test_csc_writer_round_trips_through_reader(tmp_path: Path):
 
 
 def test_writer_validates_columns(tmp_path: Path):
-    writer = gelex.DenseWriter(str(tmp_path / "invalid.draws"))
-    payload = writer.reserve("p", gelex.BinaryType.float64, (2, 1))
+    writer = _gelex.DenseWriter(str(tmp_path / "invalid.draws"))
+    payload = writer.reserve("p", gelexy.BinaryType.float64, (2, 1))
 
-    assert isinstance(payload, gelex.DenseStreamF64)
+    assert isinstance(payload, _gelex.DenseStreamF64)
     with pytest.raises(TypeError):
         payload.append(np.zeros(2, dtype=np.float32))
     with pytest.raises(Exception, match="expected 2 column values"):
         payload.append(np.zeros(3))
     with pytest.raises(Exception, match="duplicate|already"):
-        writer.reserve("p", gelex.BinaryType.float64, (1, 1))
+        writer.reserve("p", gelexy.BinaryType.float64, (1, 1))
 
     payload.append(np.zeros(2))
     writer.close()
     with pytest.raises(Exception, match="closed"):
         payload.append(np.zeros(2))
     with pytest.raises(Exception, match="closed"):
-        writer.reserve("q", gelex.BinaryType.float64, (1, 1))
+        writer.reserve("q", gelexy.BinaryType.float64, (1, 1))
 
 
 def test_reader_lists_payloads(draws_path: Path):
-    reader = gelex.DenseReader(str(draws_path))
+    reader = gelexy.DenseReader(str(draws_path))
 
     assert len(reader) == len(LAYOUT)
     assert set(reader.keys()) == {name for name, _, _ in LAYOUT}
@@ -167,12 +168,12 @@ def test_reader_lists_payloads(draws_path: Path):
 
     info = reader.info("genetic/A/variance")
     assert info.identifier == "genetic/A/variance"
-    assert info.type == gelex.BinaryType.float32
+    assert info.type == gelexy.BinaryType.float32
     assert info.shape == (5, DRAWS)
 
 
 def test_reader_exposes_readonly_column_major_views(draws_path: Path):
-    reader = gelex.DenseReader(str(draws_path))
+    reader = gelexy.DenseReader(str(draws_path))
 
     for name, dtype, rows in LAYOUT:
         view = reader[name]
@@ -187,12 +188,12 @@ def test_reader_exposes_readonly_column_major_views(draws_path: Path):
 
 
 def test_views_keep_the_reader_alive(draws_path: Path):
-    view = gelex.DenseReader(str(draws_path))["fixed/coefficients"]
+    view = gelexy.DenseReader(str(draws_path))["fixed/coefficients"]
     np.testing.assert_array_equal(view, expected(2, np.float32))
 
 
 def test_read_draws_skips_marker_sized_payloads_by_default(draws_path: Path):
-    idata = gelex.read_draws(draws_path)
+    idata = gelexy.read_draws(draws_path)
     posterior = idata.posterior
 
     assert "genetic.A.coefficients" not in posterior
@@ -210,7 +211,7 @@ def test_read_draws_skips_marker_sized_payloads_by_default(draws_path: Path):
 
 
 def test_read_draws_includes_markers_on_request(draws_path: Path):
-    posterior = gelex.read_draws(draws_path, include_markers=True).posterior
+    posterior = gelexy.read_draws(draws_path, include_markers=True).posterior
 
     assert posterior["genetic.A.coefficients"].shape == (1, DRAWS, 5)
     assert posterior["genetic.A.assignment"].shape == (1, DRAWS, 5)
@@ -227,15 +228,15 @@ def test_read_draws_includes_markers_on_request(draws_path: Path):
 
 def test_read_draws_without_csc_companion(tmp_path: Path):
     path = tmp_path / "dense_only.draws"
-    with gelex.DenseWriter(str(path)) as writer:
+    with _gelex.DenseWriter(str(path)) as writer:
         coefficients = writer.reserve(
-            "genetic/A/coefficients", gelex.BinaryType.float32, (5, 2)
+            "genetic/A/coefficients", gelexy.BinaryType.float32, (5, 2)
         )
-        variance = writer.reserve("residual/variance", gelex.BinaryType.float64, (1, 2))
+        variance = writer.reserve("residual/variance", gelexy.BinaryType.float64, (1, 2))
         for draw in range(2):
             coefficients.append(np.full(5, draw, dtype=np.float32))
             variance.append(np.full(1, draw, dtype=np.float64))
 
-    assert "genetic.A.coefficients" not in gelex.read_draws(path).posterior
-    posterior = gelex.read_draws(path, include_markers=True).posterior
+    assert "genetic.A.coefficients" not in gelexy.read_draws(path).posterior
+    posterior = gelexy.read_draws(path, include_markers=True).posterior
     assert posterior["genetic.A.coefficients"].shape == (1, 2, 5)

@@ -52,6 +52,9 @@ conda install -c conda-forge -c https://prefix.dev/gelex gelex
 See the [installation guide](https://gelex.readthedocs.io/en/latest/installation.html)
 for building from source.
 
+For Python genotype encoding, matrix reading, and ArviZ posterior analysis, see
+the [gelexy bindings](bindings/README.md).
+
 ## Usage
 
 Fitting a BayesR model:
