@@ -98,17 +98,6 @@ GeneticDesign::GeneticDesign(
     }
 }
 
-GeneticDesign::GeneticDesign(
-    gelex::Bed bed,
-    std::optional<MarkerCovariate> marker_covariate,
-    const std::function<void(std::size_t)>& observer)
-    : genotype_{std::make_unique<CompactGenotype>(bed, observer)},
-      marker_metadata_{std::move(bed).bim()},
-      marker_covariate_{std::move(marker_covariate)}
-{
-    validate_marker_covariate(marker_covariate_, genotype_->cols());
-}
-
 GeneticDesign::GeneticDesign(GeneticDesign&&) noexcept = default;
 
 auto GeneticDesign::operator=(GeneticDesign&&) noexcept

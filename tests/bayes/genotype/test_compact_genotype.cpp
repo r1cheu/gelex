@@ -184,12 +184,9 @@ TEST_CASE("GeneticDesign exposes explicit projections", "[bayes][compact]")
     REQUIRE(additive.valid_indices().size() == 1);
     REQUIRE(additive.snp_luts().cols() == 1);
 
-    auto empty = gelex::test::make_genetic_design_without_modes(
-        Eigen::MatrixXd{{0.0}, {1.0}, {2.0}});
     auto joint = gelex::test::make_genetic_design(
         Eigen::MatrixXd{{0.0}, {1.0}, {2.0}}, GeneticMode::A | GeneticMode::D);
 
-    REQUIRE_THROWS_AS(empty.projection(GeneticMode::A), gelex::GelexException);
     REQUIRE_THROWS_AS(single.projection(GeneticMode::D), gelex::GelexException);
     REQUIRE_NOTHROW(joint.projection(GeneticMode::A));
     REQUIRE_NOTHROW(joint.projection(GeneticMode::D));

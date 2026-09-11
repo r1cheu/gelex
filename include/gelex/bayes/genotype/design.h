@@ -37,11 +37,6 @@ class GeneticDesign
         std::optional<MarkerCovariate> marker_covariate = std::nullopt,
         const std::function<void(std::size_t)>& observer = {});
 
-    explicit GeneticDesign(
-        gelex::Bed bed,
-        std::optional<MarkerCovariate> marker_covariate = std::nullopt,
-        const std::function<void(std::size_t)>& observer = {});
-
     GeneticDesign(const GeneticDesign&) = delete;
     auto operator=(const GeneticDesign&) -> GeneticDesign& = delete;
     GeneticDesign(GeneticDesign&&) noexcept;
