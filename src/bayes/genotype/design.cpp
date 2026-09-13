@@ -4,7 +4,6 @@
 #include "gelex/bayes/genotype/design.h"
 
 #include <algorithm>
-#include <array>
 #include <cstddef>
 #include <fmt/format.h>
 #include <functional>
@@ -12,15 +11,14 @@
 #include <memory>
 #include <optional>
 #include <utility>
-#include <vector>
 
+#include "gelex/bayes/genotype/compact_genotype.h"
+#include "gelex/bayes/genotype/projection.h"
 #include "gelex/data/bed.h"
 #include "gelex/data/encode/spec.h"
 #include "gelex/data/genotype_method.h"
 #include "gelex/exception.h"
 #include "gelex/genetic_mode.h"
-
-#include "bayes/genotype/compact_genotype.h"
 
 namespace gelex::bayes
 {
@@ -28,38 +26,22 @@ namespace gelex::bayes
 namespace
 {
 
+// projections_ is indexed by position in all_genetic_modes, which is the enum
+// order; the static_assert pins that assumption.
+static_assert(std::ranges::is_sorted(all_genetic_modes));
+
 [[nodiscard]] auto mode_index(GeneticMode mode) -> std::size_t
 {
-    switch (mode)
-    {
-        case GeneticMode::A:
-            return 0;
-        case GeneticMode::D:
-            return 1;
-    }
-    throw GelexException(fmt::format("Unsupported genetic mode: {}", mode));
-}
-
-[[nodiscard]] auto encoding_specs_from_method(
-    GeneticModeSet modes,
-    GenotypeMethod geno_method) -> std::vector<EncodingSpec>
-{
-    std::vector<EncodingSpec> specs;
-    specs.reserve(modes.size());
-    for (const GeneticMode mode : modes.each())
-    {
-        specs.push_back(gelex::encoding_spec_from_method(mode, geno_method));
-    }
-    return specs;
+    return static_cast<std::size_t>(std::to_underlying(mode));
 }
 
 auto validate_marker_covariate(
-    const std::optional<gelex::bayes::MarkerCovariate>& marker_covariate,
+    const std::optional<MarkerCovariate>& marker_covariate,
     Eigen::Index marker_count) -> void
 {
     if (marker_covariate && marker_covariate->X().cols() != marker_count)
     {
-        throw gelex::GelexException(
+        throw GelexException(
             fmt::format(
                 "GeneticDesign: marker covariate columns {} != marker count {}",
                 marker_covariate->X().cols(),
@@ -80,12 +62,12 @@ GeneticDesign::GeneticDesign(
       marker_covariate_{std::move(marker_covariate)}
 {
     validate_marker_covariate(marker_covariate_, genotype_->cols());
-    const auto projection_specs
-        = encoding_specs_from_method(modes, geno_method);
-    for (const auto& spec : projection_specs)
+    for (const GeneticMode mode : modes.each())
     {
-        projections_.at(mode_index(spec.effect))
-            = GeneticProjection{*genotype_, genotype_->locus_stats_, spec};
+        projections_.at(mode_index(mode))
+            .emplace(
+                *genotype_,
+                gelex::encoding_spec_from_method(mode, geno_method));
     }
     if (contains(GeneticMode::A) && contains(GeneticMode::D))
     {
@@ -98,31 +80,9 @@ GeneticDesign::GeneticDesign(
     }
 }
 
-GeneticDesign::GeneticDesign(GeneticDesign&&) noexcept = default;
-
-auto GeneticDesign::operator=(GeneticDesign&&) noexcept
-    -> GeneticDesign& = default;
-
-GeneticDesign::~GeneticDesign() = default;
-
-auto GeneticDesign::rows() const noexcept -> Eigen::Index
-{
-    return genotype_->rows();
-}
-
-auto GeneticDesign::cols() const noexcept -> Eigen::Index
-{
-    return genotype_->cols();
-}
-
 auto GeneticDesign::contains(GeneticMode mode) const -> bool
 {
     return projections_.at(mode_index(mode)).has_value();
-}
-
-auto GeneticDesign::a1_frequency() const noexcept -> const Eigen::VectorXd&
-{
-    return genotype_->a1_frequency();
 }
 
 auto GeneticDesign::projection(GeneticMode mode) const

@@ -13,7 +13,9 @@
 #include <utility>
 #include <vector>
 
+#include "gelex/bayes/genotype/compact_genotype.h"
 #include "gelex/bayes/genotype/design.h"
+#include "gelex/bayes/genotype/projection.h"
 #include "gelex/data/bed.h"
 #include "gelex/data/dataframe/index.h"
 #include "gelex/data/encode/encoder.h"
@@ -22,7 +24,6 @@
 #include "gelex/exception.h"
 #include "gelex/genetic_mode.h"
 
-#include "bayes/genotype/compact_genotype.h"
 #include "bed_fixture.h"
 #include "compact_genotype_fixture.h"
 
@@ -60,10 +61,17 @@ TEST_CASE(
 
     REQUIRE(genotype.rows() == 3);
     REQUIRE(genotype.cols() == 3);
-    REQUIRE(genotype.size_bytes() == 9);
     REQUIRE(genotype.a1_frequency().isApprox(
         Eigen::VectorXd{{1.0 / 6.0, 2.0 / 3.0, 0.0}}));
     REQUIRE(completed_markers == std::vector<std::size_t>{1, 2, 3});
+
+    // Gathered order is d, b, a; dosage 0/1/2 decodes to codes 3/2/0.
+    REQUIRE(
+        std::vector<std::uint8_t>{
+            genotype.col(0).begin(), genotype.col(0).end()}
+        == std::vector<std::uint8_t>{3, 2, 3});
+    REQUIRE(genotype.locus_stats()[0].nA2A2 == 2);
+    REQUIRE(genotype.locus_stats()[2].n_missing == 3);
 }
 
 TEST_CASE(
@@ -120,9 +128,6 @@ TEST_CASE(
                 Eigen::VectorXd expanded = Eigen::VectorXd::Zero(4);
                 projection.axpy(marker, 1.0, expanded);
                 CHECK(expanded.isApprox(dense.col(marker)));
-                Eigen::VectorXd product(4);
-                projection.multiply(marker, -0.25, product);
-                CHECK(product.isApprox((-0.25) * dense.col(marker)));
                 CHECK(
                     projection.dot(marker, probe)
                     == Catch::Approx(dense.col(marker).dot(probe)));
@@ -242,5 +247,25 @@ TEST_CASE("CompactGenotype supports a single marker BED", "[bayes][compact]")
         gelex::test::make_bed(Eigen::MatrixXd{{0.0}, {1.0}, {2.0}})};
     REQUIRE(genotype.rows() == 3);
     REQUIRE(genotype.cols() == 1);
-    REQUIRE(genotype.size_bytes() == 3);
+}
+
+TEST_CASE(
+    "GeneticProjection is constructible from a genotype and a spec",
+    "[bayes][compact]")
+{
+    const auto spec = gelex::encoding_spec_from_method(
+        GeneticMode::A, GenotypeMethod::Center);
+    const gelex::bayes::CompactGenotype genotype{
+        gelex::test::make_bed(Eigen::MatrixXd{{0.0}, {1.0}, {2.0}})};
+    const gelex::bayes::GeneticProjection additive{genotype, spec};
+
+    Eigen::VectorXd expanded = Eigen::VectorXd::Zero(3);
+    additive.axpy(0, 1.0, expanded);
+    REQUIRE(expanded.isApprox(Eigen::VectorXd{{-1.0, 0.0, 1.0}}));
+
+    const gelex::bayes::CompactGenotype other{
+        gelex::test::make_bed(Eigen::MatrixXd{{0.0}, {1.0}, {2.0}})};
+    REQUIRE_THROWS_AS(
+        additive.col_covariance(gelex::bayes::GeneticProjection{other, spec}),
+        gelex::GelexException);
 }
