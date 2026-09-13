@@ -8,12 +8,12 @@
 #include <ranges>
 #include <span>
 
+#include "gelex/bayes/genotype/compact_genotype.h"
+#include "gelex/bayes/genotype/operations.h"
 #include "gelex/data/encode/detail/encoding.h"
 #include "gelex/data/encode/stats.h"
 #include "gelex/data/encode/types.h"
 #include "gelex/exception.h"
-
-#include "bayes/genotype/compact_genotype.h"
 
 namespace
 {
@@ -34,7 +34,6 @@ namespace gelex::bayes
 
 GeneticProjection::GeneticProjection(
     const CompactGenotype& genotype,
-    std::span<const gelex::LocusStats> locus_stats,
     const gelex::EncodingSpec& encoding_spec)
     : genotype_(&genotype),
       luts_(4, genotype.cols()),
@@ -46,7 +45,8 @@ GeneticProjection::GeneticProjection(
     col_var_.setZero();
     valid_indices_.reserve(static_cast<std::size_t>(genotype.cols()));
 
-    for (const auto [marker, stats] : std::views::enumerate(locus_stats))
+    for (const auto [marker, stats] :
+         std::views::enumerate(genotype.locus_stats()))
     {
         const auto index = static_cast<Eigen::Index>(marker);
         const auto encoding = gelex::LocusEncoding{
@@ -69,30 +69,11 @@ GeneticProjection::GeneticProjection(
     }
 }
 
-auto GeneticProjection::rows() const noexcept -> Eigen::Index
-{
-    return genotype_->rows();
-}
-
-auto GeneticProjection::cols() const noexcept -> Eigen::Index
-{
-    return genotype_->cols();
-}
-
 auto GeneticProjection::dot(
     Eigen::Index marker,
     const Eigen::Ref<const Eigen::VectorXd>& rhs) const noexcept -> double
 {
     return gelex::bayes::dot(genotype_->col(marker), luts_.col(marker), rhs);
-}
-
-auto GeneticProjection::multiply(
-    Eigen::Index marker,
-    double scale,
-    Eigen::Ref<Eigen::VectorXd> target) const noexcept -> void
-{
-    gelex::bayes::multiply(
-        genotype_->col(marker), luts_.col(marker), scale, target);
 }
 
 auto GeneticProjection::axpy(
@@ -104,13 +85,6 @@ auto GeneticProjection::axpy(
         genotype_->col(marker), luts_.col(marker), scale, target);
 }
 
-auto GeneticProjection::axpy(
-    Eigen::Index marker,
-    std::span<const AxpyTarget> targets) const noexcept -> void
-{
-    gelex::bayes::axpy(genotype_->col(marker), luts_.col(marker), targets);
-}
-
 auto GeneticProjection::col_covariance(const GeneticProjection& rhs) const
     -> Eigen::RowVectorXd
 {
@@ -120,17 +94,18 @@ auto GeneticProjection::col_covariance(const GeneticProjection& rhs) const
             "col_covariance: projections must share one compact genotype");
     }
 
+    const auto locus_stats = genotype_->locus_stats();
     Eigen::RowVectorXd covariance(cols());
-    for (Eigen::Index marker = 0; marker < cols(); ++marker)
+    for (const auto [marker, stats] : std::views::enumerate(locus_stats))
     {
-        const auto counts = locus_counts(
-            genotype_->locus_stats_[static_cast<std::size_t>(marker)]);
-        const Eigen::Array4d lhs_values = luts_.col(marker).array();
-        const Eigen::Array4d rhs_values = rhs.luts_.col(marker).array();
+        const auto index = static_cast<Eigen::Index>(marker);
+        const auto counts = locus_counts(stats);
+        const Eigen::Array4d lhs_values = luts_.col(index).array();
+        const Eigen::Array4d rhs_values = rhs.luts_.col(index).array();
         const double sample_size = counts.sum();
         const double lhs_mean = (counts * lhs_values).sum() / sample_size;
         const double rhs_mean = (counts * rhs_values).sum() / sample_size;
-        covariance[marker]
+        covariance[index]
             = ((counts * lhs_values * rhs_values).sum() / sample_size)
               - (lhs_mean * rhs_mean);
     }

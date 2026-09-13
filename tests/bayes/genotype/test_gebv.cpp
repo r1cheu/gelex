@@ -22,7 +22,7 @@ auto encoded_design(const gelex::bayes::GeneticProjection& projection)
         = Eigen::MatrixXd::Zero(projection.rows(), projection.cols());
     for (Eigen::Index marker = 0; marker < projection.cols(); ++marker)
     {
-        projection.multiply(marker, 1.0, design.col(marker));
+        projection.axpy(marker, 1.0, design.col(marker));
     }
     return design;
 }

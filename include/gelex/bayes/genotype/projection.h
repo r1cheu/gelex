@@ -8,23 +8,27 @@
 #include <span>
 #include <vector>
 
-#include "gelex/bayes/genotype/operations.h"
+#include "gelex/bayes/genotype/compact_genotype.h"
 #include "gelex/data/snp_lut.h"
 
 namespace gelex
 {
 struct EncodingSpec;
-struct LocusStats;
 }  // namespace gelex
 
 namespace gelex::bayes
 {
 
-class CompactGenotype;
-
+// A non-owning encoded view of one CompactGenotype: each raw code column is
+// mapped through a per-marker lookup table chosen by the encoding spec. The
+// genotype must outlive every projection built on it.
 class GeneticProjection
 {
    public:
+    GeneticProjection(
+        const CompactGenotype& genotype,
+        const gelex::EncodingSpec& encoding_spec);
+
     GeneticProjection(const GeneticProjection&) = delete;
     auto operator=(const GeneticProjection&) -> GeneticProjection& = delete;
     GeneticProjection(GeneticProjection&&) noexcept = default;
@@ -32,8 +36,15 @@ class GeneticProjection
         -> GeneticProjection& = default;
     ~GeneticProjection() = default;
 
-    [[nodiscard]] auto rows() const noexcept -> Eigen::Index;
-    [[nodiscard]] auto cols() const noexcept -> Eigen::Index;
+    [[nodiscard]] auto rows() const noexcept -> Eigen::Index
+    {
+        return genotype_->rows();
+    }
+
+    [[nodiscard]] auto cols() const noexcept -> Eigen::Index
+    {
+        return genotype_->cols();
+    }
 
     [[nodiscard]] auto xtx_diag() const noexcept -> const Eigen::VectorXd&
     {
@@ -55,18 +66,10 @@ class GeneticProjection
         Eigen::Index marker,
         const Eigen::Ref<const Eigen::VectorXd>& rhs) const noexcept -> double;
 
-    auto multiply(
-        Eigen::Index marker,
-        double scale,
-        Eigen::Ref<Eigen::VectorXd> target) const noexcept -> void;
-
     auto axpy(
         Eigen::Index marker,
         double scale,
         Eigen::Ref<Eigen::VectorXd> target) const noexcept -> void;
-
-    auto axpy(Eigen::Index marker, std::span<const AxpyTarget> targets)
-        const noexcept -> void;
 
     [[nodiscard]] auto snp_luts() const noexcept -> const gelex::SnpLutMatrix&
     {
@@ -77,18 +80,11 @@ class GeneticProjection
         -> Eigen::RowVectorXd;
 
    private:
-    GeneticProjection(
-        const CompactGenotype& genotype,
-        std::span<const gelex::LocusStats> locus_stats,
-        const gelex::EncodingSpec& encoding_spec);
-
     const CompactGenotype* genotype_;
     gelex::SnpLutMatrix luts_;
     Eigen::VectorXd xtx_diag_;
     Eigen::RowVectorXd col_var_;
     std::vector<Eigen::Index> valid_indices_;
-
-    friend class GeneticDesign;
 };
 
 }  // namespace gelex::bayes

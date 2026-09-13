@@ -1,7 +1,7 @@
 // Copyright 2026 RuLei Chen
 // SPDX-License-Identifier: Apache-2.0
 
-#include "bayes/genotype/compact_genotype.h"
+#include "gelex/bayes/genotype/compact_genotype.h"
 
 #include <Eigen/Core>
 #include <cstddef>
@@ -52,27 +52,6 @@ CompactGenotype::CompactGenotype(
         a1_frequency_[marker] = stats.has_nonmissing() ? stats.A1freq() : 0.0;
         notify(observer, static_cast<std::size_t>(marker + 1));
     }
-}
-
-auto CompactGenotype::rows() const noexcept -> Eigen::Index
-{
-    return raw_codes_.rows();
-}
-
-auto CompactGenotype::cols() const noexcept -> Eigen::Index
-{
-    return raw_codes_.cols();
-}
-
-auto CompactGenotype::size_bytes() const noexcept -> std::size_t
-{
-    return static_cast<std::size_t>(raw_codes_.size());
-}
-
-auto CompactGenotype::col(Eigen::Index index) const noexcept
-    -> std::span<const std::uint8_t>
-{
-    return raw_codes_.col(index);
 }
 
 }  // namespace gelex::bayes

@@ -16,6 +16,7 @@
 #include <vector>
 
 #include "gelex/bayes/genetic/marker_covariate.h"
+#include "gelex/bayes/genotype/compact_genotype.h"
 #include "gelex/bayes/genotype/projection.h"
 #include "gelex/data/bed.h"
 #include "gelex/data/dataframe/dataframe.h"
@@ -25,8 +26,8 @@
 namespace gelex::bayes
 {
 
-class CompactGenotype;
-
+// Owns one CompactGenotype together with the projection of every requested
+// genetic mode onto it, plus the marker-aligned metadata and covariates.
 class GeneticDesign
 {
    public:
@@ -39,12 +40,19 @@ class GeneticDesign
 
     GeneticDesign(const GeneticDesign&) = delete;
     auto operator=(const GeneticDesign&) -> GeneticDesign& = delete;
-    GeneticDesign(GeneticDesign&&) noexcept;
-    auto operator=(GeneticDesign&&) noexcept -> GeneticDesign&;
-    ~GeneticDesign();
+    GeneticDesign(GeneticDesign&&) noexcept = default;
+    auto operator=(GeneticDesign&&) noexcept -> GeneticDesign& = default;
+    ~GeneticDesign() = default;
 
-    [[nodiscard]] auto rows() const noexcept -> Eigen::Index;
-    [[nodiscard]] auto cols() const noexcept -> Eigen::Index;
+    [[nodiscard]] auto rows() const noexcept -> Eigen::Index
+    {
+        return genotype_->rows();
+    }
+
+    [[nodiscard]] auto cols() const noexcept -> Eigen::Index
+    {
+        return genotype_->cols();
+    }
 
     [[nodiscard]] auto contains(GeneticMode mode) const -> bool;
 
@@ -55,7 +63,10 @@ class GeneticDesign
                                     { return contains(mode); });
     }
 
-    [[nodiscard]] auto a1_frequency() const noexcept -> const Eigen::VectorXd&;
+    [[nodiscard]] auto a1_frequency() const noexcept -> const Eigen::VectorXd&
+    {
+        return genotype_->a1_frequency();
+    }
 
     [[nodiscard]] auto marker_metadata() const noexcept
         -> const DataFrame<std::string>&
@@ -76,6 +87,8 @@ class GeneticDesign
         -> std::span<const Eigen::Index>;
 
    private:
+    // Heap-allocated so its address survives moves of the design; every
+    // projection below holds a non-owning pointer to it.
     std::unique_ptr<CompactGenotype> genotype_;
     DataFrame<std::string> marker_metadata_;
     std::optional<MarkerCovariate> marker_covariate_;

@@ -17,9 +17,8 @@
 namespace gelex::bayes
 {
 
-class GeneticDesign;
-class GeneticProjection;
-
+// Column-major raw genotype codes (0 = A1A1, 1 = missing, 2 = A1A2, 3 = A2A2)
+// for every marker of a BED file, with per-locus code counts derived from them.
 class CompactGenotype
 {
    public:
@@ -33,9 +32,27 @@ class CompactGenotype
     auto operator=(CompactGenotype&&) noexcept -> CompactGenotype& = default;
     ~CompactGenotype() = default;
 
-    [[nodiscard]] auto rows() const noexcept -> Eigen::Index;
-    [[nodiscard]] auto cols() const noexcept -> Eigen::Index;
-    [[nodiscard]] auto size_bytes() const noexcept -> std::size_t;
+    [[nodiscard]] auto rows() const noexcept -> Eigen::Index
+    {
+        return raw_codes_.rows();
+    }
+
+    [[nodiscard]] auto cols() const noexcept -> Eigen::Index
+    {
+        return raw_codes_.cols();
+    }
+
+    [[nodiscard]] auto col(Eigen::Index marker) const noexcept
+        -> std::span<const std::uint8_t>
+    {
+        return raw_codes_.col(marker);
+    }
+
+    [[nodiscard]] auto locus_stats() const noexcept
+        -> std::span<const gelex::LocusStats>
+    {
+        return locus_stats_;
+    }
 
     [[nodiscard]] auto a1_frequency() const noexcept -> const Eigen::VectorXd&
     {
@@ -46,15 +63,9 @@ class CompactGenotype
     using raw_matrix_type = Eigen::
         Array<std::uint8_t, Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor>;
 
-    [[nodiscard]] auto col(Eigen::Index index) const noexcept
-        -> std::span<const std::uint8_t>;
-
     raw_matrix_type raw_codes_;
     std::vector<gelex::LocusStats> locus_stats_;
     Eigen::VectorXd a1_frequency_;
-
-    friend class GeneticDesign;
-    friend class GeneticProjection;
 };
 
 }  // namespace gelex::bayes

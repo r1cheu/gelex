@@ -47,8 +47,8 @@ auto direct_marker_variance(
     double beta_a,
     double beta_d) -> double
 {
-    Eigen::VectorXd total(design.rows());
-    design.projection(gelex::GeneticMode::A).multiply(marker, beta_a, total);
+    Eigen::VectorXd total = Eigen::VectorXd::Zero(design.rows());
+    design.projection(gelex::GeneticMode::A).axpy(marker, beta_a, total);
     design.projection(gelex::GeneticMode::D).axpy(marker, beta_d, total);
     return gelex::vecvar(total, gelex::VarNormType::Population);
 }
