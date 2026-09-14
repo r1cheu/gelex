@@ -57,7 +57,8 @@ GeneticDesign::GeneticDesign(
     GenotypeMethod geno_method,
     std::optional<MarkerCovariate> marker_covariate,
     const std::function<void(std::size_t)>& observer)
-    : genotype_{std::make_unique<CompactGenotype>(bed, observer)},
+    : genotype_{std::make_unique<CompactGenotype>(
+          make_compact_genotype(bed, observer))},
       marker_metadata_{std::move(bed).bim()},
       marker_covariate_{std::move(marker_covariate)}
 {

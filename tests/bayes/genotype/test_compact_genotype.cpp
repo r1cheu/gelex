@@ -20,6 +20,7 @@
 #include "gelex/data/dataframe/index.h"
 #include "gelex/data/encode/encoder.h"
 #include "gelex/data/encode/spec.h"
+#include "gelex/data/encode/stats.h"
 #include "gelex/data/genotype_method.h"
 #include "gelex/exception.h"
 #include "gelex/genetic_mode.h"
@@ -55,9 +56,9 @@ TEST_CASE(
             source_keys[3], source_keys[1], source_keys[0]}});
 
     std::vector<std::size_t> completed_markers;
-    const gelex::bayes::CompactGenotype genotype{
+    const auto genotype = gelex::bayes::make_compact_genotype(
         bed,
-        [&](std::size_t current) { completed_markers.push_back(current); }};
+        [&](std::size_t current) { completed_markers.push_back(current); });
 
     REQUIRE(genotype.rows() == 3);
     REQUIRE(genotype.cols() == 3);
@@ -243,10 +244,44 @@ TEST_CASE("GeneticDesign retains marker metadata", "[bayes][compact]")
 
 TEST_CASE("CompactGenotype supports a single marker BED", "[bayes][compact]")
 {
-    const gelex::bayes::CompactGenotype genotype{
-        gelex::test::make_bed(Eigen::MatrixXd{{0.0}, {1.0}, {2.0}})};
+    const auto genotype = gelex::bayes::make_compact_genotype(
+        gelex::test::make_bed(Eigen::MatrixXd{{0.0}, {1.0}, {2.0}}));
     REQUIRE(genotype.rows() == 3);
     REQUIRE(genotype.cols() == 1);
+}
+
+TEST_CASE(
+    "CompactGenotype is constructible from its representation",
+    "[bayes][compact]")
+{
+    using raw_matrix_type = gelex::bayes::CompactGenotype::raw_matrix_type;
+    const raw_matrix_type raw_codes{
+        {std::uint8_t{0}, std::uint8_t{2}}, {std::uint8_t{3}, std::uint8_t{1}}};
+    std::vector<gelex::LocusStats> stats(2);
+    stats[0].nA1A1 = 1;
+    stats[0].nA2A2 = 1;
+    stats[1].nA1A2 = 1;
+    stats[1].n_missing = 1;
+
+    const gelex::bayes::CompactGenotype genotype{
+        raw_codes, stats, Eigen::VectorXd{{0.5, 0.5}}};
+    REQUIRE(genotype.rows() == 2);
+    REQUIRE(genotype.cols() == 2);
+    REQUIRE(genotype.locus_stats()[1].n_missing == 1);
+    REQUIRE(
+        std::vector<std::uint8_t>{
+            genotype.col(0).begin(), genotype.col(0).end()}
+        == std::vector<std::uint8_t>{0, 3});
+
+    REQUIRE_THROWS_AS(
+        gelex::bayes::CompactGenotype(raw_codes, stats, Eigen::VectorXd{{0.5}}),
+        gelex::GelexException);
+    REQUIRE_THROWS_AS(
+        gelex::bayes::CompactGenotype(
+            raw_codes,
+            std::vector<gelex::LocusStats>(1),
+            Eigen::VectorXd{{0.5, 0.5}}),
+        gelex::GelexException);
 }
 
 TEST_CASE(
@@ -255,16 +290,16 @@ TEST_CASE(
 {
     const auto spec = gelex::encoding_spec_from_method(
         GeneticMode::A, GenotypeMethod::Center);
-    const gelex::bayes::CompactGenotype genotype{
-        gelex::test::make_bed(Eigen::MatrixXd{{0.0}, {1.0}, {2.0}})};
+    const auto genotype = gelex::bayes::make_compact_genotype(
+        gelex::test::make_bed(Eigen::MatrixXd{{0.0}, {1.0}, {2.0}}));
     const gelex::bayes::GeneticProjection additive{genotype, spec};
 
     Eigen::VectorXd expanded = Eigen::VectorXd::Zero(3);
     additive.axpy(0, 1.0, expanded);
     REQUIRE(expanded.isApprox(Eigen::VectorXd{{-1.0, 0.0, 1.0}}));
 
-    const gelex::bayes::CompactGenotype other{
-        gelex::test::make_bed(Eigen::MatrixXd{{0.0}, {1.0}, {2.0}})};
+    const auto other = gelex::bayes::make_compact_genotype(
+        gelex::test::make_bed(Eigen::MatrixXd{{0.0}, {1.0}, {2.0}}));
     REQUIRE_THROWS_AS(
         additive.col_covariance(gelex::bayes::GeneticProjection{other, spec}),
         gelex::GelexException);

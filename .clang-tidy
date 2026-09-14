@@ -10,6 +10,7 @@ Checks: >
   hicpp-*,
   google-*,
   openmp-*,
+  -modernize-use-nodiscard,
   -readability-magic-numbers,
   -cppcoreguidelines-avoid-magic-numbers,
   -cppcoreguidelines-pro-type-reinterpret-cast
