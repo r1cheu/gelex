@@ -48,6 +48,7 @@ pixi r benchmark             # run benchmarks
 
 - Only comment when the logic is not obvious; names and signatures should carry the intent
 - Use `noexcept` only when the function contract is unconditionally non-throwing
+- `[[nodiscard]]` only where discarding the result is almost certainly a bug: factories and `open_*`/`read_*`/`make_*`, computations whose return value is the sole product, and boolean queries easily mistaken for actions (`empty()`, `contains()`). Never on plain getters.
 - No `using namespace` in headers. Avoid namespace-scope aliases in public headers unless they are part of the API.
 - Trailing return types: `auto f() -> int`
 - Non-owning inputs: `std::span`, `std::string_view`
