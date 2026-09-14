@@ -33,6 +33,12 @@ class GeneticProjection
         gelex::SnpLutMatrix luts,
         std::vector<Eigen::Index> valid_indices);
 
+    // Treats every marker as valid. Suited to lookup tables of a trained
+    // model, whose unusable markers already carry all-zero columns.
+    GeneticProjection(
+        const CompactGenotype& genotype,
+        gelex::SnpLutMatrix luts);
+
     GeneticProjection(const GeneticProjection&) = delete;
     auto operator=(const GeneticProjection&) -> GeneticProjection& = delete;
     GeneticProjection(GeneticProjection&&) noexcept = default;

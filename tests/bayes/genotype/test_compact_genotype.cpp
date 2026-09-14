@@ -264,6 +264,37 @@ TEST_CASE(
     REQUIRE_FALSE(design.contains(GeneticMode::D));
 }
 
+TEST_CASE(
+    "GeneticDesign is rebuilt from saved lookup tables",
+    "[bayes][compact]")
+{
+    const auto bed = gelex::test::make_bed(
+        Eigen::MatrixXd{{0.0, 1.0}, {1.0, 2.0}, {2.0, 0.0}});
+    const auto trained = gelex::bayes::make_genetic_design(
+        bed, GeneticMode::A | GeneticMode::D, GenotypeMethod::NOIACenter);
+    gelex::ModeMap<gelex::SnpLutMatrix> luts;
+    for (const auto mode : trained.each_mode())
+    {
+        luts.emplace(mode, trained.projection(mode).snp_luts());
+    }
+
+    const auto rebuilt = gelex::bayes::make_genetic_design(bed, luts);
+    REQUIRE(rebuilt.rows() == 3);
+    REQUIRE(rebuilt.marker_metadata().rows() == 2);
+    for (const auto mode : gelex::all_genetic_modes)
+    {
+        REQUIRE(rebuilt.projection(mode).snp_luts().isApprox(
+            trained.projection(mode).snp_luts()));
+        REQUIRE(rebuilt.projection(mode).xtx_diag().isApprox(
+            trained.projection(mode).xtx_diag()));
+    }
+
+    REQUIRE_THROWS_AS(
+        gelex::bayes::make_genetic_design(
+            bed, gelex::ModeMap<gelex::SnpLutMatrix>{}),
+        gelex::GelexException);
+}
+
 TEST_CASE("GeneticDesign retains marker metadata", "[bayes][compact]")
 {
     gelex::test::BedFixture fixture;
@@ -403,6 +434,11 @@ TEST_CASE(
             GeneticMode::A, GenotypeMethod::Center));
     REQUIRE(oracle.snp_luts().isApprox(luts));
     REQUIRE(oracle.xtx_diag().isApprox(projection.xtx_diag()));
+
+    const gelex::bayes::GeneticProjection every_marker{genotype, luts};
+    REQUIRE(every_marker.valid_indices().size() == 2);
+    REQUIRE(every_marker.xtx_diag().isApprox(projection.xtx_diag()));
+    REQUIRE(every_marker.col_var().isApprox(projection.col_var()));
 
     REQUIRE_THROWS_AS(
         gelex::bayes::GeneticProjection(

@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <fmt/format.h>
+#include <numeric>
 #include <ranges>
 #include <span>
 #include <utility>
@@ -55,10 +56,24 @@ auto validate_valid_indices(
     }
 }
 
+auto all_markers(Eigen::Index marker_count) -> std::vector<Eigen::Index>
+{
+    std::vector<Eigen::Index> markers(static_cast<std::size_t>(marker_count));
+    std::ranges::iota(markers, Eigen::Index{0});
+    return markers;
+}
+
 }  // namespace
 
 namespace gelex::bayes
 {
+
+GeneticProjection::GeneticProjection(
+    const CompactGenotype& genotype,
+    gelex::SnpLutMatrix luts)
+    : GeneticProjection(genotype, std::move(luts), all_markers(genotype.cols()))
+{
+}
 
 GeneticProjection::GeneticProjection(
     const CompactGenotype& genotype,

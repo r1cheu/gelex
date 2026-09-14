@@ -12,7 +12,7 @@ source:
   path: ..
 
 build:
-  number: 0
+  number: 1
   script:
     - cmake --preset python ${CMAKE_ARGS} -DCMAKE_INSTALL_PREFIX=$PREFIX
     - cmake --build --preset python --parallel ${CPU_COUNT}
