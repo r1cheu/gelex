@@ -10,6 +10,7 @@
 #include "gelex/bayes/builtin_method.h"
 #include "gelex/bayes/draws.h"
 #include "gelex/data/genotype_method.h"
+#include "gelex/data/sample_id_io.h"
 #include "gelex/data/snp_lut_io.h"
 #include "gelex/exception.h"
 #include "gelex/genetic_mode.h"
@@ -22,6 +23,7 @@
 #include "cli/mcmc/command.h"
 #include "cli/mcmc/config.h"
 #include "cli/runtime.h"
+#include "sample_id_fixture.h"
 
 namespace cli
 {
@@ -105,6 +107,9 @@ TEST_CASE(
 
     REQUIRE(std::filesystem::exists(config.out + ".summary"));
     REQUIRE(std::filesystem::exists(config.out + ".snpeff"));
+    const auto samples = gelex::read_sample_ids(config.out);
+    REQUIRE(samples.size() == 5);
+    REQUIRE(samples.contains(gelex::make_sample_id("fam3", "I3")));
 
     const auto luts = gelex::load_snp_luts(config.out + ".snplut");
     REQUIRE(luts.size() == 1);

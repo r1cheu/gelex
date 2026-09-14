@@ -35,7 +35,10 @@ training markers in the same order and allele orientation (check
 import numpy as np
 
 bed = gelexy.open_bed("data")
-bed.gather([("fam1", "id1"), ("fam2", "id2")])  # optional: (FID, IID), keeps this order
+# Optional: reuse the training samples and their order from the .id file
+# (tab-separated FID IID); any list of (FID, IID) pairs works.
+with open("run.id") as f:
+    bed.gather([tuple(line.split()) for line in f])
 design = gelexy.make_genetic_design(bed, gelexy.load_snp_luts("run.snplut"))
 
 sparse = gelexy.CscReader("run.draws.csc")

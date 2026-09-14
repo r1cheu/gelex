@@ -15,7 +15,7 @@
 #include <vector>
 
 #include "gelex/data/dataframe/reader.h"
-#include "gelex/data/sample_id.h"
+#include "gelex/data/sample_id_io.h"
 #include "gelex/exception.h"
 #include "gelex/io/detail/atomic_output_stream.h"
 #include "gelex/io/detail/text_writer.h"
@@ -85,17 +85,6 @@ auto create_index_mapping(
 
 namespace gelex
 {
-auto write_grm_ids(const std::string& prefix, std::span<const std::string> ids)
-    -> void
-{
-    detail::TextWriter writer(prefix + ".id");
-    for (const auto& id : ids)
-    {
-        auto [fid, iid] = split_sample_id(id);
-        writer.write(fmt::format("{}\t{}", fid, iid));
-    }
-}
-
 auto write_grm(
     const std::string& prefix,
     const Eigen::Ref<const Eigen::MatrixXd>& grm,
@@ -137,22 +126,7 @@ auto write_grm(
             static_cast<std::streamsize>((i + 1) * sizeof(float)));
     }
     file.commit();
-    write_grm_ids(prefix, ids);
-}
-
-auto read_grm_ids(const std::string& prefix) -> DataFrameIndex<std::string>
-{
-    const std::string path = prefix + ".id";
-    ReadOptions options;
-    options.delimiter = '\t';
-    options.header = false;
-    options.index_cols = {0, 1};
-    auto index = read_index<std::string>(path, options);
-    if (index.size() == 0)
-    {
-        throw GelexException(fmt::format("{}: no sample IDs found", path));
-    }
-    return index;
+    write_sample_ids(prefix, ids);
 }
 
 auto read_grm(
@@ -160,7 +134,7 @@ auto read_grm(
     const DataFrameIndex<std::string>* index,
     bool normalize) -> Eigen::MatrixXd
 {
-    const auto source_index = read_grm_ids(prefix);
+    const auto source_index = read_sample_ids(prefix);
     const auto source_size = static_cast<Eigen::Index>(source_index.size());
 
     const std::string grm_path = prefix + ".bin";
