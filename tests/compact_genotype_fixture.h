@@ -34,7 +34,8 @@ inline auto make_genetic_design(
     GeneticModeSet modes = GeneticModeSet{GeneticMode::A},
     GenotypeMethod method = GenotypeMethod::Center) -> bayes::GeneticDesign
 {
-    return bayes::GeneticDesign{make_bed(std::move(genotypes)), modes, method};
+    return bayes::make_genetic_design(
+        make_bed(std::move(genotypes)), modes, method);
 }
 
 inline auto make_compact_model(

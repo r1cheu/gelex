@@ -71,12 +71,12 @@ auto load_mcmc_model(const cli::McmcConfig& config) -> LoadedMcmcModel
     auto marker_covariate = load_marker_covariate(config, design_data.bed);
 
     cli::GenotypeProgress progress{total_snps};
-    auto genetic = gelex::bayes::GeneticDesign{
+    auto genetic = gelex::bayes::make_genetic_design(
         std::move(design_data.bed),
         config.mode,
         config.geno_method,
         std::move(marker_covariate),
-        std::ref(progress)};
+        std::ref(progress));
     progress.finish();
     auto model = gelex::BayesModel{
         std::move(base_data.phenotype),

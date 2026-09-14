@@ -4,15 +4,20 @@
 #include "gelex/bayes/genotype/projection.h"
 
 #include <Eigen/Core>
+#include <algorithm>
 #include <cstddef>
+#include <fmt/format.h>
 #include <ranges>
 #include <span>
+#include <utility>
+#include <vector>
 
 #include "gelex/bayes/genotype/compact_genotype.h"
 #include "gelex/bayes/genotype/operations.h"
 #include "gelex/data/encode/detail/encoding.h"
 #include "gelex/data/encode/stats.h"
 #include "gelex/data/encode/types.h"
+#include "gelex/data/snp_lut.h"
 #include "gelex/exception.h"
 
 namespace
@@ -27,6 +32,29 @@ auto locus_counts(const gelex::LocusStats& stats) -> Eigen::Array4d
         static_cast<double>(stats.nA2A2)};
 }
 
+auto validate_valid_indices(
+    std::span<const Eigen::Index> valid_indices,
+    Eigen::Index marker_count) -> void
+{
+    const bool in_range = std::ranges::all_of(
+        valid_indices,
+        [marker_count](Eigen::Index index)
+        { return index >= 0 && index < marker_count; });
+    if (!in_range)
+    {
+        throw gelex::GelexException(
+            fmt::format(
+                "GeneticProjection: valid index out of range for {} markers",
+                marker_count));
+    }
+    if (std::ranges::adjacent_find(valid_indices, std::ranges::greater_equal{})
+        != valid_indices.end())
+    {
+        throw gelex::GelexException(
+            "GeneticProjection: valid indices must be strictly increasing");
+    }
+}
+
 }  // namespace
 
 namespace gelex::bayes
@@ -34,38 +62,37 @@ namespace gelex::bayes
 
 GeneticProjection::GeneticProjection(
     const CompactGenotype& genotype,
-    const gelex::EncodingSpec& encoding_spec)
+    gelex::SnpLutMatrix luts,
+    std::vector<Eigen::Index> valid_indices)
     : genotype_(&genotype),
-      luts_(4, genotype.cols()),
-      xtx_diag_(genotype.cols()),
-      col_var_(genotype.cols())
+      luts_(std::move(luts)),
+      xtx_diag_(Eigen::VectorXd::Zero(genotype.cols())),
+      col_var_(Eigen::RowVectorXd::Zero(genotype.cols())),
+      valid_indices_(std::move(valid_indices))
 {
-    luts_.setZero();
-    xtx_diag_.setZero();
-    col_var_.setZero();
-    valid_indices_.reserve(static_cast<std::size_t>(genotype.cols()));
-
-    for (const auto [marker, stats] :
-         std::views::enumerate(genotype.locus_stats()))
+    if (luts_.cols() != genotype.cols())
     {
-        const auto index = static_cast<Eigen::Index>(marker);
-        const auto encoding = gelex::LocusEncoding{
-            gelex::detail::make_locus_encoding(index, stats, encoding_spec)};
-        if (!encoding.valid)
-        {
-            continue;
-        }
+        throw GelexException(
+            fmt::format(
+                "GeneticProjection: lookup table has {} columns but genotype "
+                "has {} markers",
+                luts_.cols(),
+                genotype.cols()));
+    }
+    validate_valid_indices(valid_indices_, genotype.cols());
 
-        luts_.col(index) = encoding.lut;
-        const Eigen::Array4d counts = locus_counts(stats);
-        const auto values = luts_.col(index);
+    const auto locus_stats = genotype.locus_stats();
+    for (const Eigen::Index marker : valid_indices_)
+    {
+        const Eigen::Array4d counts
+            = locus_counts(locus_stats[static_cast<std::size_t>(marker)]);
+        const auto values = luts_.col(marker);
         const double sum = (counts * values).sum();
         const double sum_sq = (counts * values.square()).sum();
         const double sample_size = counts.sum();
-        xtx_diag_[index] = sum_sq;
-        col_var_[index] = (sum_sq / sample_size)
-                          - ((sum / sample_size) * (sum / sample_size));
-        valid_indices_.push_back(index);
+        xtx_diag_[marker] = sum_sq;
+        col_var_[marker] = (sum_sq / sample_size)
+                           - ((sum / sample_size) * (sum / sample_size));
     }
 }
 
@@ -110,6 +137,31 @@ auto GeneticProjection::col_covariance(const GeneticProjection& rhs) const
               - (lhs_mean * rhs_mean);
     }
     return covariance;
+}
+
+auto make_genetic_projection(
+    const CompactGenotype& genotype,
+    const gelex::EncodingSpec& spec) -> GeneticProjection
+{
+    gelex::SnpLutMatrix luts = gelex::SnpLutMatrix::Zero(4, genotype.cols());
+    std::vector<Eigen::Index> valid_indices;
+    valid_indices.reserve(static_cast<std::size_t>(genotype.cols()));
+
+    for (const auto [marker, stats] :
+         std::views::enumerate(genotype.locus_stats()))
+    {
+        const auto index = static_cast<Eigen::Index>(marker);
+        const auto encoding = gelex::LocusEncoding{
+            gelex::detail::make_locus_encoding(index, stats, spec)};
+        if (!encoding.valid)
+        {
+            continue;
+        }
+        luts.col(index) = encoding.lut;
+        valid_indices.push_back(index);
+    }
+    return GeneticProjection{
+        genotype, std::move(luts), std::move(valid_indices)};
 }
 
 }  // namespace gelex::bayes
