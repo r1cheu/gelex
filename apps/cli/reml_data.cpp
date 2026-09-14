@@ -15,6 +15,7 @@
 #include <vector>
 
 #include "gelex/data/grm/io.h"
+#include "gelex/data/sample_id_io.h"
 #include "gelex/exception.h"
 #include "gelex/freq/design_factory.h"
 
@@ -62,7 +63,7 @@ auto RemlDataLoader::load_indices(
     grm_indices_.reserve(config_.grm.size());
     for (const auto& path : config_.grm)
     {
-        grm_indices_.emplace_back(gelex::read_grm_ids(path));
+        grm_indices_.emplace_back(gelex::read_sample_ids(path));
         indices.push_back(&grm_indices_.back());
         known_names.insert(std::filesystem::path(path).filename().string());
     }
@@ -81,7 +82,7 @@ auto RemlDataLoader::load_indices(
         }
         auto [it, _] = interaction_grms_.emplace(
             operand,
-            InteractionGrm{.index = gelex::read_grm_ids(operand), .K = {}});
+            InteractionGrm{.index = gelex::read_sample_ids(operand), .K = {}});
         indices.push_back(&it->second.index);
     };
 

@@ -14,25 +14,6 @@
 
 using gelex::test::FileFixture;
 
-TEST_CASE("read_grm_ids reads GRM sample IDs", "[data][grm][io]")
-{
-    FileFixture files;
-    auto prefix = files.generate_random_file_path("");
-    std::vector<std::string> ids{
-        gelex::make_sample_id("F1", "I1"),
-        gelex::make_sample_id("F1", "I2"),
-        gelex::make_sample_id("F2", "I3")};
-
-    gelex::write_grm_ids(prefix.string(), ids);
-
-    auto index = gelex::read_grm_ids(prefix.string());
-
-    REQUIRE(index.size() == 3);
-    REQUIRE(index.at(ids[0]) == 0);
-    REQUIRE(index.at(ids[1]) == 1);
-    REQUIRE(index.at(ids[2]) == 2);
-}
-
 TEST_CASE("read_grm reads full GRM matrix", "[data][grm][io]")
 {
     FileFixture files;

@@ -12,6 +12,7 @@
 #include <string>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
 #include "gelex/bayes/diagnostics.h"
 #include "gelex/bayes/genetic/marker_covariate.h"
@@ -23,6 +24,7 @@
 #include "gelex/bayes/prior.h"
 #include "gelex/bayes/sampling_plan.h"
 #include "gelex/data/bed.h"
+#include "gelex/data/sample_id_io.h"
 #include "gelex/data/snp_lut.h"
 #include "gelex/data/snp_lut_io.h"
 #include "gelex/genetic_mode.h"
@@ -46,6 +48,9 @@ struct LoadedMcmcModel
 {
     gelex::BayesModel model;
     std::string phenotype_name;
+    // Design row order, i.e. the samples retained after intersecting the BED
+    // with the phenotype and covariates.
+    std::vector<std::string> sample_ids;
 };
 
 auto load_marker_covariate(const cli::McmcConfig& config, const gelex::Bed& bed)
@@ -69,6 +74,8 @@ auto load_mcmc_model(const cli::McmcConfig& config) -> LoadedMcmcModel
     auto base_data = cli::load_base_data(loader, config.base_data);
     auto design_data = std::move(loader).results();
     auto marker_covariate = load_marker_covariate(config, design_data.bed);
+    const auto sample_keys = design_data.bed.sample_index().keys();
+    std::vector<std::string> sample_ids{sample_keys.begin(), sample_keys.end()};
 
     cli::GenotypeProgress progress{total_snps};
     auto genetic = gelex::bayes::make_genetic_design(
@@ -86,7 +93,8 @@ auto load_mcmc_model(const cli::McmcConfig& config) -> LoadedMcmcModel
 
     return LoadedMcmcModel{
         .model = std::move(model),
-        .phenotype_name = std::move(base_data.pheno_name)};
+        .phenotype_name = std::move(base_data.pheno_name),
+        .sample_ids = std::move(sample_ids)};
 }
 
 auto make_model_summary(const gelex::BayesModel& model) -> cli::Summary
@@ -148,6 +156,7 @@ auto run_mcmc(const cli::McmcConfig& config, const Recipe& recipe) -> int
         snp_luts.emplace(mode, model.genetic().projection(mode).snp_luts());
     }
     gelex::write_snp_luts(config.out + ".snplut", snp_luts);
+    gelex::write_sample_ids(config.out, loaded.sample_ids);
 
     cli::Summary{"Dataset Summary"}
         .field("Trait", "{}", loaded.phenotype_name)
@@ -180,7 +189,7 @@ auto run_mcmc(const cli::McmcConfig& config, const Recipe& recipe) -> int
     cli::printer().block(
         cli::results_saved(
             config.out,
-            ".draws, .draws.csc, .snplut, .summary, .snpeff, .log"));
+            ".draws, .draws.csc, .snplut, .id, .summary, .snpeff, .log"));
     return 0;
 }
 

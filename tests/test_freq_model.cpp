@@ -19,6 +19,7 @@
 #include "gelex/data/grm/io.h"
 #include "gelex/data/reader.h"
 #include "gelex/data/sample_id.h"
+#include "gelex/data/sample_id_io.h"
 #include "gelex/freq/design_factory.h"
 #include "gelex/freq/model.h"
 
@@ -189,7 +190,7 @@ auto make_freq_model(
     for (const auto& path : grm_paths)
     {
         grm_prefixes.push_back(path.string());
-        grm_indices.push_back(read_grm_ids(path.string()));
+        grm_indices.push_back(read_sample_ids(path.string()));
     }
 
     std::vector<const DataFrameIndex<std::string>*> all_indices{

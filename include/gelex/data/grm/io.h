@@ -12,15 +12,10 @@
 
 namespace gelex
 {
-auto write_grm_ids(const std::string& prefix, std::span<const std::string> ids)
-    -> void;
-
 auto write_grm(
     const std::string& prefix,
     const Eigen::Ref<const Eigen::MatrixXd>& grm,
     std::span<const std::string> ids) -> void;
-
-auto read_grm_ids(const std::string& prefix) -> DataFrameIndex<std::string>;
 
 auto read_grm(
     const std::string& prefix,
