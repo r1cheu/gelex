@@ -108,11 +108,11 @@ auto make_model() -> gelex::BayesModel
         = gelex::bayes::read_marker_annotation(annotation_path);
     auto marker_covariate = gelex::bayes::make_marker_covariate(
         std::move(annotation_frame), bed.bim());
-    auto genetic = gelex::bayes::GeneticDesign{
+    auto genetic = gelex::bayes::make_genetic_design(
         std::move(bed),
         mode_ad,
         gelex::GenotypeMethod::NOIACenter,
-        std::move(marker_covariate)};
+        std::move(marker_covariate));
     return gelex::BayesModel{
         Eigen::VectorXd{{1.0, -0.5, 0.25, 2.0, -1.0, 0.75}},
         gelex::FixedDesign::make(genotypes.rows()),

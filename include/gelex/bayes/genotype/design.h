@@ -31,12 +31,19 @@ namespace gelex::bayes
 class GeneticDesign
 {
    public:
+    // Indexed by the underlying value of GeneticMode; empty slots are modes
+    // the design does not model.
+    using projection_array_type = std::
+        array<std::optional<GeneticProjection>, all_genetic_modes.size()>;
+
+    // Every projection must view *genotype, at least one must be present, and
+    // marker_metadata / marker_covariate must span genotype->cols() markers.
+    // Throws GelexException otherwise.
     GeneticDesign(
-        gelex::Bed bed,
-        GeneticModeSet modes,
-        GenotypeMethod geno_method,
-        std::optional<MarkerCovariate> marker_covariate = std::nullopt,
-        const std::function<void(std::size_t)>& observer = {});
+        std::unique_ptr<CompactGenotype> genotype,
+        projection_array_type projections,
+        DataFrame<std::string> marker_metadata,
+        std::optional<MarkerCovariate> marker_covariate = std::nullopt);
 
     GeneticDesign(const GeneticDesign&) = delete;
     auto operator=(const GeneticDesign&) -> GeneticDesign& = delete;
@@ -44,37 +51,30 @@ class GeneticDesign
     auto operator=(GeneticDesign&&) noexcept -> GeneticDesign& = default;
     ~GeneticDesign() = default;
 
-    [[nodiscard]] auto rows() const noexcept -> Eigen::Index
-    {
-        return genotype_->rows();
-    }
+    auto rows() const noexcept -> Eigen::Index { return genotype_->rows(); }
 
-    [[nodiscard]] auto cols() const noexcept -> Eigen::Index
-    {
-        return genotype_->cols();
-    }
+    auto cols() const noexcept -> Eigen::Index { return genotype_->cols(); }
 
     [[nodiscard]] auto contains(GeneticMode mode) const -> bool;
 
-    [[nodiscard]] auto each_mode() const
+    auto each_mode() const
     {
         return all_genetic_modes
                | std::views::filter([this](GeneticMode mode)
                                     { return contains(mode); });
     }
 
-    [[nodiscard]] auto a1_frequency() const noexcept -> const Eigen::VectorXd&
+    auto a1_frequency() const noexcept -> const Eigen::VectorXd&
     {
         return genotype_->a1_frequency();
     }
 
-    [[nodiscard]] auto marker_metadata() const noexcept
-        -> const DataFrame<std::string>&
+    auto marker_metadata() const noexcept -> const DataFrame<std::string>&
     {
         return marker_metadata_;
     }
 
-    [[nodiscard]] auto marker_covariate() const noexcept
+    auto marker_covariate() const noexcept
         -> const std::optional<MarkerCovariate>&
     {
         return marker_covariate_;
@@ -92,10 +92,19 @@ class GeneticDesign
     std::unique_ptr<CompactGenotype> genotype_;
     DataFrame<std::string> marker_metadata_;
     std::optional<MarkerCovariate> marker_covariate_;
-    std::array<std::optional<GeneticProjection>, all_genetic_modes.size()>
-        projections_;
+    projection_array_type projections_;
     std::vector<Eigen::Index> common_valid_indices_;
 };
+
+// Decodes the BED's current sample selection, takes its bim as marker
+// metadata, and projects every mode in modes under geno_method. observer is
+// notified with the number of markers decoded so far.
+[[nodiscard]] auto make_genetic_design(
+    gelex::Bed bed,
+    GeneticModeSet modes,
+    GenotypeMethod geno_method,
+    std::optional<MarkerCovariate> marker_covariate = std::nullopt,
+    const std::function<void(std::size_t)>& observer = {}) -> GeneticDesign;
 
 }  // namespace gelex::bayes
 

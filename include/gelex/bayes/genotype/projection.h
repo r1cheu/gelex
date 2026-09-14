@@ -20,14 +20,18 @@ namespace gelex::bayes
 {
 
 // A non-owning encoded view of one CompactGenotype: each raw code column is
-// mapped through a per-marker lookup table chosen by the encoding spec. The
-// genotype must outlive every projection built on it.
+// mapped through a per-marker lookup table. The genotype must outlive every
+// projection built on it.
 class GeneticProjection
 {
    public:
+    // luts holds one column per marker of genotype; valid_indices lists the
+    // markers whose encoding is usable, in increasing order. Throws
+    // GelexException when either disagrees with the genotype.
     GeneticProjection(
         const CompactGenotype& genotype,
-        const gelex::EncodingSpec& encoding_spec);
+        gelex::SnpLutMatrix luts,
+        std::vector<Eigen::Index> valid_indices);
 
     GeneticProjection(const GeneticProjection&) = delete;
     auto operator=(const GeneticProjection&) -> GeneticProjection& = delete;
@@ -36,30 +40,33 @@ class GeneticProjection
         -> GeneticProjection& = default;
     ~GeneticProjection() = default;
 
-    [[nodiscard]] auto rows() const noexcept -> Eigen::Index
+    auto genotype() const noexcept -> const CompactGenotype&
     {
-        return genotype_->rows();
+        return *genotype_;
     }
 
-    [[nodiscard]] auto cols() const noexcept -> Eigen::Index
-    {
-        return genotype_->cols();
-    }
+    auto rows() const noexcept -> Eigen::Index { return genotype_->rows(); }
 
-    [[nodiscard]] auto xtx_diag() const noexcept -> const Eigen::VectorXd&
+    auto cols() const noexcept -> Eigen::Index { return genotype_->cols(); }
+
+    auto xtx_diag() const noexcept -> const Eigen::VectorXd&
     {
         return xtx_diag_;
     }
 
-    [[nodiscard]] auto col_var() const noexcept -> const Eigen::RowVectorXd&
+    auto col_var() const noexcept -> const Eigen::RowVectorXd&
     {
         return col_var_;
     }
 
-    [[nodiscard]] auto valid_indices() const noexcept
-        -> std::span<const Eigen::Index>
+    auto valid_indices() const noexcept -> std::span<const Eigen::Index>
     {
         return valid_indices_;
+    }
+
+    auto snp_luts() const noexcept -> const gelex::SnpLutMatrix&
+    {
+        return luts_;
     }
 
     [[nodiscard]] auto dot(
@@ -71,11 +78,6 @@ class GeneticProjection
         double scale,
         Eigen::Ref<Eigen::VectorXd> target) const noexcept -> void;
 
-    [[nodiscard]] auto snp_luts() const noexcept -> const gelex::SnpLutMatrix&
-    {
-        return luts_;
-    }
-
     [[nodiscard]] auto col_covariance(const GeneticProjection& rhs) const
         -> Eigen::RowVectorXd;
 
@@ -86,6 +88,12 @@ class GeneticProjection
     Eigen::RowVectorXd col_var_;
     std::vector<Eigen::Index> valid_indices_;
 };
+
+// Encodes every marker of genotype under spec; markers the spec cannot encode
+// get an all-zero lookup table and are left out of valid_indices().
+[[nodiscard]] auto make_genetic_projection(
+    const CompactGenotype& genotype,
+    const gelex::EncodingSpec& spec) -> GeneticProjection;
 
 }  // namespace gelex::bayes
 

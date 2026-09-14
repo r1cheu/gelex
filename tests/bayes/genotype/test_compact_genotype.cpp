@@ -8,6 +8,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <limits>
+#include <memory>
 #include <string>
 #include <type_traits>
 #include <utility>
@@ -22,6 +23,7 @@
 #include "gelex/data/encode/spec.h"
 #include "gelex/data/encode/stats.h"
 #include "gelex/data/genotype_method.h"
+#include "gelex/data/snp_lut.h"
 #include "gelex/exception.h"
 #include "gelex/genetic_mode.h"
 
@@ -100,10 +102,10 @@ TEST_CASE(
           GenotypeMethod::NOIAStandardize,
           GenotypeMethod::NOIACenter})
     {
-        auto genetic = gelex::bayes::GeneticDesign{
+        auto genetic = gelex::bayes::make_genetic_design(
             gelex::open_bed(prefix.string()),
             GeneticMode::A | GeneticMode::D,
-            method};
+            method);
         const auto oracle_bed = gelex::open_bed(prefix.string());
         const gelex::LocusEncoder encoder{oracle_bed};
 
@@ -198,6 +200,70 @@ TEST_CASE("GeneticDesign exposes explicit projections", "[bayes][compact]")
     REQUIRE_NOTHROW(joint.projection(GeneticMode::D));
 }
 
+TEST_CASE(
+    "GeneticDesign validates its representation on construction",
+    "[bayes][compact]")
+{
+    using gelex::bayes::GeneticDesign;
+    const auto spec = gelex::encoding_spec_from_method(
+        GeneticMode::A, GenotypeMethod::Center);
+    auto bed = gelex::test::make_bed(Eigen::MatrixXd{{0.0}, {1.0}, {2.0}});
+    auto genotype = std::make_unique<gelex::bayes::CompactGenotype>(
+        gelex::bayes::make_compact_genotype(bed));
+    const auto make_projections = [&](const gelex::bayes::CompactGenotype& g)
+    {
+        GeneticDesign::projection_array_type projections;
+        projections.at(std::to_underlying(GeneticMode::A))
+            = gelex::bayes::make_genetic_projection(g, spec);
+        return projections;
+    };
+    const auto make_metadata = []
+    {
+        return std::move(
+                   gelex::test::make_bed(Eigen::MatrixXd{{0.0}, {1.0}, {2.0}}))
+            .bim();
+    };
+
+    REQUIRE_THROWS_AS(
+        GeneticDesign(nullptr, make_projections(*genotype), make_metadata()),
+        gelex::GelexException);
+    REQUIRE_THROWS_AS(
+        GeneticDesign(
+            std::make_unique<gelex::bayes::CompactGenotype>(
+                gelex::bayes::make_compact_genotype(bed)),
+            GeneticDesign::projection_array_type{},
+            make_metadata()),
+        gelex::GelexException);
+
+    const auto stranger = gelex::bayes::make_compact_genotype(bed);
+    REQUIRE_THROWS_AS(
+        GeneticDesign(
+            std::make_unique<gelex::bayes::CompactGenotype>(
+                gelex::bayes::make_compact_genotype(bed)),
+            make_projections(stranger),
+            make_metadata()),
+        gelex::GelexException);
+
+    REQUIRE_THROWS_AS(
+        GeneticDesign(
+            std::make_unique<gelex::bayes::CompactGenotype>(
+                gelex::bayes::make_compact_genotype(bed)),
+            make_projections(*genotype),
+            std::move(
+                gelex::test::make_bed(
+                    Eigen::MatrixXd{{0.0, 1.0}, {1.0, 2.0}, {2.0, 0.0}}))
+                .bim()),
+        gelex::GelexException);
+
+    auto projections = make_projections(*genotype);
+    const GeneticDesign design{
+        std::move(genotype), std::move(projections), make_metadata()};
+    REQUIRE(design.rows() == 3);
+    REQUIRE(design.cols() == 1);
+    REQUIRE(design.contains(GeneticMode::A));
+    REQUIRE_FALSE(design.contains(GeneticMode::D));
+}
+
 TEST_CASE("GeneticDesign retains marker metadata", "[bayes][compact]")
 {
     gelex::test::BedFixture fixture;
@@ -210,10 +276,10 @@ TEST_CASE("GeneticDesign retains marker metadata", "[bayes][compact]")
                   {"3", "7"},
                   {{'A', 'G'}, {'C', 'T'}})
               .first;
-    const gelex::bayes::GeneticDesign design{
+    const auto design = gelex::bayes::make_genetic_design(
         gelex::open_bed(prefix.string()),
         gelex::GeneticModeSet{GeneticMode::A},
-        GenotypeMethod::Center};
+        GenotypeMethod::Center);
 
     const auto& metadata = design.marker_metadata();
     REQUIRE(
@@ -292,8 +358,9 @@ TEST_CASE(
         GeneticMode::A, GenotypeMethod::Center);
     const auto genotype = gelex::bayes::make_compact_genotype(
         gelex::test::make_bed(Eigen::MatrixXd{{0.0}, {1.0}, {2.0}}));
-    const gelex::bayes::GeneticProjection additive{genotype, spec};
+    const auto additive = gelex::bayes::make_genetic_projection(genotype, spec);
 
+    REQUIRE(&additive.genotype() == &genotype);
     Eigen::VectorXd expanded = Eigen::VectorXd::Zero(3);
     additive.axpy(0, 1.0, expanded);
     REQUIRE(expanded.isApprox(Eigen::VectorXd{{-1.0, 0.0, 1.0}}));
@@ -301,6 +368,58 @@ TEST_CASE(
     const auto other = gelex::bayes::make_compact_genotype(
         gelex::test::make_bed(Eigen::MatrixXd{{0.0}, {1.0}, {2.0}}));
     REQUIRE_THROWS_AS(
-        additive.col_covariance(gelex::bayes::GeneticProjection{other, spec}),
+        additive.col_covariance(
+            gelex::bayes::make_genetic_projection(other, spec)),
+        gelex::GelexException);
+}
+
+TEST_CASE(
+    "GeneticProjection is constructible from lookup tables",
+    "[bayes][compact]")
+{
+    const auto genotype = gelex::bayes::make_compact_genotype(
+        gelex::test::make_bed(
+            Eigen::MatrixXd{{0.0, 0.0}, {1.0, 0.0}, {2.0, 0.0}}));
+    // Dosage 0/1/2 is stored as code 3/2/0; a centred additive LUT is
+    // (1, 0, 0, -1), the monomorphic second marker is left out.
+    const gelex::SnpLutMatrix luts{
+        {1.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}, {-1.0, 0.0}};
+    const gelex::bayes::GeneticProjection projection{
+        genotype, luts, std::vector<Eigen::Index>{0}};
+
+    REQUIRE(projection.snp_luts().isApprox(luts));
+    REQUIRE(projection.xtx_diag().isApprox(Eigen::VectorXd{{2.0, 0.0}}));
+    REQUIRE(
+        projection.col_var().isApprox(Eigen::RowVectorXd{{2.0 / 3.0, 0.0}}));
+    REQUIRE(
+        std::vector<Eigen::Index>{
+            projection.valid_indices().begin(),
+            projection.valid_indices().end()}
+        == std::vector<Eigen::Index>{0});
+
+    const auto oracle = gelex::bayes::make_genetic_projection(
+        genotype,
+        gelex::encoding_spec_from_method(
+            GeneticMode::A, GenotypeMethod::Center));
+    REQUIRE(oracle.snp_luts().isApprox(luts));
+    REQUIRE(oracle.xtx_diag().isApprox(projection.xtx_diag()));
+
+    REQUIRE_THROWS_AS(
+        gelex::bayes::GeneticProjection(
+            genotype,
+            gelex::SnpLutMatrix::Zero(4, 1),
+            std::vector<Eigen::Index>{}),
+        gelex::GelexException);
+    REQUIRE_THROWS_AS(
+        gelex::bayes::GeneticProjection(
+            genotype, luts, std::vector<Eigen::Index>{2}),
+        gelex::GelexException);
+    REQUIRE_THROWS_AS(
+        gelex::bayes::GeneticProjection(
+            genotype, luts, std::vector<Eigen::Index>{1, 0}),
+        gelex::GelexException);
+    REQUIRE_THROWS_AS(
+        gelex::bayes::GeneticProjection(
+            genotype, luts, std::vector<Eigen::Index>{0, 0}),
         gelex::GelexException);
 }
