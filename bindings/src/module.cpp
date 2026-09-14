@@ -11,4 +11,5 @@ NB_MODULE(_gelex, m)
     gelex_py::register_types(m);
     gelex_py::register_data(m);
     gelex_py::register_io(m);
+    gelex_py::register_genotype(m);
 }

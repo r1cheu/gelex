@@ -1,6 +1,6 @@
 """Python bindings for the gelex C++ library"""
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 import enum
 from typing import Annotated
 
@@ -191,3 +191,82 @@ class CscReader:
 
 def sparse_draws_path(draws_path: str) -> str:
     """Path of the CSC companion written next to a .draws file."""
+
+class Bed:
+    """
+    A PLINK1 .bed dataset with its .fam/.bim metadata. gather() narrows and reorders the samples; every design built afterwards follows that order.
+    """
+
+    @property
+    def num_samples(self) -> int: ...
+
+    @property
+    def num_markers(self) -> int: ...
+
+    @property
+    def sample_ids(self) -> list[tuple[str, str]]:
+        """(FID, IID) of every sample in the current order."""
+
+    @property
+    def marker_ids(self) -> list[str]: ...
+
+    def gather(self, samples: Sequence[tuple[str, str]]) -> None:
+        """
+        Restrict the dataset to the given (FID, IID) pairs, in that order. Every pair must exist in the .fam file.
+        """
+
+def open_bed(bfile: str) -> Bed:
+    """Open `bfile`.bed/.bim/.fam."""
+
+class GeneticProjection:
+    """
+    One genetic mode's encoded view of a design's genotypes: each marker is a 4-entry lookup table over the raw BED codes.
+    """
+
+    @property
+    def num_samples(self) -> int: ...
+
+    @property
+    def num_markers(self) -> int: ...
+
+    @property
+    def snp_luts(self) -> Annotated[NDArray[numpy.float64], dict(shape=(None, None), order='F')]:
+        """
+        (4, markers) lookup tables indexed by raw BED code (A1A1, missing, A1A2, A2A2).
+        """
+
+def gebv(projection: GeneticProjection, coefficients: Annotated[NDArray[numpy.float64], dict(shape=(None,), writable=False)]) -> Annotated[NDArray[numpy.float64], dict(shape=(None,), order='C')]:
+    """
+    Genomic values of every sample under `projection` for one vector of marker coefficients (one posterior draw).
+    """
+
+class GeneticDesign:
+    """
+    The genotypes of one Bed's current samples together with a projection per genetic mode.
+    """
+
+    @property
+    def num_samples(self) -> int: ...
+
+    @property
+    def num_markers(self) -> int: ...
+
+    @property
+    def modes(self) -> list[GeneticMode]: ...
+
+    @property
+    def a1_frequency(self) -> Annotated[NDArray[numpy.float64], dict(shape=(None,), order='C')]: ...
+
+    def contains(self, mode: GeneticMode) -> bool: ...
+
+    def projection(self, mode: GeneticMode) -> GeneticProjection: ...
+
+def make_genetic_design(bed: Bed, luts: Mapping[GeneticMode, Annotated[NDArray[numpy.float64], dict(shape=(4, None), order='F')]]) -> GeneticDesign:
+    """
+    Build the design from the lookup tables of a trained model, as returned by load_snp_luts(). The Bed must carry the same markers in the same order and allele orientation as the training data.
+    """
+
+def load_snp_luts(path: str) -> dict[GeneticMode, Annotated[NDArray[numpy.float64], dict(shape=(4, None), order='F')]]:
+    """Read a .snplut file into {GeneticMode: (4, markers) array}."""
+
+def write_snp_luts(path: str, luts: Mapping[GeneticMode, Annotated[NDArray[numpy.float64], dict(shape=(4, None), order='F')]]) -> None: ...

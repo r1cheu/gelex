@@ -19,6 +19,7 @@
 #include "gelex/data/dataframe/dataframe.h"
 #include "gelex/data/encode/spec.h"
 #include "gelex/data/genotype_method.h"
+#include "gelex/data/snp_lut.h"
 #include "gelex/exception.h"
 #include "gelex/genetic_mode.h"
 
@@ -141,26 +142,100 @@ auto GeneticDesign::common_valid_indices() const
     return common_valid_indices_;
 }
 
+namespace
+{
+
+template <typename ProjectionOf>
+auto assemble_design(
+    const gelex::Bed& bed,
+    DataFrame<std::string> marker_metadata,
+    std::optional<MarkerCovariate> marker_covariate,
+    const std::function<void(std::size_t)>& observer,
+    ProjectionOf&& projection_of) -> GeneticDesign
+{
+    auto genotype = std::make_unique<CompactGenotype>(
+        make_compact_genotype(bed, observer));
+    GeneticDesign::projection_array_type projections = projection_of(*genotype);
+    return GeneticDesign{
+        std::move(genotype),
+        std::move(projections),
+        std::move(marker_metadata),
+        std::move(marker_covariate)};
+}
+
+auto encode_projections(GeneticModeSet modes, GenotypeMethod geno_method)
+{
+    return [modes, geno_method](const CompactGenotype& genotype)
+    {
+        GeneticDesign::projection_array_type projections;
+        for (const GeneticMode mode : modes.each())
+        {
+            projections.at(mode_index(mode)) = make_genetic_projection(
+                genotype, gelex::encoding_spec_from_method(mode, geno_method));
+        }
+        return projections;
+    };
+}
+
+}  // namespace
+
 auto make_genetic_design(
-    gelex::Bed bed,
+    gelex::Bed&& bed,
     GeneticModeSet modes,
     GenotypeMethod geno_method,
     std::optional<MarkerCovariate> marker_covariate,
     const std::function<void(std::size_t)>& observer) -> GeneticDesign
 {
-    auto genotype = std::make_unique<CompactGenotype>(
-        make_compact_genotype(bed, observer));
-    GeneticDesign::projection_array_type projections;
-    for (const GeneticMode mode : modes.each())
+    auto marker_metadata = std::move(bed).bim();
+    return assemble_design(
+        bed,
+        std::move(marker_metadata),
+        std::move(marker_covariate),
+        observer,
+        encode_projections(modes, geno_method));
+}
+
+auto make_genetic_design(
+    const gelex::Bed& bed,
+    GeneticModeSet modes,
+    GenotypeMethod geno_method,
+    std::optional<MarkerCovariate> marker_covariate,
+    const std::function<void(std::size_t)>& observer) -> GeneticDesign
+{
+    return assemble_design(
+        bed,
+        bed.bim().clone(),
+        std::move(marker_covariate),
+        observer,
+        encode_projections(modes, geno_method));
+}
+
+auto make_genetic_design(
+    const gelex::Bed& bed,
+    const ModeMap<gelex::SnpLutMatrix>& luts,
+    std::optional<MarkerCovariate> marker_covariate,
+    const std::function<void(std::size_t)>& observer) -> GeneticDesign
+{
+    if (luts.empty())
     {
-        projections.at(mode_index(mode)) = make_genetic_projection(
-            *genotype, gelex::encoding_spec_from_method(mode, geno_method));
+        throw GelexException(
+            "make_genetic_design: at least one mode's lookup table required");
     }
-    return GeneticDesign{
-        std::move(genotype),
-        std::move(projections),
-        std::move(bed).bim(),
-        std::move(marker_covariate)};
+    return assemble_design(
+        bed,
+        bed.bim().clone(),
+        std::move(marker_covariate),
+        observer,
+        [&luts](const CompactGenotype& genotype)
+        {
+            GeneticDesign::projection_array_type projections;
+            for (const auto& [mode, lut] : luts)
+            {
+                projections.at(mode_index(mode))
+                    = GeneticProjection{genotype, lut};
+            }
+            return projections;
+        });
 }
 
 }  // namespace gelex::bayes

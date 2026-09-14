@@ -21,6 +21,7 @@
 #include "gelex/data/bed.h"
 #include "gelex/data/dataframe/dataframe.h"
 #include "gelex/data/genotype_method.h"
+#include "gelex/data/snp_lut.h"
 #include "gelex/genetic_mode.h"
 
 namespace gelex::bayes
@@ -98,11 +99,28 @@ class GeneticDesign
 
 // Decodes the BED's current sample selection, takes its bim as marker
 // metadata, and projects every mode in modes under geno_method. observer is
-// notified with the number of markers decoded so far.
+// notified with the number of markers decoded so far. The rvalue overload
+// moves the bim out of the BED; the lvalue overload clones it.
 [[nodiscard]] auto make_genetic_design(
-    gelex::Bed bed,
+    gelex::Bed&& bed,
     GeneticModeSet modes,
     GenotypeMethod geno_method,
+    std::optional<MarkerCovariate> marker_covariate = std::nullopt,
+    const std::function<void(std::size_t)>& observer = {}) -> GeneticDesign;
+
+[[nodiscard]] auto make_genetic_design(
+    const gelex::Bed& bed,
+    GeneticModeSet modes,
+    GenotypeMethod geno_method,
+    std::optional<MarkerCovariate> marker_covariate = std::nullopt,
+    const std::function<void(std::size_t)>& observer = {}) -> GeneticDesign;
+
+// Rebuilds the design of a trained model from its saved lookup tables (one
+// per mode, 4 x markers). The BED must carry the training markers in the same
+// order and allele orientation; only the marker count can be verified here.
+[[nodiscard]] auto make_genetic_design(
+    const gelex::Bed& bed,
+    const ModeMap<gelex::SnpLutMatrix>& luts,
     std::optional<MarkerCovariate> marker_covariate = std::nullopt,
     const std::function<void(std::size_t)>& observer = {}) -> GeneticDesign;
 
