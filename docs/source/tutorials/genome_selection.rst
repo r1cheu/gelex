@@ -1,10 +1,10 @@
-Genomic Selection
-=================
+Genome Selection
+================
 
 .. admonition:: Quick Start
    :class: tip
 
-   For a standard Genomic Selection pipeline using **BayesR**:
+   For a standard genome selection pipeline using **BayesR**:
 
    .. code-block:: bash
       :caption: Model Fitting (Train)
@@ -13,7 +13,7 @@ Genomic Selection
         --bfile train_data \
         --pheno train_pheno.tsv \
         --method R \
-        --iters 20000 --burn-in 5000 \
+        --iters 20000 --burn-in 15000 \
         --out trained_model
 
    .. code-block:: bash
@@ -25,13 +25,13 @@ Genomic Selection
         --out predictions
 
 .. seealso::
-   New to genomic selection or the BayesAlphabet models? See
+   New to genome selection or the BayesAlphabet models? See
    :doc:`/concepts/bayesian_models` for the background and how the methods differ.
 
 Workflow Overview
 -----------------
 
-A typical GS analysis involves two main steps:
+A typical genome selection analysis involves two main steps:
 
 1.  **Model Fitting (``mcmc``)**: Train a Bayesian model on a reference population with both genotypes and phenotypes to estimate marker effects.
 2.  **Prediction (``predict``)**: Apply the estimated marker effects to the genotypes of a target population (candidates) to predict their Genomic Estimated Breeding Values (GEBVs) or phenotypic values.
@@ -39,7 +39,7 @@ A typical GS analysis involves two main steps:
 Step 1: Model Fitting
 ---------------------
 
-The first step is to fit a model to your training data. This estimates the effect size of each SNP and any fixed covariates.
+The first step is to fit a model to your training data. This estimates the effect size of each SNP and any covariates (fixed or random).
 
 .. seealso::
    See :ref:`mcmc-command` for a full list of options.
@@ -64,7 +64,6 @@ To fit a **BayesR** model:
      --bfile train_genotypes \
      --pheno phenotypes.tsv \
      --method R \
-     --chains 4 \
      --out model_output
 
 Handling Covariates
@@ -83,18 +82,49 @@ You can include fixed effects such as sex (discrete) or age (quantitative):
      --method R \
      --out model_with_covars
 
+Non-SNP random effects (for example field blocks or environments) are added
+with ``--drand`` (discrete factors) or ``--qrand`` (quantitative matrices),
+together with ``--random-pve``, the share of phenotypic variance assigned to
+them in the prior:
+
+.. code-block:: bash
+   :caption: Fit Model with a Block Random Effect
+
+   gelex mcmc \
+     --bfile train_genotypes \
+     --pheno phenotypes.tsv \
+     --drand blocks.tsv \
+     --random-pve 0.1 \
+     --method R \
+     --out model_with_blocks
+
 Outputs
 ~~~~~~~
 
 The ``mcmc`` command generates several files sharing the ``--out`` prefix:
 
-*   ``<out>.draws``: Binary retained posterior samples.
+*   ``<out>.snpeff``: Posterior marker effects (``BETA``, ``SE``, ``PVE``, and
+    ``PIP`` for the selection methods), one row per SNP.
+*   ``<out>.summary``: Convergence diagnostics of every model-level parameter
+    (mean, sd, median, HPDI, ESS, MCSE, split R-hat). The same table is printed
+    to the console at the end of the run.
+*   ``<out>.draws`` and ``<out>.draws.csc``: Binary retained posterior draws
+    (dense and marker-level sparse payloads).
 *   ``<out>.snplut``: Per-SNP genotype encoding lookup tables.
+*   ``<out>.id``: Retained training samples in design-row order.
 *   ``<out>.log``: Log of the MCMC process.
 
-The current ``mcmc`` command does not export posterior summaries or fitted
-SNP effects. The prediction examples below require an existing fitted-model
-export containing ``.snpeff`` and ``.param`` files as well as ``.snplut``.
+See :doc:`/reference/file_formats` for the layout of each file.
+
+Checking Convergence
+~~~~~~~~~~~~~~~~~~~~
+
+Before predicting, inspect ``<out>.summary``: ``ess`` should be comfortably
+large and ``split_rhat`` close to 1 for the variance components
+(``genetic/<mode>/variance``, ``residual/variance``) and heritabilities
+(``genetic/<mode>/heritability``). If not, increase ``--iters`` and
+``--burn-in``. For custom diagnostics, the Python package ``gelexy`` loads
+``.draws`` into ArviZ with ``gelexy.read_draws("<out>.draws")``.
 
 Step 2: Genomic Prediction
 --------------------------
@@ -116,10 +146,17 @@ Basic Usage
      --out predicted_values
 
 .. note::
-   ``--gfile`` takes the fitted-model **prefix** of an existing fitted-model export,
-   not a single file. ``predict`` reads ``<prefix>.snpeff``, ``<prefix>.snplut``
-   and ``<prefix>.param`` from it. ``--out`` is likewise a prefix: the result is
-   written to ``<out>.pred.tsv``.
+   ``--gfile`` takes the fitted-model **prefix**, not a single file.
+   ``predict`` reads ``<prefix>.snpeff`` and ``<prefix>.snplut`` written by
+   ``mcmc``, plus ``<prefix>.param`` holding the fixed-effect coefficients.
+   ``--out`` is likewise a prefix: the result is written to ``<out>.pred.tsv``.
+
+.. warning::
+   ``mcmc`` does not currently write ``<prefix>.param``. Its contents (the
+   posterior means of the fixed-effect coefficients) are in
+   ``<prefix>.summary`` under the ``fixed/coefficients`` id, but must be copied
+   into a ``.param`` table (:ref:`param-format`) before running ``predict``.
+   For a model without covariates this is just the ``Intercept`` row.
 
 Using Covariate Effects
 ~~~~~~~~~~~~~~~~~~~~~~~

@@ -8,8 +8,8 @@ Available Subcommands
 
 The subcommands are grouped by the workflow they belong to.
 
-Genomic Selection
-~~~~~~~~~~~~~~~~~
+Genome Selection
+~~~~~~~~~~~~~~~~
 
 .. list-table::
    :widths: 20 80
@@ -18,9 +18,8 @@ Genomic Selection
    * - Subcommand
      - Description
    * - :doc:`mcmc`
-     - Fit Bayesian genomic-prediction models (BayesAlphabet) via MCMC and estimate marker effects.
-   * - :doc:`post`
-     - Summarize posterior diagnostics from MCMC sample files.
+     - Fit Bayesian genome-selection models (BayesAlphabet) via MCMC; writes
+       posterior draws, convergence diagnostics, and marker effects.
    * - :doc:`predict`
      - Predict phenotypes for new samples using fitted SNP effects.
 
@@ -44,7 +43,6 @@ Association & Variance Components
    :hidden:
 
    mcmc
-   post
    predict
    grm
    reml

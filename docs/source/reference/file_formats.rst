@@ -1,9 +1,9 @@
-Data Formats
+File Formats
 ============
 
 Gelex supports standard bioinformatics formats for genomic analysis.
-Most inputs are PLINK binaries or tabular text files, and outputs are
-command-specific TSV-style summaries.
+Most inputs are PLINK binaries or tab-separated text files (TSV), and
+outputs are command-specific TSV tables.
 
 Quick Reference
 ---------------
@@ -24,17 +24,21 @@ relevant detail section.
      - ``mcmc``, ``assoc``, ``predict``
      - :ref:`genotype-format`
    * - Phenotype
-     - ``.tsv`` or space-separated text
+     - Tab-separated text (TSV)
      - ``mcmc``, ``assoc``, ``reml``
      - :ref:`phenotype-format`
    * - Quantitative covariates
-     - ``.tsv`` or space-separated text
+     - Tab-separated text (TSV)
      - ``mcmc``, ``assoc``, ``reml``, ``predict``
      - :ref:`covariate-format`
    * - Discrete covariates
-     - ``.tsv`` or space-separated text
+     - Tab-separated text (TSV)
      - ``mcmc``, ``assoc``, ``reml``, ``predict``
      - :ref:`covariate-format`
+   * - Random-effect designs
+     - Tab-separated text (TSV)
+     - ``mcmc``, ``assoc``, ``reml``
+     - :ref:`random-effect-format`
    * - GRM
      - ``.bin`` + ``.id``
      - ``assoc``, ``reml``
@@ -53,8 +57,20 @@ relevant detail section.
      - SNP posterior effects
      - :ref:`snp-eff-format`
    * - ``mcmc``
-     - ``.param``, ``.summary``
-     - Effect coefficients and model-level posterior summaries
+     - ``.summary``
+     - Convergence diagnostics of every model-level parameter
+     - :ref:`summary-format`
+   * - ``mcmc``
+     - ``.draws``, ``.draws.csc``
+     - Retained posterior draws (binary)
+     - :ref:`draws-format`
+   * - ``mcmc``
+     - ``.snplut``, ``.id``
+     - Genotype encoding lookup tables and retained sample IDs
+     - :ref:`snplut-format`, :ref:`id-format`
+   * - ``predict`` (input)
+     - ``.param``
+     - Fixed-effect coefficients
      - :ref:`param-format`
    * - ``assoc``
      - ``.gwas.tsv``
@@ -65,7 +81,7 @@ relevant detail section.
      - Individual predictions
      - :ref:`predict-output-format`
 
-Input Data Formats
+Input File Formats
 ------------------
 
 .. _genotype-format:
@@ -105,8 +121,7 @@ Related command docs: :ref:`mcmc-command`, :ref:`assoc-command`,
 Phenotype Data
 ~~~~~~~~~~~~~~
 
-Phenotype files should be tab-separated (TSV) or space-separated text
-with a required header row.
+Phenotype files are tab-separated (TSV) with a required header row.
 
 .. list-table:: Phenotype file requirements
    :header-rows: 1
@@ -145,8 +160,9 @@ Related command docs: :ref:`mcmc-command`, :ref:`assoc-command`.
 Covariate Data
 ~~~~~~~~~~~~~~
 
-Gelex supports two covariate types. Both use the same base layout as
-phenotype files: ``FID``, ``IID``, followed by one or more covariate columns.
+Gelex supports two covariate types. Both use the same tab-separated layout
+as phenotype files: ``FID``, ``IID``, followed by one or more covariate
+columns, with a header row.
 
 .. list-table:: Covariate types
    :header-rows: 1
@@ -188,6 +204,40 @@ variables (one-hot encoding).
 
 Related command docs: :ref:`mcmc-command`, :ref:`predict-command`.
 
+.. _random-effect-format:
+
+Random-Effect Designs
+~~~~~~~~~~~~~~~~~~~~~
+
+Non-SNP random effects use the same tab-separated ``FID IID ...`` layout as
+covariates and
+are passed with ``--drand`` (discrete factors) or ``--qrand`` (quantitative
+matrices).
+
+.. list-table:: Random-effect design types
+   :header-rows: 1
+   :widths: 24 38 38
+
+   * - Type
+     - Layout
+     - CLI option
+   * - Discrete random effect
+     - ``FID IID factor1 factor2 ...``; each factor column is one-hot encoded
+       into its own random-effect block
+     - ``--drand`` (one file)
+   * - Quantitative random effect
+     - ``FID IID value1 value2 ...``; the numeric columns of each file form one
+       random-effect block
+     - ``--qrand`` (one or more files)
+
+In ``mcmc`` every block receives its own variance component and
+``--random-pve`` fixes the prior share of phenotypic variance assigned to all
+of them together. ``reml`` and ``assoc`` estimate one variance component per
+block.
+
+Related command docs: :ref:`mcmc-command`, :ref:`reml-command`,
+:ref:`assoc-command`.
+
 .. _grm-format:
 
 Genomic Relationship Matrix (GRM)
@@ -216,7 +266,7 @@ matrix alongside a sample-ID text file.
    example ``<out>.A.bin`` for the additive GRM), so the corresponding
    ``--grm`` prefix is ``<out>.<effect>``.
 
-Output Data Formats
+Output File Formats
 -------------------
 
 Gelex generates structured output files based on the command you run.
@@ -232,8 +282,10 @@ Command-to-Output Mapping
      - Main output file(s)
      - Description
    * - ``mcmc``
-     - ``<out>.draws``, ``<out>.snplut``, ``<out>.log``
-     - Retained posterior samples, genotype encoding lookup tables, and run log.
+     - ``<out>.snpeff``, ``<out>.summary``, ``<out>.draws``,
+       ``<out>.draws.csc``, ``<out>.snplut``, ``<out>.id``, ``<out>.log``
+     - Posterior marker effects, convergence diagnostics, retained posterior
+       draws, genotype encoding lookup tables, retained sample IDs, and run log.
    * - ``assoc``
      - ``<out>.gwas.tsv``
      - SNP-level association statistics.
@@ -286,36 +338,126 @@ dominance effects.
      - (Only when both additive and dominance effects are present) Total
        proportion of variance explained.
 
-.. _param-format:
-
-Model Parameters (.param)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Generated by ``mcmc``. A tab-separated file with the posterior mean and
-standard deviation of each fixed-effect and non-SNP random-effect
-coefficient.
-
-.. list-table::
-   :header-rows: 1
-   :widths: 25 75
-
-   * - Column
-     - Description
-   * - ``term``
-     - Coefficient name (for example ``Intercept``, a covariate name, or
-       a random-effect level).
-   * - ``mean``
-     - Posterior mean.
-   * - ``stddev``
-     - Posterior standard deviation.
-
 .. _summary-format:
 
 Model Summary (.summary)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Generated by ``mcmc``. A tab-separated file with posterior summaries of
-model-level terms such as variance components.
+Generated by ``mcmc``. A tab-separated table with one row per diagnosed
+parameter, computed from the retained draws after the run. The same table
+(restricted to model-level terms) is printed to the console.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 75
+
+   * - Column
+     - Description
+   * - ``id``
+     - Parameter identifier (see below).
+   * - ``index``
+     - Row within a vector-valued parameter, ``0`` for scalars.
+   * - ``mean``, ``sd``, ``median``
+     - Posterior mean, standard deviation and median.
+   * - ``hpdi_lower``, ``hpdi_upper``
+     - Bounds of the 95% highest posterior density interval.
+   * - ``ess``
+     - Effective sample size.
+   * - ``mcse``
+     - Monte Carlo standard error of the mean.
+   * - ``split_rhat``
+     - Split-chain R-hat convergence diagnostic (values near 1 indicate
+       convergence).
+
+Identifiers follow the ``<term>/<quantity>`` layout of the draws container:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 40 60
+
+   * - ``id``
+     - Meaning
+   * - ``fixed/coefficients``
+     - Fixed-effect coefficients; ``index`` 0 is the intercept, followed by
+       the covariate columns in fitted order.
+   * - ``random/<name>/coefficients``, ``random/<name>/variance``
+     - Level coefficients and variance of each ``--drand``/``--qrand`` block.
+   * - ``genetic/<mode>/variance``
+     - Marker effect variance of mode ``A`` or ``D`` (pooled-variance methods
+       ``RR``, ``C``, ``R``, ``CD``).
+   * - ``genetic/<mode>/probability``, ``genetic/<mode>/probabilities``
+     - Mixture proportions: the inclusion probability of ``B``/``C``, or the
+       five class proportions of ``R`` (one row per class).
+   * - ``genetic/joint/probabilities``, ``genetic/joint/annotation_coefficients``
+     - ``CD`` only: joint allocation proportions (both-off, additive-only,
+       dominance-only, both-on) and the probit annotation coefficients.
+   * - ``genetic/<mode>/explained_variance``, ``genetic/<mode>/heritability``
+     - Variance of the mode's genetic values across samples and its share of
+       the total (genetic plus residual) variance.
+   * - ``genetic/total/explained_variance``, ``genetic/total/heritability``
+     - The same for the summed additive and dominance values
+       (``--mode AD`` only).
+   * - ``residual/variance``
+     - Residual variance.
+
+.. _draws-format:
+
+Posterior Draws (.draws, .draws.csc)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Generated by ``mcmc``. Two binary containers holding every retained draw
+(after burn-in and thinning), one column per draw:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 20 80
+
+   * - File
+     - Contents
+   * - **.draws**
+     - Dense payloads: fixed and random-effect coefficients, variances,
+       mixture proportions, and dense marker coefficients (``RR``, ``A``).
+   * - **.draws.csc**
+     - Sparse (CSC) marker-level payloads of the selection methods:
+       ``genetic/<mode>/coefficients`` and ``genetic/<mode>/assignment``
+       (the mixture class of each marker in each draw).
+
+Payloads are addressed by the same identifiers as the ``.summary`` table.
+The Python package ``gelexy`` exposes both containers (``DenseReader``,
+``CscReader``) and converts a run into an ArviZ ``InferenceData`` with
+``gelexy.read_draws("<out>.draws")``.
+
+.. _snplut-format:
+
+Genotype Lookup Tables (.snplut)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Generated by ``mcmc``. A binary file with one lookup table per SNP and
+effect mode (``A``, and ``D`` when fitted), mapping raw genotype calls to the
+coded values used during training. ``predict`` applies these tables to the
+target genotypes so that the training coding (``--geno-method``) is
+reproduced exactly.
+
+.. _id-format:
+
+Sample IDs (.id)
+~~~~~~~~~~~~~~~~
+
+Generated by ``mcmc`` (and, for GRMs, by ``grm``). Tab-separated ``FID``
+and ``IID`` without a header, one line per sample, in the row order of the
+design matrix. For ``mcmc`` this lists the samples retained after
+intersecting the genotypes with the phenotype and covariate files. The
+layout is accepted by PLINK ``--keep``.
+
+.. _param-format:
+
+Model Parameters (.param)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Read by ``predict`` as ``<gfile>.param``. A tab-separated table with a
+header row; the first column names the fixed-effect term and the second
+holds its coefficient (further columns are ignored). The first row must be
+the ``Intercept``.
 
 .. list-table::
    :header-rows: 1
@@ -324,14 +466,15 @@ model-level terms such as variance components.
    * - Column
      - Description
    * - ``term``
-     - Term name.
-   * - ``effect``
-     - ``A`` or ``D`` when the term is tied to the additive or dominance
-       component, otherwise ``-``.
+     - Coefficient name: ``Intercept``, a quantitative covariate column name,
+       or a discrete covariate level.
    * - ``mean``
-     - Posterior mean.
-   * - ``stddev``
-     - Posterior standard deviation.
+     - Posterior mean of the coefficient.
+
+.. note::
+
+   ``mcmc`` does not currently write this file. The values it holds are the
+   ``fixed/coefficients`` rows of ``.summary``.
 
 .. _gwas-output-format:
 
