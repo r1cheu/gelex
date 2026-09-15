@@ -28,14 +28,15 @@ Fit a Bayesian model (BayesR) on a training set:
      --burn-in 2000 \
      -o result/my_analysis
 
-This writes the fitted marker effects and summaries under the
-``result/my_analysis`` prefix, ready to feed into ``gelex predict``.
+This writes the posterior draws, convergence diagnostics (``.summary``), and
+posterior marker effects (``.snpeff``) under the ``result/my_analysis`` prefix.
+The diagnostics table is also printed to the console at the end of the run.
 
 Where to Go Next
 ----------------
 
-- :doc:`/tutorials/genomic_selection` — full train-then-predict workflow.
+- :doc:`/tutorials/genome_selection` — full genome-selection workflow (train, then predict).
 - :doc:`/tutorials/gwas` — mixed-model association testing.
 - :doc:`/concepts/bayesian_models` — how the BayesAlphabet methods differ.
 - :doc:`/reference/cli/index` — every command and option.
-- :doc:`/reference/data_formats` — input and output file layouts.
+- :doc:`/reference/file_formats` — input and output file layouts.

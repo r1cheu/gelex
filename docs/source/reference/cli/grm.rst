@@ -107,7 +107,7 @@ Output naming depends on whether you request one or multiple matrices.
      - ``<out>.A.bin/.id`` and ``<out>.D.bin/.id``
      - One file pair per effect mode.
    * - LOCO enabled
-     - ``<out>.<add|dom>.chrNN.bin/.id``
+     - ``<out>.<A|D>.chrNN.bin/.id``
      - One file pair per chromosome (and effect mode); ``NN`` is the
        zero-padded chromosome number (``chr01``, ``chr02``, ...).
 

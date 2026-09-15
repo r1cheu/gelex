@@ -32,10 +32,9 @@ Options
    PLINK binary prefix (``.bed/.bim/.fam``) for target samples.
 
 ``-g, --gfile`` ``required``
-   Existing fitted-model export prefix. The current ``mcmc`` command only
-   writes draws and does not create this export. Reads
-   ``<prefix>.snpeff``, ``<prefix>.snplut``, and ``<prefix>.param``
-   (covariate coefficients are taken from ``.param``).
+   Fitted-model prefix. Reads ``<prefix>.snpeff`` and ``<prefix>.snplut``
+   (both written by ``mcmc``) and ``<prefix>.param`` (fixed-effect
+   coefficients; see the note below).
 
 ``-o, --out`` ``required``
    Output prefix. ``predict`` writes ``<out>.pred.tsv``.
@@ -72,6 +71,16 @@ Output Files
 
 Warnings and Notes
 ------------------
+
+.. warning::
+
+   ``mcmc`` does not currently write ``<prefix>.param``. The posterior means
+   of the fixed-effect coefficients are available in ``<prefix>.summary``
+   under the ``fixed/coefficients`` id (row ``index`` 0 is the intercept),
+   but ``predict`` expects them in a separate ``.param`` table
+   (:ref:`param-format`) that must be assembled before running it. For a
+   model without covariates this is a two-line file holding the ``Intercept``
+   row only.
 
 .. note::
 

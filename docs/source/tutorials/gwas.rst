@@ -52,7 +52,7 @@ Genome-wide association study (GWAS) tests the statistical association between g
 .. seealso::
    For the statistical background — the mixed linear model, the LOCO strategy,
    and the phenotype transformations — see :doc:`/concepts/mixed_model_gwas`.
-   For the files used in this process, see :doc:`/reference/data_formats`.
+   For the files used in this process, see :doc:`/reference/file_formats`.
 
 Workflow Overview
 ~~~~~~~~~~~~~~~~~

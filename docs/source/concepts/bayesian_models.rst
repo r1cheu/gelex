@@ -9,7 +9,7 @@ how their priors differ. Use it to choose a ``--method`` for :ref:`mcmc-command`
 Why Bayesian Whole-Genome Regression
 ------------------------------------
 
-Genomic Selection (GS) uses genome-wide markers to predict complex traits.
+Genome Selection (GS) uses genome-wide markers to predict complex traits.
 Unlike GWAS, which focuses on identifying individual significant variants, GS
 aims to capture the *total* genetic value of an individual by simultaneously
 estimating the effects of all markers, even those with small effects.
@@ -64,4 +64,4 @@ See Also
 --------
 
 - :ref:`mcmc-command` for the full option list.
-- :doc:`/tutorials/genomic_selection` for an end-to-end prediction workflow.
+- :doc:`/tutorials/genome_selection` for an end-to-end prediction workflow.

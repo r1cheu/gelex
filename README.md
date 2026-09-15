@@ -29,7 +29,6 @@ on PLINK binary genotypes.
 | `assoc`    | Mixed-model association testing, with optional LOCO   |
 | `predict`  | Predict phenotypes from fitted SNP effects            |
 | `grm`      | Build genomic relationship matrices from PLINK data   |
-| `post`     | Summarize posterior diagnostics from MCMC samples     |
 
 Available priors, effect modes, and options for each command are described in
 the [documentation](https://gelex.readthedocs.io).

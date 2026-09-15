@@ -3,7 +3,7 @@
 mcmc
 ====
 
-Train SNP effect models for genomic prediction using BayesAlphabet methods
+Train SNP effect models for genome selection using BayesAlphabet methods
 with MCMC (Gibbs sampling).
 
 Use this command when you want to learn marker effects from training data,
@@ -22,8 +22,8 @@ Basic Syntax
 
    gelex mcmc --pheno <pheno_file> --bfile <genotype_prefix> --method <method> [OPTIONS]
 
-Required inputs are phenotype file (``--pheno``), genotype prefix (``--bfile``),
-and model method (``--method``).
+Required inputs are the phenotype file (``--pheno``) and the genotype prefix
+(``--bfile``). ``--method`` defaults to ``RR``.
 
 Method Selection
 ----------------
@@ -56,11 +56,11 @@ Choose a method based on your goal before tuning other parameters.
 If you are unsure, start with ``RR`` to establish a baseline, then try
 ``R`` as a stronger default for production runs.
 
-The mixture proportions of the selection methods can either be fixed or
-estimated from the data. Add ``--sample-pi`` (additive), ``--sample-dpi``
-(dominance), or ``--sample-jpi`` (joint, ``CD``) to sample the proportions
-instead of holding them fixed; this is more adaptive but may require longer
-chains for stable estimates.
+The mixture proportions of the selection methods (``B``, ``C``, ``R``, ``CD``)
+are always updated during sampling. ``--pi``, ``--dpi`` and ``--jpi`` set the
+starting proportions; their posterior summaries are written to ``.summary``
+as ``genetic/<mode>/probability`` (``B``/``C``), ``genetic/<mode>/probabilities``
+(``R``) or ``genetic/joint/probabilities`` (``CD``).
 
 Options
 -------
@@ -74,8 +74,8 @@ Options
    PLINK binary prefix (``.bed/.bim/.fam``).
 
 ``-m, --method`` ``RR``
-   Modeling method. Start with ``RR`` (baseline) or ``R``
-   (accuracy-oriented).
+   Modeling method: ``RR``, ``A``, ``B``, ``C``, ``R``, ``CD``. Start with
+   ``RR`` (baseline) or ``R`` (accuracy-oriented).
 
 ``-o, --out`` ``gelex``
    Output prefix for generated files.
@@ -86,10 +86,22 @@ Options
    0-based trait column index after ``FID``/``IID``; the first trait is ``0``.
 
 ``--qcovar``
-   Quantitative covariate TSV in format ``FID IID covar1 ...``.
+   Quantitative covariate TSV in format ``FID IID covar1 ...``. Fitted as
+   fixed effects.
 
 ``--dcovar``
-   Categorical covariate TSV in format ``FID IID factor1 ...``.
+   Categorical covariate TSV in format ``FID IID factor1 ...``. Fitted as
+   fixed effects after one-hot encoding.
+
+``--drand``
+   Discrete random-effect TSV (``FID IID factor1 ...``); each factor column
+   defines one one-hot random-effect block with its own variance component.
+   Requires ``--random-pve``.
+
+``--qrand``
+   One or more quantitative random-effect matrix TSVs (``FID IID value1 ...``);
+   each file defines one random-effect block with its own variance component.
+   Requires ``--random-pve``.
 
 ``--manno``
    Marker annotation TSV with header ``CHR SNP BP A1 A2 <annotation>`` and
@@ -110,33 +122,37 @@ Options
    :ref:`genotype-processor-methods` for what each code means.
 
 ``--h2``
-   Additive heritability, in the open interval ``(0, 1)``.
+   Additive heritability used to set the prior variance budget, in the open
+   interval ``(0, 1)``. Requires ``--mode`` to include ``A``.
 
 ``--d2``
-   Dominance heritability, in the open interval ``(0, 1)``.
+   Dominance heritability used to set the prior variance budget, in the open
+   interval ``(0, 1)``. Requires ``--mode`` to include ``D``.
 
 ``--random-pve``
-   Variance fraction for non-SNP random effects, in ``(0, 1)``.
+   Fraction of the phenotypic variance assigned to the non-SNP random effects
+   (``--drand``/``--qrand``), in ``(0, 1)``. Must be given together with at
+   least one of ``--drand``/``--qrand``, and is rejected without them.
 
 ``--scale``
-   Additive variance multipliers, used by BayesR-style models (``R``).
+   Five additive variance multipliers for ``R`` (the first must be ``0``).
+   Default ``0 0.001 0.01 0.1 1``.
 
 ``--pi``
-   Additive mixture proportions for the selection methods (``B``/``C``/``R``).
+   Starting additive mixture proportions: one inclusion probability for
+   ``B``/``C`` (default ``0.01``), or five class proportions for ``R``
+   (default ``0.99 0.005 0.003 0.001 0.001``).
 
 ``--dscale``
-   Dominance variance multipliers for dominance-enabled BayesR models (``R``).
+   Five dominance variance multipliers for ``R`` under ``--mode D``/``AD``.
 
 ``--dpi``
-   Dominance mixture proportions for the selection methods (``B``/``C``/``R``).
+   Starting dominance mixture proportions for ``B``/``C``/``R`` under
+   ``--mode D``/``AD``; same shape as ``--pi``.
 
 ``--jpi``
-   Joint allocation proportions for ``CD``:
+   Starting joint allocation proportions for ``CD``:
    both-off, additive-only, dominance-only, both-on.
-
-``--sample-pi`` / ``--sample-dpi`` / ``--sample-jpi``
-   Sample additive, dominance, or joint (``CD``) mixture proportions instead of
-   holding them fixed.
 
 .. rubric:: MCMC Options
 
@@ -152,12 +168,6 @@ Options
 ``--seed`` ``42``
    Random seed for reproducible MCMC.
 
-``--checkpoint-step``
-   Write a checkpoint every N iterations. Omit to checkpoint only at the end.
-
-``--from-ckpt``
-   Resume the run from an existing checkpoint file.
-
 .. rubric:: Performance
 
 ``-t, --threads`` ``half of available CPU cores``
@@ -167,8 +177,10 @@ Output Files
 ------------
 
 After a successful run, check files with your output prefix first.
-The current command writes draws directly; it does not export posterior
-summary tables or the fitted-effect files required by ``predict``.
+The command records every retained draw during sampling, then reads the draws
+back to compute convergence diagnostics and posterior marker effects. The
+diagnostics table (mean, sd, ESS and split R-hat of every model-level term) is
+also printed to the console.
 
 .. list-table::
    :header-rows: 1
@@ -177,15 +189,28 @@ summary tables or the fitted-effect files required by ``predict``.
    * - File pattern
      - Contents
      - Typical next step
-   * - ``<out>.draws``
-     - Binary posterior draws recorded during sampling
-     - Analyze retained samples
+   * - ``<out>.snpeff``
+     - Posterior marker effects: ``BETA``, ``SE``, ``PVE`` (and ``PIP`` for
+       the selection methods) per mode (:ref:`snp-eff-format`)
+     - Feed into ``predict``; rank markers
+   * - ``<out>.summary``
+     - Convergence diagnostics of every model-level parameter: mean, sd,
+       median, HPDI, ESS, MCSE and split R-hat (:ref:`summary-format`)
+     - Check ESS and R-hat before trusting the fit
+   * - ``<out>.draws``, ``<out>.draws.csc``
+     - Binary retained posterior draws; dense payloads in ``.draws`` and
+       marker-level sparse payloads in ``.draws.csc`` (:ref:`draws-format`)
+     - Custom posterior analysis (for example with ``gelexy.read_draws``)
    * - ``<out>.snplut``
-     - Per-SNP genotype encoding lookup tables
-     - Retain alongside the draws
+     - Per-SNP genotype encoding lookup tables (:ref:`snplut-format`)
+     - Required by ``predict`` alongside ``.snpeff``
+   * - ``<out>.id``
+     - Samples retained after intersecting the genotypes with the phenotype
+       and covariates, in design-row order (:ref:`id-format`)
+     - Record which samples trained the model; usable with PLINK ``--keep``
    * - ``<out>.log``
      - Run log and configuration used
-     - Review convergence and settings
+     - Review settings
 
 Warnings and Notes
 ------------------
@@ -193,8 +218,14 @@ Warnings and Notes
 .. note::
 
    For many datasets, a practical starting point is ``--burn-in`` around
-   20%-50% of ``--iters``. Increase ``--iters`` when posterior summaries are
-   unstable across runs.
+   20%-50% of ``--iters``. Increase ``--iters`` when ``ess`` in ``.summary``
+   is low or ``split_rhat`` stays clearly above 1.
+
+.. note::
+
+   ``predict`` additionally needs a ``<prefix>.param`` table of fixed-effect
+   coefficients, which ``mcmc`` does not currently write. See
+   :ref:`predict-command`.
 
 Examples
 --------
@@ -208,7 +239,9 @@ Examples
       -m RR \
       -o model_rr
 
-Expected outputs: ``model_rr.draws``, ``model_rr.snplut``, ``model_rr.log``.
+Expected outputs: ``model_rr.snpeff``, ``model_rr.summary``,
+``model_rr.draws``, ``model_rr.draws.csc``, ``model_rr.snplut``,
+``model_rr.id``, ``model_rr.log``.
 
 .. code-block:: bash
    :caption: Accuracy-Oriented Training (R)
@@ -219,8 +252,6 @@ Expected outputs: ``model_rr.draws``, ``model_rr.snplut``, ``model_rr.log``.
       -m R \
       -o model_bayesr
 
-Expected outputs: ``model_bayesr.draws``, ``model_bayesr.snplut``, ``model_bayesr.log``.
-
 .. code-block:: bash
    :caption: Sparse Effects with Variable Selection (B)
 
@@ -228,7 +259,7 @@ Expected outputs: ``model_bayesr.draws``, ``model_bayesr.snplut``, ``model_bayes
       -b train_data \
       -p phenotypes.tsv \
       -m B \
-      --pi 0.99 0.01 \
+      --pi 0.01 \
       -o model_bayesb
 
 .. code-block:: bash
@@ -241,6 +272,17 @@ Expected outputs: ``model_bayesr.draws``, ``model_bayesr.snplut``, ``model_bayes
       --dcovar sex.tsv \
       --qcovar age.tsv \
       -o model_covar
+
+.. code-block:: bash
+   :caption: Add a Non-SNP Random Effect
+
+   gelex mcmc \
+      -b train_data \
+      -p phenotypes.tsv \
+      -m R \
+      --drand blocks.tsv \
+      --random-pve 0.1 \
+      -o model_block
 
 .. code-block:: bash
    :caption: Longer MCMC for Stable Posterior Estimates
@@ -262,8 +304,8 @@ Expected outputs: ``model_bayesr.draws``, ``model_bayesr.snplut``, ``model_bayes
       -p phenotypes.tsv \
       -m R \
       --mode AD \
-      --dscale 0.0001 0.001 0.01 0.1 1.0 \
-      --dpi 0.95 0.05 \
+      --dscale 0 0.001 0.01 0.1 1.0 \
+      --dpi 0.99 0.005 0.003 0.001 0.001 \
       -o model_dom
 
 .. code-block:: bash
@@ -282,17 +324,6 @@ Expected outputs: ``model_bayesr.draws``, ``model_bayesr.snplut``, ``model_bayes
 ``CD`` assumes the additive and dominance columns of each marker are
 orthogonal, so use a NOIA coding (``NS`` or ``NC``). The coding is not
 enforced; other codings run but violate the model's factorisation.
-
-.. code-block:: bash
-   :caption: Estimate Mixture Proportions
-
-   gelex mcmc \
-      -b train_data \
-      -p phenotypes.tsv \
-      -m C \
-      --pi 0.9 0.1 \
-      --sample-pi \
-      -o model_cpi
 
 See Also
 --------
